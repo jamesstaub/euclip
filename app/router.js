@@ -10,9 +10,10 @@ Router.map(function() {
   this.route('user', { path: '/' }, function () {
     this.route('my-projects', { path: '/' });
     this.route('new');
-    this.route('creator', { path: '/:uid' }, function() {
+    this.route('creator', { path: '/:user_id' }, function() {
       this.route('project', { path: '/:slug' });
       this.route('projects');
     });
   });
+  this.route('login');
 });

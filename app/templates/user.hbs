@@ -1,11 +1,11 @@
 <nav>
+  {{#if session.isAuthenticated}}
+    [{{session.currentUser.username}}]
+    <a {{action "invalidateSession"}}>
+      Logout
+    </a>
+  {{else}}
+    <LinkTo @route="login">login</LinkTo>
+  {{/if}}
   <LinkTo @route="user.new">new</LinkTo>
 </nav>
-<div>
-  {{#each @model.projects as |project|}}
-    <LinkTo @route="user.creator.project" @model={{project.id}}>
-      {{project.title}}
-    </LinkTo>
-  {{/each}}
-  {{outlet}}
-</div>

@@ -1,1 +1,11 @@
+my:
+<div>
+  {{#each @model as |project|}}
+    <LinkTo @route="user.creator.project" @model={{project.id}}>
+      {{project.title}}
+    </LinkTo>
+  {{/each}}
+  {{outlet}}
+</div>
+
 {{outlet}}
