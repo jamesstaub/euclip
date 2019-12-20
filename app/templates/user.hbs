@@ -1,10 +1,11 @@
 <nav>
   <LinkTo @route="user.new">new</LinkTo>
 </nav>
-{{#each @model.projects as |project|}}
-  <LinkTo @route="user.creator.project" @model={{project.id}}>
-    {{project.title}}
-  </LinkTo>
-{{/each}}
-
-{{outlet}}
+<div>
+  {{#each @model.projects as |project|}}
+    <LinkTo @route="user.creator.project" @model={{project.id}}>
+      {{project.title}}
+    </LinkTo>
+  {{/each}}
+  {{outlet}}
+</div>

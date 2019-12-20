@@ -8,6 +8,7 @@ export default class Router extends EmberRouter {
 
 Router.map(function() {
   this.route('user', { path: '/' }, function () {
+    this.route('my-projects', { path: '/' });
     this.route('new');
     this.route('creator', { path: '/:uid' }, function() {
       this.route('project', { path: '/:slug' });

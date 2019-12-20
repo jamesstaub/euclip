@@ -5,8 +5,9 @@ export default class UserNewRoute extends Route {
     const user = this.store.peekAll('user').firstObject;
     const project = this.store.createRecord('project', {
       creator: user,
-      slug: 'p1'
+      slug: 'p1',
+      title: 'n∑wpro∆'
     });
-    this.transitionTo('user.creator.project', user, project);
+    return this.transitionTo('user.creator.project', user, project);
   }
 }
