@@ -1,4 +1,8 @@
 <div class="bg-light-gray">
   <h2>{{model.title}}</h2>
   {{outlet}}
+  {{log model.tracks.length}}
+  {{#each @model.tracks as |track|}}
+    {{track.sequence}}
+  {{/each}}
 </div>

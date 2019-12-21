@@ -1,8 +1,11 @@
 export default function() {
-
   this.get('/users/me', (schema) => {
     const user = schema.users.first();
     return user;
+  });
+
+  this.get('/users/:id/projects', (schema) => {
+    return schema.projects.all();
   });
   
   this.post('/projects');

@@ -14,7 +14,7 @@ export default class LoginController extends Controller {
     }
 
     if (this.session.isAuthenticated) {
-      this.transitionToRoute('user');
+      this.transitionToRoute('user.my-projects');
       // What to do with all this success?
     }
   }

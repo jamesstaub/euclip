@@ -1,9 +1,9 @@
-my:
+
 <div>
   {{#each @model as |project|}}
-    <LinkTo @route="user.creator.project" @model={{project.id}}>
+    {{#link-to "user.creator.project" project.creator project}}
       {{project.title}}
-    </LinkTo>
+    {{/link-to}}
   {{/each}}
   {{outlet}}
 </div>

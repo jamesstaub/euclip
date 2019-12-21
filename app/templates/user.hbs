@@ -1,11 +1,13 @@
 <nav>
   {{#if session.isAuthenticated}}
     [{{session.currentUser.username}}]
-    <a {{action "invalidateSession"}}>
-      Logout
+    <a role="button" {{action "invalidateSession"}}>
+      logout
     </a>
   {{else}}
     <LinkTo @route="login">login</LinkTo>
   {{/if}}
   <LinkTo @route="user.new">new</LinkTo>
 </nav>
+
+{{outlet}}

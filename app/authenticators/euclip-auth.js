@@ -5,7 +5,6 @@ export default Base.extend({
   session: service(),
 
   restore(data) {
-    controller.get('resto')
     if (this.session.currentUser) {
       Promise.resolve();
     } else {

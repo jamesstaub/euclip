@@ -1,5 +1,7 @@
 import { Factory } from 'ember-cli-mirage';
 
 export default Factory.extend({
-  username: 'james',
+  hits: i => i,
+  steps: i => i * 4,
+  offset: i => 0,
 });
