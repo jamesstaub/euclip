@@ -9,7 +9,10 @@ export default function() {
   });
   
   this.post('/projects');
-  this.get('/projects/:slug');
+  this.get('/projects/:slug', (schema, {params}) => {
+    return schema.projects.where(params).models[0];
+  });
+
   this.put('/projects/:slug');
   this.del('/projects/:slug');
 

@@ -1,8 +1,10 @@
 <div class="bg-light-gray">
   <h2>{{model.title}}</h2>
   {{outlet}}
-  {{log model.tracks.length}}
-  {{#each @model.tracks as |track|}}
-    {{track.sequence}}
-  {{/each}}
+  <button {{action "play"}}>play</button>
+  <ul class="list">
+    {{#each @model.tracks as |track|}}
+      <li>{{track.sequence}}</li>
+    {{/each}}
+  </ul>
 </div>

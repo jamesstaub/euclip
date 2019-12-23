@@ -9,9 +9,7 @@ export default Factory.extend({
   },
   withTracks: trait({
     afterCreate(project, server) {
-      server.create('track', { project });
-      server.create('track', { project });
-      server.create('track', { project });
+      server.createList('track', 3, { project });
     },
   })
 });

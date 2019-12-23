@@ -1,10 +1,10 @@
 import DS from 'ember-data';
 import E from '../utils/euclidean';
 import { tracked } from '@glimmer/tracking';
+import TrackAudioModel from '../audio-models/track';
+const { belongsTo, attr } = DS;
 
-const { Model, hasMany, belongsTo, attr } = DS;
-
-export default class TrackModel extends Model {
+export default class TrackModel extends TrackAudioModel {
   @tracked hits;
   @tracked steps;
   @tracked offset;
@@ -12,8 +12,9 @@ export default class TrackModel extends Model {
 
   @attr('string') type
   @belongsTo('project') project
-  @belongsTo('script') onstepScript
-  @belongsTo('script') initScript
+  
+  @belongsTo('init-script') initScript
+  @belongsTo('onstep-script') onstepScript
   
   // euclidean rhythm params
   @attr('number', {

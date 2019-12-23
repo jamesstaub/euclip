@@ -10,7 +10,7 @@ export default class UserMyProjectsRoute extends Route {
         adapterOptions: {
           userId: this.session.currentUser.id
         },
-      include: 'creator,tracks,tracks.scripts'
+        include: 'creator,tracks,tracks.init-script,tracks.onstep-script'
       });
     }
   }
