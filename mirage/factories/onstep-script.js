@@ -4,8 +4,8 @@ export default Factory.extend({
   code: i => {
     return `
 if (data) {
-  __(this.samplerSelector).stop();
-  __(this.samplerSelector).start();
+  __(this.selector).stop();
+  __(this.selector).start();
 } 
 `
   }

@@ -21,6 +21,8 @@ export default function() {
   this.put('/tracks/:id');
   this.del('/tracks/:id');
 
+  this.passthrough('https://storage.googleapis.com/**');
+  this.passthrough('/assets/**');
 
   // These comments are here to help you get started. Feel free to delete them.
 

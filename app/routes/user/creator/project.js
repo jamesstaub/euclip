@@ -4,4 +4,9 @@ export default class UserCreatorProjectRoute extends Route {
   model({ slug }) {
     return this.store.queryRecord('project', { slug, include: 'creator,tracks,tracks.init-script,tracks.onstep-script' });
   }
+
+  async afterModel(project) {
+    await project.tracks;
+    await project.tracks.initScript;
+  }
 }

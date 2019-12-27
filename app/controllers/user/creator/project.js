@@ -7,4 +7,9 @@ export default class UserCreatorProjectController extends Controller {
     this.model.initSignalChain();
     this.model.startLoop();
   }
+
+  @action
+  stop() {
+    this.model.stopLoop();
+  }
 }

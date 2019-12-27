@@ -3,17 +3,17 @@ import { Factory, trait } from 'ember-cli-mirage';
 export default Factory.extend({
   code: i => {
     return `
+    console.log('invokescript')
   __()
     .sampler({
-      id: this.samplerId,
-      path: this.path,
-      class: this.className
+      id: this.id,
+      path: this.filepath,
+    })
+    .gain({ 
+      class: 'slider'
     })
     .gain({
-      id: this.gainId, // assign gainID to connect to the track's main volume slider
-    })
-    .gain({ // onstep gain controlled by multislider
-      class: this.className,
+      class: 'multislider',
     })
     .connect('#master-compressor');
   `
