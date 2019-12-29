@@ -11,5 +11,6 @@ export default class UserCreatorProjectController extends Controller {
   @action
   stop() {
     this.model.stopLoop();
+    
   }
 }

@@ -1,9 +1,8 @@
 import { Factory, trait } from 'ember-cli-mirage';
 
 export default Factory.extend({
-  code: i => {
+  safeCode: i => {
     return `
-    console.log('invokescript')
   __()
     .sampler({
       id: this.id,

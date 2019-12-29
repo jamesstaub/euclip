@@ -1,7 +1,9 @@
-<div>
-  {{@track.sequence}}
+<div class="mv3">
+  <div>
+    {{@track.sequence}}
+  </div>
+
+  {{yield}}
+
+  <CurrentTrackFooter @track={{@track}} />
 </div>
-
-{{yield}}
-
-<CurrentTrackFooter @track={{@track}} />

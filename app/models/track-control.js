@@ -13,6 +13,7 @@ export default class TrackControlModel extends Model {
     const track = await this.track;
     if (this.type === 'multislider') {
       track.on('trackStep', async (index) => {
+        console.log('step',index);
         this.applyAttrsOnStep(index);
       });
     }

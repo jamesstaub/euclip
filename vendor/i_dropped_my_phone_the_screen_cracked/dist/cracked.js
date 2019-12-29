@@ -331,7 +331,7 @@ function createNode(type, creationParams, userSettings) {
     if (__.isFun(__.onCreateNode)) {
         __.onCreateNode(node, type);
     }
-    
+
     //bail if we're only creating a macro wrapper
     if (node.isMacro()) {
         return node;

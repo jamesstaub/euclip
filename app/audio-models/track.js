@@ -2,11 +2,14 @@ import Model from '@ember-data/model';
 const supportedNodes = ['gain', 'sampler', 'lowpass', 'highpass', 'bandpass', 'allpasss', 'notch', 'lowshelf', 'highshelf', 'peaking', 'reverb', 'delay', 'bitcrusher', 'overdrive', 'ring', 'comb'];
 
 export default class TrackAudioModel extends Model {
-  async ready() {
-    const project = await this.project;
-    const initScript = await this.initScript;
-    await this.onstepScript;
-    project.on('initTracks', async () => {
+  get selector() {
+    return `#${this.id}`;
+  }
+
+  bindProjectEvents(project, initScript) {
+    // project and initScript are awaited on the route
+    // so this event can be synchronous
+    project.on('initTracks', () => {
       this.setupAudioFromScripts(initScript);
     })
   }
@@ -25,7 +28,7 @@ export default class TrackAudioModel extends Model {
      // run script to create audio nodes
     initScript.functionRef();
 
-    this.setupTrackControls(initScript);
+    // this.setupTrackControls(initScript);
     this.bindToSequencer();
   }
 
@@ -42,7 +45,6 @@ export default class TrackAudioModel extends Model {
           // then remove it from the possible future choices
           existingTrackControls = existingTrackControls.rejectBy('nodeUUID', foundTrackControl.nodeUUID);
         }
-        
         foundTrackControl.setProperties({nodeUUID: uuid, order: idx}); // update uuid since the audio nodes will be new every time
         return foundTrackControl;
       } else {
@@ -57,8 +59,8 @@ export default class TrackAudioModel extends Model {
 
   bindToSequencer() {
     let onStepCallback = this.onStepCallback.bind(this);
-    __(this.sourceSelector).unbind('step');
-    __(this.sourceSelector).bind(
+    __(this.selector).unbind('step');
+    __(this.selector).bind(
       'step', // on every crack sequencer step
       onStepCallback, // call this function (bound to component scope)
       this.sequence // passing in array value at position
@@ -72,13 +74,13 @@ export default class TrackAudioModel extends Model {
   }
 
   get scriptScope() {
-    this.filepath = 'https://storage.googleapis.com/euclidean-cracked.appspot.com/Drum%20Machines%20mp3/Korg/Korg%20DDD5/DDD5%20STICK.mp3';
+    this.filepath = 'https://storage.googleapis.com/euclidean-cracked.appspot.com/Drum%20Machines%20mp3/Maestro%20Rhythm%20MRQ-1/MaxV%20-%20Snare.mp3';
     this.oscillator = 'sine';
     return {
       filepath: this.filepath,
       oscillator: this.oscillator, 
       id: this.id,
-      selector: `#${this.id}`,
+      selector: this.selector
     };
-  }
+  } 
 }

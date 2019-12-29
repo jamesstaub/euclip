@@ -2,14 +2,17 @@ import DS from 'ember-data';
 const { Model, attr, belongsTo } = DS;
 import { computed } from '@ember/object';
 export default class ScriptModel extends Model {
-  @attr('string') code;
-  @attr('string') illegalTokens;
+  // the code written by the user
+  @attr('string') code;  
+  // code after server runs security parser. API enforce never writable by the client
+  @attr('string') safeCode;
+
   @belongsTo('track') track;
 
-  @computed('code')
+  @computed('safeCode')
   get functionRef() {
     // create the function referecne and bind it's scope
-    if (this.code) {
+    if (this.safeCode) {
       try {
         return this.newFunction();
       } catch (e) {

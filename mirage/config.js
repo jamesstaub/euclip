@@ -1,4 +1,24 @@
+
 export default function() {
+  // Hack per https://github.com/kturney/ember-mapbox-gl/issues/53#issuecomment-397417884
+  // for decoding array buffers 
+  // Note: the below XMLHttpRequest has already been converted to a FakeXMLHttpRequest by pretender
+  const origSend = window.XMLHttpRequest.prototype.send;
+  window.XMLHttpRequest.prototype.send = function send() {
+    origSend.apply(this, arguments);
+    const fakeXhr = this; // eslint-disable-line consistent-this
+    const realXhr = this._passthroughRequest;
+    if (realXhr) {
+      realXhr.onload = function (event) {
+        if (fakeXhr.responseType !== 'arraybuffer') {
+          fakeXhr.response = realXhr.response;
+        }
+        // dispatch event instead of calling the original to prevent a double call bug
+        fakeXhr.dispatchEvent(event);
+      };
+    }
+  };
+
   this.get('/users/me', (schema) => {
     const user = schema.users.first();
     return user;
@@ -23,6 +43,9 @@ export default function() {
 
   this.passthrough('https://storage.googleapis.com/**');
   this.passthrough('/assets/**');
+  console.log(this.pretender.passthrough);
+  this.pretender.get('/*passthrough', this.pretender.passthrough);
+
 
   // These comments are here to help you get started. Feel free to delete them.
 
