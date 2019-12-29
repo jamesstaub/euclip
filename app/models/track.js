@@ -11,6 +11,8 @@ export default class TrackModel extends TrackAudioModel {
   @tracked customSequence;
 
   @attr('string') type
+  @attr('string') filepath
+
   @belongsTo('project') project
   
   @belongsTo('init-script') initScript

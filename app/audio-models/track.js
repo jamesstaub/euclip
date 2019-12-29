@@ -1,7 +1,8 @@
 import Model from '@ember-data/model';
 const supportedNodes = ['gain', 'sampler', 'lowpass', 'highpass', 'bandpass', 'allpasss', 'notch', 'lowshelf', 'highshelf', 'peaking', 'reverb', 'delay', 'bitcrusher', 'overdrive', 'ring', 'comb'];
+import Evented from '@ember/object/evented';
 
-export default class TrackAudioModel extends Model {
+export default class TrackAudioModel extends Model.extend(Evented) {
   get selector() {
     return `#${this.id}`;
   }
@@ -28,7 +29,7 @@ export default class TrackAudioModel extends Model {
      // run script to create audio nodes
     initScript.functionRef();
 
-    // this.setupTrackControls(initScript);
+    this.setupTrackControls(initScript);
     this.bindToSequencer();
   }
 
@@ -55,6 +56,9 @@ export default class TrackAudioModel extends Model {
         });
       }
     })
+    .forEach((trackControl)=>{
+      trackControl.bindTrackEvents(this);
+    });
   }
 
   bindToSequencer() {
@@ -74,8 +78,6 @@ export default class TrackAudioModel extends Model {
   }
 
   get scriptScope() {
-    this.filepath = 'https://storage.googleapis.com/euclidean-cracked.appspot.com/Drum%20Machines%20mp3/Maestro%20Rhythm%20MRQ-1/MaxV%20-%20Snare.mp3';
-    this.oscillator = 'sine';
     return {
       filepath: this.filepath,
       oscillator: this.oscillator, 

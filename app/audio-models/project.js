@@ -8,7 +8,7 @@ import Evented from '@ember/object/evented';
 export default class ProjectAudioModel extends Model.extend(Evented) {
   initSignalChain() {
     this.disconnectAll();
-    this.trigger('initTracks');
+    
     // create a compressor -> DAC node for other nodes to connect to
     __()
       .compressor({
@@ -16,12 +16,14 @@ export default class ProjectAudioModel extends Model.extend(Evented) {
         id: 'master-compressor',
         class: `project-${this.id}`,
       })
-      .dac(.9);
+      .dac();
+    
+    this.trigger('initTracks');
   }
 
   startLoop() {
-    __.play();
     __.loop('start');
+    __.loop(300)
     this.isPlaying = true;
   }
 

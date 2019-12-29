@@ -9,14 +9,12 @@ export default class TrackControlModel extends Model {
   @attr('number') order;
   @belongsTo('track') track;
 
-  async ready() {
-    const track = await this.track;
-    if (this.type === 'multislider') {
-      track.on('trackStep', async (index) => {
-        console.log('step',index);
+  bindTrackEvents(track) {
+    track.on('trackStep', (index) => {
+      if (this.interfaceName === 'multislider') {
         this.applyAttrsOnStep(index);
-      });
-    }
+      }
+    });
   }
 
   applyAttrsOnStep(index) {

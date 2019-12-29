@@ -43,7 +43,6 @@ export default function() {
 
   this.passthrough('https://storage.googleapis.com/**');
   this.passthrough('/assets/**');
-  console.log(this.pretender.passthrough);
   this.pretender.get('/*passthrough', this.pretender.passthrough);
 
 
