@@ -7,12 +7,20 @@ export default class UserCreatorProjectRoute extends Route {
 
   async afterModel(project) {
     const tracks = await project.tracks;
-    await Promise.all(tracks.map(async (track) => {
+    const tracksReady = await Promise.all(tracks.map(async (track) => {
       const initScript = await track.initScript;
       await track.onstepScript;
       track.bindProjectEvents(project, initScript);
       return track;
     }));
     project.initSignalChain();
+    return tracksReady;
+  }
+
+  setupController(controller, project) {
+    controller.setProperties({
+      activeTrackId: project.get('tracks.firstObject.id'),
+      model: project
+    });
   }
 }

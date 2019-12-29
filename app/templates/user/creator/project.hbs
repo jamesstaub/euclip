@@ -3,8 +3,13 @@
   {{outlet}}
   <button {{action "play"}}>play</button> 
   <button {{action "stop"}}>stop</button>
+  <button {{action "reset"}}>reset</button>
   
   {{#each @model.tracks as |track|}}
-    <TrackContainer @track={{track}}/>
+    <TrackContainer
+      @track={{track}} 
+      @isActive={{eq track.id activeTrackId}}
+      @selectActiveTrack={{action (mut activeTrackId) track.id}}
+    />
   {{/each}}
 </div>

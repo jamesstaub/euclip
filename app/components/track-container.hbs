@@ -1,9 +1,13 @@
-<div class="mv3">
-  <div>
-    {{@track.sequence}}
+<div class="mv3 pointer" ...attributes {{on "click" @selectActiveTrack}}>
+  <div class="bg-dark-gray">
+    {{#if @track.sequence}}
+      {{nexus-sequencer sequence=@track.sequence stepIndex=@track.stepIndex}}
+    {{/if}}
   </div>
 
   {{yield}}
 
-  <CurrentTrackFooter @track={{@track}} />
+  {{#if @isActive}}
+    <CurrentTrackFooter class="bottom-0 absolute" @track={{@track}} />
+  {{/if}}
 </div>
