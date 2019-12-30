@@ -3,11 +3,11 @@ import DS from 'ember-data';
 const { belongsTo, attr } = DS;
 
 export default class TrackControlModel extends Model {
+  @belongsTo('track') track;
   @attr('string') interfaceName;
   @attr('string') nodeUUID;
   @attr('string') nodeType;
   @attr('number') order;
-  @belongsTo('track') track;
 
   bindTrackEvents(track) {
     track.on('trackStep', (index) => {
@@ -26,4 +26,5 @@ export default class TrackControlModel extends Model {
       throw ''
     }
   }
+
 }

@@ -3,5 +3,6 @@
   <p>{{@track.id}}</p>
   {{#each @track.trackControls as |trackControl|}}
     {{trackControl.nodeType}}
+    {{component (concat "nexus-" trackControl.interfaceName) }}
   {{/each}}
 </div>

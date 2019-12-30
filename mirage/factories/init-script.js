@@ -7,6 +7,7 @@ export default Factory.extend({
     .sampler({
       id: this.id,
       path: this.filepath,
+      class: 'multislider'
     })
     .gain({ 
       class: 'slider'

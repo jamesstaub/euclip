@@ -32,7 +32,6 @@ export default class TrackModel extends TrackAudioModel {
   @attr('number', {
     defaultValue() { return 0 }
   }) offset
-
   
   @attr('array') customSequence
 

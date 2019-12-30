@@ -34,7 +34,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   }
 
   // find-or-create track control records bound to each audio node
-  setupTrackControls(initScript) {
+  // TODO: replace track-control model with a node model
+  // which has many track controls?
+  setupTrackControls() {
     let existingTrackControls = this.trackControls.sortBy('order');
     this.trackNodes.map((node, idx) => {
       const [uuid, type] = Object.entries(node)[0];
@@ -52,7 +54,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         return this.trackControls.createRecord({
           nodeUUID: uuid,
           nodeType: type,
-          order: idx
+          order: idx,
+          interfaceName: 'slider' // TODO parse classnames
         });
       }
     })

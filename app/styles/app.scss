@@ -1,1 +1,8 @@
 @import 'ember-cli-tachyons-sass';
+@import 'colors';
+
+.nexus-sequencer {
+  rect {
+    stroke-width: 4px;
+  }
+}

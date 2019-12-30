@@ -1,7 +1,11 @@
 <div class="mv3 pointer" ...attributes {{on "click" @selectActiveTrack}}>
   <div class="bg-dark-gray">
     {{#if @track.sequence}}
-      {{nexus-sequencer sequence=@track.sequence stepIndex=@track.stepIndex}}
+      {{nexus-sequencer 
+        sequence=@track.sequence
+        stepIndex=@track.stepIndex
+        onChangeValue=(action "updateTrackSequence")
+      }}
     {{/if}}
   </div>
 

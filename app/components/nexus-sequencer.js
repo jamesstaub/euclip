@@ -1,6 +1,5 @@
 import NexusBase from './nexus-base';
 import { computed } from '@ember/object';
-import { guidFor } from '@ember/object/internals';
 import { alias } from '@ember/object/computed';
 
 export default NexusBase.extend({
@@ -10,7 +9,6 @@ export default NexusBase.extend({
     this._super(...arguments);
     this.setProperties({
       elementName: 'Sequencer',
-      nexusId: `nexus-${guidFor(this)}`
     });
   },
 
@@ -34,15 +32,6 @@ export default NexusBase.extend({
     }
   }),
 
-  didInsertElement() {
-    this._super(...arguments);
-    this.nexusInit();     
-    this.sequencer.matrix.set.row(0, this.sequence);
-    this.sequencer.colorize('accent', '#52ebff');
-    this.sequencer.colorize('fill', '#ffffff');
-    this.sequencer.colorize('mediumLight', '#d9534f');
-  },
-  
   didUpdateAttrs() {
     this._super(...arguments);
     if (this.sequencer) {
@@ -52,8 +41,10 @@ export default NexusBase.extend({
   },
 
   nexusInit() {
-    if (this.sequence) {
-      this._super(...arguments);
-    }
+    this._super(...arguments);
+    this.sequencer.matrix.set.row(0, this.sequence);
+    this.sequencer.colorize('accent', '#52ebff');
+    this.sequencer.colorize('fill', '#ffffff');
+    this.sequencer.colorize('mediumLight', '#d9534f');
   }
 });
