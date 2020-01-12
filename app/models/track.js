@@ -18,7 +18,7 @@ export default class TrackModel extends TrackAudioModel {
   @belongsTo('init-script') initScript
   @belongsTo('onstep-script') onstepScript
 
-  @hasMany('track-control') trackControls
+  @hasMany('track-node') trackNodes
   
   // euclidean rhythm params
   @attr('number', {
@@ -33,7 +33,7 @@ export default class TrackModel extends TrackAudioModel {
     defaultValue() { return 0 }
   }) offset
   
-  @attr('array') customSequence
+  @attr() customSequence
 
   get sequence() {
     return this.customSequence || E(this.hits, this.steps, this.offset)

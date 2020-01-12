@@ -1,3 +1,39 @@
+const controlsForNode = function(nodeType) {
+  switch (nodeType) {
+    case 'gain':
+      return ['gain'];
+    case 'sampler':
+      return ['speed'];
+    case ('lowpass' || 'highpass' || 'bandpass' || 'allpasss', 'notch'):
+      return ['frequency', 'q'];
+    case ('lowshelf' || 'highshelf' || 'peaking'):
+      return ['frequency', 'q', 'gain'];
+    case 'reverb':
+      return ['seconds', 'decay'];
+    case 'delay':
+      return ['delay', 'damping', 'feedback', 'cutoff', 'frequency'];
+    case 'bitcrusher':
+      return ['frequency', 'bits'];
+    case 'overdrive':
+      return ['drive', 'color', 'postCut'];
+    case 'ring':
+      return ['distortion', 'frequency'];
+    case 'comb':
+      return ['delay', 'damping', 'cutoff', 'feedback'];
+    default:
+      return [];
+  }
+}
+
+const createTrackControls = function (trackNode) {
+  const controlAttrs = controlsForNode(trackNode.nodeType);
+  return controlAttrs.map((attr) => {
+    return trackNode.createTrackControl({ 
+      nodeAttr: attr, 
+      interfaceName: 'slider'  //TODO parse from class in node definition 
+    });
+  });
+}
 
 export default function() {
   // Hack per https://github.com/kturney/ember-mapbox-gl/issues/53#issuecomment-397417884
@@ -29,8 +65,8 @@ export default function() {
   });
   
   this.post('/projects');
-  this.get('/projects/:slug', (schema, {params}) => {
-    return schema.projects.where(params).models[0];
+  this.get('/projects/:slug', (schema, { params }) => {
+    return schema.projects.findBy({slug:params.slug});
   });
 
   this.put('/projects/:slug');
@@ -40,6 +76,16 @@ export default function() {
   this.post('/projects/:slug/tracks');
   this.put('/tracks/:id');
   this.del('/tracks/:id');
+
+  this.post('/track-nodes/', (schema, { requestBody }) => {
+    const attrs = JSON.parse(requestBody).data.attributes;
+    const nodeType = attrs['node-type'];
+    const order = attrs.order;
+    
+    const trackNode = schema.trackNodes.create({ nodeType, order});
+    createTrackControls(trackNode);
+    return trackNode;
+  });
 
   this.passthrough('https://storage.googleapis.com/**');
   this.passthrough('/assets/**');

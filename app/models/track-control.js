@@ -1,13 +1,10 @@
 import Model from '@ember-data/model';
 import DS from 'ember-data';
-const { belongsTo, attr } = DS;
+const { attr } = DS;
 
 export default class TrackControlModel extends Model {
-  @belongsTo('track') track;
-  @attr('string') interfaceName;
-  @attr('string') nodeUUID;
-  @attr('string') nodeType;
-  @attr('number') order;
+  @attr('string') interfaceName; // type of nexus ui element
+  @attr('string') nodeAttr; // the audio attr that will be controlled
 
   bindTrackEvents(track) {
     track.on('trackStep', (index) => {
@@ -16,7 +13,6 @@ export default class TrackControlModel extends Model {
       }
     });
   }
-
   applyAttrsOnStep(index) {
     const attrs = {};
     if (nodeAttr && this.controlDataArray.length) {
@@ -26,5 +22,4 @@ export default class TrackControlModel extends Model {
       throw ''
     }
   }
-
 }

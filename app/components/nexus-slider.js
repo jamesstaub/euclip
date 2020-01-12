@@ -27,7 +27,6 @@ export default NexusBase.extend({
 
   nexusInit() {
     this._super(...arguments);
-    console.log('gain', this.slider);
     this.slider.colorize('accent', '#52ebff');
     this.slider.colorize('fill', '#ffffff');
   },

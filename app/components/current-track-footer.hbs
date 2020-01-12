@@ -1,8 +1,17 @@
 <div ...attributes>
   {{yield}}
-  <p>{{@track.id}}</p>
-  {{#each @track.trackControls as |trackControl|}}
-    {{trackControl.nodeType}}
-    {{component (concat "nexus-" trackControl.interfaceName) }}
-  {{/each}}
+  <p class="fw6">{{@track.id}}</p>
+  <div class="flex bg-light-gray pa4">
+    {{#each @track.trackNodes as |trackNode idx|}}
+      <div class="tc mh3">
+        {{trackNode.nodeType}}
+        {{#each trackNode.trackControls as |trackControl|}}
+          <div>
+            {{component (concat "nexus-" trackControl.interfaceName) }}
+            <p class="tc">{{trackControl.nodeAttr}}</p>
+          </div>
+        {{/each}}
+      </div>
+    {{/each}}
+  </div>
 </div>

@@ -17,50 +17,54 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
   setupAudioFromScripts(initScript) {
     // array to store audio node uuids created in this track's script
+    // not to be confused with trackNode models, 
     // { uuid: type }
-    this.set('trackNodes', []); 
+    this.set('trackAudioNodes', []); 
+
     __.onCreateNode = (node, type) => {
       if (supportedNodes.indexOf(type) > -1) {
         const trackNode = {}
         trackNode[node.getUUID()] = type;
-        this.trackNodes.push(trackNode);
+        this.trackAudioNodes.push(trackNode);
       }
     }
      // run script to create audio nodes
     initScript.functionRef();
 
-    this.setupTrackControls(initScript);
+    this.findOrCreateTrackNodeRecords(initScript);
     this.bindToSequencer();
   }
 
-  // find-or-create track control records bound to each audio node
-  // TODO: replace track-control model with a node model
-  // which has many track controls?
-  setupTrackControls() {
-    let existingTrackControls = this.trackControls.sortBy('order');
-    this.trackNodes.map((node, idx) => {
+  // find-or-create TrackNode records for each audio node object
+  // created on this track
+  findOrCreateTrackNodeRecords() {
+    // trackNode records already created for this track
+    let existingtrackNodes = this.trackNodes.sortBy('order');
+    
+    // map over audio node objects created in this track's script
+    // to find or create corresponding trackNode model records 
+    this.trackAudioNodes.forEach((node, idx) => {
       const [uuid, type] = Object.entries(node)[0];
-      const foundByType = existingTrackControls.filterBy('nodeType', type);
+      const foundByType = existingtrackNodes.filterBy('nodeType', type);
       if (foundByType.length) {
-        let foundTrackControl = foundByType[0];
+        let foundtrackNode = foundByType[0];
         if (foundByType.length > 1) {
           // if there are several possible, take the first one, 
           // then remove it from the possible future choices
-          existingTrackControls = existingTrackControls.rejectBy('nodeUUID', foundTrackControl.nodeUUID);
+          existingtrackNodes = existingtrackNodes.rejectBy('nodeUUID', foundtrackNode.nodeUUID);
         }
-        foundTrackControl.setProperties({nodeUUID: uuid, order: idx}); // update uuid since the audio nodes will be new every time
-        return foundTrackControl;
+        foundtrackNode.setProperties({nodeUUID: uuid, order: idx}); // update uuid since the audio nodes will be new every time
+        return foundtrackNode;
       } else {
-        return this.trackControls.createRecord({
+        const trackNode = this.trackNodes.createRecord({
           nodeUUID: uuid,
           nodeType: type,
           order: idx,
-          interfaceName: 'slider' // TODO parse classnames
         });
+        // OPTIMIZE
+        // refactor the trackNode endpoint to support a single batch save
+        trackNode.save();
       }
-    })
-    .forEach((trackControl)=>{
-      trackControl.bindTrackEvents(this);
     });
   }
 
