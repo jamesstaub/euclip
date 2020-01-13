@@ -7,7 +7,7 @@
         {{trackNode.nodeType}}
         {{#each trackNode.trackControls as |trackControl|}}
           <div>
-            {{component (concat "nexus-" trackControl.interfaceName) }}
+            {{component (concat "nexus-" trackControl.interfaceName) onChangeValue=(action "updateControl" trackControl)}}
             <p class="tc">{{trackControl.nodeAttr}}</p>
           </div>
         {{/each}}

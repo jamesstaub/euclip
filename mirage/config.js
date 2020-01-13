@@ -74,7 +74,7 @@ export default function() {
 
   this.get('/projects/:slug/tracks');
   this.post('/projects/:slug/tracks');
-  this.put('/tracks/:id');
+  this.patch('/tracks/:id');
   this.del('/tracks/:id');
 
   this.post('/track-nodes/', (schema, { requestBody }) => {

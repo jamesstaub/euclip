@@ -30,13 +30,16 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     }
      // run script to create audio nodes
     initScript.functionRef();
-
+    
     this.findOrCreateTrackNodeRecords(initScript);
+    this.bindTrackControls();
     this.bindToSequencer();
   }
 
-  // find-or-create TrackNode records for each audio node object
-  // created on this track
+  /**
+   * find-or-create TrackNode records for each audio node object
+   * created on this track
+   */
   findOrCreateTrackNodeRecords() {
     // trackNode records already created for this track
     let existingtrackNodes = this.trackNodes.sortBy('order');
@@ -67,6 +70,18 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       }
     });
   }
+  
+  /**
+   * track controls are added/updated to the store after find-or-create track nodes
+   * bindTrackEvents causes them to listen to this.trigger('trackStep')
+  */
+  bindTrackControls() {
+    this.get('trackNodes').forEach((trackNode)=>{
+      trackNode.get('trackControls').forEach((trackControl)=>{
+        trackControl.bindTrackEvents(this);
+      })
+    })
+  }
 
   bindToSequencer() {
     let onStepCallback = this.onStepCallback.bind(this);
@@ -80,9 +95,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   
   onStepCallback(index, data, array) {
     //track controls subscribe to trackStep event
-    this.trigger('trackStep', index);
     this.set('stepIndex', index);
     this.onstepScript.get('functionRef')(index, data, array);
+    this.trigger('trackStep', index);
   }
 
   get scriptScope() {
