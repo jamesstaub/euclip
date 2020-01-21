@@ -77,6 +77,9 @@ export default function() {
   this.patch('/tracks/:id');
   this.del('/tracks/:id');
 
+  // this.get('/machines/') // get a list of drum machines)
+  // this.post('/projects/:slug/tracks/machine'); // create many tracks for each sound of a drum machine
+
   this.post('/track-nodes/', (schema, { requestBody }) => {
     const attrs = JSON.parse(requestBody).data.attributes;
     const nodeType = attrs['node-type'];
