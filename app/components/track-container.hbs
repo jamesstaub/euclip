@@ -4,9 +4,13 @@
       {{nexus-sequencer 
         sequence=@track.sequence
         stepIndex=@track.stepIndex
-        onChangeValue=(action "updateTrackSequence")
+        onChangeValue=(action "updateTrackSequence") 
       }}
     {{/if}}
+    <DropdownMenu @items={{array 
+        (hash label="delete" select=(fn this.deleteTrack)) 
+      }}
+    />
   </div>
 
   {{yield}}

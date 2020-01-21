@@ -1,0 +1,10 @@
+<ul>
+  {{#each @items as |item|}}
+    <li>
+      <button title={{item.label}} {{on "click" item.select}}>
+        {{item.label}}
+      </button>
+    </li>
+  {{/each}}
+</ul>
+{{yield}}
