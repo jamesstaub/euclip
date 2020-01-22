@@ -1,10 +1,21 @@
-<ul>
-  {{#each @items as |item|}}
-    <li>
-      <button title={{item.label}} {{on "click" item.select}}>
-        {{item.label}}
-      </button>
-    </li>
-  {{/each}}
-</ul>
-{{yield}}
+
+<button 
+  class="link bn {{if this.open "bg-gray" "bg-none"}}" 
+  {{on "click" this.toggleOpen}}
+>
+    [{{if this.open "-" "+"}}]
+</button>
+
+{{#if open}}
+  <ul class="absolute right-1 top-0 ma3 bg-white flex flex-column list pa0 mao {{if this.open "shadow-2"}}">
+    {{#each @items as |item|}}
+      <li>
+        <button title={{item.label}} {{on "click" item.select}}>
+          {{item.label}}
+        </button>
+      </li>
+    {{/each}}
+  </ul>
+  {{yield}}
+{{/if}}
+

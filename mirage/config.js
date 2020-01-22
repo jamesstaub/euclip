@@ -75,7 +75,15 @@ export default function() {
   this.get('/projects/:slug/tracks');
   this.post('/projects/:slug/tracks');
   this.patch('/tracks/:id');
-  this.del('/tracks/:id');
+  this.del('/tracks/:id', async ({ tracks }, request) => {
+    let id = request.params.id;
+    let track = tracks.find(id);
+     track.destroy();
+     track.initScript && track.initScript.destroy();
+     track.onstepScript && track.onstepScript.destroy();
+     track.trackNode && track.trackNode.destroy();
+    return track;
+  });
 
   // this.get('/machines/') // get a list of drum machines)
   // this.post('/projects/:slug/tracks/machine'); // create many tracks for each sound of a drum machine
