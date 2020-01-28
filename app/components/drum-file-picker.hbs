@@ -1,0 +1,15 @@
+<ResponsiveModal>
+  {{#if (or this.saveTrackTask.isRunning this.fetchDirectory.isRunning)}}
+    <ProgressBar />
+  {{/if}}
+  <div class="drum-file-picker">
+    {{#each this.directories as |directory idx|}}
+      <FileDirectory
+        @directory={{directory}}
+        @filepath={{this.track.filepath}}
+        @idx={{idx}}
+        @onSelect={{action "onSelect"}}
+      />
+    {{/each}}
+  </div>
+</ResponsiveModal>

@@ -1,6 +1,6 @@
 <nav>
-  {{#if session.isAuthenticated}}
-    [{{session.currentUser.username}}]
+  {{#if this.session.isAuthenticated}}
+    [{{this.session.currentUser.username}}]
     <a role="button" {{action "invalidateSession"}}>
       logout
     </a>

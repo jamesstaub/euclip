@@ -2,7 +2,7 @@
   <label for="identification">
     Login
   </label>
-  {{input id="identification" placeholder="Enter Login" value=identification}}
+  {{input id="identification" placeholder="Enter Login" value=this.identification}}
   <label for="password">
     Password
   </label>
@@ -10,14 +10,14 @@
     id="password"
     placeholder="Enter Password"
     type="password"
-    value=password
+    value=this.password
   }}
   <button type="submit">
     Login
   </button>
-  {{#if errorMessage}}
+  {{#if this.errorMessage}}
     <p>
-      {{errorMessage}}
+      {{this.errorMessage}}
     </p>
   {{/if}}
 </form>
