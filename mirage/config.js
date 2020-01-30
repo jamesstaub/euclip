@@ -99,6 +99,8 @@ export default function() {
   });
 
   this.passthrough('https://storage.googleapis.com/**');
+  this.passthrough('https://drumserver.herokuapp.com');
+  this.passthrough('https://drumserver.herokuapp.com/**');
   this.passthrough('/assets/**');
   this.pretender.get('/*passthrough', this.pretender.passthrough);
 

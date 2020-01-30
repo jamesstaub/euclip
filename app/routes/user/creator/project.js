@@ -19,7 +19,7 @@ export default class UserCreatorProjectRoute extends Route {
 
   setupController(controller, project) {
     controller.setProperties({
-      activeTrackId: project.get('tracks.firstObject.id'),
+      activeTrack: project.get('tracks.firstObject'),
       model: project
     });
   }

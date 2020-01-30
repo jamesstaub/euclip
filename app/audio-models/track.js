@@ -102,7 +102,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
   get scriptScope() {
     return {
-      filepath: this.filepath,
+      filepath: this.filepathUrl,
       oscillator: this.oscillator, 
       id: this.id,
       selector: this.selector

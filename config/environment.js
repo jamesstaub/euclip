@@ -6,6 +6,7 @@ module.exports = function(environment) {
     environment,
     rootURL: '/',
     locationType: 'auto',
+    DRUMSERVER_HOST: 'https://drumserver.herokuapp.com',
     EmberENV: {
       FEATURES: {
         // Here you can enable experimental features on an ember canary build

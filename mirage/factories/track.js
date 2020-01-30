@@ -6,9 +6,9 @@ export default Factory.extend({
   offset: i => i,
   filepath: i => {
     return [
-      'https://storage.googleapis.com/euclidean-cracked.appspot.com/Drum%20Machines%20mp3/Kurzweil%20K2000/hitriang.mp3',
-      'https://storage.googleapis.com/euclidean-cracked.appspot.com/Drum%20Machines%20mp3/Maestro%20Rhythm%20MRQ-1/MaxV%20-%20Snare.mp3',
-      'https://storage.googleapis.com/euclidean-cracked.appspot.com/Drum%20Machines%20mp3/SequentialCircuits%20Tom/kick.mp3',
+      'Drum%20Machines%20mp3/Kurzweil%20K2000/hitriang.mp3',
+      'Drum%20Machines%20mp3/Maestro%20Rhythm%20MRQ-1/MaxV%20-%20Snare.mp3',
+      'Drum%20Machines%20mp3/SequentialCircuits%20Tom/kick.mp3',
     ][i%3]
   },
   afterCreate(track, server) {

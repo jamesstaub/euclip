@@ -11,7 +11,7 @@ Router.map(function() {
     this.route('my-projects', { path: '/' });
     this.route('new');
     this.route('creator', { path: '/:user_id' }, function() {
-      this.route('project', { path: '/:slug' });
+      this.route('project', { path: '/:slug' }, function() {});
       this.route('projects');
     });
   });

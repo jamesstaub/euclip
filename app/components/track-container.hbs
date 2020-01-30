@@ -1,5 +1,8 @@
 <div class="mv3 pointer" ...attributes {{on "click" @selectActiveTrack}}>
   <div class="flex relative justify-between {{if @isActive "bg-dark-blue" "bg-dark-gray"}}">
+    
+    {{yield}}
+
     {{#if @track.sequence}}
       {{nexus-sequencer 
         sequence=@track.sequence
@@ -14,8 +17,6 @@
       }}
     />
   </div>
-
-  {{yield}}
 
   {{#if @isActive}}
     <CurrentTrackFooter class="bottom-0 absolute w-100" @track={{@track}} />

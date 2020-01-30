@@ -1,15 +1,36 @@
-<div>
-  <p>{{this.model.title}}</p>
+<h1>{{this.model.title}}</h1>
+<div class="flex justify-between">
   {{outlet}}
-  <button {{action "play"}}>play</button> 
-  <button {{action "stop"}}>stop</button>
-  <button {{action "reset"}}>reset</button>
+  <div class="flex">
+    <button {{action "play"}}>play</button> 
+    <button {{action "stop"}}>stop</button>
+    <button {{action "reset"}}>reset</button>
+  </div>
   
+  <button {{on "click" this.addTrack}}>+ track</button>
+</div>
+<div>
+  {{!-- TODO create an active track model and this lives there? --}}
+  <DrumFilePicker
+    @isOpen={{drumMenuOpen}}
+    @track={{this.activeTrack}}
+    @saveTrackTask={{saveTrackTask}}
+  />
+
   {{#each @model.tracks as |track|}}
     <TrackContainer
       @track={{track}} 
-      @isActive={{eq track.id this.activeTrackId}} 
-      @selectActiveTrack={{action (mut this.activeTrackId) track.id}}
-    />
+      @isActive={{eq track.id this.activeTrack.id}} 
+      @selectActiveTrack={{fn this.setActiveTrack track.id}}
+    >
+    <button
+      {{on "click"  this.openDrumMenu}}
+      class="w4 mr2 ph1 f7"
+      title="Drum Machine: {{track.filepath}}"
+    >
+      {{if track.filepath track.filename}}
+    </button>
+
+    </TrackContainer>
   {{/each}}
 </div>

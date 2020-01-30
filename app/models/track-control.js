@@ -2,7 +2,6 @@ import Model from '@ember-data/model';
 import DS from 'ember-data';
 const { attr, belongsTo } = DS;
 
-
 export default class TrackControlModel extends Model {
   @attr('string') interfaceName; // type of nexus ui element
   @attr('string') nodeAttr; // the audio attr that will be controlled

@@ -9,6 +9,7 @@ export default class TrackModel extends TrackAudioModel {
   @tracked steps;
   @tracked offset;
   @tracked customSequence;
+  @tracked filepath;
 
   @attr('string') type
   @attr('string') filepath
@@ -37,5 +38,9 @@ export default class TrackModel extends TrackAudioModel {
 
   get sequence() {
     return this.customSequence || E(this.hits, this.steps, this.offset)
+  }
+
+  get filepathUrl() {
+    return `https://storage.googleapis.com/euclidean-cracked.appspot.com/${this.filepath}`;
   }
 }
