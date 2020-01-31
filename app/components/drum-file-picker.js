@@ -23,7 +23,7 @@ export default Component.extend({
   },
 
   fetchDirectory: task(function* (path) {
-    const url = `${ENV.DRUMSERVER_HOST}${path}`;
+    const url = `${ENV.APP.DRUMSERVER_HOST}/${path}`;
     const response = yield fetch(url);
     const json = yield response.json();
     return json;
@@ -46,9 +46,7 @@ export default Component.extend({
   initDirectoryFromTrack: task(function* (filepath) {
     let path = filepath.split('/');
     path.pop();
-    console.log('initdir', path);
     let response = yield this.fetchDirectory.perform(path.join('/'));
-
     if (response.ancestor_tree) {
       let directories = response.ancestor_tree.map(dir => {
         return this.parseResponse(dir);
@@ -58,7 +56,6 @@ export default Component.extend({
   }),
 
   updateDirectories: task(function* (pathToFetch) {
-    console.log('path2fetch', pathToFetch);
     let response = yield this.fetchDirectory.perform(pathToFetch);
     let directory = this.parseResponse(response);
     // clear any child directories when clicking back higher up the tree

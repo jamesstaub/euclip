@@ -8,14 +8,13 @@ export default class FileDirectoryComponent extends Component {
   @action
   setSelectedPath() {
     if (this.args.filepath) {
-      console.log(this.args.filepath);
       const pathDirs = this.args.filepath.split('/').filter((dir) => dir);
       this.selected = pathDirs[this.idx];
     }
   }
   
   @action
-  scrollIntoView(element, isSelected) {
+  scrollIntoView(isSelected, element) {
     if (isSelected) {
       element.scrollIntoView();
     }

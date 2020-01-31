@@ -1,6 +1,7 @@
 import Controller from '@ember/controller';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
+import { task } from 'ember-concurrency-decorators';
 
 
 
@@ -8,6 +9,15 @@ export default class UserCreatorProjectController extends Controller {
   @tracked activeTrack;
   @tracked drumMenuOpen;
 
+  @task
+  *saveTrackTask(track){
+    try {
+      yield track.save();
+    } catch (e) {
+      debug(`error saving track (project task):  ${e}`);
+      track.rollbackAttributes();
+    }
+  }
   @action
   openDrumMenu(id) {
     this.drumMenuOpen = true;

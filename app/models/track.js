@@ -41,6 +41,6 @@ export default class TrackModel extends TrackAudioModel {
   }
 
   get filepathUrl() {
-    return `https://storage.googleapis.com/euclidean-cracked.appspot.com/${this.filepath}`;
+    return `https://storage.googleapis.com/euclidean-cracked.appspot.com/Drum%20Machines%20mp3/${this.filepath}`;
   }
 }
