@@ -75,6 +75,7 @@ export default function() {
   this.get('/projects/:slug/tracks');
   this.post('/projects/:slug/tracks');
   this.patch('/tracks/:id');
+  this.get('/tracks/:id');
   this.del('/tracks/:id', async ({ tracks }, request) => {
     let id = request.params.id;
     let track = tracks.find(id);

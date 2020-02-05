@@ -1,8 +1,7 @@
-<div ...attributes>
-  {{yield}}
-  <p class="fw6">{{@track.id}}</p>
+<div class="bottom-0 absolute w-100" >
+  <p class="fw6">{{this.model.id}}</p>
   <div class="flex bg-light-gray pa4">
-    {{#each @track.trackNodes as |trackNode idx|}}
+    {{#each this.model.trackNodes as |trackNode idx|}}
       <div class="tc mh3">
         {{trackNode.nodeType}}
         {{#each trackNode.trackControls as |trackControl|}}
@@ -15,3 +14,5 @@
     {{/each}}
   </div>
 </div>
+
+{{outlet}}

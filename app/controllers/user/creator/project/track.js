@@ -1,7 +1,7 @@
-import Component from '@glimmer/component';
+import Controller from '@ember/controller';
 import { action } from '@ember/object';
-export default class CurrentTrackFooterComponent extends Component {
-  
+
+export default class UserCreatorProjectTrackController extends Controller {
   @action
   updateControl(trackControl, value) {
     trackControl.setValue(value)

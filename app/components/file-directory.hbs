@@ -5,7 +5,6 @@
   <ul class="directory-wrapper list ph0 mt0">
     {{#each @directory.choices as |choice|}}
       <li class="{{if (eq choice this.selected) "selected"}}" {{did-update (fn this.scrollIntoView (eq choice this.selected))}}>
-        {{log "dir" @directory}}
         <button class="pl3" {{action @onSelect @directory choice}}>
           {{#if (eq @directory.type "audio")}}
             {{filename-ui choice}}

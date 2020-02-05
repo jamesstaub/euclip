@@ -1,6 +1,5 @@
 <h1>{{this.model.title}}</h1>
 <div class="flex justify-between">
-  {{outlet}}
   <div class="flex">
     <button {{action "play"}}>play</button> 
     <button {{action "stop"}}>stop</button>
@@ -34,3 +33,5 @@
     </TrackContainer>
   {{/each}}
 </div>
+
+{{outlet}}
