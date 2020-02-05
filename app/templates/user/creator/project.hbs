@@ -20,7 +20,7 @@
     <TrackContainer
       @track={{track}} 
       @isActive={{eq track.id this.activeTrack.id}} 
-      @selectActiveTrack={{fn this.setActiveTrack track.id}}
+      @selectActiveTrack={{fn this.transitionToTrack track.id}}
     >
     <button
       {{on "click"  this.openDrumMenu}}

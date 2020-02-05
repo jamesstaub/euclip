@@ -21,9 +21,8 @@ export default class UserCreatorProjectController extends Controller {
   }
 
   @action
-  setActiveTrack(id) {
-    this.activeTrack = this.model.tracks.findBy('id', id);
-    this.transitionToRoute('user.creator.project.track', this.activeTrack);
+  transitionToTrack(id) {
+    this.transitionToRoute('user.creator.project.track', this.model.tracks.findBy('id', id));
   }
 
   @action

@@ -1,8 +1,6 @@
 <div class="mv3 pointer" ...attributes {{on "click" @selectActiveTrack}}>
-  <div class="flex relative justify-between {{if @isActive "bg-dark-blue" "bg-dark-gray"}}">
-    
+  <div class="flex relative justify-between {{if @isActive "bg-dark-blue" "bg-dark-gray"}}">    
     {{yield}}
-
     {{#if @track.sequence}}
       {{nexus-sequencer 
         sequence=@track.sequence

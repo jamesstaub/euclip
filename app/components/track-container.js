@@ -1,10 +1,15 @@
 import Component from '@glimmer/component';
 import { action } from '@ember/object';
+import { inject as service } from '@ember/service';
+
 export default class TrackContainerComponent extends Component {
-  
+  @service router
+
   @action
-  deleteTrack() {
-    this.args.track.destroyRecord();
+  async deleteTrack() {
+    const projectTracks = this.args.track.get('project.tracks');
+    await this.args.track.destroyAndCleanup();
+    this.router.transitionTo('user.creator.project.track', projectTracks.firstObject);
   }
 
   @action

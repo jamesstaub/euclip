@@ -79,10 +79,10 @@ export default function() {
   this.del('/tracks/:id', async ({ tracks }, request) => {
     let id = request.params.id;
     let track = tracks.find(id);
-     track.destroy();
-     track.initScript && track.initScript.destroy();
-     track.onstepScript && track.onstepScript.destroy();
-     track.trackNode && track.trackNode.destroy();
+    track.destroy();
+    track.initScript && track.initScript.destroy();
+    track.onstepScript && track.onstepScript.destroy();
+    track.trackNodes && track.trackNodes.destroy()
     return track;
   });
 

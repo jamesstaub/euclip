@@ -11,8 +11,10 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // project and initScript are awaited on the route
     // so this event can be synchronous
     project.on('initTracks', () => {
-      this.setupAudioFromScripts(initScript);
-    })
+      if (!this.isDeleted) {
+        this.setupAudioFromScripts(initScript);
+      }
+    });
   }
 
   setupAudioFromScripts(initScript) {
@@ -91,6 +93,11 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       onStepCallback, // call this function (bound to component scope)
       this.sequence // passing in array value at position
     );
+  }
+
+  unbindTrack() {
+    __(this.selector).unbind('step');
+    __(this.selector).remove();
   }
   
   onStepCallback(index, data, array) {
