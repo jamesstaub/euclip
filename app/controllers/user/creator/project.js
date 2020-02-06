@@ -8,15 +8,20 @@ export default class UserCreatorProjectController extends Controller {
   @tracked drumMenuOpen;
 
   @task
-  *saveTrackTask(track){
+  *saveTrackTask(track, reInit=true){
     try {
       yield track.save();
+      if (reInit)  {
+        // TODO refactor so setupAudioFromScripts does not take arguments, but ensure these models are resolved
+        const initScript = yield track.initScript;
+        track.setupAudioFromScripts(initScript);
+      }
     } catch (e) {
       track.rollbackAttributes();
     }
   }
   @action
-  openDrumMenu(id) {
+  openDrumMenu() {
     this.drumMenuOpen = true;
   }
 
