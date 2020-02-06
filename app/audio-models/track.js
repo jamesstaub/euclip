@@ -1,5 +1,6 @@
 import Model from '@ember-data/model';
 const supportedNodes = ['gain', 'sampler', 'lowpass', 'highpass', 'bandpass', 'allpasss', 'notch', 'lowshelf', 'highshelf', 'peaking', 'reverb', 'delay', 'bitcrusher', 'overdrive', 'ring', 'comb'];
+
 import Evented from '@ember/object/evented';
 
 export default class TrackAudioModel extends Model.extend(Evented) {
@@ -21,6 +22,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // array to store audio node uuids created in this track's script
     // not to be confused with trackNode models, 
     // { uuid: type }
+    
     this.set('trackAudioNodes', []); 
 
     __.onCreateNode = (node, type) => {

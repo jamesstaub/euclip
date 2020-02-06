@@ -1,7 +1,11 @@
 import DS from 'ember-data';
 const { Model, attr, belongsTo } = DS;
-import { computed } from '@ember/object';
+import { tracked } from '@glimmer/tracking';
+
 export default class ScriptModel extends Model {
+  @tracked safeCode
+  @tracked scriptScope
+
   // the code written by the user
   @attr('string') code;  
   // code after server runs security parser. API enforce never writable by the client
@@ -9,7 +13,6 @@ export default class ScriptModel extends Model {
 
   @belongsTo('track') track;
 
-  @computed('safeCode')
   get functionRef() {
     // create the function referecne and bind it's scope
     if (this.safeCode) {
@@ -19,5 +22,6 @@ export default class ScriptModel extends Model {
         alert('problem with script', e.message);
       }
     }
+    return null;
   }
 }

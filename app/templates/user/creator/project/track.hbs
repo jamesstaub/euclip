@@ -1,8 +1,8 @@
 <div class="bottom-0 absolute w-100">
-  <p class="fw6">track: {{this.model.id}}</p>
-  <div class="flex bg-light-gray pa4">
-    {{#unless this.model.isDeleted}}
-      {{#each this.model.trackNodes as |trackNode idx|}}
+  {{#unless @model.isDeleted}}
+    <p class="fw6">track: {{@model.id}}</p>
+    <div class="flex bg-light-gray pa4">
+      {{#each @model.trackNodes as |trackNode idx|}}
         <div class="tc mh3">
           {{trackNode.nodeType}}
           {{#each trackNode.trackControls as |trackControl|}}
@@ -18,7 +18,8 @@
           {{/each}}
         </div>
       {{/each}}
-    {{/unless}}
-  </div>
+    </div>
+  {{/unless}}
 </div>
+
 {{outlet}}
