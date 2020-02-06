@@ -1,7 +1,4 @@
-<ResponsiveModal>
-  {{#if (or @saveTrackTask.isRunning this.fetchDirectory.isRunning)}}
-    <ProgressBar />
-  {{/if}}
+<ResponsiveModal class="relative">
   <div class="drum-file-picker overflow-scroll h5 center ma3 pa3">
     {{#each this.directories as |directory idx|}}
       <FileDirectory
@@ -12,4 +9,7 @@
       />
     {{/each}}
   </div>
+  {{#if (or @saveTrackTask.isRunning this.fetchDirectory.isRunning)}}
+    <ProgressBar class="absolute bottom-0 right-0" />
+  {{/if}}
 </ResponsiveModal>

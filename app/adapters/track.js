@@ -1,7 +1,13 @@
 import JSONAPIAdapter from '@ember-data/adapter/json-api';
 
 export default class TrackAdapter extends JSONAPIAdapter {
-  urlForDeleteRecord(trackId) {
-    return `/tracks/${trackId}?include=init-script,onstep-script,track-nodes`;
+  // TODO cleanup by overwriting buildUrl method
+  urlForCreateRecord(modelName, snapshot) {
+    return `/projects/${snapshot.record.project.get('slug')}/tracks`;
+  }
+
+  urlForFindRecord(id, modelName, snapshot) {
+    const slug = snapshot.adapterOptions.slug;
+    return `/projects/${slug}/tracks/${id}`;
   }
 }

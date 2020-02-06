@@ -71,8 +71,8 @@ export default Component.extend({
       set(directory, 'currentSelection', choice);
       let newPath = `${directory.path}${choice}`;
       let type = directory.type;
+      newPath = newPath.replace('//', '/'); // hack to deal with API parsing issue
       if (type === 'dir') {
-        newPath = `${newPath}/`;
         this.updateDirectories.perform(newPath);
       } else if (type === 'audio') {
         this.track.set('filepath', newPath);
