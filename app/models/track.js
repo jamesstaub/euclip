@@ -8,7 +8,6 @@ export default class TrackModel extends TrackAudioModel {
   @tracked hits;
   @tracked steps;
   @tracked offset;
-  @tracked customSequence;
   @tracked filepath;
 
   @attr('string') type
@@ -37,7 +36,8 @@ export default class TrackModel extends TrackAudioModel {
   @attr() customSequence
 
   get sequence() {
-    return this.customSequence || E(this.hits, this.steps, this.offset)
+    // TODO support for customSequence
+    return E(this.hits, this.steps, this.offset);
   }
 
   get filepathUrl() {

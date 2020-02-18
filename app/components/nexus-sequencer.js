@@ -2,6 +2,7 @@ import NexusBase from './nexus-base';
 import { computed } from '@ember/object';
 import { alias } from '@ember/object/computed';
 
+const LENGTH_MULTIPLE = 34.1;
 export default NexusBase.extend({
   sequencer: alias('nexusElement'),
 
@@ -13,9 +14,9 @@ export default NexusBase.extend({
   },
 
   options: computed('sequence.length', {
-    get() {
+    get() {      
       return {
-        size: [this.sequence.length * 34.1, 30],
+        size: [this.sequence.length * LENGTH_MULTIPLE, 30],
         mode: 'toggle',
         rows: 1,
         columns: this.sequence.length
@@ -32,9 +33,9 @@ export default NexusBase.extend({
     }
   }),
 
-  didUpdateAttrs() {
-    this._super(...arguments);
-    if (this.sequencer) {
+
+  didReceiveAttrs() {
+    if (this.sequence && this.sequencer) {
       this.sequencer.stepper.value = (this.stepIndex % this.sequence.length) - 1;
       this.sequencer.next();
     }
@@ -46,5 +47,6 @@ export default NexusBase.extend({
     this.sequencer.colorize('accent', '#52ebff');
     this.sequencer.colorize('fill', '#ffffff');
     this.sequencer.colorize('mediumLight', '#d9534f');
-  }
+  },
+
 });

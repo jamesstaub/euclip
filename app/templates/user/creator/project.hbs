@@ -9,12 +9,6 @@
   <button {{on "click" this.addTrack}}>+ track</button>
 </div>
 <div>
-  {{!-- TODO create an active track model and this lives there? --}}
-  <DrumFilePicker
-    @isOpen={{drumMenuOpen}}
-    @track={{this.activeTrack}}
-    @saveTrackTask={{saveTrackTask}}
-  />
 
   {{#each @model.tracks as |track|}}
     <TrackContainer

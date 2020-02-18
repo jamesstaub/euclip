@@ -1,7 +1,13 @@
+<DrumFilePicker
+  @isOpen={{drumMenuOpen}}
+  @track={{this.activeTrack}}
+  @updateTrackTask={{updateTrackTask}}
+/>
+
 <div class="bottom-0 absolute w-100" >
-  <p class="fw6">{{this.model.id}}</p>
+  <p class="fw6">{{@model.id}}</p>
   <div class="flex bg-light-gray pa4">
-    {{#each this.model.trackNodes as |trackNode idx|}}
+    {{#each @model.trackNodes as |trackNode idx|}}
       <div class="tc mh3">
         {{trackNode.nodeType}}
         {{#each trackNode.trackControls as |trackControl|}}
@@ -12,7 +18,13 @@
         {{/each}}
       </div>
     {{/each}}
+    <div class="flex">
+      <NexusDial @value={{@model.hits}} @onChangeValue={{perform updateTrackTask "hits"}} @min=0 @max={{16}}/>
+      <NexusDial @value={{@model.steps}} @onChangeValue={{perform updateTrackTask "steps"}} @min=0 @max={{16}}/>
+      <NexusDial @value={{@model.offset}} @onChangeValue={{perform updateTrackTask "offset"}} @min=0 @max={{16}}/>
+    </div>
   </div>
+
 </div>
 
 {{outlet}}

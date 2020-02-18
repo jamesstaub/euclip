@@ -3,6 +3,9 @@
 This README outlines the details of collaborating on this Ember application.
 A short introduction of this app could easily go here.
 
+
+`ember s --ssl-key "/Users/admin/.ssh/server.key" --ssl-cert "/Users/admin/.ssh/server.crt"   `
+
 ## Prerequisites
 
 You will need the following things properly installed on your computer.

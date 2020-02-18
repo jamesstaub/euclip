@@ -75,8 +75,7 @@ export default Component.extend({
         newPath = `${newPath}/`;
         this.updateDirectories.perform(newPath);
       } else if (type === 'audio') {
-        this.track.set('filepath', newPath);
-        this.saveTrackTask.perform(this.track);
+        this.updateTrackTask.perform('filepath', newPath);
       }
     }
   }
