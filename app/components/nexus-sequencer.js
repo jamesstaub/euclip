@@ -1,6 +1,6 @@
 import NexusBase from './nexus-base';
-import { computed } from '@ember/object';
 import { alias } from '@ember/object/computed';
+import { set, computed, observer } from '@ember/object';
 
 const LENGTH_MULTIPLE = 34.1;
 export default NexusBase.extend({
@@ -33,13 +33,37 @@ export default NexusBase.extend({
     }
   }),
 
+  didUpdateAttrs() {
+    this._super(...arguments);
+    this.updateAndCacheSequence();
+  },
 
-  didReceiveAttrs() {
+  updateAndCacheSequence() {
+    let refreshOnUpdate = this.sequence !== this._sequence;
+    if (refreshOnUpdate) {
+      this.nexusInit();
+      if (this.sequence) {
+        this.sequencer.matrix.set.row(0, this.sequence);
+      }
+    }
+    set(this, '_sequence', this.sequence);
+  },
+
+  // eslint-disable-next-line ember/no-observers
+  // eslint-disable-next-line complexity
+  onStepChange: observer('stepIndex', function() {
     if (this.sequence && this.sequencer) {
-      this.sequencer.stepper.value = (this.stepIndex % this.sequence.length) - 1;
+      if (this.sequencer && typeof this.sequencer.stepper.value === 'number') {
+        let step = (this.stepIndex % this.sequencer.stepper.max) - 2;
+
+        if (!this.stepIndex) {
+          step = this.sequencer.stepper.max - 2;
+        }
+        this.sequencer.stepper.value = step;
+      }
       this.sequencer.next();
     }
-  },
+  }),
 
   nexusInit() {
     this._super(...arguments);

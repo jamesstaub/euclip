@@ -15,6 +15,9 @@ export default Component.extend({
 
   nexusInit() {
     this._super(...arguments);
+    if (this.nexusElement) {
+      this.nexusElement.destroy();
+    }
     const nexusElement = new Nexus[this.elementName](`#${this.nexusId}`, this.options);
     this.set('nexusElement', nexusElement);
     this.nexusElement.on('change', (v) => {
