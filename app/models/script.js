@@ -10,6 +10,8 @@ export default class ScriptModel extends Model {
   @attr('string') code;  
   // code after server runs security parser. API enforce never writable by the client
   @attr('string') safeCode;
+  
+  @attr('string') editorContent;
 
   @belongsTo('track') track;
 

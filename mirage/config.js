@@ -73,7 +73,14 @@ export default function() {
   this.del('/projects/:slug');
 
   this.get('/projects/:slug/tracks');
-  this.post('/projects/:slug/tracks');
+  this.post('/projects/:slug/tracks', (schema) => {
+    // TODO implement different track types (euclidean, )
+    const track = schema.track.create();
+    track.createInitScript();
+    track.createOnstepScript();
+    return track;
+  });
+
   this.patch('/tracks/:id');
   this.get('/tracks/:id');
   this.del('/tracks/:id', async ({ tracks }, request) => {

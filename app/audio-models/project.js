@@ -23,7 +23,7 @@ export default class ProjectAudioModel extends Model.extend(Evented) {
 
   startLoop() {
     __.loop('start');
-    __.loop(300)
+    __.loop(200)
     this.isPlaying = true;
   }
 
@@ -36,5 +36,9 @@ export default class ProjectAudioModel extends Model.extend(Evented) {
     // remove all existing cracked audio nodes
     __('*').unbind('step');
     __.reset();
+  }
+
+  resetLoop() {
+    __.loop('reset');
   }
 }

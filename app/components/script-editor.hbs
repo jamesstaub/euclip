@@ -1,0 +1,9 @@
+{{ember-ace
+  class="grow-1"
+  lines=(if this.isExpanded 24 8)
+  editorClass="ace-editor"
+  mode="ace/mode/javascript"
+  value=@scriptModel.editorContent
+  update=(fn this.onUpdateEditor)
+}}
+{{yield}}

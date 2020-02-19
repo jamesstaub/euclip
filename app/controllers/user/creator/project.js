@@ -49,6 +49,7 @@ export default class UserCreatorProjectController extends Controller {
 
   @action
   reset() {
+    this.model.resetLoop();
     this.model.tracks.forEach((track)=>{
       track.set('stepIndex', 0);
     })
