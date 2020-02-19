@@ -8,9 +8,10 @@ export default class TrackContainerComponent extends Component {
   }
 
   @action
-  updateTrackSequence(value, sequencer) {
+  updateTrackSequence(idx) {
     //if sequence is different than euclidean output 
-    this.args.track.set('customSequence', sequencer.matrix.pattern[0]);
+    // manually override sequence
+    console.log(idx);
     
     // TODO throttle save with task?
     // this.args.track.save();

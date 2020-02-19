@@ -1,0 +1,15 @@
+<div class="flex w-100">
+  {{#each @sequence as |step idx|}}
+    <span>
+      <svg width="34.1" height="30" {{on "click" (fn @onClickStep idx)}}>
+        {{#if (eq idx stepIndex)}}
+          <rect x="1" y="1" width="32.1" height="28" fill="#d9534f"></rect>
+        {{else if step}}
+          <rect x="1" y="1" width="32.1" height="28" fill="#52ebff"></rect>
+        {{else}}
+          <rect x="1" y="1" width="32.1" height="28" fill="#fff"></rect>
+        {{/if}}
+      </svg>
+    </span>
+  {{/each}}
+</div>

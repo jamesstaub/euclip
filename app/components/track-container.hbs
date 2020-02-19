@@ -4,11 +4,12 @@
     {{yield}}
 
     {{#if @track.sequence}}
-      {{nexus-sequencer 
-        sequence=@track.sequence
-        stepIndex=@track.stepIndex
-        onChangeValue=(action "updateTrackSequence") 
-      }}
+      <TrackSequencer 
+        @sequence={{@track.sequence}}
+        @stepIndex={{@track.stepIndex}}
+        @onClickStep={{fn this.updateTrackSequence}}
+      />
+
     {{/if}}
     <DropdownMenu 
       class="h-100 flex-grow"
