@@ -1,4 +1,4 @@
-<ResponsiveModal>
+<ResponsiveModal class="relative">
   {{#if (or @updateTrackTask.isRunning this.fetchDirectory.isRunning)}}
     <ProgressBar />
   {{/if}}
@@ -12,4 +12,7 @@
       />
     {{/each}}
   </div>
+  {{#if (or @saveTrackTask.isRunning this.fetchDirectory.isRunning)}}
+    <ProgressBar class="absolute bottom-0 right-0" />
+  {{/if}}
 </ResponsiveModal>

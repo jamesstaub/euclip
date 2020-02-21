@@ -2,7 +2,9 @@ import Model from '@ember-data/model';
 const supportedNodes = ['gain', 'sampler', 'lowpass', 'highpass', 'bandpass', 'allpasss', 'notch', 'lowshelf', 'highshelf', 'peaking', 'reverb', 'delay', 'bitcrusher', 'overdrive', 'ring', 'comb'];
 import Evented from '@ember/object/evented';
 
-export default class TrackAudioModel extends Model.extend(Evented) {
+export default class TrackAudioModel extends Model.extend(Evented) {  
+
+
   get selector() {
     return `#${this.id}`;
   }
@@ -11,14 +13,16 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // project and initScript are awaited on the route
     // so this event can be synchronous
     project.on('initTracks', () => {
-      this.setupAudioFromScripts(initScript);
-    })
+      if (!this.isDeleted) {
+        this.setupAudioFromScripts(initScript);
+      }
+    });
   }
 
   setupAudioFromScripts(initScript) {
     // array to store audio node uuids created in this track's script
     // not to be confused with trackNode models, 
-    // { uuid: type }
+    // { uuid: type } 
     this.set('trackAudioNodes', []); 
 
     __.onCreateNode = (node, type) => {
@@ -28,6 +32,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         this.trackAudioNodes.push(trackNode);
       }
     }
+
+    this.unbindTrack();
      // run script to create audio nodes
     initScript.functionRef();
     
@@ -91,6 +97,11 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       onStepCallback, // call this function (bound to component scope)
       this.sequence // passing in array value at position
     );
+  }
+
+  unbindTrack() {
+    __(this.selector).unbind('step');
+    __(this.selector).remove();
   }
   
   onStepCallback(index, data, array) {

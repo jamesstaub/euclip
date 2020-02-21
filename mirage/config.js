@@ -73,16 +73,23 @@ export default function() {
   this.del('/projects/:slug');
 
   this.get('/projects/:slug/tracks');
-  this.post('/projects/:slug/tracks');
+  this.post('/projects/:slug/tracks', (schema) => {
+    // TODO implement different track types (euclidean, )
+    const track = schema.track.create();
+    track.createInitScript();
+    track.createOnstepScript();
+    return track;
+  });
+
   this.patch('/tracks/:id');
   this.get('/tracks/:id');
   this.del('/tracks/:id', async ({ tracks }, request) => {
     let id = request.params.id;
     let track = tracks.find(id);
-     track.destroy();
-     track.initScript && track.initScript.destroy();
-     track.onstepScript && track.onstepScript.destroy();
-     track.trackNode && track.trackNode.destroy();
+    track.destroy();
+    track.initScript && track.initScript.destroy();
+    track.onstepScript && track.onstepScript.destroy();
+    track.trackNodes && track.trackNodes.destroy()
     return track;
   });
 

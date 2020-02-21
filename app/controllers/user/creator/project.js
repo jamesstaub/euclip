@@ -6,16 +6,14 @@ export default class UserCreatorProjectController extends Controller {
   @tracked activeTrack;
   @tracked drumMenuOpen;
 
-
   @action
-  openDrumMenu(id) {
+  openDrumMenu() {
     this.drumMenuOpen = true;
   }
 
   @action
-  setActiveTrack(id) {
-    this.activeTrack = this.model.tracks.findBy('id', id);
-    this.transitionToRoute('user.creator.project.track', this.activeTrack);
+  transitionToTrack(id) {
+    this.transitionToRoute('user.creator.project.track', this.model.tracks.findBy('id', id));
   }
 
   @action
@@ -37,6 +35,7 @@ export default class UserCreatorProjectController extends Controller {
 
   @action
   reset() {
+    this.model.resetLoop();
     this.model.tracks.forEach((track)=>{
       track.set('stepIndex', 0);
     })
