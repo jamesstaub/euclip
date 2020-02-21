@@ -3,22 +3,22 @@ import { setupRenderingTest } from 'ember-qunit';
 import { render } from '@ember/test-helpers';
 import { hbs } from 'ember-cli-htmlbars';
 
-module('Integration | Component | nexus-sequencer', function(hooks) {
+module('Integration | Component | track-sequencer', function(hooks) {
   setupRenderingTest(hooks);
 
   test('it renders', async function(assert) {
     // Set any properties with this.set('myProperty', 'value');
     // Handle any actions with this.set('myAction', function(val) { ... });
 
-    await render(hbs`<NexusSequencer />`);
+    await render(hbs`<TrackSequencer />`);
 
     assert.equal(this.element.textContent.trim(), '');
 
     // Template block usage:
     await render(hbs`
-      <NexusSequencer>
+      <TrackSequencer>
         template block text
-      </NexusSequencer>
+      </TrackSequencer>
     `);
 
     assert.equal(this.element.textContent.trim(), 'template block text');

@@ -1,12 +1,13 @@
-<div class="mv3 pointer" ...attributes {{on "click" @selectActiveTrack}}>
-  <div class="flex relative justify-between {{if @isActive "bg-dark-blue" "bg-dark-gray"}}">    
+<div class="mv1 pointer" ...attributes {{on "click" @selectActiveTrack}}>
+  <div class="flex relative justify-between {{if @isActive "bg-dark-blue" "bg-dark-gray"}}">
+    
     {{yield}}
     {{#if @track.sequence}}
-      {{nexus-sequencer 
-        sequence=@track.sequence
-        stepIndex=@track.stepIndex
-        onChangeValue=(action "updateTrackSequence") 
-      }}
+      <TrackSequencer 
+        @sequence={{@track.sequence}}
+        @stepIndex={{@track.stepIndex}}
+        @onClickStep={{fn this.updateTrackSequence}}
+      />
     {{/if}}
     <DropdownMenu 
       class="h-100 flex-grow"

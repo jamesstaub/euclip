@@ -18,7 +18,8 @@ export default NexusBase.extend({
         'min': 0,
         'max': this.max || 1,
         'step': this.step || 1,
-        'value': this.value
+        'value': this.value,
+        'interaction': 'vertical'
       };
     }
   }),

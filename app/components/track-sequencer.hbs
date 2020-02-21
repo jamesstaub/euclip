@@ -1,0 +1,10 @@
+<div class="flex w-100 pa2">
+  {{#each @sequence as |step idx|}}
+    <SequencerStep 
+      {{on "click" (fn @onClickStep idx)}}
+      @step={{step}} 
+      @stepIndex={{@stepIndex}} 
+      @idx={{idx}}
+    />
+  {{/each}}
+</div>
