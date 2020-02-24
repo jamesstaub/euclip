@@ -21,4 +21,9 @@ export default class TrackContainerComponent extends Component {
     // TODO throttle save with task?
     // this.args.track.save();
   }
+  
+  @action
+  toggleDrumFilePicker() {
+    this.args.track.drumMenuOpen = !this.args.track.drumMenuOpen;
+  }
 }

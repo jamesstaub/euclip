@@ -9,6 +9,7 @@ export default class TrackModel extends TrackAudioModel {
   @tracked steps;
   @tracked offset;
   @tracked filepath;
+  @tracked drumMenuOpen;
 
   @attr('string') type
   @attr('string') filepath
@@ -59,6 +60,11 @@ export default class TrackModel extends TrackAudioModel {
     // TODO implement support for custom sequence
     // this.customSequence ||
     return E(this.hits, this.steps, this.offset)
+  }
+
+  get filename() {
+    const pathSegments = this.filepath.split('/');    
+    return pathSegments[pathSegments.length-1];
   }
 
   get filepathUrl() {

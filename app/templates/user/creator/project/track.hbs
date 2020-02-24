@@ -1,9 +1,9 @@
-
-<DrumFilePicker
-  @isOpen={{drumMenuOpen}}
-  @track={{this.activeTrack}}
-  @updateTrackTask={{updateTrackTask}}
-/>
+{{#if @model.drumMenuOpen}}
+  <DrumFilePicker
+    @track={{@model}}
+    @updateTrackTask={{updateTrackTask}}
+  />
+{{/if}}
 
 <div class="bottom-0 absolute w-100" >
   {{#unless @model.isDeleted}}

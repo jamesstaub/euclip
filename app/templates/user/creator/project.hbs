@@ -5,7 +5,6 @@
     <button {{action "stop"}}>stop</button>
     <button {{action "reset"}}>reset</button>
   </div>
-  
   <button {{on "click" this.addTrack}}>+ track</button>
 </div>
 <div>
@@ -15,16 +14,7 @@
       @track={{track}} 
       @isActive={{eq track.id this.activeTrack.id}} 
       @selectActiveTrack={{fn this.transitionToTrack track.id}}
-    >
-    <button
-      {{on "click"  this.openDrumMenu}}
-      class="w4 ph1 f7"
-      title="Drum Machine: {{track.filepath}}"
-    >
-      {{if track.filepath track.filename}}
-    </button>
-
-    </TrackContainer>
+    />
   {{/each}}
 </div>
 

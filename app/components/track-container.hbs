@@ -1,6 +1,12 @@
 <div class="mv1 pointer" ...attributes {{on "click" @selectActiveTrack}}>
-  <div class="flex relative justify-between {{if @isActive "bg-dark-blue" "bg-dark-gray"}}">
-    
+  <button
+    {{on "click"  this.toggleDrumFilePicker}}
+    class="w4 ph1 f7"
+    title="Drum Machine: {{@track.filepath}}"
+  >
+    {{if @track.filepath @track.filename}}
+  </button>
+  <div class="flex relative justify-between {{if @isActive "bg-dark-blue" "bg-dark-gray"}}">    
     {{yield}}
     {{#if @track.sequence}}
       <TrackSequencer 

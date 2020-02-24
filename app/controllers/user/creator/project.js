@@ -4,12 +4,6 @@ import { tracked } from '@glimmer/tracking';
 
 export default class UserCreatorProjectController extends Controller {
   @tracked activeTrack;
-  @tracked drumMenuOpen;
-
-  @action
-  openDrumMenu() {
-    this.drumMenuOpen = true;
-  }
 
   @action
   transitionToTrack(id) {
