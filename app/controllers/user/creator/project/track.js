@@ -5,6 +5,8 @@ import { task } from 'ember-concurrency-decorators';
 export default class UserCreatorProjectTrackController extends Controller {
   @task
   *updateTrackTask(key, value, reInit=true){
+    console.log(this.model);
+    
     try {
       this.model.set(key, value);
       if (reInit)  {
