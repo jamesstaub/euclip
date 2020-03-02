@@ -13,7 +13,6 @@ export default class UserCreatorProjectTrackController extends Controller {
         track.setupAudioFromScripts(initScript);
       }
       yield this.model.save();
-
     } catch (e) {
       this.model.rollbackAttributes();
     }

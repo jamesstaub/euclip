@@ -6,8 +6,8 @@ export default class TrackAdapter extends JSONAPIAdapter {
     return `/projects/${snapshot.record.project.get('slug')}/tracks?include=init-script,onstep-script`;
   }
 
-  urlForFindRecord(id, modelName, snapshot) {
-    const slug = snapshot.adapterOptions.slug;
+  urlForFindRecord(id, modelName, { adapterOptions }) {
+    const slug = adapterOptions.slug;
     return `/projects/${slug}/tracks/${id}`;
   }
 }

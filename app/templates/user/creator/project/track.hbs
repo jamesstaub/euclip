@@ -14,8 +14,12 @@
           {{trackNode.nodeType}}
           {{#each trackNode.trackControls as |trackControl|}}
             <div>
-              {{component 
+              {{component
                 (concat "nexus-" trackControl.interfaceName) 
+                value=trackControl.value
+                min=trackControl.min
+                max=trackControl.max
+                defaultVal=trackControl.defaultVal
                 onChangeValue=(action "updateControl" trackControl)
               }}
               <p class="tc">{{trackControl.nodeAttr}}</p>

@@ -25,12 +25,96 @@ const controlsForNode = function(nodeType) {
   }
 }
 
+const defaultForAttr = function(attr) {
+  const paramDefaults = {};
+  switch (attr) {
+    case 'bits':
+      paramDefaults.min = 1;
+      paramDefaults.max = 16;
+      paramDefaults.defaultVal = 6;
+      break;
+    case 'color':
+      paramDefaults.min = 0;
+      paramDefaults.max = 1000;
+      paramDefaults.defaultVal = 800;
+      break;
+    case 'cutoff':
+      paramDefaults.min = 0;
+      paramDefaults.max = 4000;
+      paramDefaults.defaultVal = 1500;
+      break;
+    case 'damping':
+      paramDefaults.min = 0;
+      paramDefaults.max = 1;
+      paramDefaults.defaultVal = 0.84;
+      break;
+    case 'decay':
+      paramDefaults.min = 0;
+      paramDefaults.max = 4;
+      paramDefaults.defaultVal = 0;
+      break;
+    case 'delay':
+      paramDefaults.min = 0;
+      paramDefaults.max = 6;
+      paramDefaults.defaultVal = 2;
+      break;
+    case 'distortion':
+      paramDefaults.min = 0;
+      paramDefaults.max = 3;
+      paramDefaults.defaultVal = 1;
+      break;
+    case 'drive':
+      paramDefaults.min = 0;
+      paramDefaults.max = 2;
+      paramDefaults.defaultVal = .5;
+      break;
+    case 'feedback':
+      paramDefaults.min = 0;
+      paramDefaults.max = 1;
+      paramDefaults.defaultVal = 0.84;
+      break;
+    case 'frequency':
+      paramDefaults.min = 0;
+      paramDefaults.max = 10000;
+      paramDefaults.defaultVal = 300;
+      break;
+    case 'gain':
+      paramDefaults.min = 0;
+      paramDefaults.max = 1;
+      paramDefaults.defaultVal = 1;
+      break;
+    case 'postCut':
+      paramDefaults.min = 0;
+      paramDefaults.max = 5000;
+      paramDefaults.defaultVal = 3000;
+      break;
+    case 'q':
+      paramDefaults.min = 0;
+      paramDefaults.max = 20;
+      paramDefaults.defaultVal = 0;
+      break;
+    case 'seconds':
+      paramDefaults.min = 0;
+      paramDefaults.max = 6;
+      paramDefaults.defaultVal = 0;
+      break;
+    case 'speed':
+      paramDefaults.min = .125;
+      paramDefaults.max = 2;
+      paramDefaults.defaultVal = 1;  
+  }
+  return paramDefaults;
+
+}
+
 const createTrackControls = function (trackNode) {
   const controlAttrs = controlsForNode(trackNode.nodeType);
-  return controlAttrs.map((attr) => {
+  return controlAttrs.map((controlAttr) => {
+    const defaults = defaultForAttr(controlAttr);
     return trackNode.createTrackControl({ 
-      nodeAttr: attr, 
-      interfaceName: 'slider'  //TODO parse from class in node definition 
+      nodeAttr: controlAttr, 
+      interfaceName: 'slider',  //TODO parse from class in node definition for different control interface types
+      ...defaults
     });
   });
 }
@@ -82,7 +166,11 @@ export default function() {
   });
 
   this.patch('/tracks/:id');
-  this.get('/tracks/:id');
+
+  this.get('/projects/:slug/tracks/:id', (schema, { params }) => {
+    return schema.tracks.find(params.id);
+  });
+
   this.del('/tracks/:id', async ({ tracks }, request) => {
     let id = request.params.id;
     let track = tracks.find(id);

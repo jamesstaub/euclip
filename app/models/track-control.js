@@ -8,13 +8,13 @@ export default class TrackControlModel extends Model {
   @attr('number') min;
   @attr('number') max;
   @attr('number') defaultVal;
-  @attr('number') sliderValue; // number value of slider
+  @attr('number') controlValue; // number value of control 
   @attr() multiSliderData; // array of values
   @belongsTo('track-node') trackNode;
 
   bindTrackEvents(track) {
     track.on('trackStep', (index) => {
-      this.setAttrs(this.sliderValue);
+      this.setAttrs(this.controlValue);
     });
   }
 
@@ -34,7 +34,7 @@ export default class TrackControlModel extends Model {
   }
 
   setValue(value) {
-    this.set('sliderValue', value);
+    this.set('controlValue', value);
     this.setAttrs(value);
   }
 }
