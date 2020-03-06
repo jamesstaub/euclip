@@ -31,89 +31,90 @@ const defaultForAttr = function(attr) {
     case 'bits':
       paramDefaults.min = 1;
       paramDefaults.max = 16;
-      paramDefaults.defaultVal = 6;
+      paramDefaults.defaultValue = 6;
       break;
     case 'color':
       paramDefaults.min = 0;
       paramDefaults.max = 1000;
-      paramDefaults.defaultVal = 800;
+      paramDefaults.defaultValue = 800;
       break;
     case 'cutoff':
       paramDefaults.min = 0;
       paramDefaults.max = 4000;
-      paramDefaults.defaultVal = 1500;
+      paramDefaults.defaultValue = 1500;
       break;
     case 'damping':
       paramDefaults.min = 0;
       paramDefaults.max = 1;
-      paramDefaults.defaultVal = 0.84;
+      paramDefaults.defaultValue = 0.84;
       break;
     case 'decay':
       paramDefaults.min = 0;
       paramDefaults.max = 4;
-      paramDefaults.defaultVal = 0;
+      paramDefaults.defaultValue = 0;
       break;
     case 'delay':
       paramDefaults.min = 0;
       paramDefaults.max = 6;
-      paramDefaults.defaultVal = 2;
+      paramDefaults.defaultValue = 2;
       break;
     case 'distortion':
       paramDefaults.min = 0;
       paramDefaults.max = 3;
-      paramDefaults.defaultVal = 1;
+      paramDefaults.defaultValue = 1;
       break;
     case 'drive':
       paramDefaults.min = 0;
       paramDefaults.max = 2;
-      paramDefaults.defaultVal = .5;
+      paramDefaults.defaultValue = .5;
       break;
     case 'feedback':
       paramDefaults.min = 0;
       paramDefaults.max = 1;
-      paramDefaults.defaultVal = 0.84;
+      paramDefaults.defaultValue = 0.84;
       break;
     case 'frequency':
       paramDefaults.min = 0;
       paramDefaults.max = 10000;
-      paramDefaults.defaultVal = 300;
+      paramDefaults.defaultValue = 300;
       break;
     case 'gain':
       paramDefaults.min = 0;
       paramDefaults.max = 1;
-      paramDefaults.defaultVal = 1;
+      paramDefaults.defaultValue = 1;
       break;
     case 'postCut':
       paramDefaults.min = 0;
       paramDefaults.max = 5000;
-      paramDefaults.defaultVal = 3000;
+      paramDefaults.defaultValue = 3000;
       break;
     case 'q':
       paramDefaults.min = 0;
       paramDefaults.max = 20;
-      paramDefaults.defaultVal = 0;
+      paramDefaults.defaultValue = 0;
       break;
     case 'seconds':
       paramDefaults.min = 0;
       paramDefaults.max = 6;
-      paramDefaults.defaultVal = 0;
+      paramDefaults.defaultValue = 0;
       break;
     case 'speed':
       paramDefaults.min = .125;
       paramDefaults.max = 2;
-      paramDefaults.defaultVal = 1;  
+      paramDefaults.defaultValue = 1;  
   }
   return paramDefaults;
 
 }
 
-const createTrackControls = function (trackNode) {
+const createTrackControls = function (trackNode) {  
   const controlAttrs = controlsForNode(trackNode.nodeType);
   return controlAttrs.map((controlAttr) => {
     const defaults = defaultForAttr(controlAttr);
+    defaults.controlValue = defaults.defaultValue;
     return trackNode.createTrackControl({ 
       nodeAttr: controlAttr, 
-      interfaceName: 'slider',  //TODO parse from class in node definition for different control interface types
+      interfaceName: 'slider',  // TODO parse from class in node definition for different control interface types
       ...defaults
     });
   });
@@ -159,7 +160,7 @@ export default function() {
   this.get('/projects/:slug/tracks');
   this.post('/projects/:slug/tracks', (schema) => {
     // TODO implement different track types (euclidean, )
-    const track = schema.track.create();
+    const track = schema.tracks.create();
     track.createInitScript();
     track.createOnstepScript();
     return track;
@@ -194,34 +195,14 @@ export default function() {
     return trackNode;
   });
 
+
+  this.patch('init-scripts/:id');
+  this.patch('onstep-scripts/:id');
+
   this.passthrough('https://storage.googleapis.com/**');
   this.passthrough('https://drumserver.herokuapp.com');
   this.passthrough('https://drumserver.herokuapp.com/**');
   this.passthrough('/assets/**');
   this.pretender.get('/*passthrough', this.pretender.passthrough);
-
-
-  // These comments are here to help you get started. Feel free to delete them.
-
-  /*
-    Config (with defaults).
-
-    Note: these only affect routes defined *after* them!
-  */
-
-  // this.urlPrefix = '';    // make this `http://localhost:8080`, for example, if your API is on a different server
-  // this.namespace = '';    // make this `/api`, for example, if your API is namespaced
-  // this.timing = 400;      // delay for each request, automatically set to 0 during testing
-
-  /*
-    Shorthand cheatsheet:
-
-    this.get('/posts');
-    this.post('/posts');
-    this.get('/posts/:id');
-    this.put('/posts/:id'); // or this.patch
-    this.del('/posts/:id');
-
-    https://www.ember-cli-mirage.com/docs/route-handlers/shorthands
-  */
+  
 }

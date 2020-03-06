@@ -1,14 +1,16 @@
 import Component from '@glimmer/component';
 import { action } from '@ember/object';
-import { task } from 'ember-concurrency-decorators';
+import { keepLatestTask } from 'ember-concurrency-decorators';
+import { timeout } from 'ember-concurrency';
 
 export default class ScriptEditorComponent extends Component {
   
-  @task
+  @keepLatestTask
   *saveScriptTask(property, value) {
     // yield proxy to model record
     const scriptModel = yield this.args.scriptModel;
     scriptModel.set(property, value);
+    yield timeout(300);
     yield scriptModel.save();
   }
 

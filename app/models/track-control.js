@@ -7,7 +7,7 @@ export default class TrackControlModel extends Model {
   @attr('string') nodeAttr; // the audio attr that will be controlled
   @attr('number') min;
   @attr('number') max;
-  @attr('number') defaultVal;
+  @attr('number') defaultValue;
   @attr('number') controlValue; // number value of control 
   @attr() multiSliderData; // array of values
   @belongsTo('track-node') trackNode;

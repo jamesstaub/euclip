@@ -3,7 +3,7 @@
     <SequencerStep 
       {{on "click" (fn @onClickStep idx)}}
       @step={{step}} 
-      @stepIndex={{@stepIndex}} 
+      @stepIndex={{seq-step-offset @stepIndex @sequence}} 
       @idx={{idx}}
     />
   {{/each}}

@@ -1,13 +1,14 @@
-import { Factory, trait } from 'ember-cli-mirage';
+import { Factory } from 'ember-cli-mirage';
 
-export default Factory.extend({
-  safeCode: i => {
-    return `
+const script = `
 
 if (data) {
   __(this.selector).stop();
   __(this.selector).start();
 } 
-`
-  }
+`;
+
+export default Factory.extend({
+  safeCode: i => script,
+  editorContent: i => script
 });

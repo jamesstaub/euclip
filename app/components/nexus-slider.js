@@ -15,7 +15,7 @@ export default NexusBase.extend({
   options: computed('max', 'step', 'value', 'size', {
     get() {
       return {
-        'size': this.size || [20, 70],
+        'size': this.size || [20, 120],
         'mode': 'relative', // "absolute" or "relative"
         'min': 0,
         'max': this.max || 1,

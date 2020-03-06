@@ -16,10 +16,10 @@
             <div>
               {{component
                 (concat "nexus-" trackControl.interfaceName) 
-                value=trackControl.value
+                value=trackControl.controlValue
                 min=trackControl.min
                 max=trackControl.max
-                defaultVal=trackControl.defaultVal
+                defaultValue=trackControl.defaultValue
                 onChangeValue=(action "updateControl" trackControl)
               }}
               <p class="tc">{{trackControl.nodeAttr}}</p>
@@ -34,8 +34,14 @@
       </div>
     </div>
   {{/unless}}
+  
+  {{#if @model.initScript}}
+    <ScriptEditor @scriptModel={{@model.initScript}}/>
+  {{/if}}
 
-  <ScriptEditor @model={{@model.initScript}}/>
+  {{#if @model.onstepScript}}
+    <ScriptEditor @scriptModel={{@model.onstepScript}}/>
+  {{/if}}
 </div>
 
 {{outlet}}

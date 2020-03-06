@@ -1,18 +1,17 @@
 import Controller from '@ember/controller';
 import { action } from '@ember/object';
-import { task } from 'ember-concurrency-decorators';
+import { keepLatestTask } from 'ember-concurrency-decorators';
 
 export default class UserCreatorProjectTrackController extends Controller {
-  @task
+  @keepLatestTask
   *updateTrackTask(key, value, reInit=true){
-    console.log(this.model);
-    
     try {
       this.model.set(key, value);
+      
       if (reInit)  {
         // TODO refactor so setupAudioFromScripts does not take arguments, but ensure these models are resolved
-        const initScript = yield track.initScript;
-        track.setupAudioFromScripts(initScript);
+        // const initScript = yield track.initScript;
+        // track.setupAudioFromScripts(initScript);
       }
       yield this.model.save();
     } catch (e) {
