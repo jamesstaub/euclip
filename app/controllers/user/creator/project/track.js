@@ -10,8 +10,8 @@ export default class UserCreatorProjectTrackController extends Controller {
       
       if (reInit)  {
         // TODO refactor so setupAudioFromScripts does not take arguments, but ensure these models are resolved
-        // const initScript = yield track.initScript;
-        // track.setupAudioFromScripts(initScript);
+        const initScript = yield this.model.initScript;
+        this.model.setupAudioFromScripts(initScript);
       }
       yield this.model.save();
     } catch (e) {

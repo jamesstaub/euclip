@@ -64,10 +64,11 @@ export default class TrackModel extends TrackAudioModel {
 
   get filename() {
     const pathSegments = this.filepath.split('/');    
-    return pathSegments[pathSegments.length-1];
+    return pathSegments[pathSegments.length-1].split('.')[0].replace('%20', ' ');
   }
 
   get filepathUrl() {
+    // TOODO create and ENV var to set drum filepath
     return `/assets/audio/Drum%20Machines%20mp3${this.filepath}`;
     // return `https://storage.googleapis.com/euclidean-cracked.appspot.com/Drum%20Machines%20mp3${this.filepath}`;
   }

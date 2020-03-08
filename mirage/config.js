@@ -160,7 +160,12 @@ export default function() {
   this.get('/projects/:slug/tracks');
   this.post('/projects/:slug/tracks', (schema) => {
     // TODO implement different track types (euclidean, )
-    const track = schema.tracks.create();
+    const track = schema.tracks.create({
+      hits: 0,
+      steps: 8,
+      offset: '',
+      filepath: '/SequentialCircuits%20Tom/kick.mp3',
+    });
     track.createInitScript();
     track.createOnstepScript();
     return track;
@@ -194,7 +199,6 @@ export default function() {
     createTrackControls(trackNode);
     return trackNode;
   });
-
 
   this.patch('init-scripts/:id');
   this.patch('onstep-scripts/:id');

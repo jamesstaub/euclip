@@ -23,7 +23,7 @@ export default class ProjectAudioModel extends Model.extend(Evented) {
 
   startLoop() {
     __.loop('start');
-    __.loop(666)
+    __.loop(200);
     this.isPlaying = true;
   }
 
