@@ -12,6 +12,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   bindProjectEvents(project, initScript) {
     // project and initScript are awaited on the route
     // so this event can be synchronous
+
+    // FIXME should this method also call setupAudioFromScripts outright?
+    // what should happen when new tracks are added while the project is playing
     project.on('initTracks', () => {
       if (!this.isDeleted) {
         this.setupAudioFromScripts(initScript);
@@ -23,6 +26,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // array to store audio node uuids created in this track's script
     // not to be confused with trackNode models, 
     // { uuid: type } 
+
     this.set('trackAudioNodes', []); 
 
     __.onCreateNode = (node, type) => {

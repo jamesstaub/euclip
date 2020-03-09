@@ -13,7 +13,7 @@ export default NexusBase.extend({
   },
 
   options: computed('max', 'step', 'value', 'size', {
-    get() {
+    get() {            
       return {
         'min': 0,
         'max': this.max || 1,

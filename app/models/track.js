@@ -64,7 +64,9 @@ export default class TrackModel extends TrackAudioModel {
 
   get filename() {
     const pathSegments = this.filepath.split('/');    
-    return pathSegments[pathSegments.length-1].split('.')[0].replace('%20', ' ');
+    return pathSegments[pathSegments.length-1].split('.')[0].replace(/%20/g, ' ');
+    
+    
   }
 
   get filepathUrl() {

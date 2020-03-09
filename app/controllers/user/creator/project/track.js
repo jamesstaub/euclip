@@ -3,6 +3,8 @@ import { action } from '@ember/object';
 import { keepLatestTask } from 'ember-concurrency-decorators';
 
 export default class UserCreatorProjectTrackController extends Controller {
+  maxSteps = 16;
+  
   @keepLatestTask
   *updateTrackTask(key, value, reInit=true){
     try {

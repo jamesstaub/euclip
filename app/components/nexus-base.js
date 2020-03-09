@@ -13,6 +13,12 @@ export default Component.extend({
     this.nexusInit();
   },
 
+  didReceiveAttrs() {
+    if (this.options && this.nexusElement && this.value !== this.nexusElement.value) {
+      this.nexusInit();
+    }
+  },
+
   nexusInit() {
     this._super(...arguments);
     if (this.nexusElement) {

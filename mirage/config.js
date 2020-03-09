@@ -160,14 +160,43 @@ export default function() {
   this.get('/projects/:slug/tracks');
   this.post('/projects/:slug/tracks', (schema) => {
     // TODO implement different track types (euclidean, )
+    const init = `
+__()
+  .sampler({
+    id: this.id,
+    path: this.filepath,
+    class: 'multislider'
+  })
+  .gain({ 
+    class: 'slider'
+  })
+  .gain({
+    class: 'multislider',
+  })
+  .connect('#master-compressor');
+`;
+
+const onstep = `
+
+if (data) {
+  __(this.selector).stop();
+  __(this.selector).start();
+} 
+`;
     const track = schema.tracks.create({
       hits: 0,
       steps: 8,
       offset: '',
       filepath: '/SequentialCircuits%20Tom/kick.mp3',
     });
-    track.createInitScript();
-    track.createOnstepScript();
+    track.createInitScript({
+      safeCode: init,
+      editorContent: init,
+    });
+    track.createOnstepScript({
+      safeCode:onstep,
+      editorContent:onstep,
+    });
     return track;
   });
 

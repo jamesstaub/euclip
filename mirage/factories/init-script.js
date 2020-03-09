@@ -14,9 +14,8 @@ __()
     class: 'multislider',
   })
   .connect('#master-compressor');
-`
+`;
 export default Factory.extend({
   safeCode: i => init,
   editorContent: i => init,
-
  });

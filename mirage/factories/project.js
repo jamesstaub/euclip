@@ -1,5 +1,4 @@
-import {
-  Factory, trait } from 'ember-cli-mirage';
+import { Factory, trait } from 'ember-cli-mirage';
 
 export default Factory.extend({
   title: i => `Project ${i + 1}`,
