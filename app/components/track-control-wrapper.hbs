@@ -4,17 +4,17 @@
     @min={{@trackControl.min}}
     @max={{@trackControl.max}}
     @defaultValue={{@trackControl.defaultValue}}
-    @onChangeValue={{fn this.onChangeValue}}
+    @onChangeValue={{@updateControl}}
   />
 {{/if}}
 
 {{#if (eq @trackControl.interfaceName "multislider")}}
   <NexusMultislider 
-    @values={{this.multisliderData}}
+    @values={{this.controlArrayValue}}
     @min={{@trackControl.min}}
     @max={{@trackControl.max}}
     @defaultValue={{@trackControl.defaultValue}}
-    @onChangeValue={{fn this.onChangeValue}}
+    @onChangeValue={{@updateControl}}
   />
 {{/if}}
 

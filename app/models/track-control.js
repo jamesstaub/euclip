@@ -4,13 +4,14 @@ import { isArray } from '@ember/array';
 const { attr, belongsTo } = DS;
 
 export default class TrackControlModel extends Model {
+
   @attr('string') interfaceName; // type of nexus ui element
   @attr('string') nodeAttr; // the audio attr that will be controlled
   @attr('number') min;
   @attr('number') max;
   @attr('number') defaultValue;
   @attr('number') controlValue; // number value of control 
-  @attr() multisliderData;
+  @attr() controlArrayValue;
 
   @belongsTo('track-node') trackNode;
 
@@ -21,8 +22,8 @@ export default class TrackControlModel extends Model {
   }
 
   applyAttrsOnStep(index) {
-    if (this.nodeAttr && this.multisliderData.length) {
-      this.setAttrs(this.multisliderData[index]);
+    if (this.nodeAttr && this.controlArrayValue.length) {
+      this.setAttrs(this.controlArrayValue[index]);
     } else {
       throw 'failed to apply attrs';
     }
@@ -42,10 +43,8 @@ export default class TrackControlModel extends Model {
   }
 
   setValue(value) {
-    console.log('model setter');
-    
     if (isArray(value)) {
-      this.set('multisliderData', value);
+      this.controlArrayValue = value;
     } else {
       this.set('controlValue', value);
       this.setAttrs(value);

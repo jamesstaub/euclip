@@ -101,8 +101,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     this.store.peekAll('track-control').forEach((trackControl)=> {     
       const trackNode = trackControl.belongsTo('trackNode').value()
       const attrs = {};
-      if (trackControl.nodeAttr && trackControl.multisliderData.length) {
-        attrs[trackControl.nodeAttr] = trackControl.multisliderData[index];
+      if (trackControl.nodeAttr && trackControl.controlArrayValue.length) {
+        attrs[trackControl.nodeAttr] = trackControl.controlArrayValue[index];
         // users can declare a custom selector on a control
         if (trackNode.nodeSelector) {
           __(nodeSelector).attr(attrs);

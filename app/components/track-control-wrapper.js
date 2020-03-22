@@ -1,27 +1,28 @@
 import Component from "@glimmer/component";
 import { action } from '@ember/object';
+import { tracked } from '@glimmer/tracking';
 
 export default class TrackControlWrapperComponent extends Component {
-  get multisliderData() {
+  @tracked controlArrayValue
+  // REFACTOR
+  // this should be doable with @tracked instead but there was an error about there not being a setter defined 
+  // and an es5 setter for controlArrayValue was throwing babel errors :(
+  get controlArrayValue() {
     // fill the trackControl model's array with defaul value if it is not the correct length
+    console.log(this.args.controlArrayValue);
     while (
-      this.args.trackControl.multisliderData.length < this.args.sequence.length
+      this.args.controlArrayValue.length < this.args.sequence.length
     ) {
-      this.args.trackControl.multisliderData.push(
+      this.args.controlArrayValue.push(
         this.args.trackControl.defaultValue
       );
     }
-    return this.args.trackControl.multisliderData;
-  }
-
-  set multisliderData() {
-    console.log('set!@');
+    return this.args.controlArrayValue;
   }
 
   @action
   onChangeValue(v) {
-    debugger
-    // this.updateControl(v);
+    this.args.updateControl(v);
   }
 
 }

@@ -43,6 +43,7 @@
             <TrackControlWrapper 
               @sequence={{@model.sequence}}
               @trackControl={{trackControl}} 
+              @controlArrayValue={{trackControl.controlArrayValue}} 
               @updateControl={{action "updateControl" trackControl}} 
             />
           {{/each}}

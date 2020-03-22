@@ -116,7 +116,7 @@ const createTrackControls = function (trackNode) {
     return trackNode.createTrackControl({ 
       nodeAttr: controlAttr, 
       interfaceName: 'multislider', 
-      multisliderData: [], // api must initialize this whenever a multislider is created
+      controlArrayValue: [], // api must initialize this whenever a multislider is created
       ...defaults
     });
   });
