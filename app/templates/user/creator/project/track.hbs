@@ -8,35 +8,46 @@
 <div class="w-100">
   {{#unless @model.isDeleted}}
     <p class="fw6">{{@model.id}}</p>
-    <div class="flex bg-light-gray pa4">
+    <div class="flex flex-column bg-light-gray pa4 flex-wrap">
+      <div class="flex">
+        <NexusDial 
+          @value={{@model.hits}} 
+          @onChangeValue={{perform updateTrackTask "hits"}} 
+          @min=0 
+          @max={{this.maxSteps}}
+        >
+          {{@model.hits}}
+        </NexusDial>
+        <NexusDial 
+          @value={{@model.steps}} 
+          @onChangeValue={{perform updateTrackTask "steps"}} 
+          @min=0 
+          @max={{this.maxSteps}}
+        >
+          {{@model.steps}}
+        </NexusDial>
+        <NexusDial 
+          @value={{@model.offset}} 
+          @onChangeValue={{perform updateTrackTask "offset"}} 
+          @min=0 
+          @max={{this.maxSteps}}
+        >
+          {{@model.offset}}
+        </NexusDial>
+        
+      </div>
       {{#each @model.trackNodes as |trackNode idx|}}
         <div class="tc mh3">
           {{trackNode.nodeType}}
           {{#each trackNode.trackControls as |trackControl|}}
-            <div>
-              {{component
-                (concat "nexus-" trackControl.interfaceName) 
-                value=trackControl.controlValue
-                min=trackControl.min
-                max=trackControl.max
-                defaultValue=trackControl.defaultValue
-                onChangeValue=(action "updateControl" trackControl)
-              }}
-              <p class="tc">{{trackControl.nodeAttr}}</p>
-            </div>
+            <TrackControlWrapper 
+              @sequence={{@model.sequence}}
+              @trackControl={{trackControl}} 
+              @updateControl={{action "updateControl" trackControl}} 
+            />
           {{/each}}
         </div>
       {{/each}}
-      <div class="flex">
-        <NexusDial @value={{@model.hits}} @onChangeValue={{perform updateTrackTask "hits"}} @min=0 @max={{this.maxSteps}}/>
-        <NexusDial @value={{@model.steps}} @onChangeValue={{perform updateTrackTask "steps"}} @min=0 @max={{this.maxSteps}}/>
-        <NexusDial @value={{@model.offset}} @onChangeValue={{perform updateTrackTask "offset"}} @min=0 @max={{this.maxSteps}}/>
-      </div>
-      <p>
-        {{@model.hits}}
-        {{@model.steps}}
-        {{@model.offset}}
-      </p>
     </div>
   {{/unless}}
   

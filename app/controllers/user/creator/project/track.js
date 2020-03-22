@@ -23,6 +23,7 @@ export default class UserCreatorProjectTrackController extends Controller {
 
   @action
   updateControl(trackControl, value) {
+    console.log('TODO save track');
     trackControl.setValue(value);
     // TODO save
   }

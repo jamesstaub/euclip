@@ -1,3 +1,4 @@
+/* code to be moved to server  */
 const controlsForNode = function(nodeType) {
   switch (nodeType) {
     case 'gain':
@@ -114,7 +115,8 @@ const createTrackControls = function (trackNode) {
     defaults.controlValue = defaults.defaultValue;
     return trackNode.createTrackControl({ 
       nodeAttr: controlAttr, 
-      interfaceName: 'slider',  // TODO parse from class in node definition for different control interface types
+      interfaceName: 'multislider', 
+      multisliderData: [], // api must initialize this whenever a multislider is created
       ...defaults
     });
   });

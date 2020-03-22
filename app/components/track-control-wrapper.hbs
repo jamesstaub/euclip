@@ -1,0 +1,22 @@
+{{#if (eq @trackControl.interfaceName "slider")}}
+  <NexusSlider 
+    @value={{@trackControl.controlValue}}
+    @min={{@trackControl.min}}
+    @max={{@trackControl.max}}
+    @defaultValue={{@trackControl.defaultValue}}
+    @onChangeValue={{fn this.onChangeValue}}
+  />
+{{/if}}
+
+{{#if (eq @trackControl.interfaceName "multislider")}}
+  <NexusMultislider 
+    @values={{this.multisliderData}}
+    @min={{@trackControl.min}}
+    @max={{@trackControl.max}}
+    @defaultValue={{@trackControl.defaultValue}}
+    @onChangeValue={{fn this.onChangeValue}}
+  />
+{{/if}}
+
+{{!-- todo: custom selector for control (so it can control multiple nodes) --}}
+<p class="tc">{{@trackControl.nodeAttr}}</p>

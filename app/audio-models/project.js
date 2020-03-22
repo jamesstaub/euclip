@@ -30,6 +30,7 @@ export default class ProjectAudioModel extends Model.extend(Evented) {
   stopLoop() {
     this.set('isPlaying', false);
     __.loop('stop');
+    __('*').stop();
   }
 
   disconnectAll() {

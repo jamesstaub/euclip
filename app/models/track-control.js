@@ -1,5 +1,6 @@
 import Model from '@ember-data/model';
 import DS from 'ember-data';
+import { isArray } from '@ember/array';
 const { attr, belongsTo } = DS;
 
 export default class TrackControlModel extends Model {
@@ -9,7 +10,8 @@ export default class TrackControlModel extends Model {
   @attr('number') max;
   @attr('number') defaultValue;
   @attr('number') controlValue; // number value of control 
-  @attr() multiSliderData; // array of values
+  @attr() multisliderData;
+
   @belongsTo('track-node') trackNode;
 
   bindTrackEvents(track) {
@@ -18,15 +20,21 @@ export default class TrackControlModel extends Model {
     });
   }
 
-  // applyAttrsOnStep(index) {
-  //   if (this.nodeAttr && this.controlDataArray.length) {
-  //     this.setAttrs(this.controlDataArray[index]);
-  //   } else {
-  //     throw 'failed to apply attrs';
-  //   }
-  // }
+  applyAttrsOnStep(index) {
+    if (this.nodeAttr && this.multisliderData.length) {
+      this.setAttrs(this.multisliderData[index]);
+    } else {
+      throw 'failed to apply attrs';
+    }
+  }
 
-  // query and update the audio node object 
+  /* 
+    Query and update the audio node object immediately
+    used for sliders and 1 dimensional values
+
+    multislider value changes on the other hand do not get updated immediately,
+    but are accessed by the track model on each step of the sequence
+  */
   setAttrs(val) {
     const attrs = {};
     attrs[this.nodeAttr] = val;
@@ -34,7 +42,13 @@ export default class TrackControlModel extends Model {
   }
 
   setValue(value) {
-    this.set('controlValue', value);
-    this.setAttrs(value);
+    console.log('model setter');
+    
+    if (isArray(value)) {
+      this.set('multisliderData', value);
+    } else {
+      this.set('controlValue', value);
+      this.setAttrs(value);
+    }
   }
 }

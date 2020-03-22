@@ -1,5 +1,7 @@
 import Component from '@ember/component';
 import { guidFor } from '@ember/object/internals';
+import { computed } from '@ember/object';
+import arraysEqual from '../utils/arrays-equal';
 
 export default Component.extend({
   tagName: '',
@@ -14,10 +16,27 @@ export default Component.extend({
   },
 
   didReceiveAttrs() {
-    if (this.options && this.nexusElement && this.value !== this.nexusElement.value) {
+    if (this.options && this.nexusElement && this.valueShouldUpdate) {
       this.nexusInit();
     }
   },
+
+  isArrayElement: computed('elementName', {
+    get() {
+      // currently only multislider is implemented
+      return ['Multislider', 'Envelope'].includes(this.elementName);
+    }
+  }),
+
+  valueShouldUpdate: computed('isArrayElement', 'value', 'values.[]', 'nexusElement.value', 'nexusElement.values.[]', {
+    get() {
+      if (this.isArrayElement) {
+        return !arraysEqual(this.values, this.nexusElement.values);
+      } else {
+        return  this.value !== this.nexusElement.value;
+      }
+    }
+  }),
 
   nexusInit() {
     this._super(...arguments);
@@ -27,7 +46,8 @@ export default Component.extend({
     const nexusElement = new Nexus[this.elementName](`#${this.nexusId}`, this.options);
     this.set('nexusElement', nexusElement);
     this.nexusElement.on('change', (v) => {
-      this.set('value', v);
+      const property = this.isArrayElement ? 'values' : 'value';
+      this.set(property, v);
       if (this.onChangeValue) {
         this.onChangeValue(v, this.nexusElement);
       }
