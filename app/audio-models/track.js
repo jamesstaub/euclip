@@ -99,8 +99,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // iterate over each track conrol and update the cracked audio note attributes
     // by selector or uuid
     this.store.peekAll('track-control').forEach((trackControl)=> {     
-      const trackNode = trackControl.belongsTo('trackNode').value()
+      const trackNode = trackControl.belongsTo('trackNode').value();      
       const attrs = {};
+      
       if (trackControl.nodeAttr && trackControl.controlArrayValue.length) {
         attrs[trackControl.nodeAttr] = trackControl.controlArrayValue[index];
         // users can declare a custom selector on a control

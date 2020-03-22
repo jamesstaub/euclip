@@ -4,7 +4,6 @@ import { isArray } from '@ember/array';
 const { attr, belongsTo } = DS;
 
 export default class TrackControlModel extends Model {
-
   @attr('string') interfaceName; // type of nexus ui element
   @attr('string') nodeAttr; // the audio attr that will be controlled
   @attr('number') min;
@@ -12,6 +11,24 @@ export default class TrackControlModel extends Model {
   @attr('number') defaultValue;
   @attr('number') controlValue; // number value of control 
   @attr() controlArrayValue;
+
+  get controlArrayComputed() {
+    // fill the trackControl model's array with defaul value if it is not the correct length
+    const sequence = this.get('trackNode.track.sequence');
+    while (
+      this.controlArrayValue.length < sequence.length
+    ) {
+      this.controlArrayValue.push(
+        this.defaultValue
+      );
+    }
+    const a = this.controlArrayValue.slice(0, sequence.length);
+    return a;
+  }
+
+  set controlArrayComputed(v) {
+    // this.set('controlArrayValue', controlArrayValue)
+  }
 
   @belongsTo('track-node') trackNode;
 
@@ -44,7 +61,8 @@ export default class TrackControlModel extends Model {
 
   setValue(value) {
     if (isArray(value)) {
-      this.controlArrayValue = value;
+      this.set('controlArrayValue', value);
+      this.notifyPropertyChange('controlArrayValue')
     } else {
       this.set('controlValue', value);
       this.setAttrs(value);

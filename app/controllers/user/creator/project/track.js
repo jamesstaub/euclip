@@ -9,7 +9,6 @@ export default class UserCreatorProjectTrackController extends Controller {
   *updateTrackTask(key, value, reInit=true){
     try {
       this.model.set(key, value);
-      
       if (reInit)  {
         // TODO refactor so setupAudioFromScripts does not take arguments, but ensure these models are resolved
         const initScript = yield this.model.initScript;

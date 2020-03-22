@@ -10,7 +10,7 @@
 
 {{#if (eq @trackControl.interfaceName "multislider")}}
   <NexusMultislider 
-    @values={{this.controlArrayValue}}
+    @values={{@trackControl.controlArrayComputed}}
     @min={{@trackControl.min}}
     @max={{@trackControl.max}}
     @defaultValue={{@trackControl.defaultValue}}

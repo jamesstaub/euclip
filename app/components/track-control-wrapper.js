@@ -1,24 +1,25 @@
 import Component from "@glimmer/component";
-import { action } from '@ember/object';
-import { tracked } from '@glimmer/tracking';
+import { action, computed } from '@ember/object';
 
 export default class TrackControlWrapperComponent extends Component {
-  @tracked controlArrayValue
+
   // REFACTOR
   // this should be doable with @tracked instead but there was an error about there not being a setter defined 
   // and an es5 setter for controlArrayValue was throwing babel errors :(
-  get controlArrayValue() {
-    // fill the trackControl model's array with defaul value if it is not the correct length
-    console.log(this.args.controlArrayValue);
-    while (
-      this.args.controlArrayValue.length < this.args.sequence.length
-    ) {
-      this.args.controlArrayValue.push(
-        this.args.trackControl.defaultValue
-      );
-    }
-    return this.args.controlArrayValue;
-  }
+  // get values() {
+  //   // fill the trackControl model's array with defaul value if it is not the correct length
+  //   while (
+  //     this.args.controlArrayValue.length < this.args.sequence.length
+  //   ) {
+  //     this.args.controlArrayValue.push(
+  //       this.args.trackControl.defaultValue
+  //     );
+  //   }
+  //   const a = this.args.controlArrayValue.slice(0, this.args.sequence.length);
+  //   console.log(a);
+    
+  //   return a;
+  // }
 
   @action
   onChangeValue(v) {

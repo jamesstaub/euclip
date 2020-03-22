@@ -16,7 +16,8 @@ export default Component.extend({
   },
 
   didReceiveAttrs() {
-    if (this.options && this.nexusElement && this.valueShouldUpdate) {
+    if (this.options && this.nexusElement && this.valueShouldUpdate()) {
+      console.log('DRA INIT');
       this.nexusInit();
     }
   },
@@ -28,15 +29,16 @@ export default Component.extend({
     }
   }),
 
-  valueShouldUpdate: computed('isArrayElement', 'value', 'values.[]', 'nexusElement.value', 'nexusElement.values.[]', {
-    get() {
-      if (this.isArrayElement) {
+  valueShouldUpdate() {
+    if (this.nexusElement) {
+      if (this.isArrayElement) {       
         return !arraysEqual(this.values, this.nexusElement.values);
       } else {
-        return  this.value !== this.nexusElement.value;
+        return this.value !== this.nexusElement.value;
       }
     }
-  }),
+    return true;
+  },
 
   nexusInit() {
     this._super(...arguments);
