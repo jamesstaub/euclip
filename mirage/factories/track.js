@@ -3,7 +3,7 @@ import { Factory } from 'ember-cli-mirage';
 export default Factory.extend({
   hits: i => __.random(1, 6),
   steps: i => __.random(8,16),
-  offset: i => i,
+  offset: i => 0,
   filepath: i => {
     return [
       '/Kurzweil%20K2000/hitriang.mp3',

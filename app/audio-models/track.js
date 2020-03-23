@@ -92,29 +92,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     })
   }
 
-  /*
-    get this track's controls
-  */
-  applyOnstepTrackControls(index) {
-    // iterate over each track conrol and update the cracked audio note attributes
-    // by selector or uuid
-    this.store.peekAll('track-control').forEach((trackControl)=> {     
-      const trackNode = trackControl.belongsTo('trackNode').value();      
-      const attrs = {};
-      
-      if (trackControl.nodeAttr && trackControl.controlArrayValue.length) {
-        attrs[trackControl.nodeAttr] = trackControl.controlArrayValue[index];
-        // users can declare a custom selector on a control
-        if (trackNode.nodeSelector) {
-          __(nodeSelector).attr(attrs);
-        } else {    
-          __._getNode(trackNode.nodeUUID).attr(attrs);
-        }
-      }
-    });
-  }
-
-
   bindToSequencer() {
     let onStepCallback = this.onStepCallback.bind(this);
     __(this.selector).unbind('step');
@@ -133,7 +110,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   onStepCallback(index, data, array) {
     //track controls subscribe to trackStep event
     this.set('stepIndex', index);
-    this.applyOnstepTrackControls(index);
+    // this.applyOnstepTrackControls(index);
     this.onstepScript.get('functionRef')(index, data, array);
     this.trigger('trackStep', index);
   }

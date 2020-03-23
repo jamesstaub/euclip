@@ -17,7 +17,6 @@ export default Component.extend({
 
   didReceiveAttrs() {
     if (this.options && this.nexusElement && this.valueShouldUpdate()) {
-      console.log('DRA INIT');
       this.nexusInit();
     }
   },

@@ -27,14 +27,19 @@ export default class TrackControlModel extends Model {
   }
 
   set controlArrayComputed(v) {
+    // TODO use this instead of the on change event for multislider?
     // this.set('controlArrayValue', controlArrayValue)
   }
 
   @belongsTo('track-node') trackNode;
 
   bindTrackEvents(track) {
-    track.on('trackStep', (index) => {
-      this.setAttrs(this.controlValue);
+    track.on('trackStep', (index) => {      
+      if (this.nodeAttr && this.controlArrayValue.length) {
+        this.setAttrs(this.controlArrayValue[index]);
+      } else {
+        this.setAttrs(this.controlValue);
+      }
     });
   }
 
@@ -47,16 +52,21 @@ export default class TrackControlModel extends Model {
   }
 
   /* 
-    Query and update the audio node object immediately
+    Query and update the audio node object
     used for sliders and 1 dimensional values
 
-    multislider value changes on the other hand do not get updated immediately,
-    but are accessed by the track model on each step of the sequence
+    this is fired immediately for sliders
+    and triggered on each step for multisliders
   */
   setAttrs(val) {
     const attrs = {};
     attrs[this.nodeAttr] = val;
-    __._getNode(this.trackNode.get('nodeUUID')).attr(attrs);
+    // users can (someday) declare a custom selector on a control
+    if (this.trackNode.nodeSelector) {
+      __(nodeSelector).attr(attrs);
+    } else {         
+      __._getNode(this.trackNode.get('nodeUUID')).attr(attrs);
+    }
   }
 
   setValue(value) {
