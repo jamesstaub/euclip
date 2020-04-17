@@ -1,10 +1,36 @@
 # euclip
 
-This README outlines the details of collaborating on this Ember application.
-A short introduction of this app could easily go here.
-
-
 `ember s --ssl-key "/Users/admin/.ssh/server.key" --ssl-cert "/Users/admin/.ssh/server.crt"`
+
+
+## TODO:
+
+Tracks 
+- copy paste tracks
+- new track menu (different init script types)
+
+Track Controls
+- wrapper: 
+  - min, max default controls
+  - "functions" [buttons to apply prest shapes like triangle, sine or randomize]
+  - copy/paste single control
+  - range presets (melodic scales, )
+- element/nodes to implement
+  - ADSR node : breakpoint nexus element
+  - panner node : dial
+
+Scripts
+  - rebuild script controls (load, revert, defaults)
+  - rebuild collection of example scripts
+
+Files
+  - set local filepath
+
+
+## Documentation:
+
+### writing scripts
+- custom ui options
 
 ## Prerequisites
 
@@ -27,10 +53,6 @@ You will need the following things properly installed on your computer.
 * Visit your app at [http://localhost:4200](http://localhost:4200).
 * Visit your tests at [http://localhost:4200/tests](http://localhost:4200/tests).
 
-### Code Generators
-
-Make use of the many generators for code, try `ember help generate` for more details
-
 ### Running Tests
 
 * `ember test`
@@ -48,13 +70,3 @@ Make use of the many generators for code, try `ember help generate` for more det
 * `ember build --environment production` (production)
 
 ### Deploying
-
-Specify what it takes to deploy your app.
-
-## Further Reading / Useful Links
-
-* [ember.js](https://emberjs.com/)
-* [ember-cli](https://ember-cli.com/)
-* Development Browser Extensions
-  * [ember inspector for chrome](https://chrome.google.com/webstore/detail/ember-inspector/bmdblncegkenkacieihfhpjfppoconhi)
-  * [ember inspector for firefox](https://addons.mozilla.org/en-US/firefox/addon/ember-inspector/)

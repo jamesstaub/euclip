@@ -7,3 +7,41 @@
   update=(fn this.onUpdateEditor)
 }}
 {{yield}}
+
+
+
+
+{{#if (not functionIsLoaded)}}
+  <span class="dark-gray flex-0">
+    No script loaded.
+  </span>
+{{/if}}
+
+<button
+  {{on "click" (perform this.invokeScript)}}
+  disabled={{functionIsLoaded}}
+  title="Function is loaded"
+>
+  {{#if functionIsLoaded}}
+    Loaded
+  {{else}}
+    Load
+  {{/if}}
+</button>
+{{#if functionIsLoaded}}
+  <button {{on "click" this.disableScript}}>disable</button>
+{{else}}
+  <button
+    {{on "click" this.discardChanges}}
+    title="Revert editor to currently running code"
+  >
+    discard changes
+  </button>
+{{/if}}
+
+
+{{#if illegalTokens}}
+  <p class="mv0 flex items-center">
+    remove unsupported keywords: {{illegalTokens}}
+  </p>
+{{/if}}

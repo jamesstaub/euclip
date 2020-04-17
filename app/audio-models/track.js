@@ -2,6 +2,7 @@ import Model from '@ember-data/model';
 const supportedNodes = ['gain', 'sampler', 'lowpass', 'highpass', 'bandpass', 'allpasss', 'notch', 'lowshelf', 'highshelf', 'peaking', 'reverb', 'delay', 'bitcrusher', 'overdrive', 'ring', 'comb'];
 import Evented from '@ember/object/evented';
 
+
 export default class TrackAudioModel extends Model.extend(Evented) {  
 
   get selector() {
@@ -25,14 +26,23 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // array to store audio node uuids created in this track's script
     // not to be confused with trackNode models, 
     // { uuid: type } 
-
     this.set('trackAudioNodes', []); 
 
-    __.onCreateNode = (node, type) => {
+
+    // _onCreateNode was added to the Cracked library to give access to the AudioNode object upon creation
+    __.onCreateNode = (node, type, creationParams, userSettings) => {
+      // this callback gets called when a user creates cracked audio nodes in the script editor ui
       if (supportedNodes.indexOf(type) > -1) {
         const trackNode = {}
         trackNode[node.getUUID()] = type;
         this.trackAudioNodes.push(trackNode);
+
+        // 'ui' is a custom attr that users can set in the script editor when defining a cracked audio node
+        // new AudioNode objects won't get initialized with it by default so we hack it on here
+        // see cracked.js line 330
+        if (userSettings.ui) {
+          node.ui = userSettings.ui;
+        }
       }
     }
 
@@ -44,6 +54,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     this.bindTrackControls();
     this.bindToSequencer();
   }
+
 
   /**
    * find-or-create TrackNode records for each audio node object
@@ -72,6 +83,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
           nodeUUID: uuid,
           nodeType: type,
           order: idx,
+          defaultUi: __._getNode(uuid).ui || 'slider'
         });
         // OPTIMIZE
         // refactor the trackNode endpoint to support a single batch save
@@ -117,8 +129,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
   get scriptScope() {
     return {
+      // the track should either have a sampler or an oscillator 
       filepath: this.filepathUrl,
-      oscillator: this.oscillator, 
       id: this.id,
       selector: this.selector
     };

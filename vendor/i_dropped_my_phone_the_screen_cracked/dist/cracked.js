@@ -329,7 +329,7 @@ function createNode(type, creationParams, userSettings) {
     //EUCLIP:
     //callback defined on global cracked object to set classes on new nodes
     if (__.isFun(__.onCreateNode)) {
-        __.onCreateNode(node, type);
+        __.onCreateNode(node, type, creationParams, userSettings);
     }
 
     //bail if we're only creating a macro wrapper

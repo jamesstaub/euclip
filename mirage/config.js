@@ -113,9 +113,10 @@ const createTrackControls = function (trackNode) {
   return controlAttrs.map((controlAttr) => {
     const defaults = defaultForAttr(controlAttr);
     defaults.controlValue = defaults.defaultValue;
+
     return trackNode.createTrackControl({ 
       nodeAttr: controlAttr, 
-      interfaceName: 'multislider', 
+      interfaceName: trackNode.defaultUi || 'slider', // all controls for 
       controlArrayValue: [], // api must initialize this whenever a multislider is created
       ...defaults
     });
@@ -224,10 +225,12 @@ if (data) {
 
   this.post('/track-nodes/', (schema, { requestBody }) => {
     const attrs = JSON.parse(requestBody).data.attributes;
+    // FIXME: any reason not to just create the node with all options instead of plucking them out?
     const nodeType = attrs['node-type'];
     const order = attrs.order;
-    
-    const trackNode = schema.trackNodes.create({ nodeType, order});
+    const defaultUi = attrs['default-ui'];
+
+    const trackNode = schema.trackNodes.create({ nodeType, order, defaultUi});
     createTrackControls(trackNode);
     return trackNode;
   });

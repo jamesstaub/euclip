@@ -8,10 +8,10 @@ __()
     class: 'multislider',
   })
   .gain({ 
-    class: 'slider'
+    ui: 'slider'
   })
   .gain({
-    class: 'multislider',
+    ui: 'multislider',
   })
   .connect('#master-compressor');
 `;

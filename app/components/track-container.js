@@ -16,7 +16,7 @@ export default class TrackContainerComponent extends Component {
   updateTrackSequence(idx) {
     //if sequence is different than euclidean output 
     // manually override sequence
-    console.log(idx);
+    console.log('TODO manually set seq', idx);
     
     // TODO throttle save with task?
     // this.args.track.save();
