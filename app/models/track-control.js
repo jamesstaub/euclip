@@ -34,21 +34,16 @@ export default class TrackControlModel extends Model {
   @belongsTo('track-node') trackNode;
 
   bindTrackEvents(track) {
-    track.on('trackStep', (index) => {      
-      if (this.nodeAttr && this.controlArrayValue.length) {
-        this.setAttrs(this.controlArrayValue[index]);
-      } else {
-        this.setAttrs(this.controlValue);
-      }
+    track.on('trackStep', (index) => {     
+      // this might get called by the sequencer while we're trying to delete the node or control
+      if (!this.isDeleted ) {
+        if (this.nodeAttr && this.controlArrayValue.length) {
+          this.setAttrs(this.controlArrayValue[index]);
+        } else {
+          this.setAttrs(this.controlValue);
+        }
+      } 
     });
-  }
-
-  applyAttrsOnStep(index) {
-    if (this.nodeAttr && this.controlArrayValue.length) {
-      this.setAttrs(this.controlArrayValue[index]);
-    } else {
-      throw 'failed to apply attrs';
-    }
   }
 
   /* 
@@ -61,21 +56,39 @@ export default class TrackControlModel extends Model {
   setAttrs(val) {
     const attrs = {};
     attrs[this.nodeAttr] = val;
-    // users can (someday) declare a custom selector on a control
+    // users can (someday) declare a custom selector on a control (like a class) 
+    // so it can control multiple nodes at once
+    // till then this first condition is not met
     if (this.trackNode.nodeSelector) {
       __(nodeSelector).attr(attrs);
-    } else {         
-      __._getNode(this.trackNode.get('nodeUUID')).attr(attrs);
+    } else {
+      const node = __._getNode(this.trackNode.get('nodeUUID'))
+      if(node) {
+        __._getNode(this.trackNode.get('nodeUUID')).attr(attrs);
+      } else {
+        this.onNodeRemoved();
+      }
     }
   }
 
+  // TODO create an @unlessDeleted decorator!
   setValue(value) {
-    if (isArray(value)) {
-      this.set('controlArrayValue', value);
-      this.notifyPropertyChange('controlArrayValue')
-    } else {
-      this.set('controlValue', value);
-      this.setAttrs(value);
+    if (!this.isDeleted ) {
+      if (isArray(value)) {
+        this.set('controlArrayValue', value);
+        this.notifyPropertyChange('controlArrayValue')
+      } else {
+        this.set('controlValue', value);
+        this.setAttrs(value);
+      }
     }
+  }
+
+  // the nodeUUID could no longer be found in the Cracked object, so delete it's corresponding data model
+  // FIXME probably better to cascade delete on the server
+  async onNodeRemoved() {
+    this.deleteRecord(); // first delete synchronously so isDeleted flag prevents further method calls
+    const trackNode = await this.get('trackNode');
+    await trackNode.destroyRecord(); // the API will delete this trackControl record along with the trackNode
   }
 }

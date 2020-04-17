@@ -209,12 +209,13 @@ if (data) {
   });
 
   this.del('/tracks/:id', async ({ tracks }, request) => {
-    let id = request.params.id;
-    let track = tracks.find(id);
+    const id = request.params.id;
+    const track = tracks.find(id);
     track.destroy();
     track.initScript && track.initScript.destroy();
     track.onstepScript && track.onstepScript.destroy();
-    track.trackNodes && track.trackNodes.destroy()
+    // TODO also delete trackControls!
+    track.trackNodes && track.trackNodes.destroy();
     return track;
   });
 
@@ -229,6 +230,14 @@ if (data) {
     const trackNode = schema.trackNodes.create({ nodeType, order});
     createTrackControls(trackNode);
     return trackNode;
+  });
+
+  this.del('/track-nodes/:id', async ({ trackNodes }, request) => {
+    const id = request.params.id;
+    const trackNode = trackNodes.find(id);
+    trackNode.trackControls.destroy();
+    return trackNode;
+
   });
 
   this.patch('init-scripts/:id');

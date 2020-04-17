@@ -19,6 +19,7 @@ export default class ScriptModel extends Model {
     // create the function referecne and bind it's scope
     if (this.safeCode) {
       try {
+        // newFunction defined in inherited script class
         return this.newFunction();
       } catch (e) {
         alert('problem with script', e.message);
