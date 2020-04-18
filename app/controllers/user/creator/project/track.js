@@ -3,7 +3,8 @@ import { action } from '@ember/object';
 import { keepLatestTask } from 'ember-concurrency-decorators';
 
 export default class UserCreatorProjectTrackController extends Controller {
-  maxSteps = 16;
+  maxSteps = 32;
+  visibleNodeIdx = 0;
   
   @keepLatestTask
   *updateTrackTask(key, value, reInit=true){
@@ -18,6 +19,11 @@ export default class UserCreatorProjectTrackController extends Controller {
     } catch (e) {
       this.model.rollbackAttributes();
     }
+  }
+
+  @action
+  setUi(key, val) {
+    this.set(key, val);
   }
 
   @action

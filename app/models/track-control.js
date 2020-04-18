@@ -60,10 +60,9 @@ export default class TrackControlModel extends Model {
     // so it can control multiple nodes at once
     // till then this first condition is not met
     if (this.trackNode.nodeSelector) {
-      __(nodeSelector).attr(attrs);
+      __(this.trackNode.nodeSelector).attr(attrs);
     } else {
       const node = __._getNode(this.trackNode.get('nodeUUID'));
-      
       if(node) {
         node.attr(attrs);
       } else {

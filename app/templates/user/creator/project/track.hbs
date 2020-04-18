@@ -1,3 +1,6 @@
+{{!-- 
+  this template for the /track/:id route is rendered as the footer for the currently selected track
+ --}}
 {{#if @model.drumMenuOpen}}
   <DrumFilePicker
     @track={{@model}}
@@ -9,7 +12,7 @@
   {{#unless @model.isDeleted}}
     <p class="fw6">{{@model.id}}</p>
     <div class="flex flex-column bg-light-gray pa4 flex-wrap">
-      <div class="flex">
+      <div class="flex mv3">
         <NexusDial 
           @value={{@model.hits}} 
           @onChangeValue={{perform updateTrackTask "hits"}} 
@@ -33,23 +36,40 @@
           @max={{this.maxSteps}}
         >
           {{@model.offset}}
-        </NexusDial>
-        
+        </NexusDial>  
       </div>
-      <div class="flex">
-        {{#each @model.trackNodes as |trackNode idx|}}
-          <div class="tc mh3">
-            {{trackNode.nodeType}}
-            {{#each trackNode.trackControls as |trackControl|}}
-              <TrackControlWrapper 
-                @sequence={{@model.sequence}}
-                @trackControl={{trackControl}} 
-                @controlArrayValue={{trackControl.controlArrayValue}} 
-                @updateControl={{action "updateControl" trackControl}} 
-              />
-            {{/each}}
-          </div>
-        {{/each}}
+
+      <div class="flex flex-column">
+
+        <ul class="pa0 list flex">
+          {{#each @model.trackNodes as |trackNode idx|}}
+            <li>
+              <a 
+                class="ph3 pv2 mh1 mw4 link {{if (eq this.visibleNodeIdx idx) 'bg-black white' 'bg-white black'}}"
+                {{on "click" (fn this.setUi "visibleNodeIdx" idx)}}
+              >
+                {{trackNode.nodeType}}
+              </a>
+            </li>
+          {{/each}}
+        </ul>
+
+        <div class="flex">
+          {{#each @model.trackNodes as |trackNode idx|}}
+            {{#if (eq this.visibleNodeIdx idx)}}
+              <div class="tc mh3">
+                {{#each trackNode.trackControls as |trackControl|}}
+                  <TrackControlWrapper 
+                    @sequence={{@model.sequence}}
+                    @trackControl={{trackControl}} 
+                    @controlArrayValue={{trackControl.controlArrayValue}} 
+                    @updateControl={{action "updateControl" trackControl}} 
+                  />
+                {{/each}}
+              </div>
+            {{/if}}
+          {{/each}}
+        </div>
       </div>
     </div>
   {{/unless}}

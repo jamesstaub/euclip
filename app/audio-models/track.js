@@ -35,9 +35,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       // this callback gets called when a user creates cracked audio nodes in the script editor ui
       // macro components should not get individual ui controls
       if (!node.isMacroComponent() && supportedNodes.indexOf(type) > -1) {
-        if (node.isMacro()) {
-          console.log(node.getUUID());
-        }
         const trackNode = {}
         trackNode[node.getUUID()] = type;
         this.trackAudioNodes.push(trackNode);
