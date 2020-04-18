@@ -26,6 +26,8 @@ const controlsForNode = function(nodeType) {
   }
 }
 
+// TODO refactor this to take attr/node combinations
+// (eg. frequency min/max is different for a filter than for an LFO )
 const defaultForAttr = function(attr) {
   const paramDefaults = {};
   switch (attr) {
@@ -113,10 +115,10 @@ const createTrackControls = function (trackNode) {
   return controlAttrs.map((controlAttr) => {
     const defaults = defaultForAttr(controlAttr);
     defaults.controlValue = defaults.defaultValue;
-
+    // NOTE API should validate interface names and note types on track controls   
     return trackNode.createTrackControl({ 
       nodeAttr: controlAttr, 
-      interfaceName: trackNode.defaultUi || 'slider', // all controls for 
+      interfaceName: trackNode.defaultControlInterface || 'slider', // all controls for 
       controlArrayValue: [], // api must initialize this whenever a multislider is created
       ...defaults
     });
@@ -168,13 +170,13 @@ __()
   .sampler({
     id: this.id,
     path: this.filepath,
-    class: 'multislider'
+    ui: 'multislider'
   })
   .gain({ 
     class: 'slider'
   })
   .gain({
-    class: 'multislider',
+    ui: 'multislider',
   })
   .connect('#master-compressor');
 `;
@@ -228,9 +230,9 @@ if (data) {
     // FIXME: any reason not to just create the node with all options instead of plucking them out?
     const nodeType = attrs['node-type'];
     const order = attrs.order;
-    const defaultUi = attrs['default-ui'];
+    const defaultControlInterface = attrs['default-control-interface'];
 
-    const trackNode = schema.trackNodes.create({ nodeType, order, defaultUi});
+    const trackNode = schema.trackNodes.create({ nodeType, order, defaultControlInterface});
     createTrackControls(trackNode);
     return trackNode;
   });
@@ -242,6 +244,8 @@ if (data) {
     return trackNode;
 
   });
+
+  this.patch('/track-controls/:id');
 
   this.patch('init-scripts/:id');
   this.patch('onstep-scripts/:id');

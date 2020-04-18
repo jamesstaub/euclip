@@ -5,7 +5,7 @@ __()
   .sampler({
     id: this.id,
     path: this.filepath,
-    class: 'multislider',
+    ui: 'multislider',
   })
   .gain({ 
     ui: 'slider'

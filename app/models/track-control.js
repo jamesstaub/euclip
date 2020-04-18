@@ -62,9 +62,10 @@ export default class TrackControlModel extends Model {
     if (this.trackNode.nodeSelector) {
       __(nodeSelector).attr(attrs);
     } else {
-      const node = __._getNode(this.trackNode.get('nodeUUID'))
+      const node = __._getNode(this.trackNode.get('nodeUUID'));
+      
       if(node) {
-        __._getNode(this.trackNode.get('nodeUUID')).attr(attrs);
+        node.attr(attrs);
       } else {
         this.onNodeRemoved();
       }

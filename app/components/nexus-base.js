@@ -3,6 +3,10 @@ import { guidFor } from '@ember/object/internals';
 import { computed } from '@ember/object';
 import arraysEqual from '../utils/arrays-equal';
 
+/* Inherited by other `nexus-[]` components for initialization of Nexus JS library component
+ *
+ * TODO add midi control logic here for easy mapping of tracks
+ */
 export default Component.extend({
   tagName: '',
 

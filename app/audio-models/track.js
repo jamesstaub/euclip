@@ -31,8 +31,13 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
     // _onCreateNode was added to the Cracked library to give access to the AudioNode object upon creation
     __.onCreateNode = (node, type, creationParams, userSettings) => {
+
       // this callback gets called when a user creates cracked audio nodes in the script editor ui
-      if (supportedNodes.indexOf(type) > -1) {
+      // macro components should not get individual ui controls
+      if (!node.isMacroComponent() && supportedNodes.indexOf(type) > -1) {
+        if (node.isMacro()) {
+          console.log(node.getUUID());
+        }
         const trackNode = {}
         trackNode[node.getUUID()] = type;
         this.trackAudioNodes.push(trackNode);
@@ -69,26 +74,39 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     this.trackAudioNodes.forEach((node, idx) => {
       const [uuid, type] = Object.entries(node)[0];
       const foundByType = existingtrackNodes.filterBy('nodeType', type);
+      const defaultControlInterface =  __._getNode(uuid).ui;
+      
+      let trackNode;
+
       if (foundByType.length) {
-        let foundtrackNode = foundByType[0];
+        trackNode = foundByType[0];
         if (foundByType.length > 1) {
           // if there are several possible, take the first one, 
           // then remove it from the possible future choices
-          existingtrackNodes = existingtrackNodes.rejectBy('nodeUUID', foundtrackNode.nodeUUID);
+          existingtrackNodes = existingtrackNodes.rejectBy('nodeUUID', trackNode.nodeUUID);
         }
-        foundtrackNode.setProperties({nodeUUID: uuid, order: idx}); // update uuid since the audio nodes will be new every time
-        return foundtrackNode;
+
+        trackNode.setProperties({
+          nodeUUID: uuid, // update uuid since the audio nodes will be new every time
+          order: idx,
+        }); 
+        
+        if (defaultControlInterface) {
+          // if the `ui` attribute was changed in the script editor, update the interfaceName of track-controls
+          trackNode.updateDefaultControlInterface(defaultControlInterface);
+        }
+        return trackNode;
       } else {
-        const trackNode = this.trackNodes.createRecord({
+        trackNode = this.trackNodes.createRecord({
           nodeUUID: uuid,
           nodeType: type,
           order: idx,
-          defaultUi: __._getNode(uuid).ui || 'slider'
+          defaultControlInterface: __._getNode(uuid).ui || 'slider' // get the custom ui saved on the AudioNode, which was defined by the user
         });
-        // OPTIMIZE
-        // refactor the trackNode endpoint to support a single batch save
-        trackNode.save();
       }
+      // OPTIMIZE
+      // refactor the trackNode endpoint to support a single batch save
+      trackNode.save();
     });
   }
   

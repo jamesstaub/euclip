@@ -16,12 +16,14 @@ Track Controls
   - copy/paste single control
   - range presets (melodic scales, )
 - element/nodes to implement
-  - ADSR node : breakpoint nexus element
+  - Envelope node : breakpoint nexus element
+  - LFOs as controls
   - panner node : dial
+  - XY controls (filters)
 
 Scripts
-  - rebuild script controls (load, revert, defaults)
   - rebuild collection of example scripts
+  
 
 Files
   - set local filepath
@@ -29,8 +31,21 @@ Files
 
 ## Documentation:
 
+Cracked scripts globally
+  - script contents tied to lifecycle of track 
+  - but otherwise are all part of same global object
+
+scripts and sliders order of effect on nodes
+
+
+
 ### writing scripts
-- custom ui options
+init:
+  - custom ui options
+
+onstep:
+  - index, data, array args
+
 
 ## Prerequisites
 

@@ -36,19 +36,21 @@
         </NexusDial>
         
       </div>
-      {{#each @model.trackNodes as |trackNode idx|}}
-        <div class="tc mh3">
-          {{trackNode.nodeType}}
-          {{#each trackNode.trackControls as |trackControl|}}
-            <TrackControlWrapper 
-              @sequence={{@model.sequence}}
-              @trackControl={{trackControl}} 
-              @controlArrayValue={{trackControl.controlArrayValue}} 
-              @updateControl={{action "updateControl" trackControl}} 
-            />
-          {{/each}}
-        </div>
-      {{/each}}
+      <div class="flex">
+        {{#each @model.trackNodes as |trackNode idx|}}
+          <div class="tc mh3">
+            {{trackNode.nodeType}}
+            {{#each trackNode.trackControls as |trackControl|}}
+              <TrackControlWrapper 
+                @sequence={{@model.sequence}}
+                @trackControl={{trackControl}} 
+                @controlArrayValue={{trackControl.controlArrayValue}} 
+                @updateControl={{action "updateControl" trackControl}} 
+              />
+            {{/each}}
+          </div>
+        {{/each}}
+      </div>
     </div>
   {{/unless}}
   

@@ -13,12 +13,14 @@ export default class ScriptEditorComponent extends Component {
   Task to save a property on the script model instance
   */
   @task
-  *invokeScript() {
-    // TODO
-    // don't actually set safeCode here. set the `code` property, then allow only the API to write safeCode
-
-    // TODO call a checkForChangedNodes on the track model to add or remove any track-node models + controls
-    yield this.saveScriptTask.perform('safeCode', this.args.scriptModel.get('editorContent'));
+  *invokeScript() {   
+    // don't actually set safeCode here. set the `code` property, then allow only the API to write safeCode (hence why it must be async)
+    const script = yield this.args.scriptModel;
+    yield this.saveScriptTask.perform('safeCode', script.get('editorContent'));
+    if (script.name === 'init-script') {
+      const track = yield script.get('track');
+      track.setupAudioFromScripts(script);
+    }
   }
 
   @keepLatestTask
