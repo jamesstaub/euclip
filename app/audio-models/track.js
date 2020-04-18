@@ -34,7 +34,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
       // this callback gets called when a user creates cracked audio nodes in the script editor ui
       // macro components should not get individual ui controls
-      if (!node.isMacroComponent() && supportedNodes.indexOf(type) > -1) {
+      if (!node.isMacroComponent() && supportedNodes.indexOf(type) > -1) {       
         const trackNode = {}
         trackNode[node.getUUID()] = type;
         this.trackAudioNodes.push(trackNode);
@@ -70,18 +70,15 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // to find or create corresponding trackNode model records 
     this.trackAudioNodes.forEach((node, idx) => {
       const [uuid, type] = Object.entries(node)[0];
-      const foundByType = existingtrackNodes.filterBy('nodeType', type);
       const defaultControlInterface =  __._getNode(uuid).ui;
-      
-      let trackNode;
 
-      if (foundByType.length) {
-        trackNode = foundByType[0];
-        if (foundByType.length > 1) {
-          // if there are several possible, take the first one, 
-          // then remove it from the possible future choices
-          existingtrackNodes = existingtrackNodes.rejectBy('nodeUUID', trackNode.nodeUUID);
-        }
+      let nodesOfThisType = existingtrackNodes.filterBy('nodeType', type);
+      //nodes are ordered by index, so take the first one of it's type
+      let trackNode = nodesOfThisType.shift();
+    
+      if (trackNode) {
+        // then remove it from the possible future choices in existingtrackNodes
+        existingtrackNodes = existingtrackNodes.rejectBy('nodeUUID', trackNode.nodeUUID);
 
         trackNode.setProperties({
           nodeUUID: uuid, // update uuid since the audio nodes will be new every time
@@ -92,8 +89,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
           // if the `ui` attribute was changed in the script editor, update the interfaceName of track-controls
           trackNode.updateDefaultControlInterface(defaultControlInterface);
         }
-        return trackNode;
-      } else {
+        return trackNode; // FIXME dont return here, allow to save (requries fix for adapter error)
+      } else {        
         trackNode = this.trackNodes.createRecord({
           nodeUUID: uuid,
           nodeType: type,
