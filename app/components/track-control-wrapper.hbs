@@ -1,22 +1,39 @@
-{{#if (eq @trackControl.interfaceName "slider")}}
-  <NexusSlider 
-    @value={{@trackControl.controlValue}}
-    @min={{@trackControl.min}}
-    @max={{@trackControl.max}}
-    @defaultValue={{@trackControl.defaultValue}}
-    @onChangeValue={{@updateControl}}
-  />
-{{/if}}
+<div class="flex">
+  <div>
+    {{#if (eq @trackControl.interfaceName "slider")}}
+      <NexusSlider 
+        @value={{@trackControl.controlValue}}
+        @min={{@trackControl.min}}
+        @max={{@trackControl.max}}
+        @defaultValue={{@trackControl.defaultValue}}
+        @onChangeValue={{@updateControl}}
+      />
+    {{/if}}
 
-{{#if (eq @trackControl.interfaceName "multislider")}}
-  <NexusMultislider 
-    @values={{@trackControl.controlArrayComputed}}
-    @min={{@trackControl.min}}
-    @max={{@trackControl.max}}
-    @defaultValue={{@trackControl.defaultValue}}
-    @onChangeValue={{@updateControl}}
-  />
-{{/if}}
+    {{#if (eq @trackControl.interfaceName "multislider")}}
+      <NexusMultislider 
+        @values={{@trackControl.controlArrayComputed}}
+        @min={{@trackControl.min}}
+        @max={{@trackControl.max}}
+        @defaultValue={{@trackControl.defaultValue}}
+        @onChangeValue={{@updateControl}}
+      />
+    {{/if}}
+    {{!-- todo: custom selector for control (so it can control multiple nodes) --}}
+    <p class="tc">{{@trackControl.nodeAttr}}</p>
+  </div>
 
-{{!-- todo: custom selector for control (so it can control multiple nodes) --}}
-<p class="tc">{{@trackControl.nodeAttr}}</p>
+  {{#if this.showMinMax}}
+    <div class="ml1 flex flex-column justify-between mb4">
+      <NexusNumber @label="max"/>
+      <NexusNumber @label="min"/>
+    </div>
+  {{/if}}
+
+  <NexusSelect
+    @value={{@trackControl.interfaceName}}
+    @selectOptions={{@trackControl.uiOptions}}
+    @onChangeValue={{this.changeUiType}}
+  />
+
+</div>

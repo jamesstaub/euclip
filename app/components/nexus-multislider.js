@@ -3,7 +3,7 @@ import { computed } from '@ember/object';
 import { alias } from '@ember/object/computed';
 
 export default NexusBase.extend({
-  slider: alias('nexusElement'),
+  multislider: alias('nexusElement'),
 
   init() {
     this._super(...arguments);
@@ -30,7 +30,7 @@ export default NexusBase.extend({
 
   nexusInit() {
     this._super(...arguments);
-    this.slider.colorize('accent', '#52ebff');
-    this.slider.colorize('fill', '#ffffff');
+    this.multislider.colorize('accent', '#52ebff');
+    this.multislider.colorize('fill', '#ffffff');
   }
 });

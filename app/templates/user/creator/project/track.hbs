@@ -54,16 +54,16 @@
           {{/each}}
         </ul>
 
-        <div class="flex">
+        <div>
           {{#each @model.trackNodes as |trackNode idx|}}
             {{#if (eq this.visibleNodeIdx idx)}}
-              <div class="tc mh3">
+              <div class="flex tc mh3">
                 {{#each trackNode.trackControls as |trackControl|}}
                   <TrackControlWrapper 
                     @sequence={{@model.sequence}}
                     @trackControl={{trackControl}} 
                     @controlArrayValue={{trackControl.controlArrayValue}} 
-                    @updateControl={{action "updateControl" trackControl}} 
+                    @updateControl={{action "updateControl" trackControl}}
                   />
                 {{/each}}
               </div>

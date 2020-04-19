@@ -1,6 +1,7 @@
 import Model from '@ember-data/model';
 import DS from 'ember-data';
 import { isArray } from '@ember/array';
+
 const { attr, belongsTo } = DS;
 
 export default class TrackControlModel extends Model {
@@ -90,5 +91,45 @@ export default class TrackControlModel extends Model {
     this.deleteRecord(); // first delete synchronously so isDeleted flag prevents further method calls
     const trackNode = await this.get('trackNode');
     await trackNode.destroyRecord(); // the API will delete this trackControl record along with the trackNode
+  }
+
+  get uiOptions() {
+    const bool = ['toggle']
+    const oneD = ['slider', 'multislider', 'number'];
+    const twoD = ['position']; // control 2 attributes
+    const tonal = ['piano'];
+    const array = ['envelope']
+    switch (this.nodeAttr) {
+      case 'gain':
+        return oneD;
+      case 'speed':
+        return oneD;
+      case 'frequency':
+        return oneD;
+      case 'q':
+        return oneD;
+      case 'decay':
+        return oneD;
+      case 'reverse':
+        return [...bool , 'multislider'];
+      case 'delay':
+        return oneD;
+      case 'damping':
+        return oneD;
+      case 'feedback':
+        return oneD;
+      case 'cutoff':
+        return oneD;
+      case 'drive':
+        return oneD;
+      case 'color':
+        return oneD;
+      case 'postCut':
+        return oneD;
+      case 'distortion':
+        return oneD;
+      default:
+        return [];
+    }
   }
 }

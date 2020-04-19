@@ -1,7 +1,6 @@
 import Model from '@ember-data/model';
-const supportedNodes = ['gain', 'sampler', 'lowpass', 'highpass', 'bandpass', 'allpasss', 'notch', 'lowshelf', 'highshelf', 'peaking', 'reverb', 'delay', 'bitcrusher', 'overdrive', 'ring', 'comb'];
 import Evented from '@ember/object/evented';
-
+import ENV from '../config/environment';
 
 export default class TrackAudioModel extends Model.extend(Evented) {  
 
@@ -34,7 +33,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
       // this callback gets called when a user creates cracked audio nodes in the script editor ui
       // macro components should not get individual ui controls
-      if (!node.isMacroComponent() && supportedNodes.indexOf(type) > -1) {       
+      if (!node.isMacroComponent() && ENV.APP.supportedAudioNodes.indexOf(type) > -1) {       
         const trackNode = {}
         trackNode[node.getUUID()] = type;
         this.trackAudioNodes.push(trackNode);
@@ -61,6 +60,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   /**
    * find-or-create TrackNode records for each audio node object
    * created on this track
+   * 
+   * FIXME: how to re-order if user adds new nodes between existing ones?
    */
   findOrCreateTrackNodeRecords() {
     // trackNode records already created for this track
@@ -90,7 +91,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
           trackNode.updateDefaultControlInterface(defaultControlInterface);
         }
         return trackNode; // FIXME dont return here, allow to save (requries fix for adapter error)
-      } else {        
+      } else {
         trackNode = this.trackNodes.createRecord({
           nodeUUID: uuid,
           nodeType: type,
