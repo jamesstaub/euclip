@@ -1,6 +1,7 @@
 import Controller from '@ember/controller';
 import { action } from '@ember/object';
-import { keepLatestTask } from 'ember-concurrency-decorators';
+import { timeout } from 'ember-concurrency';
+import { restartableTask, keepLatestTask } from "ember-concurrency-decorators";
 
 export default class UserCreatorProjectTrackController extends Controller {
   maxSteps = 32;
@@ -21,6 +22,12 @@ export default class UserCreatorProjectTrackController extends Controller {
     }
   }
 
+  @restartableTask
+  *saveTrackControl(trackControl) {
+    yield trackControl.save();
+    yield timeout(100);
+  }
+
   @action
   setUi(key, val) {
     this.set(key, val);
@@ -28,8 +35,7 @@ export default class UserCreatorProjectTrackController extends Controller {
 
   @action
   updateControl(trackControl, value) {
-    console.log('TODO save track');
+    this.saveTrackControl.perform(trackControl);
     trackControl.setValue(value);
-    // TODO save
   }
 }

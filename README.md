@@ -23,6 +23,8 @@ Track Controls
 
 Scripts
   - rebuild collection of example scripts
+  - add helper function to set speed as a factor of the sequencer length (for loops)
+  - add helper to access UI value in script, so you could do speed: `slider val + __.rand()`
   
 
 Files

@@ -20,7 +20,9 @@ export default Component.extend({
   },
 
   didReceiveAttrs() {
-    if (this.options && this.nexusElement && this.valueShouldUpdate()) {
+    if ((this.options && this.nexusElement) && 
+        (this.valueShouldUpdate())
+    ) {    
       this.nexusInit();
     }
   },
@@ -34,9 +36,10 @@ export default Component.extend({
 
   valueShouldUpdate() {
     if (this.nexusElement) {
-      if (this.isArrayElement) {       
+      if (this.min !== this.nexusElement.min || this.max !== this.nexusElement.max) {
+      } else if (this.isArrayElement) {       
         return !arraysEqual(this.values, this.nexusElement.values);
-      } else {
+      } else {        
         return this.value !== this.nexusElement.value;
       }
     }

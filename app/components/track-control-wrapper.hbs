@@ -6,7 +6,15 @@
         @min={{@trackControl.min}}
         @max={{@trackControl.max}}
         @defaultValue={{@trackControl.defaultValue}}
-        @onChangeValue={{@updateControl}}
+        @onChangeValue={{@updateValue}}
+      />
+    {{/if}}
+
+    {{#if (eq @trackControl.interfaceName "number")}}
+      <NexusNumber
+        @value={{@trackControl.controlValue}}
+        @defaultValue={{@trackControl.defaultValue}}
+        @onChangeValue={{@updateValue}}
       />
     {{/if}}
 
@@ -16,24 +24,25 @@
         @min={{@trackControl.min}}
         @max={{@trackControl.max}}
         @defaultValue={{@trackControl.defaultValue}}
-        @onChangeValue={{@updateControl}}
+        @onChangeValue={{@updateValue}}
       />
     {{/if}}
     {{!-- todo: custom selector for control (so it can control multiple nodes) --}}
     <p class="tc">{{@trackControl.nodeAttr}}</p>
   </div>
 
-  {{#if this.showMinMax}}
+  {{#unless (eq @trackControl.interfaceName "number")}}
     <div class="ml1 flex flex-column justify-between mb4">
-      <NexusNumber @label="max"/>
-      <NexusNumber @label="min"/>
+      <NexusNumber @label="max" @value={{@trackControl.max}} @onChangeValue={{fn this.setParam "max"}}/>
+      <NexusNumber @label="min" @value={{@trackControl.min}} @onChangeValue={{fn this.setParam "min"}}/>
+      <NexusNumber @label="default" @value={{@trackControl.defaultValue}} @onChangeValue={{fn this.setParam "defaultValue"}}/>
     </div>
-  {{/if}}
+  {{/unless}}
 
   <NexusSelect
     @value={{@trackControl.interfaceName}}
     @selectOptions={{@trackControl.uiOptions}}
-    @onChangeValue={{this.changeUiType}}
+    @onChangeValue={{fn this.changeUiType}}
   />
 
 </div>

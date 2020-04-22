@@ -12,10 +12,10 @@ export default NexusBase.extend({
     });
   },
 
-  options: computed('max', 'step', 'value', 'size', {
+  options: computed('max', 'min', 'step', 'value', 'size', {
     get() {            
       return {
-        'min': 0,
+        'min': this.min || 0,
         'max': this.max || 1,
         'step': this.step || 1,
         'value': this.value,

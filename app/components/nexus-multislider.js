@@ -12,7 +12,7 @@ export default NexusBase.extend({
     });
   },
 
-  options: computed('max', 'step', 'values.[]', 'size', 'numberOfSliders', {
+  options: computed('max', 'min', 'step', 'values.[]', 'size', 'numberOfSliders', {
     get() {
       let values = this.values;
       values = values.slice(0, this.numberOfSliders);

@@ -16,7 +16,7 @@
         <NexusDial 
           @value={{@model.hits}} 
           @onChangeValue={{perform updateTrackTask "hits"}} 
-          @min=0 
+          @min={{0}}
           @max={{this.maxSteps}}
         >
           {{@model.hits}}
@@ -24,7 +24,7 @@
         <NexusDial 
           @value={{@model.steps}} 
           @onChangeValue={{perform updateTrackTask "steps"}} 
-          @min=0 
+          @min={{0}}
           @max={{this.maxSteps}}
         >
           {{@model.steps}}
@@ -32,7 +32,7 @@
         <NexusDial 
           @value={{@model.offset}} 
           @onChangeValue={{perform updateTrackTask "offset"}} 
-          @min=0 
+          @min={{0}}
           @max={{this.maxSteps}}
         >
           {{@model.offset}}
@@ -57,13 +57,14 @@
         <div>
           {{#each @model.trackNodes as |trackNode idx|}}
             {{#if (eq this.visibleNodeIdx idx)}}
-              <div class="flex tc mh3">
+              <div class="flex flex-wrap tc mh3">
                 {{#each trackNode.trackControls as |trackControl|}}
                   <TrackControlWrapper 
                     @sequence={{@model.sequence}}
                     @trackControl={{trackControl}} 
                     @controlArrayValue={{trackControl.controlArrayValue}} 
-                    @updateControl={{action "updateControl" trackControl}}
+                    @updateValue={{action "updateControl" trackControl}}
+                    @saveTrackControl={{this.saveTrackControl}}
                   />
                 {{/each}}
               </div>

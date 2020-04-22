@@ -21,9 +21,7 @@ export default NexusBase.extend({
   
   setInitialValue: task( function* () {
     yield waitForProperty(this, 'select');
-    if (this.value !== this.select.value) {
-      console.log('set', this.value);
-      
+    if (this.value !== this.select.value) {      
       this.select.value = this.value;
     }
   }),
