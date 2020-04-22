@@ -20,6 +20,7 @@ module.exports = function(environment) {
     APP: {
       userEndpoint: '/users/me',
       DRUMSERVER_HOST: 'https://drumserver.herokuapp.com',
+      supportedAudioNodes: ['gain', 'sampler', 'lowpass', 'highpass', 'bandpass', 'allpasss', 'notch', 'lowshelf', 'highshelf', 'peaking', 'reverb', 'delay', 'bitcrusher', 'overdrive', 'ring', 'comb']
       // Here you can pass flags/options to your application instance
       // when it is created
     }

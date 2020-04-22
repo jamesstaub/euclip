@@ -5,12 +5,12 @@ const controlsForNode = function(nodeType) {
       return ['gain'];
     case 'sampler':
       return ['speed'];
-    case ('lowpass' || 'highpass' || 'bandpass' || 'allpasss', 'notch'):
+    case 'lowpass' || 'highpass' || 'bandpass' || 'allpasss' || 'notch':
       return ['frequency', 'q'];
-    case ('lowshelf' || 'highshelf' || 'peaking'):
+    case 'lowshelf' || 'highshelf' || 'peaking':
       return ['frequency', 'q', 'gain'];
     case 'reverb':
-      return ['seconds', 'decay'];
+      return ['decay', 'reverse'];
     case 'delay':
       return ['delay', 'damping', 'feedback', 'cutoff', 'frequency'];
     case 'bitcrusher':
@@ -107,7 +107,6 @@ const defaultForAttr = function(attr) {
       paramDefaults.defaultValue = 1;  
   }
   return paramDefaults;
-
 }
 
 const createTrackControls = function (trackNode) {  
@@ -115,7 +114,7 @@ const createTrackControls = function (trackNode) {
   return controlAttrs.map((controlAttr) => {
     const defaults = defaultForAttr(controlAttr);
     defaults.controlValue = defaults.defaultValue;
-    // NOTE API should validate interface names and note types on track controls   
+    // NOTE API should validate interface names and note types on track controls       
     return trackNode.createTrackControl({ 
       nodeAttr: controlAttr, 
       interfaceName: trackNode.defaultControlInterface || 'slider', // all controls for 
@@ -233,7 +232,8 @@ if (data) {
     const defaultControlInterface = attrs['default-control-interface'];
 
     const trackNode = schema.trackNodes.create({ nodeType, order, defaultControlInterface});
-    createTrackControls(trackNode);
+    const trackControls = createTrackControls(trackNode);
+    trackControls.forEach((control)=> control.save());
     return trackNode;
   });
 
@@ -242,7 +242,6 @@ if (data) {
     const trackNode = trackNodes.find(id);
     trackNode.trackControls.destroy();
     return trackNode;
-
   });
 
   this.patch('/track-controls/:id');
