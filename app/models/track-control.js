@@ -28,6 +28,7 @@ export default class TrackControlModel extends Model {
   }
 
   set controlArrayComputed(v) {
+    // I think this must be defined to prevent an error.
     // TODO use this instead of the on change event for multislider?
     // this.set('controlArrayValue', controlArrayValue)
   }
@@ -38,7 +39,7 @@ export default class TrackControlModel extends Model {
     track.on('trackStep', (index) => {     
       // this might get called by the sequencer while we're trying to delete the node or control
       if (!this.isDeleted ) {
-        if (this.nodeAttr && this.controlArrayValue.length) {
+        if (this.nodeAttr && this.interfaceName === 'multislider') {
           this.setAttrs(this.controlArrayValue[index]);
         } else {
           this.setAttrs(this.controlValue);
@@ -87,10 +88,12 @@ export default class TrackControlModel extends Model {
 
   // the nodeUUID could no longer be found in the Cracked object, so delete it's corresponding data model
   // FIXME probably better to cascade delete on the server
+  // also FIXME this method should be probs be on the Node
   async onNodeRemoved() {
     this.deleteRecord(); // first delete synchronously so isDeleted flag prevents further method calls
     const trackNode = await this.get('trackNode');
     await trackNode.destroyRecord(); // the API will delete this trackControl record along with the trackNode
+    this.unloadRecord(); // track-node API deletes the controls on the back end, but remove from store just in case
   }
 
   get uiOptions() {
