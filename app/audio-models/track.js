@@ -135,7 +135,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   onStepCallback(index, data, array) {
     //track controls subscribe to trackStep event
     this.set('stepIndex', index);
-    // this.applyOnstepTrackControls(index);
     this.onstepScript.get('functionRef')(index, data, array);
     this.trigger('trackStep', index);
   }

@@ -1,7 +1,7 @@
 import Component from '@ember/component';
 import { guidFor } from '@ember/object/internals';
 import { computed } from '@ember/object';
-import arraysEqual from '../utils/arrays-equal';
+import { isPresent } from '@ember/utils';
 
 /* Inherited by other `nexus-[]` components for initialization of Nexus JS library component
  *
@@ -22,7 +22,7 @@ export default Component.extend({
   didReceiveAttrs() {
     if ((this.options && this.nexusElement) && 
         (this.valueShouldUpdate())
-    ) {    
+    ) {     
       this.nexusInit();
     }
   },
@@ -34,16 +34,23 @@ export default Component.extend({
     }
   }),
 
+  // logic for when the @value param should set the nexus element's value from above 
+  // (as opposed to when the user directly interacts with it)
   valueShouldUpdate() {
-    if (this.nexusElement) {
-      if (this.min !== this.nexusElement.min || this.max !== this.nexusElement.max) {
-      } else if (this.isArrayElement) {       
-        return !arraysEqual(this.values, this.nexusElement.values);
-      } else {        
-        return this.value !== this.nexusElement.value;
-      }
-    }
-    return true;
+    return this.nexusElement && (this.valueChanged() || this.optionsChanged());
+  },
+  
+  // this here is the default case for most nexus- components but some like multislider override this
+  valueChanged() {
+    return this.value !== this.nexusElement.value;
+  },
+
+  optionsChanged() {   
+    return [
+      'min', 
+      'max', 
+      'step'
+    ].filter((option) => isPresent(this[option]) && this[option] !== this.nexusElement[option]).length    
   },
 
   nexusInit() {

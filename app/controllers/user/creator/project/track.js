@@ -22,10 +22,12 @@ export default class UserCreatorProjectTrackController extends Controller {
     }
   }
 
+  // FIXME this task type throws error
+  // Error: Attempted to handle event `didCommit` on <track-control:1> while in state root.loaded.updated.uncommitted. 
   @restartableTask
   *saveTrackControl(trackControl) {
-    yield trackControl.save();
     yield timeout(100);
+    yield trackControl.save();
   }
 
   @action
@@ -35,7 +37,7 @@ export default class UserCreatorProjectTrackController extends Controller {
 
   @action
   updateControl(trackControl, value) {
-    this.saveTrackControl.perform(trackControl);
     trackControl.setValue(value);
+    // this.saveTrackControl.perform(trackControl);
   }
 }
