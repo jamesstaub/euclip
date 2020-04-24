@@ -96,6 +96,8 @@ export default class TrackControlModel extends Model {
     this.unloadRecord(); // track-node API deletes the controls on the back end, but remove from store just in case
   }
 
+  // TODO finish implementing the contents of interfaceType dropdown for
+  // each node attributes's control 
   get uiOptions() {
     const bool = ['toggle']
     const oneD = ['slider', 'multislider', 'number'];
@@ -134,5 +136,18 @@ export default class TrackControlModel extends Model {
       default:
         return [];
     }
+  }
+
+  setDefault() {
+    if (this.defaultValue > this.max) {
+      this.set('max', this.defaultValue);
+    }
+
+    this.set('controlValue', this.defaultValue);
+    this.set('controlArrayValue', Array.from(
+      new Array(this.controlArrayValue.length
+      ), () => this.defaultValue ));
+    
+      this.save();
   }
 }

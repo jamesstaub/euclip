@@ -17,17 +17,17 @@ export default NexusBase.extend({
     return !arraysEqual(this.values, this.nexusElement.values);
   },
 
-  options: computed('max', 'min', 'step', 'values.[]', 'size', 'numberOfSliders', {
+  options: computed('max', 'min', 'step', 'values.[]', 'size', {
     get() {
       let values = this.values;
-      values = values.slice(0, this.numberOfSliders);
+
       return {
         size: this.size || [400, 120],
         min: this.min,
         max: this.max,
         candycane: 3,
-        numberOfSliders: this.numberOfSliders || 4,
-        step: this.step || 0,
+        numberOfSliders: values.length,
+        step: this.step,
         values: values
       };
     }

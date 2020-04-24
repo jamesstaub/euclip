@@ -21,5 +21,10 @@ export default class TrackControlWrapperComponent extends Component {
     }
     this.args.trackControl.set(key, value);
     this.args.saveTrackControl.perform(this.args.trackControl);
-  }  
+  }
+
+  @action
+  setDefault() {
+    this.args.trackControl.setDefault();
+  }
 }

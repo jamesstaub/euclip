@@ -1298,6 +1298,25 @@ return /******/ (function(modules) { // webpackBootstrap
 	    return false;
 	  }
 	};
+	
+	// Restricts input for the given textbox to the given inputFilter function
+	// cf https://stackoverflow.com/a/469362
+	exports.setInputFilter = function (textbox, inputFilter) {
+	  ["input", "keydown", "keyup", "mousedown", "mouseup", "select", "contextmenu", "drop"].forEach(function (event) {
+	    textbox.addEventListener(event, function () {
+	      if (inputFilter(this.value)) {
+	        this.oldValue = this.value;
+	        this.oldSelectionStart = this.selectionStart;
+	        this.oldSelectionEnd = this.selectionEnd;
+	      } else if (this.hasOwnProperty("oldValue")) {
+	        this.value = this.oldValue;
+	        this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
+	      } else {
+	        this.value = "";
+	      }
+	    });
+	  });
+	};
 
 /***/ }),
 /* 9 */
@@ -2078,8 +2097,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	        if (this.width < this.height) {
 	          this.orientation = "vertical";
+	          this.position.direction = "vertical";
 	        } else {
 	          this.orientation = "horizontal";
+	          this.position.direction = "horizontal";
 	        }
 	
 	        if (this.position) {
@@ -3053,33 +3074,33 @@ return /******/ (function(modules) { // webpackBootstrap
 	var Button = __webpack_require__(16);
 	
 	/**
-	* RadioButton
-	*
-	* @description An array of buttons. By default, selecting one button will deselect all other buttons, but this can be customized using the API below.
-	*
-	* @demo <div nexus-ui="RadioButton"></div>
-	*
-	* @example
-	* var radiobutton = new Nexus.RadioButton('#target')
-	*
-	* @example
-	* var radiobutton = new Nexus.RadioButton('#target',{
-	*   'size': [120,25],
-	*   'numberOfButtons': 4,
-	*   'active': -1
-	* })
-	*
-	* @output
-	* change
-	* Fires any time the interface's value changes. <br>
-	* The event data an <i>integer</i>, the index of the button that is currently on. If no button is selected, the value will be -1.
-	*
-	* @outputexample
-	* radiobutton.on('change',function(v) {
-	*   console.log(v);
-	* })
-	*
-	*/
+	 * RadioButton
+	 *
+	 * @description An array of buttons. By default, selecting one button will deselect all other buttons, but this can be customized using the API below.
+	 *
+	 * @demo <div nexus-ui="RadioButton"></div>
+	 *
+	 * @example
+	 * var radiobutton = new Nexus.RadioButton('#target')
+	 *
+	 * @example
+	 * var radiobutton = new Nexus.RadioButton('#target',{
+	 *   'size': [120,25],
+	 *   'numberOfButtons': 4,
+	 *   'active': -1
+	 * })
+	 *
+	 * @output
+	 * change
+	 * Fires any time the interface's value changes. <br>
+	 * The event data an <i>integer</i>, the index of the button that is currently on. If no button is selected, the value will be -1.
+	 *
+	 * @outputexample
+	 * radiobutton.on('change',function(v) {
+	 *   console.log(v);
+	 * })
+	 *
+	 */
 	
 	var RadioButton = (function (_Interface) {
 	  function RadioButton() {
@@ -3114,13 +3135,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	    },
 	    buildInterface: {
 	      value: function buildInterface() {
-	
 	        for (var i = 0; i < this._numberOfButtons; i++) {
 	          var container = document.createElement("span");
 	
 	          var button = new Button(container, {
 	            mode: "toggle",
-	            component: true }, this.update.bind(this, i));
+	            component: true
+	          }, this.update.bind(this, i));
 	
 	          this.buttons.push(button);
 	          this.element.appendChild(container);
@@ -3129,9 +3150,15 @@ return /******/ (function(modules) { // webpackBootstrap
 	    },
 	    sizeInterface: {
 	      value: function sizeInterface() {
+	        var orientation = undefined;
+	        if (this.width > this.height) {
+	          orientation = "horizontal";
+	        } else {
+	          orientation = "vertical";
+	        }
 	
-	        var buttonWidth = this.width / this._numberOfButtons;
-	        var buttonHeight = this.height;
+	        var buttonWidth = this.width / (orientation === "vertical" ? 1 : this._numberOfButtons);
+	        var buttonHeight = this.height / (orientation === "vertical" ? this._numberOfButtons : 1);
 	
 	        for (var i = 0; i < this._numberOfButtons; i++) {
 	          this.buttons[i].resize(buttonWidth, buttonHeight);
@@ -3240,6 +3267,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	var Interface = __webpack_require__(6);
 	var Step = __webpack_require__(11);
 	var math = __webpack_require__(5);
+	var util = __webpack_require__(8);
 	
 	/**
 	* Number
@@ -3326,19 +3354,18 @@ return /******/ (function(modules) { // webpackBootstrap
 	          }
 	        }).bind(this));
 	
+	        util.setInputFilter(this.element, function (value) {
+	          return /^\d*\.?\d*$/.test(value);
+	        });
+	
 	        this.element.addEventListener("keydown", (function (e) {
-	          if (e.which < 48 || e.which > 57) {
-	            if (e.which !== 189 && e.which !== 190 && e.which !== 8) {
-	              e.preventDefault();
-	            }
-	          }
 	          if (e.which === 13) {
 	            this.element.blur();
 	            this.value = this.element.value;
 	            this.emit("change", this.value);
 	            this.render();
 	          }
-	        }).bind(this));
+	        }).bind(this), true);
 	
 	        this.parent.appendChild(this.element);
 	      }
@@ -3390,7 +3417,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	        this.actual = this.value;
 	        this.initial = { y: this.mouse.y };
 	        this.changeFactor = math.invert(this.mouse.x / this.width);
-	        console.log(this.changeFactor);
 	      }
 	    },
 	    move: {
@@ -4633,7 +4659,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	      size: [80, 80],
 	      target: false,
 	      mode: "toggle",
-	      value: 0
+	      value: 0,
+	      paddingRow: 2,
+	      paddingColumn: 2
 	    };
 	
 	    _get(Object.getPrototypeOf(MatrixCell.prototype), "constructor", this).call(this, arguments, options, defaults);
@@ -4643,6 +4671,18 @@ return /******/ (function(modules) { // webpackBootstrap
 	    this.column = this.settings.column;
 	
 	    this.matrix = this.settings.matrix;
+	
+	    /**
+	     *  Amount of row padding
+	     *  @type {number}
+	     */
+	    this.paddingRow = this.settings.paddingRow || defaults.paddingRow;
+	
+	    /**
+	     *  Amount of column padding
+	     *  @type {number}
+	     */
+	    this.paddingColumn = this.settings.paddingColumn || defaults.paddingColumn;
 	
 	    this.interacting = false;
 	    this.paintbrush = false;
@@ -4677,7 +4717,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	        /* events */
 	
 	        if (!touch.exists) {
-	
 	          this.click = function () {
 	            _this.matrix.interacting = true;
 	            _this.matrix.paintbrush = !_this.state;
@@ -4718,20 +4757,18 @@ return /******/ (function(modules) { // webpackBootstrap
 	    },
 	    sizeInterface: {
 	      value: function sizeInterface() {
-	
-	        this.pad.setAttribute("x", 1);
-	        this.pad.setAttribute("y", 1);
+	        this.pad.setAttribute("x", this.paddingColumn / 2);
+	        this.pad.setAttribute("y", this.paddingRow / 2);
 	        if (this.width > 2) {
-	          this.pad.setAttribute("width", this.width - 2);
+	          this.pad.setAttribute("width", this.width - this.paddingColumn);
 	        } else {
 	          this.pad.setAttribute("width", this.width);
 	        }
 	        if (this.height > 2) {
-	          this.pad.setAttribute("height", this.height - 2);
+	          this.pad.setAttribute("height", this.height - this.paddingRow);
 	        } else {
 	          this.pad.setAttribute("height", this.height);
 	        }
-	        //this.pad.setAttribute('height', this.height - 2);
 	        this.pad.setAttribute("fill", this.matrix.colors.fill);
 	      }
 	    },
@@ -4750,43 +4787,45 @@ return /******/ (function(modules) { // webpackBootstrap
 	})(ButtonTemplate);
 	
 	/**
-	* Sequencer
-	*
-	* @description Grid of buttons with built-in step sequencer.
-	*
-	* @demo <div nexus-ui="sequencer" style="width:400px;height:200px;"></div>
-	*
-	* @example
-	* var sequencer = new Nexus.Sequencer('#target')
-	*
-	* @example
-	* var sequencer = new Nexus.Sequencer('#target',{
-	*  'size': [400,200],
-	*  'mode': 'toggle',
-	*  'rows': 5,
-	*  'columns': 10
-	*})
-	*
-	* @output
-	* change
-	* Fires any time the interface's matrix changes. <br>
-	* The event data is an object containing <i>row</i> (number), <i>column</i> (number), and <i>state</i> (boolean) properties.
-	*
-	* @outputexample
-	* sequencer.on('change',function(v) {
-	*   console.log(v);
-	* })
-	*
-	* @output
-	* step
-	* Fires any time the sequencer steps to the next column, in sequece mode. <br>
-	* The event data is an <i>array</i> containing all values in the column, <i>bottom row first</i>.
-	*
-	* @outputexample
-	* sequencer.on('step',function(v) {
-	*   console.log(v);
-	* })
-	*/
+	 * Sequencer
+	 *
+	 * @description Grid of buttons with built-in step sequencer.
+	 *
+	 * @demo <div nexus-ui="sequencer" style="width:400px;height:200px;"></div>
+	 *
+	 * @example
+	 * var sequencer = new Nexus.Sequencer('#target')
+	 *
+	 * @example
+	 * var sequencer = new Nexus.Sequencer('#target',{
+	 *  'size': [400,200],
+	 *  'mode': 'toggle',
+	 *  'rows': 5,
+	 *  'columns': 10,
+	 *  'paddingRow': 10,
+	 *  'paddingColumn': 20
+	 *})
+	 *
+	 * @output
+	 * change
+	 * Fires any time the interface's matrix changes. <br>
+	 * The event data is an object containing <i>row</i> (number), <i>column</i> (number), and <i>state</i> (boolean) properties.
+	 *
+	 * @outputexample
+	 * sequencer.on('change',function(v) {
+	 *   console.log(v);
+	 * })
+	 *
+	 * @output
+	 * step
+	 * Fires any time the sequencer steps to the next column, in sequece mode. <br>
+	 * The event data is an <i>array</i> containing all values in the column, <i>bottom row first</i>.
+	 *
+	 * @outputexample
+	 * sequencer.on('step',function(v) {
+	 *   console.log(v);
+	 * })
+	 */
 	
 	var Sequencer = (function (_Interface) {
 	  function Sequencer() {
@@ -4806,30 +4845,33 @@ return /******/ (function(modules) { // webpackBootstrap
 	    this.active = -1;
 	
 	    /**
-	    * Button interaction mode: see Button
-	    * @type {string}
-	    * @example button.mode = 'toggle';
-	    */
+	     * Button interaction mode: see Button
+	     * @type {string}
+	     * @example button.mode = 'toggle';
+	     */
 	    this.mode = this.settings.mode;
 	
 	    /**
-	    * The interval object which controls timing and sequence scheduling.
-	    * @type {interval}
-	    */
+	     * The interval object which controls timing and sequence scheduling.
+	     * @type {interval}
+	     */
 	    this.interval = new Nexus.Interval(200, function () {}, false); // jshint ignore:line
 	
 	    /**
-	    * A Matrix model containing methods for manipulating the sequencer's array of values. To learn how to manipulate the matrix, read about the matrix model.
-	    * @type {matrix}
-	    */
+	     * A Matrix model containing methods for manipulating the sequencer's array of values. To learn how to manipulate the matrix, read about the matrix model.
+	     * @type {matrix}
+	     */
 	    this.matrix = new MatrixModel(this.settings.rows, this.settings.columns);
 	    this.matrix.ui = this;
 	
 	    /**
-	    * A Counter model which the sequencer steps through. For example, you could use this model to step through the sequencer in reverse, randomly, or in a drunk walk.
-	    * @type {counter}
-	    */
+	     * A Counter model which the sequencer steps through. For example, you could use this model to step through the sequencer in reverse, randomly, or in a drunk walk.
+	     * @type {counter}
+	     */
 	    this.stepper = new CounterModel(0, this.columns);
+	
+	    this.paddingRow = this.settings.paddingRow;
+	    this.paddingColumn = this.settings.paddingColumn;
 	
 	    this.init();
 	  }
@@ -4852,10 +4894,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	    },
 	    buildInterface: {
 	      value: function buildInterface() {
-	
 	        this.cells = [];
 	        for (var i = 0; i < this.matrix.length; i++) {
-	
 	          var _location = this.matrix.locate(i);
 	          // returns {row,col}
 	
@@ -4868,7 +4908,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	            row: _location.row,
 	            column: _location.column,
 	            mode: this.mode,
-	            matrix: this
+	            matrix: this,
+	            paddingRow: this.paddingRow,
+	            paddingColumn: this.paddingColumn
 	          }, this.keyChange.bind(this, i));
 	
 	          //  cell.matrix = this;
@@ -4888,7 +4930,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	    },
 	    sizeInterface: {
 	      value: function sizeInterface() {
-	
 	        var cellWidth = this.width / this.columns;
 	        var cellHeight = this.height / this.rows;
 	
@@ -6392,39 +6433,39 @@ return /******/ (function(modules) { // webpackBootstrap
 	var Interface = __webpack_require__(6);
 	
 	/**
-	* Multislider
-	*
-	* @description Multislider
-	*
-	* @demo <span nexus-ui="multislider"></span>
-	*
-	* @example
-	* var multislider = new Nexus.Multislider('#target')
-	*
-	* @example
-	* var multislider = new Nexus.Multislider('#target',{
-	*  'size': [200,100],
-	*  'numberOfSliders': 5,
-	*  'min': 0,
-	*  'max': 1,
-	*  'step': 0,
-	*  'candycane': 3,
-	*  'values': [0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1],
-	*  'smoothing': 0,
-	*  'mode': 'bar'  // 'bar' or 'line'
-	*})
-	*
-	* @output
-	* change
-	* Fires any time the interface's value changes. <br>
-	* The event data is an object containing <i>index</i> and <i>value</i> properties
-	*
-	* @outputexample
-	* multislider.on('change',function(v) {
-	*   console.log(v);
-	* })
-	*
-	*/
+	 * Multislider
+	 *
+	 * @description Multislider
+	 *
+	 * @demo <span nexus-ui="multislider"></span>
+	 *
+	 * @example
+	 * var multislider = new Nexus.Multislider('#target')
+	 *
+	 * @example
+	 * var multislider = new Nexus.Multislider('#target',{
+	 *  'size': [200,100],
+	 *  'numberOfSliders': 5,
+	 *  'min': 0,
+	 *  'max': 1,
+	 *  'step': 0,
+	 *  'candycane': 3,
+	 *  'values': [0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1],
+	 *  'smoothing': 0,
+	 *  'mode': 'bar'  // 'bar' or 'line'
+	 *})
+	 *
+	 * @output
+	 * change
+	 * Fires any time the interface's value changes. <br>
+	 * The event data is an object containing <i>index</i> and <i>value</i> properties
+	 *
+	 * @outputexample
+	 * multislider.on('change',function(v) {
+	 *   console.log(v);
+	 * })
+	 *
+	 */
 	
 	var Multislider = (function (_Interface) {
 	  function Multislider() {
@@ -6457,7 +6498,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    The current values of the slider. NOTE: Use this only to get the current values. Setting this array will not update the multislider. To set the multislider's values, use setSlider() or setAllSliders()
 	    @type {Array}
 	    */
-	    this.values = this.settings.values;
+	    this.values = this.settings.values.length > this._numberOfSliders ? this.settings.values.slice(0, this._numberOfSliders) : this.settings.values.concat(Array(this._numberOfSliders - this.settings.values.length).fill(0));
 	
 	    this.candycane = this.settings.candycane;
 	
@@ -6478,9 +6519,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  _createClass(Multislider, {
 	    buildInterface: {
 	      value: function buildInterface() {
-	
 	        if (this._mode == "line") {
-	
 	          this.line = svg.create("polyline");
 	          this.line.setAttribute("stroke-width", 2);
 	          this.line.setAttribute("fill", "none");
@@ -6495,7 +6534,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	          this.nodes = [];
 	
 	          this.values.forEach((function (value, index) {
-	
 	            var node = svg.create("circle");
 	
 	            node.setAttribute("cx", this.getX(index));
@@ -6505,12 +6543,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	            this.nodes.push(node);
 	          }).bind(this));
 	        } else {
-	
 	          this.bars = [];
 	          this.caps = [];
 	
 	          this.values.forEach((function (value, index) {
-	
 	            var bar = svg.create("rect");
 	
 	            var x = this.getBarX(index);
@@ -6618,7 +6654,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	    },
 	    sizeInterface: {
 	      value: function sizeInterface() {
-	
 	        this.sliderWidth = this.width / this.values.length;
 	
 	        if (this._mode == "line") {
@@ -6638,7 +6673,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	        if (this._mode == "line") {
 	          (function () {
-	
 	            var data = "0 " + _this.getY(_this.values[0]) + ", ";
 	
 	            _this.values.forEach(function (value, index) {
@@ -6662,7 +6696,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	            _this.fill.setAttribute("points", data);
 	          })();
 	        } else {
-	
 	          this.values.forEach(function (value, index) {
 	            _this.bars[index].setAttribute("y", _this.getY(value));
 	            _this.caps[index].setAttribute("y", _this.getY(value));
@@ -6705,7 +6738,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	          }
 	
 	          if (this.smoothing > 0) {
-	
 	            for (var i = 1; i <= this.smoothing; i++) {
 	              var downCenter = this.selectedSlider - i;
 	              var upCenter = this.selectedSlider + i;
@@ -7646,28 +7678,28 @@ return /******/ (function(modules) { // webpackBootstrap
 	//let math = require('../util/math');
 	var Interface = __webpack_require__(6);
 	
-	/**
-	* Spectrogram
-	*
-	* @description Audio spectrum visualization
-	*
-	* @demo <span nexus-ui="spectrogram"></span>
-	*
-	* @example
-	* var spectrogram = new Nexus.Spectrogram('#target')
-	*
-	* @example
-	* var spectrogram = new Nexus.Spectrogram('#target',{
-	*   'size': [300,150]
-	* })
-	*
-	* @output
-	* &nbsp;
-	* No events
-	*
-	*/
-	
 	var context = __webpack_require__(1).context;
+	
+	/**
+	 * Spectrogram
+	 *
+	 * @description Audio spectrum visualization
+	 *
+	 * @demo <span nexus-ui="spectrogram"></span>
+	 *
+	 * @example
+	 * var spectrogram = new Nexus.Spectrogram('#target')
+	 *
+	 * @example
+	 * var spectrogram = new Nexus.Spectrogram('#target',{
+	 *   'size': [300,150]
+	 * })
+	 *
+	 * @output
+	 * &nbsp;
+	 * No events
+	 *
+	 */
 	
 	var Spectrogram = (function (_Interface) {
 	  function Spectrogram() {
@@ -7716,7 +7748,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	    },
 	    render: {
 	      value: function render() {
-	
 	        if (this.active) {
 	          requestAnimationFrame(this.render.bind(this));
 	        }
@@ -7727,7 +7758,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	        this.canvas.context.fillRect(0, 0, this.canvas.element.width, this.canvas.element.height);
 	
 	        if (this.source && this.dataArray) {
-	
 	          //console.log(this.dataArray);
 	
 	          var barWidth = this.canvas.element.width / this.bufferLength;
@@ -7814,28 +7844,28 @@ return /******/ (function(modules) { // webpackBootstrap
 	var math = __webpack_require__(5);
 	var Interface = __webpack_require__(6);
 	
-	/**
-	* Meter
-	*
-	* @description Stereo decibel meter
-	*
-	* @demo <span nexus-ui="meter"></span>
-	*
-	* @example
-	* var meter = new Nexus.Meter('#target')
-	*
-	* @example
-	* var meter = new Nexus.Meter('#target',{
-	*   size: [75,75]
-	* })
-	*
-	* @output
-	* &nbsp;
-	* No events
-	*
-	*/
-	
 	var context = __webpack_require__(1).context;
+	
+	/**
+	 * Meter
+	 *
+	 * @description Stereo decibel meter
+	 *
+	 * @demo <span nexus-ui="meter"></span>
+	 *
+	 * @example
+	 * var meter = new Nexus.Meter('#target')
+	 *
+	 * @example
+	 * var meter = new Nexus.Meter('#target',{
+	 *   size: [75,75]
+	 * })
+	 *
+	 * @output
+	 * &nbsp;
+	 * No events
+	 *
+	 */
 	
 	var Meter = (function (_Interface) {
 	  function Meter() {
@@ -7868,15 +7898,15 @@ return /******/ (function(modules) { // webpackBootstrap
 	    this.dataArray = new Float32Array(this.bufferLength);
 	
 	    /*
-	        // add linear gradient
-	        var grd = canvasCtx.createLinearGradient(0, 0, 0, canvas.height);
-	        // light blue
-	        grd.addColorStop(0, '#000');
-	        grd.addColorStop(0.2, '#bbb');
-	        grd.addColorStop(0.4, '#d18');
-	        // dark blue
-	        grd.addColorStop(1, '#d18');
-	        canvasCtx.fillStyle = grd; */
+	    // add linear gradient
+	    var grd = canvasCtx.createLinearGradient(0, 0, 0, canvas.height);
+	    // light blue
+	    grd.addColorStop(0, '#000');
+	    grd.addColorStop(0.2, '#bbb');
+	    grd.addColorStop(0.4, '#d18');
+	    // dark blue
+	    grd.addColorStop(1, '#d18');
+	    canvasCtx.fillStyle = grd; */
 	
 	    this.active = true;
 	
@@ -7910,7 +7940,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	    },
 	    render: {
 	      value: function render() {
-	
 	        if (this.active) {
 	          requestAnimationFrame(this.render.bind(this));
 	        }
@@ -7919,9 +7948,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        this.canvas.context.fillRect(0, 0, this.canvas.element.width, this.canvas.element.height);
 	
 	        for (var i = 0; i < this.analysers.length; i++) {
-	
 	          if (this.source) {
-	
 	            this.analysers[i].getFloatTimeDomainData(this.dataArray);
 	
 	            var rms = 0;
@@ -7942,7 +7969,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	          //console.log(db)
 	
 	          if (this.db > -70) {
-	
 	            var linear = math.normalize(this.db, -70, 5);
 	            var exp = linear * linear;
 	            var y = math.scale(exp, 0, 1, this.element.height, 0);
@@ -7993,7 +8019,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	      */
 	
 	      value: function disconnect() {
-	
 	        this.source.disconnect(this.splitter);
 	        this.source = false;
 	        //  this.dummy.connect(this.splitter);
@@ -8035,28 +8060,28 @@ return /******/ (function(modules) { // webpackBootstrap
 	var dom = __webpack_require__(7);
 	var Interface = __webpack_require__(6);
 	
-	/**
-	* Oscilloscope
-	*
-	* @description Visualizes a waveform's stream of values.
-	*
-	* @demo <span nexus-ui="oscilloscope"></span>
-	*
-	* @example
-	* var oscilloscope = new Nexus.Oscilloscope('#target')
-	*
-	* @example
-	* var oscilloscope = new Nexus.Oscilloscope('#target',{
-	*   'size': [300,150]
-	* })
-	*
-	* @output
-	* &nbsp;
-	* No events
-	*
-	*/
-	
 	var context = __webpack_require__(1).context;
+	
+	/**
+	 * Oscilloscope
+	 *
+	 * @description Visualizes a waveform's stream of values.
+	 *
+	 * @demo <span nexus-ui="oscilloscope"></span>
+	 *
+	 * @example
+	 * var oscilloscope = new Nexus.Oscilloscope('#target')
+	 *
+	 * @example
+	 * var oscilloscope = new Nexus.Oscilloscope('#target',{
+	 *   'size': [300,150]
+	 * })
+	 *
+	 * @output
+	 * &nbsp;
+	 * No events
+	 *
+	 */
 	
 	var Oscilloscope = (function (_Interface) {
 	  function Oscilloscope() {
@@ -8108,7 +8133,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	    },
 	    render: {
 	      value: function render() {
-	
 	        if (this.active) {
 	          requestAnimationFrame(this.render.bind(this));
 	        }
@@ -8124,12 +8148,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	        this.canvas.context.beginPath();
 	
 	        if (this.source) {
-	
 	          var sliceWidth = this.canvas.element.width * 1 / this.bufferLength;
 	          var x = 0;
 	
 	          for (var i = 0; i < this.bufferLength; i++) {
-	
 	            var v = this.dataArray[i] / 128;
 	            var y = v * this.canvas.element.height / 2;
 	
@@ -8159,7 +8181,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	      */
 	
 	      value: function connect(node) {
-	
 	        if (this.source) {
 	          this.disconnect();
 	        }
@@ -8552,7 +8573,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	      /* Return data in the mode you are in (freq, ratio, or midi) */
 	
 	      value: function note(input, octave) {
-	
 	        var newvalue = undefined;
 	
 	        if (this.mode.output === "frequency") {
@@ -8573,7 +8593,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	      /* Return freq data */
 	
 	      value: function frequency(stepIn, octaveIn) {
-	
 	        if (this.mode.input === "midi" || this.mode.input === "MIDI") {
 	          this.stepIn += 60;
 	        }
@@ -8609,7 +8628,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	      /* Force return ratio data */
 	
 	      value: function ratio(stepIn, octaveIn) {
-	
 	        if (this.mode.input === "midi" || this.mode.input === "MIDI") {
 	          this.stepIn += 60;
 	        }
@@ -8637,7 +8655,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	      /* Force return adjusted MIDI data */
 	
 	      value: function MIDI(stepIn, octaveIn) {
-	
 	        var newvalue = this.frequency(stepIn, octaveIn);
 	
 	        var n = 69 + 12 * Math.log(newvalue / 440) / Math.log(2);
@@ -8667,7 +8684,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    loadScaleFromFrequencies: {
 	      value: function loadScaleFromFrequencies(freqs) {
 	        this.scale = [];
-	        for (var i = 0; i < freqs.length - 1; i++) {
+	        for (var i = 0; i < freqs.length; i++) {
 	          this.scale.push(freqs[i] / freqs[0]);
 	        }
 	      }
@@ -8677,7 +8694,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	      /* Load a new scale */
 	
 	      value: function loadScale(name) {
-	
 	        /* load the scale */
 	        var freqs = this.scales[name].frequencies;
 	        this.loadScaleFromFrequencies(freqs);

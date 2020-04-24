@@ -20,9 +20,7 @@ export default Component.extend({
   },
 
   didReceiveAttrs() {
-    if ((this.options && this.nexusElement) && 
-        (this.valueShouldUpdate())
-    ) {     
+    if (this.valueShouldUpdate()) {
       this.nexusInit();
     }
   },
@@ -37,7 +35,7 @@ export default Component.extend({
   // logic for when the @value param should set the nexus element's value from above 
   // (as opposed to when the user directly interacts with it)
   valueShouldUpdate() {
-    return this.nexusElement && (this.valueChanged() || this.optionsChanged());
+    return this.nexusElement && this.options && (this.valueChanged() || this.optionsChanged());
   },
   
   // this here is the default case for most nexus- components but some like multislider override this
@@ -49,7 +47,7 @@ export default Component.extend({
     return [
       'min', 
       'max', 
-      'step'
+      'step',
     ].filter((option) => isPresent(this[option]) && this[option] !== this.nexusElement[option]).length    
   },
 
@@ -58,6 +56,8 @@ export default Component.extend({
     if (this.nexusElement) {
       this.nexusElement.destroy();
     }
+    console.log('init');
+    
     const nexusElement = new Nexus[this.elementName](`#${this.nexusId}`, this.options);
     this.set('nexusElement', nexusElement);
     this.nexusElement.on('change', (v) => {
