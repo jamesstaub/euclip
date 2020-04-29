@@ -34,6 +34,7 @@ export default class TrackControlModel extends Model {
   }
 
   @belongsTo('track-node') trackNode;
+  @belongsTo('track') track;
 
   bindTrackEvents(track) {
     track.on('trackStep', (index) => {     
@@ -142,12 +143,15 @@ export default class TrackControlModel extends Model {
     if (this.defaultValue > this.max) {
       this.set('max', this.defaultValue);
     }
+    if (this.defaultValue < this.min) {
+      this.set('min', this.defaultValue);
+    }
 
     this.set('controlValue', this.defaultValue);
     this.set('controlArrayValue', Array.from(
       new Array(this.controlArrayValue.length
       ), () => this.defaultValue ));
     
-      this.save();
+      this.get('track').saveTrackControl.perform();
   }
 }

@@ -1,11 +1,15 @@
 import Component from '@ember/component';
-import { set } from '@ember/object';
+import { set, action } from '@ember/object';
+import { bool } from '@ember/object/computed';
 import { inject as service } from '@ember/service';
 import ENV from '../config/environment';
 import { task } from 'ember-concurrency';
+import { typeOf } from '@ember/utils';
 
 export default Component.extend({
   store: service(),
+
+  showSearchResults: bool('searchResults.length'),
 
   init() {
     this._super(...arguments);
@@ -65,18 +69,45 @@ export default Component.extend({
     }
     this.directories.pushObject(directory);
   }).keepLatest(),
-
-  actions: {
-    onSelect(directory, choice) {
-      set(directory, 'currentSelection', choice);
-      let newPath = `${directory.path}${choice}`;
-      let type = directory.type;
-      newPath = newPath.replace('//', '/'); // hack to deal with API parsing issue
-      if (type === 'dir') {
-        this.updateDirectories.perform(newPath);
-      } else if (type === 'audio') {
-        this.updateTrackTask.perform('filepath', newPath);
-      }
+  
+  search: action(async function() {
+    let pageToSearch = 0;
+    // this sucks but when this method is called by the pagination buttons, second arg is the page
+    // when called in search, second arg is the DOM event
+    if (typeOf(arguments[1]) === 'number') {
+      pageToSearch = arguments[1];
     }
-  }
+
+    const results = await this.fetchDirectory.perform(`search/${this.searchQuery}?include_dir=${true}&page=${pageToSearch}`);
+    this.set('searchResults', results.results);
+    this.set('currentPage', results.page);
+    this.set('lastPage', results.last_page);
+  }),
+
+  backToBrowse: action(async function() {
+    this.set('searchResults', null);
+    this.set('searchQuery', null);
+  }),
+
+  onSelect: action(function (directory, choice) {    
+    set(directory, 'currentSelection', choice);
+    let newPath = `${directory.path}${choice}`;
+    let type = directory.type;
+    newPath = newPath.replace('//', '/'); // hack to deal with API parsing issue
+    if (type === 'dir') {
+      this.updateDirectories.perform(newPath);
+    } else if (type === 'audio') {
+      this.updateTrackTask.perform('filepath', newPath);
+    }
+  }),
+
+  onSelectSearchResult: action(function(result) {
+    let directory = result.split('/')
+    directory.pop();
+    directory = `${directory.join('/')}/`;
+
+    this.updateDirectories.perform(directory);
+    this.updateTrackTask.perform('filepath', result);
+  }),
+
 });

@@ -1,13 +1,28 @@
 <ResponsiveModal class="relative">
-  <div class="drum-file-picker center ma3 pa3 flex">
-    {{#each this.directories as |directory idx|}}
-      <FileDirectory
-        @directory={{directory}}
-        @filepath={{this.track.filepath}}
-        @idx={{idx}}
-        @onSelect={{action "onSelect"}}
+  <div class="ma3 pa3 ">
+    <Input placeholder="search drumserver" @key-down={{fn this.search}} @value={{this.searchQuery}}/>
+    {{#if showSearchResults}}
+      <button {{on "click" (fn this.backToBrowse)}}> ← browse </button>
+      {{#each this.searchResults as |result|}}
+        <FileSearchResult @result={{result}} @onSelect={{fn this.onSelectSearchResult result}}/>
+      {{/each}}
+      <SearchPagination 
+        @currentPage={{this.currentPage}} 
+        @lastPage={{this.lastPage}}
+        @search={{fn this.search this.searchQuery}}
       />
-    {{/each}}
+    {{else}}
+      <div class="flex">
+        {{#each this.directories as |directory idx|}}
+          <FileDirectory
+            @directory={{directory}}
+            @filepath={{this.track.filepath}}
+            @idx={{idx}}
+            @onSelect={{this.onSelect}}
+          />
+        {{/each}}
+      </div>
+    {{/if}}
   </div>
   {{#if (or @saveTrackTask.isRunning this.fetchDirectory.isRunning)}}
     <ProgressBar class="absolute bottom-0 right-0" />

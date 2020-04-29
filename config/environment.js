@@ -19,7 +19,6 @@ module.exports = function(environment) {
 
     APP: {
       userEndpoint: '/users/me',
-      DRUMSERVER_HOST: 'https://drumserver.herokuapp.com',
       supportedAudioNodes: ['gain', 'sampler', 'lowpass', 'highpass', 'bandpass', 'allpasss', 'notch', 'lowshelf', 'highshelf', 'peaking', 'reverb', 'delay', 'bitcrusher', 'overdrive', 'ring', 'comb']
       // Here you can pass flags/options to your application instance
       // when it is created
@@ -35,7 +34,7 @@ module.exports = function(environment) {
     // ENV.APP.LOG_ACTIVE_GENERATION = true;
     // ENV.APP.LOG_TRANSITIONS = true;
     // ENV.APP.LOG_TRANSITIONS_INTERNAL = true;
-    // ENV.APP.LOG_VIEW_LOOKUPS = true;
+    ENV.APP.DRUMSERVER_HOST =  'http://127.0.0.1:8000';
   }
 
   if (environment === 'test') {
@@ -51,6 +50,7 @@ module.exports = function(environment) {
   }
 
   if (environment === 'production') {
+    ENV.APP.DRUMSERVER_HOST = 'https://drumserver.herokuapp.com';
     // here you can enable a production-specific feature
   }
 

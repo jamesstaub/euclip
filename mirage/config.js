@@ -252,6 +252,7 @@ if (data) {
   this.passthrough('https://storage.googleapis.com/**');
   this.passthrough('https://drumserver.herokuapp.com');
   this.passthrough('https://drumserver.herokuapp.com/**');
+  this.passthrough('http://127.0.0.1:8000/**');
   this.passthrough('/assets/**');
   this.pretender.get('/*passthrough', this.pretender.passthrough);
   

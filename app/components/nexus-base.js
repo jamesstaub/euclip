@@ -56,7 +56,6 @@ export default Component.extend({
     if (this.nexusElement) {
       this.nexusElement.destroy();
     }
-    console.log('init');
     
     const nexusElement = new Nexus[this.elementName](`#${this.nexusId}`, this.options);
     this.set('nexusElement', nexusElement);

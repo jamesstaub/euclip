@@ -38,6 +38,6 @@ export default class UserCreatorProjectTrackController extends Controller {
   @action
   updateControl(trackControl, value) {
     trackControl.setValue(value);
-    // this.saveTrackControl.perform(trackControl);
+    this.saveTrackControl.perform(trackControl);
   }
 }
