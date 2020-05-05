@@ -13,11 +13,16 @@ export default class ProjectAudioModel extends Model.extend(Evented) {
     __()
       .compressor({
         release: .1,
-        id: 'master-compressor',
+        id: 'mixer',
         class: `project-${this.id}`,
       })
       .dac();
-    
+
+    cracked.channelStrip = function(params = {}) {
+      __.begin('channelStrip', params).gain(1).panner().end('channelStrip');
+      return cracked;
+    }
+
     this.trigger('initTracks');
   }
 
@@ -28,7 +33,7 @@ export default class ProjectAudioModel extends Model.extend(Evented) {
   }
 
   stopLoop() {
-    this.set('isPlaying', false);
+    this.isPlaying = false;
     __.loop('stop');
     __('*').stop();
   }

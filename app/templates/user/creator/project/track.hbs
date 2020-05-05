@@ -13,36 +13,45 @@
     <p class="fw6">{{@model.id}}</p>
     <div class="flex flex-column bg-light-gray pa4 flex-wrap">
       <div class="flex mv3">
-        <NexusDial 
-          @value={{@model.hits}} 
-          @onChangeValue={{perform updateTrackTask "hits"}} 
-          @min={{0}}
-          @max={{this.maxSteps}}
-        >
-          {{@model.hits}}
-        </NexusDial>
-        <NexusDial 
-          @value={{@model.steps}} 
-          @onChangeValue={{perform updateTrackTask "steps"}} 
-          @min={{0}}
-          @max={{this.maxSteps}}
-        >
-          {{@model.steps}}
-        </NexusDial>
-        <NexusDial 
-          @value={{@model.offset}} 
-          @onChangeValue={{perform updateTrackTask "offset"}} 
-          @min={{0}}
-          @max={{this.maxSteps}}
-        >
-          {{@model.offset}}
-        </NexusDial>  
+        <div>
+          <ChannelStrip 
+            @channelStripGainControl={{this.channelStripGainControl}}
+            @channelStripPannerControl={{this.channelStripPannerControl}}
+            @updateValue={{fn this.updateControl}}
+            @saveTrackControl={{this.saveTrackControl}}
+          />
+        </div>
+        <div class="flex">
+          <NexusDial 
+            @value={{@model.hits}} 
+            @onChangeValue={{perform updateTrackTask "hits"}} 
+            @min={{0}}
+            @max={{this.maxSteps}}
+          >
+            {{@model.hits}}
+          </NexusDial>
+          <NexusDial 
+            @value={{@model.steps}} 
+            @onChangeValue={{perform updateTrackTask "steps"}} 
+            @min={{0}}
+            @max={{this.maxSteps}}
+          >
+            {{@model.steps}}
+          </NexusDial>
+          <NexusDial 
+            @value={{@model.offset}} 
+            @onChangeValue={{perform updateTrackTask "offset"}} 
+            @min={{0}}
+            @max={{this.maxSteps}}
+          >
+            {{@model.offset}}
+          </NexusDial>  
+        </div>
       </div>
 
       <div class="flex flex-column">
-
         <ul class="pa0 list flex">
-          {{#each @model.trackNodes as |trackNode idx|}}
+          {{#each this.trackNodesForControls as |trackNode idx|}}
             <li>
               <a 
                 class="ph3 pv2 mh1 mw4 link {{if (eq this.visibleNodeIdx idx) 'bg-black white' 'bg-white black'}}"
@@ -55,7 +64,7 @@
         </ul>
 
         <div>
-          {{#each @model.trackNodes as |trackNode idx|}}
+          {{#each this.trackNodesForControls as |trackNode idx|}}
             {{#if (eq this.visibleNodeIdx idx)}}
               <div class="flex flex-wrap tc mh3">
                 {{#each trackNode.trackControls as |trackControl|}}
@@ -63,7 +72,7 @@
                     @sequence={{@model.sequence}}
                     @trackControl={{trackControl}} 
                     @controlArrayValue={{trackControl.controlArrayValue}} 
-                    @updateValue={{action "updateControl" trackControl}}
+                    @updateValue={{fn this.updateControl trackControl}}
                     @saveTrackControl={{this.saveTrackControl}}
                   />
                 {{/each}}

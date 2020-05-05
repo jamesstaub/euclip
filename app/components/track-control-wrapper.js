@@ -2,6 +2,11 @@ import Component from "@glimmer/component";
 import { action } from '@ember/object';
 
 export default class TrackControlWrapperComponent extends Component {
+
+  get showMinMax() {
+    return !(this.args.hideMinMax || this.args.trackControl?.interfaceName === 'number');
+  }
+
   @action
   setValue(value) {
     this.args.trackControl.setValue(value);

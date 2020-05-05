@@ -2,11 +2,25 @@ import Controller from '@ember/controller';
 import { action } from '@ember/object';
 import { timeout } from 'ember-concurrency';
 import { restartableTask, keepLatestTask } from "ember-concurrency-decorators";
+import { filterBy } from '@ember/object/computed';
 
 export default class UserCreatorProjectTrackController extends Controller {
+
   maxSteps = 32;
   visibleNodeIdx = 0;
   
+  @filterBy('model.trackNodes', 'parentMacro', undefined) trackNodesForControls; // all nodes except the children of channelStrip maco
+  @filterBy('model.trackNodes', 'parentMacro') channelStripNodes; // all nodes except the children of channelStrip maco
+  
+  get channelStripGainControl() {
+    return this.channelStripNodes.firstObject.trackControls.firstObject;
+  } 
+  
+  get channelStripPannerControl() {
+    return this.channelStripNodes.lastObject.trackControls.firstObject;
+  }
+
+
   @keepLatestTask
   *updateTrackTask(key, value, reInit=true){
     try {

@@ -11,10 +11,9 @@ Tracks
 
 Track Controls
 - wrapper: 
-  - min, max default controls
   - "functions" [buttons to apply prest shapes like triangle, sine or randomize]
   - copy/paste single control
-  - range presets (melodic scales, )
+
 - element/nodes to implement
   - Envelope node : breakpoint nexus element
   - LFOs as controls
@@ -22,10 +21,15 @@ Track Controls
   - XY controls (filters)
 
 Scripts
+  - implement a `.connect(this.mixer)` to create uniform track gain slider
+  or it could be a `__().channelout()` macro which is a `gain`, `panner` and `connect(master)`
+    -  this would also support a master mixer view for all tracks
   - rebuild collection of example scripts
   - add helper function to set speed as a factor of the sequencer length (for loops)
   - add helper to access UI value in script, so you could do speed: `slider val + __.rand()`
-  
+  - access to slider value in functions would effectively allow non-linear sliders
+    - Math.sin(sliderValue)
+    - in that case should the application of the slider value be exposed to the on step function? alternatively, it remains in the background, but can be overwritten by time the onstep function is called
 
 Files
   - set local filepath

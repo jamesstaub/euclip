@@ -7,13 +7,11 @@ __()
     path: this.filepath,
     ui: 'multislider',
   })
-  .gain({ 
-    ui: 'slider'
-  })
   .gain({
     ui: 'multislider',
   })
-  .connect('#master-compressor');
+  .channelStrip()
+  .connect('#mixer')
 `;
 export default Factory.extend({
   safeCode: i => init,

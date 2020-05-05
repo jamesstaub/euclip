@@ -1,12 +1,10 @@
 {{yield}}
-<div {{did-insert this.renderParts}}>
+<button class="tl" {{on "click" (fn @onSelect)}} {{did-insert this.renderParts}}>
   {{#each parentDirs as |dir|}}
-    <button>{{dir}}</button>
+    {{dir}} /
   {{/each}}
 
   {{#if file}}
-    <button {{on "click" (fn @onSelect)}}>
-      {{filename-ui file}}
-    </button>
+    {{filename-ui file}}
   {{/if}}
-</div>
+</button>

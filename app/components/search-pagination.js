@@ -3,7 +3,7 @@ import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 
 export default class SearchPaginationComponent extends Component {
-  @tracked lastPage
+  @tracked lastPage;
 
   @action
   selectPage(pageNum) {

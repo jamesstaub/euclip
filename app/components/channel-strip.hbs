@@ -1,0 +1,17 @@
+<div>
+
+  <TrackControlWrapper
+    @hideMinMax={{true}}
+    @hideInterfaceMenu={{true}}
+    @trackControl={{@channelStripGainControl}} 
+    @updateValue={{fn @updateValue @channelStripGainControl}}
+    @saveTrackControl={{@saveTrackControl}}
+  />
+  <TrackControlWrapper
+    @hideMinMax={{true}}
+    @hideInterfaceMenu={{true}}
+    @trackControl={{@channelStripPannerControl}} 
+    @updateValue={{fn @updateValue @channelStripPannerControl}}
+    @saveTrackControl={{@saveTrackControl}}
+  />
+</div>

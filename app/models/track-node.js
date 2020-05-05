@@ -39,4 +39,8 @@ export default class TrackNodeModel extends Model {
     this._defaultControlInterface = this.defaultControlInterface;
   }
 
+  get isChannelStripChild() {   
+    return this.parentMacro && this.parentMacro.getType() === 'channelStrip';
+  }
+
 }

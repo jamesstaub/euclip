@@ -3,10 +3,13 @@
     <Input placeholder="search drumserver" @key-down={{fn this.search}} @value={{this.searchQuery}}/>
     {{#if showSearchResults}}
       <button {{on "click" (fn this.backToBrowse)}}> ← browse </button>
-      {{#each this.searchResults as |result|}}
-        <FileSearchResult @result={{result}} @onSelect={{fn this.onSelectSearchResult result}}/>
-      {{/each}}
+      <div class="flex flex-column mv3">
+        {{#each this.searchResults as |result|}}
+          <FileSearchResult @result={{result}} @onSelect={{fn this.onSelectSearchResult result}}/>
+        {{/each}}
+      </div>
       <SearchPagination 
+        class="mv2"
         @currentPage={{this.currentPage}} 
         @lastPage={{this.lastPage}}
         @search={{fn this.search this.searchQuery}}

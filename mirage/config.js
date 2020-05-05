@@ -3,6 +3,8 @@ const controlsForNode = function(nodeType) {
   switch (nodeType) {
     case 'gain':
       return ['gain'];
+    case 'panner':
+      return ['pan'];
     case 'sampler':
       return ['speed'];
     case 'lowpass' || 'highpass' || 'bandpass' || 'allpasss' || 'notch':
@@ -86,6 +88,11 @@ const defaultForAttr = function(attr) {
       paramDefaults.max = 1;
       paramDefaults.defaultValue = 1;
       break;
+    case 'pan':
+      paramDefaults.min = -1;
+      paramDefaults.max = 1;
+      paramDefaults.defaultValue = 0;
+      break;
     case 'postCut':
       paramDefaults.min = 0;
       paramDefaults.max = 5000;
@@ -164,6 +171,7 @@ export default function() {
   this.get('/projects/:slug/tracks');
   this.post('/projects/:slug/tracks', (schema) => {
     // TODO implement different track types (euclidean, )
+    // Also use the factory here instead of hardcode
     const init = `
 __()
   .sampler({
@@ -171,13 +179,10 @@ __()
     path: this.filepath,
     ui: 'multislider'
   })
-  .gain({ 
-    class: 'slider'
-  })
   .gain({
     ui: 'multislider',
   })
-  .connect('#master-compressor');
+  .connect('#mixer');
 `;
 
 const onstep = `

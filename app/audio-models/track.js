@@ -30,10 +30,19 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
     // _onCreateNode was added to the Cracked library to give access to the AudioNode object upon creation
     __.onCreateNode = (node, type, creationParams, userSettings) => {
-
       // this callback gets called when a user creates cracked audio nodes in the script editor ui
       // macro components should not get individual ui controls
-      if (!node.isMacroComponent() && ENV.APP.supportedAudioNodes.indexOf(type) > -1) {       
+      
+      // FIXME not sure why node.isMacroComponent() is false for channelStrip 
+      if (type === 'channelStrip') {
+        this.channelStripNode = node;
+        // trackNode[node.getUUID()] = type;
+        // const channelStripGain = 
+        // const channelStripPanner = 
+        // this.trackAudioNodes.push(channelStripGain);
+        // this.trackAudioNodes.push(channelStripPanner);
+        
+      } else if (!node.isMacroComponent() && ENV.APP.supportedAudioNodes.indexOf(type) > -1) {        
         const trackNode = {}
         trackNode[node.getUUID()] = type;
         this.trackAudioNodes.push(trackNode);
@@ -47,13 +56,46 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       }
     }
 
+    this.showChannelStrip = false;
+
     this.unbindTrack();
      // run script to create audio nodes
     initScript.functionRef();
-    
-    this.findOrCreateTrackNodeRecords(initScript);
+
+
+    this.pushMacroNodes();
+    this.findOrCreateTrackNodeRecords();
     this.bindTrackControls();
     this.bindToSequencer();
+  }
+
+
+  /**
+   * Currently the only node that gets trackNode models for it's individual child nodes are channelStrips
+   * since channelStrip is a special case managed by euclip
+   * 
+   * pull out the child nodeds and push them into the array that findOrCreate deals with
+   * **/
+  pushMacroNodes() {
+    if (this.channelStripNode) {
+      this
+        .channelStripNode
+        .getNativeNode()
+        .flat()
+        .forEach((node)=> {         
+          // unlike in onCreateNode, here we're mapping raw web audio nodes, not cracked nodes,
+          // so the properties are a little different, but we map them so they can be consumed by findOrCreate
+          const trackNode = {}
+          const type = {
+            'GainNode': 'gain',
+            'StereoPannerNode': 'panner'
+          }[node.constructor.name];
+
+          trackNode[node.uuid] = type;
+          trackNode.parentMacro = this.channelStripNode;
+          this.trackAudioNodes.push(trackNode);
+      });
+    }
   }
 
 
@@ -84,18 +126,20 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         trackNode.setProperties({
           nodeUUID: uuid, // update uuid since the audio nodes will be new every time
           order: idx,
+          parentMacro: node.parentMacro
         }); 
         
         if (defaultControlInterface) {
           // if the `ui` attribute was changed in the script editor, update the interfaceName of track-controls
           trackNode.updateDefaultControlInterface(defaultControlInterface);
         }
-        return trackNode; // FIXME dont return here, allow to save (requries fix for adapter error)
+        return trackNode; // FIXME dont return here, allow node to save below (requries fix for adapter error)
       } else {
         trackNode = this.trackNodes.createRecord({
           nodeUUID: uuid,
           nodeType: type,
           order: idx,
+          parentMacro: node.parentMacro,
           defaultControlInterface: __._getNode(uuid).ui || 'slider' // get the custom ui saved on the AudioNode, which was defined by the user
         });
       }

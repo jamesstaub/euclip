@@ -34,7 +34,7 @@
     <p class="tc">{{@trackControl.nodeAttr}}</p>
   </div>
 
-  {{#unless (eq @trackControl.interfaceName "number")}}
+  {{#if this.showMinMax}}
     <div>
       <div class="ml1 flex flex-column justify-between mb4">
         <NexusNumber 
@@ -65,14 +65,16 @@
       </div>
       <button class="f7 pa1" {{on "click" this.setDefault}}>set default</button>
     </div>
-  {{/unless}}
+  {{/if}}
 
-  <div>
-    <NexusSelect
-      @value={{@trackControl.interfaceName}}
-      @selectOptions={{@trackControl.uiOptions}}
-      @onChangeValue={{fn this.changeUiType}}
-    />
-  </div>
+  {{#unless @hideInterfaceMenu}}
+    <div>
+      <NexusSelect
+        @value={{@trackControl.interfaceName}}
+        @selectOptions={{@trackControl.uiOptions}}
+        @onChangeValue={{fn this.changeUiType}}
+      />
+    </div>
+  {{/unless}}
 
 </div>
