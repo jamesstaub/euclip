@@ -11,24 +11,27 @@
 <div class="w-100">
   {{#unless @model.isDeleted}}
     <p class="fw6">{{@model.id}}</p>
-    <div class="flex flex-column bg-light-gray pa4 flex-wrap">
+    <div class="flex bg-light-gray pa3 flex-wrap justify-between">
       <div class="flex mv3">
-        <div>
-          <ChannelStrip 
-            @channelStripGainControl={{this.channelStripGainControl}}
-            @channelStripPannerControl={{this.channelStripPannerControl}}
-            @updateValue={{fn this.updateControl}}
-            @saveTrackControl={{this.saveTrackControl}}
-          />
+        <div class="flex-0 br flex flex-column w3 h-100 f7 tc">
+          <button class="bb b--black br0 h-auto grow-1 {{if (eq visibleInterface "controls") "bg-light-blue br"}}" {{on "click" (fn this.setUi "controlUi" "controls")}}>
+            {{!-- <img alt="Rhythm and Automation editor" src="/assets/icons/automation.svg"> --}}
+            UI
+          </button>
+          <button class="br0 h-auto grow-1  {{if (eq visibleInterface "scripts") "bg-light-blue br"}}" {{on "click" (fn this.setUi "controlUi" "scripts")}}>
+            {{!-- <img alt="Script Editor" src="/assets/icons/script.svg"> --}}
+            SCRIPTS
+          </button>
         </div>
-        <div class="flex">
+        <div class="flex flex-column mh3">
           <NexusDial 
             @value={{@model.hits}} 
             @onChangeValue={{perform updateTrackTask "hits"}} 
             @min={{0}}
             @max={{this.maxSteps}}
           >
-            {{@model.hits}}
+            <span class="f7 fw5">hits:</span>
+            <span class="f7">{{@model.hits}}</span>
           </NexusDial>
           <NexusDial 
             @value={{@model.steps}} 
@@ -36,7 +39,8 @@
             @min={{0}}
             @max={{this.maxSteps}}
           >
-            {{@model.steps}}
+            <span class="f7 fw5">steps:</span>
+            <span class="f7">{{@model.steps}}</span>
           </NexusDial>
           <NexusDial 
             @value={{@model.offset}} 
@@ -44,52 +48,60 @@
             @min={{0}}
             @max={{this.maxSteps}}
           >
-            {{@model.offset}}
+           <span class="f7 fw5">offset:</span>
+           <span class="f7">{{@model.offset}}</span>
           </NexusDial>  
         </div>
       </div>
-
-      <div class="flex flex-column">
-        <ul class="pa0 list flex">
-          {{#each this.trackNodesForControls as |trackNode idx|}}
-            <li>
-              <a 
-                class="ph3 pv2 mh1 mw4 link {{if (eq this.visibleNodeIdx idx) 'bg-black white' 'bg-white black'}}"
-                {{on "click" (fn this.setUi "visibleNodeIdx" idx)}}
-              >
-                {{trackNode.nodeType}}
-              </a>
-            </li>
-          {{/each}}
-        </ul>
-
-        <div>
-          {{#each this.trackNodesForControls as |trackNode idx|}}
-            {{#if (eq this.visibleNodeIdx idx)}}
-              <div class="flex flex-wrap tc mh3">
-                {{#each trackNode.trackControls as |trackControl|}}
-                  <TrackControlWrapper 
-                    @sequence={{@model.sequence}}
-                    @trackControl={{trackControl}} 
-                    @controlArrayValue={{trackControl.controlArrayValue}} 
-                    @updateValue={{fn this.updateControl trackControl}}
-                    @saveTrackControl={{this.saveTrackControl}}
-                  />
-                {{/each}}
-              </div>
-            {{/if}}
-          {{/each}}
+      {{#if (eq this.controlUi "controls")}}
+        <div class="flex flex-column grow-1">
+          <ul class="pa0 list flex">
+            {{#each this.trackNodesForControls as |trackNode idx|}}
+              <li>
+                <a class="ph3 pv2 mh1 mw4 link {{if (eq this.visibleNodeIdx idx) 'bg-black white' 'bg-white black'}}"
+                  {{on "click" (fn this.setUi "visibleNodeIdx" idx)}}
+                >
+                  {{trackNode.nodeType}}
+                </a>
+              </li>
+            {{/each}}
+          </ul>
+          <div>
+            {{#each this.trackNodesForControls as |trackNode idx|}}
+              {{#if (eq this.visibleNodeIdx idx)}}
+                <div class="flex flex-wrap tc mh3">
+                  {{#each trackNode.trackControls as |trackControl|}}
+                    <TrackControlWrapper 
+                      @sequence={{@model.sequence}}
+                      @trackControl={{trackControl}} 
+                      @controlArrayValue={{trackControl.controlArrayValue}} 
+                      @updateValue={{fn this.updateControl trackControl}}
+                      @saveTrackControl={{this.saveTrackControl}}
+                    />
+                  {{/each}}
+                </div>
+              {{/if}}
+            {{/each}}
+          </div>
         </div>
-      </div>
+      {{/if}}
+      <ChannelStrip 
+        @channelStripGainControl={{this.channelStripGainControl}}
+        @channelStripPannerControl={{this.channelStripPannerControl}}
+        @updateValue={{fn this.updateControl}}
+        @saveTrackControl={{this.saveTrackControl}}
+      />
     </div>
   {{/unless}}
-  
-  {{#if @model.initScript}}
-    <ScriptEditor @scriptModel={{@model.initScript}}/>
-  {{/if}}
 
-  {{#if @model.onstepScript}}
-    <ScriptEditor @scriptModel={{@model.onstepScript}}/>
+  {{#if (eq this.controlUi "scripts")}}
+    {{#if @model.initScript}}
+      <ScriptEditor @scriptModel={{@model.initScript}}/>
+    {{/if}}
+
+    {{#if @model.onstepScript}}
+      <ScriptEditor @scriptModel={{@model.onstepScript}}/>
+    {{/if}}
   {{/if}}
 </div>
 

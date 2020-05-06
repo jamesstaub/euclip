@@ -18,6 +18,7 @@ export default NexusBase.extend({
         'min': this.min || 0,
         'max': this.max || 1,
         'step': this.step || 1,
+        'size': [60, 60],
         'value': this.value,
         'interaction': 'vertical'
       };
@@ -26,7 +27,7 @@ export default NexusBase.extend({
 
   nexusInit() {
     this._super(...arguments);
-    this.dial.colorize('accent', '#52ebff');
+    this.dial.colorize('accent', '#000000');
     this.dial.colorize('fill', '#ffffff');
   },
 

@@ -19,7 +19,7 @@ export default class ProjectAudioModel extends Model.extend(Evented) {
       .dac();
 
     cracked.channelStrip = function(params = {}) {
-      __.begin('channelStrip', params).gain(1).panner().end('channelStrip');
+      __.begin('channelStrip', params).gain(1).panner({ui: 'dial'}).end('channelStrip');
       return cracked;
     }
 

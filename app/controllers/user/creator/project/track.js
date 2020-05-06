@@ -13,13 +13,12 @@ export default class UserCreatorProjectTrackController extends Controller {
   @filterBy('model.trackNodes', 'parentMacro') channelStripNodes; // all nodes except the children of channelStrip maco
   
   get channelStripGainControl() {
-    return this.channelStripNodes.firstObject.trackControls.firstObject;
-  } 
-  
-  get channelStripPannerControl() {
-    return this.channelStripNodes.lastObject.trackControls.firstObject;
+    return this.channelStripNodes?.firstObject?.trackControls?.firstObject;
   }
 
+  get channelStripPannerControl() {
+    return this.channelStripNodes?.lastObject?.trackControls?.firstObject;
+  }
 
   @keepLatestTask
   *updateTrackTask(key, value, reInit=true){

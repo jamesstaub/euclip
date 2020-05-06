@@ -76,7 +76,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
    * 
    * pull out the child nodeds and push them into the array that findOrCreate deals with
    * **/
-  pushMacroNodes() {
+  pushMacroNodes() {   
     if (this.channelStripNode) {
       this
         .channelStripNode
