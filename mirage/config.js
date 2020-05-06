@@ -172,26 +172,9 @@ export default function() {
   this.post('/projects/:slug/tracks', (schema) => {
     // TODO implement different track types (euclidean, )
     // Also use the factory here instead of hardcode
-    const init = `
-__()
-  .sampler({
-    id: this.id,
-    path: this.filepath,
-    ui: 'multislider'
-  })
-  .gain({
-    ui: 'multislider',
-  })
-  .connect('#mixer');
-`;
+    const initScriptAttrs = this.create('init-script').attrs
+    const onstepScriptAttrs = this.create('onstep-script').attrs
 
-const onstep = `
-
-if (data) {
-  __(this.selector).stop();
-  __(this.selector).start();
-} 
-`;
     const track = schema.tracks.create({
       hits: 0,
       steps: 8,
@@ -199,12 +182,10 @@ if (data) {
       filepath: '/SequentialCircuits%20Tom/kick.mp3',
     });
     track.createInitScript({
-      safeCode: init,
-      editorContent: init,
+      ...initScriptAttrs
     });
     track.createOnstepScript({
-      safeCode:onstep,
-      editorContent:onstep,
+      ...onstepScriptAttrs
     });
     return track;
   });
