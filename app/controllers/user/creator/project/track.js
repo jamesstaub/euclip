@@ -8,6 +8,8 @@ export default class UserCreatorProjectTrackController extends Controller {
 
   maxSteps = 32;
   visibleNodeIdx = 0;
+  controlUi = 'controls'
+  scriptUi = 'init';
   
   @filterBy('model.trackNodes', 'parentMacro', undefined) trackNodesForControls; // all nodes except the children of channelStrip maco
   @filterBy('model.trackNodes', 'parentMacro') channelStripNodes; // all nodes except the children of channelStrip maco

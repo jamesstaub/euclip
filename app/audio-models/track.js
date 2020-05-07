@@ -4,7 +4,7 @@ import ENV from '../config/environment';
 
 export default class TrackAudioModel extends Model.extend(Evented) {  
 
-  get selector() {
+  get samplerSelector() {
     return `#${this.id}`;
   }
 
@@ -50,7 +50,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         // 'ui' is a custom attr that users can set in the script editor when defining a cracked audio node
         // new AudioNode objects won't get initialized with it by default so we hack it on here
         // see cracked.js line 330
-        if (userSettings.ui) {
+        if (userSettings?.ui) {
           node.ui = userSettings.ui;
         }
       }
@@ -97,7 +97,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       });
     }
   }
-
 
   /**
    * find-or-create TrackNode records for each audio node object
@@ -163,8 +162,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
   bindToSequencer() {
     let onStepCallback = this.onStepCallback.bind(this);
-    __(this.selector).unbind('step');
-    __(this.selector).bind(
+    __(this.samplerSelector).unbind('step');
+    __(this.samplerSelector).bind(
       'step', // on every crack sequencer step
       onStepCallback, // call this function (bound to component scope)
       this.sequence // passing in array value at position
@@ -172,23 +171,38 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   }
 
   unbindTrack() {
-    __(this.selector).unbind('step');
-    __(this.selector).remove();
+    __(this.samplerSelector).unbind('step');
+    __(this.samplerSelector).remove();
   }
   
   onStepCallback(index, data, array) {
     //track controls subscribe to trackStep event
     this.set('stepIndex', index);
-    this.onstepScript.get('functionRef')(index, data, array);
     this.trigger('trackStep', index);
+    // FIXME must trigger track controls first to apply sliders, but they get zapped out 
+    // somehow when the function is called
+    this.onstepScript.get('functionRef')(index, data, array);
   }
 
   get scriptScope() {
+    // sampler speed is a special case because they rebuild on every play, 
+    // so we need to ensure the attrs from the UI controls get applied after .start()
+    // this is not an issue for non sampler nodes
+    // TODO: same fix for sampler start, end
+    const speedControl = this.get('trackNodes')?.findBy('nodeType', 'sampler')?.get('trackControls')?.findBy('nodeAttr', 'speed');
+
     return {
       // the track should either have a sampler or an oscillator 
       filepath: this.filepathUrl,
       id: this.id,
-      selector: this.selector
+      samplerSelector: this.samplerSelector,
+      playSample(index) {
+        __(this.samplerSelector).stop()
+        __(this.samplerSelector).start();
+        
+        // // HACK see above
+        speedControl.onTrackStep(index);
+      }
     };
   } 
 }

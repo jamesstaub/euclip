@@ -45,12 +45,17 @@ export default class TrackModel extends TrackAudioModel {
 
     this.store.unloadRecord(initScript);
     this.store.unloadRecord(onstepScript);
+    
     trackNodes.forEach((trackNode) => {
-      if (trackNode && trackNode.trackControls) {
-        trackNode.trackControls.forEach((trackControl) => {
-          this.store.unloadRecord(trackControl);
-        });
-        this.store.unloadRecord(trackNode);
+      try {
+        if (trackNode && trackNode.trackControls) {        
+          trackNode.trackControls.forEach((trackControl) => {
+            this.store.unloadRecord(trackControl);
+          });
+          this.store.unloadRecord(trackNode);
+        }
+      } catch (error) {
+        console.error('TODO ensure track relations are properly deleted', error);        
       }
     });
     return this.destroyRecord();

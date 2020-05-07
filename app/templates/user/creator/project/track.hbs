@@ -23,35 +23,37 @@
             SCRIPTS
           </button>
         </div>
-        <div class="flex flex-column mh3">
-          <NexusDial 
-            @value={{@model.hits}} 
-            @onChangeValue={{perform updateTrackTask "hits"}} 
-            @min={{0}}
-            @max={{this.maxSteps}}
-          >
-            <span class="f7 fw5">hits:</span>
-            <span class="f7">{{@model.hits}}</span>
-          </NexusDial>
-          <NexusDial 
-            @value={{@model.steps}} 
-            @onChangeValue={{perform updateTrackTask "steps"}} 
-            @min={{0}}
-            @max={{this.maxSteps}}
-          >
-            <span class="f7 fw5">steps:</span>
-            <span class="f7">{{@model.steps}}</span>
-          </NexusDial>
-          <NexusDial 
-            @value={{@model.offset}} 
-            @onChangeValue={{perform updateTrackTask "offset"}} 
-            @min={{0}}
-            @max={{this.maxSteps}}
-          >
-           <span class="f7 fw5">offset:</span>
-           <span class="f7">{{@model.offset}}</span>
-          </NexusDial>  
-        </div>
+        {{#if (eq this.controlUi "controls")}}
+          <div class="flex flex-column mh3">
+            <NexusDial 
+              @value={{@model.hits}} 
+              @onChangeValue={{perform updateTrackTask "hits"}} 
+              @min={{0}}
+              @max={{this.maxSteps}}
+            >
+              <span class="f7 fw5">hits:</span>
+              <span class="f7">{{@model.hits}}</span>
+            </NexusDial>
+            <NexusDial 
+              @value={{@model.steps}} 
+              @onChangeValue={{perform updateTrackTask "steps"}} 
+              @min={{0}}
+              @max={{this.maxSteps}}
+            >
+              <span class="f7 fw5">steps:</span>
+              <span class="f7">{{@model.steps}}</span>
+            </NexusDial>
+            <NexusDial 
+              @value={{@model.offset}} 
+              @onChangeValue={{perform updateTrackTask "offset"}} 
+              @min={{0}}
+              @max={{this.maxSteps}}
+            >
+            <span class="f7 fw5">offset:</span>
+            <span class="f7">{{@model.offset}}</span>
+            </NexusDial>  
+          </div>
+        {{/if}}
       </div>
       {{#if (eq this.controlUi "controls")}}
         <div class="flex flex-column grow-1">
@@ -85,6 +87,28 @@
           </div>
         </div>
       {{/if}}
+
+      {{#if (eq this.controlUi "scripts")}}
+        <div class="flex flex-column grow-1 mh3">
+          <div>
+          <button {{on "click" (fn this.setUi "scriptUi" "init")}}>init</button>
+          <button {{on "click" (fn this.setUi "scriptUi" "onstep")}}>step</button>
+          </div>
+          {{!-- 
+            TODO perhaps design a symbolic UI for track nodes when in script view
+            to demonstrate nodes getting added/removed
+          --}}
+          <div>
+            {{#if (and @model.initScript (eq this.scriptUi "init"))}}
+              <ScriptEditor @scriptModel={{@model.initScript}}/>
+            {{/if}}
+
+            {{#if (and @model.onstepScript (eq this.scriptUi "onstep"))}}
+              <ScriptEditor @scriptModel={{@model.onstepScript}}/>
+            {{/if}}
+          </div>
+        </div>
+      {{/if}}
       <ChannelStrip 
         @channelStripGainControl={{this.channelStripGainControl}}
         @channelStripPannerControl={{this.channelStripPannerControl}}
@@ -94,15 +118,6 @@
     </div>
   {{/unless}}
 
-  {{#if (eq this.controlUi "scripts")}}
-    {{#if @model.initScript}}
-      <ScriptEditor @scriptModel={{@model.initScript}}/>
-    {{/if}}
-
-    {{#if @model.onstepScript}}
-      <ScriptEditor @scriptModel={{@model.onstepScript}}/>
-    {{/if}}
-  {{/if}}
 </div>
 
 {{outlet}}

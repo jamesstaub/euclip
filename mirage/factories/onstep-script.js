@@ -1,10 +1,7 @@
 import { Factory } from 'ember-cli-mirage';
 
-const script = `
-
-if (data) {
-  __(this.selector).stop();
-  __(this.selector).start();
+const script = `if (data) {
+  this.playSample(index);
 } 
 `;
 

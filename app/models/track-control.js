@@ -37,16 +37,19 @@ export default class TrackControlModel extends Model {
   @belongsTo('track') track;
 
   bindTrackEvents(track) {
-    track.on('trackStep', (index) => {     
-      // this might get called by the sequencer while we're trying to delete the node or control
-      if (!this.isDeleted ) {
-        if (this.nodeAttr && this.interfaceName === 'multislider') {
-          this.setAttrs(this.controlArrayValue[index]);
-        } else {
-          this.setAttrs(this.controlValue);
-        }
-      } 
-    });
+    track.on('trackStep', this.onTrackStep.bind(this));
+  }
+
+
+  onTrackStep(index) {
+    // this might get called by the sequencer while we're trying to delete the node or control
+    if (!this.isDeleted ) {
+      if (this.nodeAttr && this.interfaceName === 'multislider') {
+        this.setAttrs(this.controlArrayValue[index]);
+      } else {
+        this.setAttrs(this.controlValue);
+      }
+    }
   }
 
   /* 
