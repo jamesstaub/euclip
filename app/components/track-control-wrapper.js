@@ -1,10 +1,19 @@
 import Component from "@glimmer/component";
 import { action } from '@ember/object';
+import { tracked } from '@glimmer/tracking';
 
 export default class TrackControlWrapperComponent extends Component {
+  @tracked showConfig
 
-  get showMinMax() {
-    return !(this.args.hideMinMax || this.args.trackControl?.interfaceName === 'number');
+  get isConfigurable() {
+    return !(this.args.hideConfig || this.args.trackControl?.interfaceName === 'number');
+  }
+
+  @action
+  toggleConfig() {
+    this.showConfig = !this.showConfig;
+    console.log(this.showConfig);
+    
   }
 
   @action

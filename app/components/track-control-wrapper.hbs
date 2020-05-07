@@ -33,46 +33,54 @@
   <p class="tc">{{@trackControl.nodeAttr}}</p>
 </div>
 
-{{#if this.showMinMax}}
-  <div>
-    <div class="ml1 flex flex-column justify-between mb4">
-      <NexusNumber 
-        @label="max" 
-        @value={{@trackControl.max}} 
-        @onChangeNumber={{fn this.setParam "max"}}
-        @min={{-20000}}
-        @max={{20000}}
-        @step={{0.25}}
-      />
-      <NexusNumber 
-        @label="min" 
-        @value={{@trackControl.min}} 
-        @onChangeNumber={{fn this.setParam "min"}}
-        @min={{-20000}}
-        @max={{20000}}
-        @step={{0.25}}
-      />
 
-      <NexusNumber 
-        @label="default" 
-        @value={{@trackControl.defaultValue}} 
-        @onChangeNumber={{fn this.setParam "defaultValue"}}
-        @min={{-20000}}
-        @max={{20000}}
-        @step={{0.25}}
-      />
-    </div>
-    <button class="f7 pa1" {{on "click" this.setDefault}}>set default</button>
+{{#if this.isConfigurable}}
+  <div>
+    <button {{on "click" this.toggleConfig}}>[•]</button>
   </div>
+  {{#if this.showConfig}}
+    <div>
+      <div class="ml1 flex flex-column justify-between mb4">
+        <NexusNumber 
+          @label="max" 
+          @value={{@trackControl.max}} 
+          @onChangeNumber={{fn this.setParam "max"}}
+          @min={{-20000}}
+          @max={{20000}}
+          @step={{0.25}}
+        />
+        <NexusNumber 
+          @label="min" 
+          @value={{@trackControl.min}} 
+          @onChangeNumber={{fn this.setParam "min"}}
+          @min={{-20000}}
+          @max={{20000}}
+          @step={{0.25}}
+        />
+
+        <NexusNumber 
+          @label="default" 
+          @value={{@trackControl.defaultValue}} 
+          @onChangeNumber={{fn this.setParam "defaultValue"}}
+          @min={{-20000}}
+          @max={{20000}}
+          @step={{0.25}}
+        />
+      </div>
+      <button class="f7 pa1" {{on "click" this.setDefault}}>set default</button>
+    </div>
+  {{/if}}
 {{/if}}
 
 {{#unless @hideInterfaceMenu}}
-  <div>
-    <NexusSelect
-      @value={{@trackControl.interfaceName}}
-      @selectOptions={{@trackControl.uiOptions}}
-      @onChangeValue={{fn this.changeUiType}}
-    />
-  </div>
+  {{#if showConfig}}
+    <div>
+      <NexusSelect
+        @value={{@trackControl.interfaceName}}
+        @selectOptions={{@trackControl.uiOptions}}
+        @onChangeValue={{fn this.changeUiType}}
+      />
+    </div>
+  {{/if}}
 {{/unless}}
 
