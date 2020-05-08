@@ -14,6 +14,8 @@ export default class UserCreatorProjectTrackController extends Controller {
   @filterBy('model.trackNodes', 'parentMacro', undefined) trackNodesForControls; // all nodes except the children of channelStrip maco
   @filterBy('model.trackNodes', 'parentMacro') channelStripNodes; // all nodes except the children of channelStrip maco
   
+  // FIXME using firstObject here seems to cause a bug where, when a gain multislider node is deleted, the channelStrips gain 
+  // flashes into a multislider for a second. investigate 
   get channelStripGainControl() {
     return this.channelStripNodes?.firstObject?.trackControls?.firstObject;
   }

@@ -48,7 +48,8 @@ export default class TrackModel extends TrackAudioModel {
     
     trackNodes.forEach((trackNode) => {
       try {
-        if (trackNode && trackNode.trackControls) {        
+        if (trackNode && trackNode.trackControls) {
+          // Move this logic to trackNode model so it can be used on removeNode
           trackNode.trackControls.forEach((trackControl) => {
             this.store.unloadRecord(trackControl);
           });

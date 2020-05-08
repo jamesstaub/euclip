@@ -16,7 +16,7 @@ export default class TrackNodeModel extends Model {
     this.on('didDelete', () => {
       // TODO the uuid may have been re-written before the AudioNode object has been removed from the DOM
       // check findOrCreate method to make sure AudioNodes are deleted there
-      this.nodeUUID      
+      this.nodeUUID
     });
   }
 

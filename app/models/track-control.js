@@ -38,11 +38,15 @@ export default class TrackControlModel extends Model {
 
   bindTrackEvents(track) {
     track.on('trackStep', this.onTrackStep.bind(this));
+    
+    this.on('didDelete', ()=>{
+      this.off('trackStep', this.onTrackStep.bind(this));
+    }) 
   }
 
 
   onTrackStep(index) {
-    // this might get called by the sequencer while we're trying to delete the node or control
+    // this might get called by the sequencer while we're trying to delete the node or control    
     if (!this.isDeleted ) {
       if (this.nodeAttr && this.interfaceName === 'multislider') {
         this.setAttrs(this.controlArrayValue[index]);
@@ -96,7 +100,9 @@ export default class TrackControlModel extends Model {
   async onNodeRemoved() {
     this.deleteRecord(); // first delete synchronously so isDeleted flag prevents further method calls
     const trackNode = await this.get('trackNode');
-    await trackNode.destroyRecord(); // the API will delete this trackControl record along with the trackNode
+    if (trackNode) {//may have redundantly deleted the track node already
+      await trackNode.destroyRecord(); // the API will delete this trackControl record along with the trackNode
+    }
     this.unloadRecord(); // track-node API deletes the controls on the back end, but remove from store just in case
   }
 

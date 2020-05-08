@@ -36,15 +36,13 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       // FIXME not sure why node.isMacroComponent() is false for channelStrip 
       if (type === 'channelStrip') {
         this.channelStripNode = node;
-        // trackNode[node.getUUID()] = type;
-        // const channelStripGain = 
-        // const channelStripPanner = 
-        // this.trackAudioNodes.push(channelStripGain);
-        // this.trackAudioNodes.push(channelStripPanner);
         
       } else if (!node.isMacroComponent() && ENV.APP.supportedAudioNodes.indexOf(type) > -1) {        
         const trackNode = {}
-        trackNode[node.getUUID()] = type;
+        const uuid = node.getUUID();
+        trackNode[uuid] = type;
+        trackNode.uuid = uuid;
+        
         this.trackAudioNodes.push(trackNode);
 
         // 'ui' is a custom attr that users can set in the script editor when defining a cracked audio node
@@ -65,6 +63,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
     this.pushMacroNodes();
     this.findOrCreateTrackNodeRecords();
+    this.cleanupNodes();
     this.bindTrackControls();
     this.bindToSequencer();
   }
@@ -145,7 +144,21 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       // OPTIMIZE
       // refactor the trackNode endpoint to support a single batch save
       trackNode.save();
-    });
+    });    
+  }
+
+  /**
+   * if a node was removed by user, the trackAudioNodes array will be without it
+   * so make sure we delete it from the store
+   */
+  cleanupNodes() {
+    if (this.trackNodes.length > this.trackAudioNodes.length) {
+      this.trackNodes.filter((record) => {
+        return !this.trackAudioNodes.findBy('uuid', record.nodeUUID);
+      }).forEach((record)=> {
+        return record.destroyRecord();
+      });
+    }
   }
   
   /**
