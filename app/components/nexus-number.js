@@ -8,6 +8,11 @@ export default NexusBase.extend({
   init() {
     this._super(...arguments);
     this.set('elementName', 'Number');
+    this.setProperties({
+      min: -100000,
+      max: 100000,
+      step: 0.1
+    })
   },
 
   options: computed('max', 'min', 'step', 'value', {

@@ -19,16 +19,14 @@ export default NexusBase.extend({
 
   options: computed('max', 'min', 'step', 'values.[]', 'size', {
     get() {
-      let values = this.values;
-
       return {
         size: this.size || [400, 120],
         min: this.min,
         max: this.max,
         candycane: 3,
-        numberOfSliders: values.length,
+        numberOfSliders: this.values.length,
         step: this.step,
-        values: values
+        values: this.values
       };
     }
   }),
