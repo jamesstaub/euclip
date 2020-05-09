@@ -1,38 +1,8 @@
 <div>
-  {{#if (eq @trackControl.interfaceName "slider")}}
-    <NexusSlider 
-      @value={{@trackControl.controlValue}}
-      @min={{@trackControl.min}}
-      @max={{@trackControl.max}}
-      @defaultValue={{@trackControl.defaultValue}}
-      @onChangeValue={{@updateValue}}
-    />
-  {{/if}}
-
-  {{#if (eq @trackControl.interfaceName "number")}}
-    <NexusNumber
-      @value={{@trackControl.controlValue}}
-      @defaultValue={{@trackControl.defaultValue}}
-      @onChangeValue={{@updateValue}}
-      @min={{-20000}}
-      @max={{20000}}
-      @step={{0.125}}
-    />
-  {{/if}}
-
-  {{#if (eq @trackControl.interfaceName "multislider")}}
-    <NexusMultislider 
-      @values={{@trackControl.controlArrayComputed}}
-      @min={{@trackControl.min}}
-      @max={{@trackControl.max}}
-      @defaultValue={{@trackControl.defaultValue}}
-      @onChangeValue={{@updateValue}}
-    />
-  {{/if}}
+  {{yield}}
   {{!-- todo: custom selector for control (so it can control multiple nodes) --}}
   <p class="tc">{{@trackControl.nodeAttr}}</p>
 </div>
-
 
 {{#if this.isConfigurable}}
   <div>

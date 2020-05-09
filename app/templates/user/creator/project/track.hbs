@@ -75,11 +75,40 @@
                   {{#each trackNode.trackControls as |trackControl|}}
                     <TrackControlWrapper 
                       @sequence={{@model.sequence}}
-                      @trackControl={{trackControl}} 
-                      @controlArrayValue={{trackControl.controlArrayValue}} 
-                      @updateValue={{fn this.updateControl trackControl}}
+                      @trackControl={{trackControl}}
                       @saveTrackControl={{this.saveTrackControl}}
-                    />
+                    >
+                      {{#if (eq @trackControl.interfaceName "slider")}}
+                        <NexusSlider 
+                          @value={{trackControl.controlValue}}
+                          @min={{trackControl.min}}
+                          @max={{trackControl.max}}
+                          @defaultValue={{trackControl.defaultValue}}
+                          @onChangeValue={{fn this.updateControl trackControl}}
+                        />
+                      {{/if}}
+
+                      {{#if (eq trackControl.interfaceName "number")}}
+                        <NexusNumber
+                          @value={{trackControl.controlValue}}
+                          @defaultValue={{trackControl.defaultValue}}
+                          @onChangeValue={{fn this.updateControl trackControl}}
+                          @min={{-20000}}
+                          @max={{20000}}
+                          @step={{0.125}}
+                        />
+                      {{/if}}
+
+                      {{#if (eq trackControl.interfaceName "multislider")}}
+                        <NexusMultislider 
+                          @values={{trackControl.controlArrayComputed}}
+                          @min={{trackControl.min}}
+                          @max={{trackControl.max}}
+                          @defaultValue={{trackControl.defaultValue}}
+                          @onChangeValue={{fn this.updateControl trackControl}}
+                        />
+                      {{/if}}
+                    </TrackControlWrapper>
                   {{/each}}
                 </div>
               {{/if}}

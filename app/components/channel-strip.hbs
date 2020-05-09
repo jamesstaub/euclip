@@ -1,16 +1,32 @@
-<div class="flex">
+<div class="flex flex-column items-center">
   <TrackControlWrapper
     @hideConfig={{true}}
     @hideInterfaceMenu={{true}}
     @trackControl={{@channelStripGainControl}} 
-    @updateValue={{fn @updateValue @channelStripGainControl}}
     @saveTrackControl={{@saveTrackControl}}
-  />
+  >
+    <NexusSlider 
+      @value={{@channelStripGainControl.controlValue}}
+      @min={{@channelStripGainControl.min}}
+      @max={{@channelStripGainControl.max}}
+      @defaultValue={{@channelStripGainControl.defaultValue}}
+      @onChangeValue={{fn @updateValue @channelStripGainControl}}
+    />
+  </TrackControlWrapper>
+
   <TrackControlWrapper
     @hideConfig={{true}}
     @hideInterfaceMenu={{true}}
     @trackControl={{@channelStripPannerControl}} 
-    @updateValue={{fn @updateValue @channelStripPannerControl}}
     @saveTrackControl={{@saveTrackControl}}
-  />
+  >
+    <NexusSlider 
+      @value={{@channelStripPannerControl.controlValue}}
+      @min={{@channelStripPannerControl.min}}
+      @max={{@channelStripPannerControl.max}}
+      @size={{array 80 20}}
+      @defaultValue={{@channelStripPannerControl.defaultValue}}
+      @onChangeValue={{fn @updateValue @channelStripPannerControl}}
+    />
+  </TrackControlWrapper>
 </div>
