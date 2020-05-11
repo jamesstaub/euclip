@@ -1,17 +1,23 @@
-<div class="relative pt4 min-width-12" {{did-insert (fn this.setSelectedPath)}}>
-  <h3 class="f5 absolute black top-0 w-100 bg-white pl3">
+<div class="relative pt4 min-w-5" 
+  {{did-insert (fn this.setSelectedFromUrl) @filepath}}
+  {{did-update (fn this.setSelectedFromUrl) @filepath}}
+>
+  <h3 class="f5 absolute black top-0 w-100  mt2 mb0 pl1">
     {{if (eq @directory.type "audio") "Sounds" "Drum Machine"}}
   </h3>
-  <ul class="directory-wrapper list ph0 mt0 h5 overflow-scroll">
+  <ul class="directory-wrapper list ph0 mt0 mr3 h5 overflow-scroll">
     {{#each @directory.choices as |choice|}}
-      <li class="{{if (eq choice this.selected) "selected"}}" {{did-update (fn this.scrollIntoView (eq choice this.selected))}}>
-        <button class="pl3" {{action @onSelect @directory choice}}>
+
+      <li class="{{if (eq choice this.selected) "bg-moon-gray"}} {{if this.shouldScrollTo "scroll-to"}}"  {{!-- FIXME this.shouldScrollTo is added as a class to trigger re-run of method  --}}
+        {{did-update (fn this.scrollIntoView (eq choice this.shouldScrollTo)) @directory}}
+      >
+        <a class="pl3 w-100 tl db bb b--gray ph1 pv2" {{on "click" (fn this.selectItem @directory choice)}} role="button">
           {{#if (eq @directory.type "audio")}}
             {{filename-ui choice}}
           {{else}}
             {{choice}}
           {{/if}}
-        </button>
+        </a>
       </li>
     {{/each}}
   </ul>

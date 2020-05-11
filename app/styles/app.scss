@@ -1,7 +1,9 @@
 @import 'colors';
 @import 'ember-cli-tachyons-sass';
 @import 'nexus.scss';
+@import 'helpers.scss';
 
-.grow-1 {
-  flex-grow: 1;
+
+a {
+  @extend .pointer;
 }

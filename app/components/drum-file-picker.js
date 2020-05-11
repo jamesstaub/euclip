@@ -27,7 +27,7 @@ export default Component.extend({
   },
 
   fetchDirectory: task(function* (path) {
-    const url = `${ENV.APP.DRUMSERVER_HOST}/${path}`;
+    const url = `${ENV.APP.DRUMSERVER_HOST}${path}`;
     const response = yield fetch(url);
     const json = yield response.json();
     return json;
