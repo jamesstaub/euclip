@@ -1,0 +1,14 @@
+<div class="flex-0 f7 tc br flex {{if @verticle "flex-column h-100"}}">
+  {{yield}}
+  {{#each @items as |item|}}
+    <button
+      class="bb b--black br0 h-auto grow-1 {{if (eq this.selectedValue item.value) "bg-light-blue br"}}" 
+      {{on "click" (fn this.select item.value)}}
+    >
+      {{item.label}}    
+    </button>
+  {{/each}}
+</div>
+
+{{!-- <img alt="Rhythm and Automation editor" src="/assets/icons/automation.svg"> --}}
+{{!-- <img alt="Script Editor" src="/assets/icons/script.svg"> --}}

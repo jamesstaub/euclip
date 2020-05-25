@@ -1,33 +1,56 @@
-<ResponsiveModal class="relative">
-  <div class="ma3 pa3 ">
-    <Input placeholder="search drumserver" @key-down={{fn this.search}} @value={{this.searchQuery}}/>
-    {{#if showSearchResults}}
-      <button {{on "click" (fn this.backToBrowse)}}> ← browse </button>
-      <div class="flex flex-column mv3">
-        {{#each this.searchResults as |result|}}
-          <FileSearchResult @result={{result}} @onSelect={{fn this.onSelectSearchResult result}}/>
-        {{/each}}
-      </div>
-      <SearchPagination 
-        class="mv2"
-        @currentPage={{this.currentPage}} 
-        @lastPage={{this.lastPage}}
-        @search={{fn this.search this.searchQuery}}
+<SidebarWrapper class="pa3 h-100" @direction="left">
+    <div class="ph3 pv4 flex flex-wrap justify-between">
+      <Input 
+        class="grow-1 white bg-dark-gray f5 pa3 " 
+        placeholder="search for drum sounds"  
+        @key-down={{fn this.search}} @value={{this.searchQuery}}
       />
+      {{#if showSearchResults}}
+        <ButtonPrimary {{on "click" (fn this.backToBrowse)}} @label="← browse"/> 
+      {{/if}}
+    </div>
+    {{#if showSearchResults}}
+      <div class="flex flex-column mv3 justify-between file-search-height">
+        <ul class="flex flex-column shrink-1 grow-1 list h-100 overflow-scroll ma0 ph3">
+          {{#each this.searchResults as |result|}}
+            {{#if (eq @track.filepath result)}}
+              {{log result @track.filepath}}
+            {{/if}}
+            <FileSearchResult
+              @selected={{eq @track.filepath result}}
+              @result={{result}} 
+              @onSelect={{fn this.onSelectSearchResult result}}
+            />
+          {{/each}}
+        </ul>
+        <SearchPagination 
+          class="pv2 grow-1"
+          @currentPage={{this.currentPage}} 
+          @lastPage={{this.lastPage}}
+          @search={{fn this.search this.searchQuery}}
+        />
+      </div>
     {{else}}
-      <div class="flex">
+      <div class="flex project-tracks-height overflow-x-scroll sidebar-width pa3">
         {{#each this.directories as |directory idx|}}
-          <FileDirectory
-            @directory={{directory}}
-            @filepath={{this.track.filepath}}
-            @idx={{idx}}
-            @onSelect={{this.onSelect}}
-          />
+          <div class="flex flex-column min-w-5 mr2">
+            <h4 class="black w-100 mv3 mb0 pl1 yellow">
+              {{if (eq directory.type "audio") "Sounds" "Drum Machine"}}
+            </h4>
+            <FileDirectory
+              {{on "click" (fn this.selectDir idx)}}
+              class="h-100 overflow-scroll"
+              @selected={{eq this.selectedDir idx}}
+              @directory={{directory}}
+              @filepath={{this.track.filepath}}
+              @idx={{idx}}
+              @onSelect={{this.onSelect}}
+            />
+          </div>
         {{/each}}
       </div>
     {{/if}}
-  </div>
   {{#if (or @saveTrackTask.isRunning this.fetchDirectory.isRunning)}}
     <ProgressBar class="absolute bottom-0 right-0" />
   {{/if}}
-</ResponsiveModal>
+</SidebarWrapper>

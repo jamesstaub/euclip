@@ -14,6 +14,7 @@ export default Component.extend({
   init() {
     this._super(...arguments);
     set(this, 'directories', []);
+    set(this, 'selectedDir', 0);
   },
 
   didReceiveAttrs() {
@@ -69,6 +70,7 @@ export default Component.extend({
     }
     this.directories.pushObject(directory);
   }).keepLatest(),
+
   
   search: action(async function() {
     let pageToSearch = 0;
@@ -108,6 +110,10 @@ export default Component.extend({
 
     this.updateDirectories.perform(directory);
     this.updateTrackTask.perform('filepath', result);
+  }),
+
+  selectDir: action(function(selectedIdx){
+    this.set('selectedDir', selectedIdx);
   }),
 
 });

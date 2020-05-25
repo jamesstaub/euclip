@@ -1,0 +1,11 @@
+<button 
+  class="pointer w4 ph1 f7"
+  title={{@label}}
+  ...attributes
+>
+  {{#if hasBlock}}
+    {{yield}}
+  {{else}}
+    {{@label}}
+  {{/if}}
+</button>

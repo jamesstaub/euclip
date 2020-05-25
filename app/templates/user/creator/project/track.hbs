@@ -10,22 +10,19 @@
 
 <div class="w-100 bt bw1">
   {{#unless @model.isDeleted}}
-    <p class="fw6 mv0 ph3 pv2 bg-light-gray">TRACK: {{@model.id}}</p>
-    <div class="flex bg-light-gray pa3 flex-wrap justify-between">
+    <p class="fw6 mv0 ph3 pv2 bg-yellow">TRACK: {{@model.id}}</p>
+    <div class="flex bg-yellow pa3 flex-wrap justify-between">
       <div class="flex mv3">
-        <div class="flex-0 br flex flex-column h-100 f7 tc">
-          <button class="bb b--black br0 h-auto grow-1 {{if (eq visibleInterface "sequence") "bg-light-blue br"}}" {{on "click" (fn this.setUi "controlUi" "sequence")}}>
-            SEQUENCE
-          </button>
-          <button class="bb b--black br0 h-auto grow-1 {{if (eq visibleInterface "controls") "bg-light-blue br"}}" {{on "click" (fn this.setUi "controlUi" "controls")}}>
-            {{!-- <img alt="Rhythm and Automation editor" src="/assets/icons/automation.svg"> --}}
-            UI
-          </button>
-          <button class="br0 h-auto grow-1  {{if (eq visibleInterface "scripts") "bg-light-blue br"}}" {{on "click" (fn this.setUi "controlUi" "scripts")}}>
-            {{!-- <img alt="Script Editor" src="/assets/icons/script.svg"> --}}
-            SCRIPTS
-          </button>
-        </div>
+        <TabMenu
+          @verticle={{true}}
+          @onSelect={{fn this.setUi "controlUi"}} 
+          @items={{array 
+            (hash label="sequence" value="sequence" icon="")
+            (hash label="ui" value="ui" icon="")
+            (hash label="scripts" value="scripts" icon="")
+          }}
+        />
+        
         {{#if (eq this.controlUi "sequence")}}
           <div class="flex flex-column mh3">
             <NexusSlider 

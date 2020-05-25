@@ -2,24 +2,30 @@
   <h1 class="ma0 f3">{{this.model.title}}</h1>
   <div class="flex justify-between">
     <div class="flex">
-      <button {{action "play"}}>play</button> 
-      <button {{action "stop"}}>stop</button>
-      <button {{action "reset"}}>reset</button>
+      <ButtonPrimary @label="play" {{action "play"}}/>
+      <ButtonPrimary @label="stop" {{action "stop"}}/>
+      <ButtonPrimary @label="reset" {{action "reset"}}/>
     </div>
-    <button {{on "click" this.addTrack}}>+ track</button>
+    
+    <ButtonPrimary @label={{"+ track"}} {{on "click" this.addTrack}}/>
   </div>
 </nav>
 
-<div class="flex flex-column justify-between project-tracks-height">
-  <div class="overflow-scroll">
-    {{#each @model.tracks as |track|}}
-      <TrackContainer
-        @track={{track}} 
-        @isActive={{eq track.id this.activeTrack.id}} 
-        @selectActiveTrack={{fn this.transitionToTrack track.id}}
-      />
-    {{/each}}
-  </div>
+<div class="flex flex-wrap project-tracks-height ">
 
-  {{outlet}}
+  <div id="sidebar-left-target" class="flex shrink-1 h-100 sidebar-max-width"></div>
+
+  <div class="h-100 flex flex-column justify-between grow-1">
+    <div class="overflow-scroll">
+      {{#each @model.tracks as |track|}}
+        <TrackContainer
+          @track={{track}} 
+          @isActive={{eq track.id this.activeTrack.id}} 
+          @selectActiveTrack={{fn this.transitionToTrack track.id}}
+        />
+      {{/each}}
+    </div>
+
+    {{outlet}}
+  </div>
 </div>

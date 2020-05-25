@@ -12,7 +12,7 @@ export default class UserCreatorProjectController extends Controller {
 
   @action
   async addTrack() {
-    const track = this.model.tracks.createRecord();
+    const track = this.model.tracks.createRecord({ hits: 1 });
     await track.save();
     const initScript = await track.get('initScript');
     // FIXME: see note in bindProjectEvents()

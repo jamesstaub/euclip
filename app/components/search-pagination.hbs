@@ -1,6 +1,6 @@
 {{yield}}
-<div class="flex overflow-scroll mw100 pb3" ...attributes>
+<div class="flex flex-wrap ph3" ...attributes>
   {{#each pageNumbers as |pageNum|}}
-    <button {{on "click" (fn this.selectPage pageNum)}}>{{pageNum}}</button>
+    <ButtonPrimary class="w3 mw2 pa2 f5" {{on "click" (fn this.selectPage pageNum)}} @label={{pageNum}}/>
   {{/each}}
 </div>

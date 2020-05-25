@@ -23,7 +23,6 @@ export default class FileDirectoryComponent extends Component {
   
   @action
   scrollIntoView(isSelected, element) {
-    console.log(isSelected);
     if (isSelected) {     
       element.scrollIntoView();
     }

@@ -1,4 +1,6 @@
 @import 'colors';
+@import 'type';
+@import 'custom-properties';
 @import 'ember-cli-tachyons-sass';
 @import 'nexus.scss';
 @import 'helpers.scss';
@@ -11,18 +13,32 @@ a {
   @extend .pointer;
 }
 
+button:focus {
+  outline-color: $yellow;
+}
+
+
+::placeholder {
+  color: $gray;
+}
+
 
 $app-header-height: 4rem;
 $project-header-height: 4rem;
 $project-tracks-height: calc(100% - #{$app-header-height} - #{$project-header-height});
+$sidebar-width: 36rem;
 
 .app-header-height {
   height: $app-header-height;
 }
 
-.project-header-height {
-  height: $project-header-height;
-}
-.project-tracks-height {
-  height: $project-tracks-height;
+.project-header-height { height: $project-header-height; }
+.project-tracks-height { height: $project-tracks-height; }
+
+.sidebar-width { width: $sidebar-width; } 
+.sidebar-max-width { max-width: $sidebar-width; } 
+
+/* drum file picker*/
+.file-search-height {
+  height: calc(100% - 8rem);
 }

@@ -1,10 +1,17 @@
-{{yield}}
-<button class="tl" {{on "click" (fn @onSelect)}} {{did-insert this.renderParts}}>
-  {{#each parentDirs as |dir|}}
-    {{dir}} /
-  {{/each}}
+<ListItem 
+  @selected={{@selected}} 
+  {{did-insert this.renderParts}} 
+...attributes>
+  <a
+    {{on "click" (fn @onSelect)}}  
+    class="db pl3 ph1 pv2 truncate" role="button"
+  > 
+    {{#each parentDirs as |dir|}}
+      {{dir}} /
+    {{/each}}
 
-  {{#if file}}
-    {{filename-ui file}}
-  {{/if}}
-</button>
+    {{#if file}}
+      {{filename-ui file}}
+    {{/if}}
+  </a>
+</ListItem>
