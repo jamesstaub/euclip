@@ -8,12 +8,12 @@
   />
 {{/if}}
 
-<div class="w-100">
+<div class="w-100 bt bw1">
   {{#unless @model.isDeleted}}
-    <p class="fw6">{{@model.id}}</p>
+    <p class="fw6 mv0 ph3 pv2 bg-light-gray">TRACK: {{@model.id}}</p>
     <div class="flex bg-light-gray pa3 flex-wrap justify-between">
       <div class="flex mv3">
-        <div class="flex-0 br flex flex-column w3 h-100 f7 tc">
+        <div class="flex-0 br flex flex-column h-100 f7 tc">
           <button class="bb b--black br0 h-auto grow-1 {{if (eq visibleInterface "sequence") "bg-light-blue br"}}" {{on "click" (fn this.setUi "controlUi" "sequence")}}>
             SEQUENCE
           </button>
