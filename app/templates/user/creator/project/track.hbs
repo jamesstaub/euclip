@@ -14,6 +14,9 @@
     <div class="flex bg-light-gray pa3 flex-wrap justify-between">
       <div class="flex mv3">
         <div class="flex-0 br flex flex-column w3 h-100 f7 tc">
+          <button class="bb b--black br0 h-auto grow-1 {{if (eq visibleInterface "sequence") "bg-light-blue br"}}" {{on "click" (fn this.setUi "controlUi" "sequence")}}>
+            SEQUENCE
+          </button>
           <button class="bb b--black br0 h-auto grow-1 {{if (eq visibleInterface "controls") "bg-light-blue br"}}" {{on "click" (fn this.setUi "controlUi" "controls")}}>
             {{!-- <img alt="Rhythm and Automation editor" src="/assets/icons/automation.svg"> --}}
             UI
@@ -23,35 +26,41 @@
             SCRIPTS
           </button>
         </div>
-        {{#if (eq this.controlUi "controls")}}
+        {{#if (eq this.controlUi "sequence")}}
           <div class="flex flex-column mh3">
-            <NexusDial 
+            <NexusSlider 
               @value={{@model.hits}} 
               @onChangeValue={{perform updateTrackTask "hits"}} 
               @min={{0}}
               @max={{this.maxSteps}}
+              @step={{1}}
+              @size={{array 300 20}}
             >
               <span class="f7 fw5">hits:</span>
               <span class="f7">{{@model.hits}}</span>
-            </NexusDial>
-            <NexusDial 
+            </NexusSlider>
+            <NexusSlider 
               @value={{@model.steps}} 
               @onChangeValue={{perform updateTrackTask "steps"}} 
               @min={{0}}
               @max={{this.maxSteps}}
+              @step={{1}}
+              @size={{array 300 20}}
             >
               <span class="f7 fw5">steps:</span>
               <span class="f7">{{@model.steps}}</span>
-            </NexusDial>
-            <NexusDial 
+            </NexusSlider>
+            <NexusSlider 
               @value={{@model.offset}} 
               @onChangeValue={{perform updateTrackTask "offset"}} 
               @min={{0}}
               @max={{this.maxSteps}}
+              @step={{1}}
+              @size={{array 300 20}}
             >
-            <span class="f7 fw5">offset:</span>
-            <span class="f7">{{@model.offset}}</span>
-            </NexusDial>  
+              <span class="f7 fw5">offset:</span>
+              <span class="f7">{{@model.offset}}</span>
+            </NexusSlider>  
           </div>
         {{/if}}
       </div>

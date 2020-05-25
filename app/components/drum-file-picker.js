@@ -78,7 +78,7 @@ export default Component.extend({
       pageToSearch = arguments[1];
     }
 
-    const results = await this.fetchDirectory.perform(`search/${this.searchQuery}?include_dir=${true}&page=${pageToSearch}`);
+    const results = await this.fetchDirectory.perform(`/search/${this.searchQuery}?include_dir=${true}&page=${pageToSearch}`);
     this.set('searchResults', results.results);
     this.set('currentPage', results.page);
     this.set('lastPage', results.last_page);

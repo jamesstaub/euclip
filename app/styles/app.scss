@@ -3,7 +3,26 @@
 @import 'nexus.scss';
 @import 'helpers.scss';
 
+html, body {
+  height: 100%;
+}
 
 a {
   @extend .pointer;
+}
+
+
+$app-header-height: 4rem;
+$project-header-height: 4rem;
+$project-tracks-height: calc(100% - #{$app-header-height} - #{$project-header-height});
+
+.app-header-height {
+  height: $app-header-height;
+}
+
+.project-header-height {
+  height: $project-header-height;
+}
+.project-tracks-height {
+  height: $project-tracks-height;
 }

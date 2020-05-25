@@ -1,4 +1,4 @@
-<nav>
+<nav class="app-header-height">
   {{#if this.session.isAuthenticated}}
     [{{this.session.currentUser.username}}]
     <a role="button" {{action "invalidateSession"}}>

@@ -202,6 +202,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // so we need to ensure the attrs from the UI controls get applied after .start()
     // this is not an issue for non sampler nodes
     // TODO: same fix for sampler start, end
+    // ALSO TODO: how can this be fixed to support LFOs to modulate speed?
     const speedControl = this.get('trackNodes')?.findBy('nodeType', 'sampler')?.get('trackControls')?.findBy('nodeAttr', 'speed');
 
     return {
