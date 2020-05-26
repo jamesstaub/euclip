@@ -7,9 +7,11 @@ export default class FileDirectoryComponent extends Component {
   @tracked shouldScrollTo;
   
   @action
-  selectItem(directory, choice) {
+  selectItem(directory, choice, event) {
     this.args.onSelect(directory, choice);
     this.selected = choice;
+    // horizontally scroll to the directory clicked in
+    this.scrollIntoView(true, event.target);
   }
 
   @action
@@ -24,7 +26,7 @@ export default class FileDirectoryComponent extends Component {
   @action
   scrollIntoView(isSelected, element) {
     if (isSelected) {     
-      element.scrollIntoView();
+      element.scrollIntoView({behavior: 'smooth', inline: 'end'});
     }
   }
 }

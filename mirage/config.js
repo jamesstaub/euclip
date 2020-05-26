@@ -169,14 +169,13 @@ export default function() {
   this.del('/projects/:slug');
 
   this.get('/projects/:slug/tracks');
-  this.post('/projects/:slug/tracks', (schema) => {
+  this.post('/projects/:slug/tracks', (schema, request) => {
     // TODO implement different track types (euclidean, )
     // Also use the factory here instead of hardcode
     const initScriptAttrs = this.create('init-script').attrs
     const onstepScriptAttrs = this.create('onstep-script').attrs
-
     const track = schema.tracks.create({
-      hits: 0,
+      hits: 1,
       steps: 8,
       offset: '',
       filepath: '/SequentialCircuits%20Tom/kick.mp3',

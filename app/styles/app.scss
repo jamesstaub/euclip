@@ -13,10 +13,9 @@ a {
   @extend .pointer;
 }
 
-button:focus {
+input:focus, button:focus {
   outline-color: $yellow;
 }
-
 
 ::placeholder {
   color: $gray;
@@ -27,6 +26,7 @@ $app-header-height: 4rem;
 $project-header-height: 4rem;
 $project-tracks-height: calc(100% - #{$app-header-height} - #{$project-header-height});
 $sidebar-width: 36rem;
+$footer-height: 22.5rem;
 
 .app-header-height {
   height: $app-header-height;
@@ -34,9 +34,15 @@ $sidebar-width: 36rem;
 
 .project-header-height { height: $project-header-height; }
 .project-tracks-height { height: $project-tracks-height; }
+.footer-height { height: $footer-height; }
 
-.sidebar-width { width: $sidebar-width; } 
-.sidebar-max-width { max-width: $sidebar-width; } 
+.sidebar-width { 
+  width: 30%;
+  max-width: $sidebar-width;
+} 
+.sidebar-max-width { 
+  max-width: 30%;
+} 
 
 /* drum file picker*/
 .file-search-height {

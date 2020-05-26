@@ -2,6 +2,7 @@ import DS from 'ember-data';
 import E from '../utils/euclidean';
 import { tracked } from '@glimmer/tracking';
 import TrackAudioModel from '../audio-models/track';
+import { keepLatestTask } from "ember-concurrency-decorators";
 const { belongsTo, hasMany, attr } = DS;
 
 export default class TrackModel extends TrackAudioModel {
@@ -9,7 +10,6 @@ export default class TrackModel extends TrackAudioModel {
   @tracked steps;
   @tracked offset;
   @tracked filepath;
-  @tracked drumMenuOpen;
 
   @attr('string') type
   @attr('string') filepath
@@ -79,5 +79,20 @@ export default class TrackModel extends TrackAudioModel {
     // TOODO create and ENV var to set drum filepath
     return `/assets/audio/Drum%20Machines%20mp3${this.filepath}`;
     // return `https://storage.googleapis.com/euclidean-cracked.appspot.com/Drum%20Machines%20mp3${this.filepath}`;
+  }
+
+  @keepLatestTask
+  *updateTrackTask(key, value, reInit=true){
+    try {
+      this.set(key, value);
+      if (reInit)  {
+        // TODO refactor so setupAudioFromScripts does not take arguments, but ensure these models are resolved
+        const initScript = yield this.initScript;
+        this.setupAudioFromScripts(initScript);
+      }
+      yield this.save();
+    } catch (e) {
+      this.rollbackAttributes();
+    }
   }
 }

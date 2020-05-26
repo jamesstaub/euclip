@@ -1,6 +1,11 @@
-<div class="mv1 pointer" ...attributes {{on "click" @selectActiveTrack}}>
-  <div class="flex relative justify-between {{if @isActive "bg-dark-blue" "bg-dark-gray"}}">    
+<div 
+  class="pointer ph3 bb b--silver {{if @isActive "bg-dark-blue" "bg-dark-gray"}}" 
+  {{on "click" @selectActiveTrack}}
+  ...attributes 
+>
+  <div class="flex relative justify-between">    
     <ButtonPrimary
+      class="truncate ma2"
       {{on "click"  this.toggleDrumFilePicker}}
       @label="Drum Machine: {{@track.filepath}}"
     >

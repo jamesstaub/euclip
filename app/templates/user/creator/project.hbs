@@ -1,27 +1,33 @@
-<nav class="project-header-height">
+<nav class="project-header-height flex justify-between items-center ph3">
   <h1 class="ma0 f3">{{this.model.title}}</h1>
   <div class="flex justify-between">
     <div class="flex">
       <ButtonPrimary @label="play" {{action "play"}}/>
-      <ButtonPrimary @label="stop" {{action "stop"}}/>
+      <ButtonPrimary class="mh3" @label="stop" {{action "stop"}}/>
       <ButtonPrimary @label="reset" {{action "reset"}}/>
     </div>
     
-    <ButtonPrimary @label={{"+ track"}} {{on "click" this.addTrack}}/>
+    <ButtonPrimary class="ml3" @label={{"+ track"}} {{on "click" this.addTrack}}/>
   </div>
 </nav>
 
-<div class="flex flex-wrap project-tracks-height ">
+<div class="flex project-tracks-height overflow-hidden">
+  {{#if (and this.sidebarOpen this.activeTrack)}}
+    <SidebarWrapper class="h-100">
+      <DrumFilePicker
+        @track={{this.activeTrack}}
+      />
+    </SidebarWrapper>
+  {{/if}}
 
-  <div id="sidebar-left-target" class="flex shrink-1 h-100 sidebar-max-width"></div>
-
-  <div class="h-100 flex flex-column justify-between grow-1">
+  <div class="bg-dark-gray h-100 flex flex-column justify-between grow-1">
     <div class="overflow-scroll">
       {{#each @model.tracks as |track|}}
         <TrackContainer
           @track={{track}} 
           @isActive={{eq track.id this.activeTrack.id}} 
           @selectActiveTrack={{fn this.transitionToTrack track.id}}
+          @onToggleSidebar={{fn this.toggleSidebar track.id}}
         />
       {{/each}}
     </div>

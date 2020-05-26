@@ -4,6 +4,7 @@ import { tracked } from '@glimmer/tracking';
 
 export default class UserCreatorProjectController extends Controller {
   @tracked activeTrack;
+  @tracked sidebarOpen;
 
   @action
   transitionToTrack(id) {
@@ -37,6 +38,14 @@ export default class UserCreatorProjectController extends Controller {
     this.model.tracks.forEach((track)=>{
       track.set('stepIndex', null);
     })
+  }
+
+  @action
+  toggleSidebar(trackId) {
+    const shouldToggle = trackId === this.activeTrack.id || !this.sidebarOpen;
+    if (shouldToggle) {
+      this.sidebarOpen = !this.sidebarOpen;
+    }
   }
 
 }

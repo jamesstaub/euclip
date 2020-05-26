@@ -1,7 +1,7 @@
 import Controller from '@ember/controller';
 import { action } from '@ember/object';
 import { timeout } from 'ember-concurrency';
-import { restartableTask, keepLatestTask } from "ember-concurrency-decorators";
+import { restartableTask } from "ember-concurrency-decorators";
 import { filterBy } from '@ember/object/computed';
 
 export default class UserCreatorProjectTrackController extends Controller {
@@ -22,21 +22,6 @@ export default class UserCreatorProjectTrackController extends Controller {
 
   get channelStripPannerControl() {
     return this.channelStripNodes?.lastObject?.trackControls?.firstObject;
-  }
-
-  @keepLatestTask
-  *updateTrackTask(key, value, reInit=true){
-    try {
-      this.model.set(key, value);
-      if (reInit)  {
-        // TODO refactor so setupAudioFromScripts does not take arguments, but ensure these models are resolved
-        const initScript = yield this.model.initScript;
-        this.model.setupAudioFromScripts(initScript);
-      }
-      yield this.model.save();
-    } catch (e) {
-      this.model.rollbackAttributes();
-    }
   }
 
   // FIXME this task type throws error

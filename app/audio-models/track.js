@@ -215,7 +215,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         __(this.samplerSelector).start();
         
         // // HACK see above
-        speedControl.onTrackStep(index);
+        if (speedControl) {
+          speedControl.onTrackStep(index);
+        }
       }
     };
   } 

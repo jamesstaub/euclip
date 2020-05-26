@@ -47,7 +47,7 @@ export default class TrackControlModel extends Model {
 
   onTrackStep(index) {
     // this might get called by the sequencer while we're trying to delete the node or control    
-    if (!this.isDeleted ) {
+    if (!this.isDestroyed ) {
       if (this.nodeAttr && this.interfaceName === 'multislider') {
         this.setAttrs(this.controlArrayValue[index]);
       } else {
@@ -83,7 +83,7 @@ export default class TrackControlModel extends Model {
 
   // TODO create an @unlessDeleted decorator!
   setValue(value) {
-    if (!this.isDeleted ) {
+    if (!this.isDestroyed ) {
       if (isArray(value)) {
         this.set('controlArrayValue', value);
         this.notifyPropertyChange('controlArrayValue')
@@ -98,7 +98,7 @@ export default class TrackControlModel extends Model {
   // FIXME probably better to cascade delete on the server
   // also FIXME this method should be probs be on the Node
   async onNodeRemoved() {
-    this.deleteRecord(); // first delete synchronously so isDeleted flag prevents further method calls
+    this.deleteRecord(); // first delete synchronously so isDestroyed flag prevents further method calls
     const trackNode = await this.get('trackNode');
     if (trackNode) {//may have redundantly deleted the track node already
       await trackNode.destroyRecord(); // the API will delete this trackControl record along with the trackNode

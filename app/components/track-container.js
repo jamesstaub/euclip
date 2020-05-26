@@ -22,6 +22,6 @@ export default class TrackContainerComponent extends Component {
   
   @action
   toggleDrumFilePicker() {
-    this.args.track.drumMenuOpen = !this.args.track.drumMenuOpen;
+    this.args.onToggleSidebar()
   }
 }

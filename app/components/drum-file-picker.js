@@ -10,7 +10,7 @@ export default Component.extend({
   store: service(),
 
   showSearchResults: bool('searchResults.length'),
-
+  tagName: '',
   init() {
     this._super(...arguments);
     set(this, 'directories', []);
@@ -99,7 +99,7 @@ export default Component.extend({
     if (type === 'dir') {
       this.updateDirectories.perform(newPath);
     } else if (type === 'audio') {
-      this.updateTrackTask.perform('filepath', newPath);
+      this.track.updateTrackTask.perform('filepath', newPath);
     }
   }),
 
@@ -109,7 +109,7 @@ export default Component.extend({
     directory = `${directory.join('/')}/`;
 
     this.updateDirectories.perform(directory);
-    this.updateTrackTask.perform('filepath', result);
+    this.track.updateTrackTask.perform('filepath', result);
   }),
 
   selectDir: action(function(selectedIdx){

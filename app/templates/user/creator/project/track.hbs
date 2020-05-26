@@ -1,33 +1,25 @@
 {{!-- 
   this template for the /track/:id route is rendered as the footer for the currently selected track
  --}}
-{{#if @model.drumMenuOpen}}
-  <DrumFilePicker
-    @track={{@model}}
-    @updateTrackTask={{updateTrackTask}}
-  />
-{{/if}}
-
 <div class="w-100 bt bw1">
   {{#unless @model.isDeleted}}
-    <p class="fw6 mv0 ph3 pv2 bg-yellow">TRACK: {{@model.id}}</p>
-    <div class="flex bg-yellow pa3 flex-wrap justify-between">
-      <div class="flex mv3">
+    <div class="flex bg-yellow flex-wrap justify-between footer-height">
+      <div class="flex">
         <TabMenu
           @verticle={{true}}
-          @onSelect={{fn this.setUi "controlUi"}} 
+          @onSelect={{fn this.setUi "controlUi"}}
           @items={{array 
             (hash label="sequence" value="sequence" icon="")
-            (hash label="ui" value="ui" icon="")
+            (hash label="controls" value="controls" icon="")
             (hash label="scripts" value="scripts" icon="")
           }}
         />
-        
+
         {{#if (eq this.controlUi "sequence")}}
-          <div class="flex flex-column mh3">
+          <div class="flex flex-column mh3 pv3">
             <NexusSlider 
               @value={{@model.hits}} 
-              @onChangeValue={{perform updateTrackTask "hits"}} 
+              @onChangeValue={{perform @model.updateTrackTask "hits"}} 
               @min={{0}}
               @max={{this.maxSteps}}
               @step={{1}}
@@ -38,7 +30,7 @@
             </NexusSlider>
             <NexusSlider 
               @value={{@model.steps}} 
-              @onChangeValue={{perform updateTrackTask "steps"}} 
+              @onChangeValue={{perform @model.updateTrackTask "steps"}} 
               @min={{0}}
               @max={{this.maxSteps}}
               @step={{1}}
@@ -49,7 +41,7 @@
             </NexusSlider>
             <NexusSlider 
               @value={{@model.offset}} 
-              @onChangeValue={{perform updateTrackTask "offset"}} 
+              @onChangeValue={{perform @model.updateTrackTask "offset"}} 
               @min={{0}}
               @max={{this.maxSteps}}
               @step={{1}}
@@ -62,7 +54,7 @@
         {{/if}}
       </div>
       {{#if (eq this.controlUi "controls")}}
-        <div class="flex flex-column grow-1">
+        <div class="flex flex-column grow-1 pv3">
           <ul class="pa0 list flex">
             {{#each this.trackNodesForControls as |trackNode idx|}}
               <li>
@@ -103,10 +95,10 @@
       {{/if}}
 
       {{#if (eq this.controlUi "scripts")}}
-        <div class="flex flex-column grow-1 mh3">
+        <div class="flex flex-column grow-1 mh3 pv3">
           <div>
-          <button {{on "click" (fn this.setUi "scriptUi" "init")}}>init</button>
-          <button {{on "click" (fn this.setUi "scriptUi" "onstep")}}>step</button>
+            <button {{on "click" (fn this.setUi "scriptUi" "init")}}>init</button>
+            <button {{on "click" (fn this.setUi "scriptUi" "onstep")}}>step</button>
           </div>
           {{!-- 
             TODO perhaps design a symbolic UI for track nodes when in script view
@@ -123,7 +115,7 @@
           </div>
         </div>
       {{/if}}
-      <ChannelStrip 
+      <ChannelStrip
         @channelStripGainControl={{this.channelStripGainControl}}
         @channelStripPannerControl={{this.channelStripPannerControl}}
         @updateValue={{fn this.updateControl}}
