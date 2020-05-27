@@ -7,7 +7,7 @@
 
 Tracks 
 - copy paste tracks
-- new track menu (different init script types)
+- new track menu (different script presets)
 
 Track Controls
 - wrapper: 
@@ -20,6 +20,10 @@ Track Controls
   - panner node : dial
   - XY controls (filters)
 
+- Sequence
+  - - add a sequence BPM divider
+  - - add reverse/pingpong mode for tracks
+  - - ability for track to have many chainable sequences (perhaps with their own script editor for the chaining logic!?)
 Scripts
   - implement a `.connect(this.mixer)` to create uniform track gain slider
   or it could be a `__().channelout()` macro which is a `gain`, `panner` and `connect(master)`
@@ -27,12 +31,16 @@ Scripts
   - rebuild collection of example scripts
   - add helper function to set speed as a factor of the sequencer length (for loops)
   - add helper to access UI value in script, so you could do speed: `slider val + __.rand()`
+  - add examples of __.ms2freq using the track tempo to control LFO speeds
+
   - access to slider value in functions would effectively allow non-linear sliders
     - Math.sin(sliderValue)
     - in that case should the application of the slider value be exposed to the on step function? alternatively, it remains in the background, but can be overwritten by time the onstep function is called
 
 Files
-  - set local filepath
+  - drag and drop UI for local sounds
+  - set filepath local for library 
+  - waveform UI control for slicing (array of start times)
 
 
 ## Documentation:

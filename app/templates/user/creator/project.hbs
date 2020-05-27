@@ -12,7 +12,7 @@
 </nav>
 
 <div class="flex project-tracks-height overflow-hidden">
-  {{#if (and this.sidebarOpen this.activeTrack)}}
+  {{#if (and this.sidebarOpen this.activeTrack (not this.activeTrack.isDeleted))}}
     <SidebarWrapper class="h-100">
       <DrumFilePicker
         @track={{this.activeTrack}}
