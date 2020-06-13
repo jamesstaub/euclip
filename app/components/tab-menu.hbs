@@ -3,19 +3,22 @@
   {{#each @items as |item|}}
     {{#if @verticle}}
       <button
-        class="flex flex-column items-center ba b--black br0 h-auto grow-1 {{if (eq this.selectedValue item.value) "bg-light-blue black" "bg-yellow black"}}" 
+        class="flex flex-column items-center ba b--black br0 h-auto grow-1 {{if (eq this.val item.value) "bg-light-blue black" "bg-yellow black"}}" 
         {{on "click" (fn this.select item.value)}}
         title={{item.label}}
       >
         {{svg-jar item.icon width=item.iconWidth height=item.iconHeight}}
         <span class="{{if item.icon "f7" "f5"}}">{{item.label}}</span>
-      </button>    
+      </button>
     {{else}}
-      <ButtonPrimary 
-        class="{{if (eq this.selectedValue item.value) "bg-dark-gray yellow" "bg-dark-gray light-gray"}}"
-        @label={{item.label}} 
+      <button 
+        class="pointer w4 pa2 f5 ttu {{if (eq this.val item.value) "bg-dark-gray yellow" "bg-gray light-gray"}}"
+        title={{item.label}}
         {{on "click" (fn this.select item.value)}} 
-      />
+        ...attributes
+      >
+        {{item.label}}
+      </button>
     {{/if}}
 
   {{/each}}

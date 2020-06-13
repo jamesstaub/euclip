@@ -14,6 +14,7 @@
         <TabMenu
           @verticle={{true}}
           @onSelect={{fn this.setUi "controlUi"}}
+          @selectedValue={{"controls"}}
           @items={{array 
             (hash label="sequence" value="sequence" icon="fi-squares" iconWidth="2rem" iconHeight="4rem")
             (hash label="controls" value="controls" icon="automation" iconWidth="4rem" iconHeight="4rem")
@@ -65,6 +66,7 @@
             class="ph3 mb3"
             @onSelect={{fn this.setUi "visibleNodeIdx"}}
             @items={{this.trackNodesTabs}}
+            @selectedValue={{this.visibleNodeIdx}}
           />
           <div>
             {{#each this.trackNodesForControls as |trackNode idx|}}
