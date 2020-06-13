@@ -46,6 +46,9 @@ export default class UserCreatorProjectController extends Controller {
     if (shouldToggle) {
       this.sidebarOpen = !this.sidebarOpen;
     }
+    if (!trackId) {
+      this.sidebarOpen = false;
+    }
   }
 
 }

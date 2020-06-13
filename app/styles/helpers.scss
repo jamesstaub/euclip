@@ -1,6 +1,8 @@
 /*Tachyons-style helpers */
 $width-6: 32rem !default;
 
+/* Backgrounds */
+
 /* Flexbox */
 .grow-1 { flex-grow: 1; }
 .shrink-1 { flex-shrink: 1; }
@@ -8,10 +10,18 @@ $width-6: 32rem !default;
 
 
 /* Sizing*/
-
 .min-w-1 { min-width: $width-1; }
 .min-w-2 { min-width: $width-2; }
 .min-w-3 { min-width: $width-3; }
 .min-w-4 { min-width: $width-4; }
 .min-w-5 { min-width: $width-5; }
 .min-w-6 { min-width: $width-6; }
+
+
+/* Icons */
+.light-fill {
+  fill: $light-gray;
+  svg {
+    fill: $light-gray;
+  }
+}

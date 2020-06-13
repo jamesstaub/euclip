@@ -5,13 +5,19 @@
   {{#unless @model.isDeleted}}
     <div class="flex bg-yellow flex-wrap justify-between footer-height">
       <div class="flex">
+        <ChannelStrip
+          @channelStripGainControl={{this.channelStripGainControl}}
+          @channelStripPannerControl={{this.channelStripPannerControl}}
+          @updateValue={{fn this.updateControl}}
+          @saveTrackControl={{this.saveTrackControl}}
+        />
         <TabMenu
           @verticle={{true}}
           @onSelect={{fn this.setUi "controlUi"}}
           @items={{array 
-            (hash label="sequence" value="sequence" icon="")
-            (hash label="controls" value="controls" icon="")
-            (hash label="scripts" value="scripts" icon="")
+            (hash label="sequence" value="sequence" icon="fi-squares" iconWidth="2rem" iconHeight="4rem")
+            (hash label="controls" value="controls" icon="automation" iconWidth="4rem" iconHeight="4rem")
+            (hash label="scripts" value="scripts" icon="fi-code" iconWidth="2rem" iconHeight="4rem")
           }}
         />
 
@@ -55,17 +61,11 @@
       </div>
       {{#if (eq this.controlUi "controls")}}
         <div class="flex flex-column grow-1 pv3">
-          <ul class="pa0 list flex">
-            {{#each this.trackNodesForControls as |trackNode idx|}}
-              <li>
-                <a class="ph3 pv2 mh1 mw4 link {{if (eq this.visibleNodeIdx idx) 'bg-black white' 'bg-white black'}}"
-                  {{on "click" (fn this.setUi "visibleNodeIdx" idx)}}
-                >
-                  {{trackNode.nodeType}}
-                </a>
-              </li>
-            {{/each}}
-          </ul>
+          <TabMenu
+            class="ph3 mb3"
+            @onSelect={{fn this.setUi "visibleNodeIdx"}}
+            @items={{this.trackNodesTabs}}
+          />
           <div>
             {{#each this.trackNodesForControls as |trackNode idx|}}
               {{#if (eq this.visibleNodeIdx idx)}}
@@ -77,13 +77,13 @@
                       @saveTrackControl={{this.saveTrackControl}}
                     >
                       {{component 
-                          (concat "nexus-" trackControl.interfaceName)
-                          value=trackControl.controlValue
-                          values=trackControl.controlArrayComputed
-                          min=trackControl.min
-                          max=trackControl.max
-                          defaultValue=trackControl.defaultValue
-                          onChangeValue=(fn this.updateControl trackControl)
+                        (concat "nexus-" trackControl.interfaceName)
+                        value=trackControl.controlValue
+                        values=trackControl.controlArrayComputed
+                        min=trackControl.min
+                        max=trackControl.max
+                        defaultValue=trackControl.defaultValue
+                        onChangeValue=(fn this.updateControl trackControl)
                       }}
                     </TrackControlWrapper>
                   {{/each}}
@@ -115,12 +115,6 @@
           </div>
         </div>
       {{/if}}
-      <ChannelStrip
-        @channelStripGainControl={{this.channelStripGainControl}}
-        @channelStripPannerControl={{this.channelStripPannerControl}}
-        @updateValue={{fn this.updateControl}}
-        @saveTrackControl={{this.saveTrackControl}}
-      />
     </div>
   {{/unless}}
 

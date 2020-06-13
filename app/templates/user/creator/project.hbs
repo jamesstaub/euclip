@@ -1,19 +1,18 @@
 <nav class="project-header-height flex justify-between items-center ph3">
-  <h1 class="ma0 f3">{{this.model.title}}</h1>
-  <div class="flex justify-between">
-    <div class="flex">
-      <ButtonPrimary @label="play" {{action "play"}}/>
-      <ButtonPrimary class="mh3" @label="stop" {{action "stop"}}/>
-      <ButtonPrimary @label="reset" {{action "reset"}}/>
-    </div>
-    
+  <div class="flex justify-between w-100 items-center">    
+    <h1 class="ma0 f3">{{this.model.title}}</h1>
+      <div class="flex">
+        <IconButton @icon="fi-play" @label="play" {{action "play"}} />
+        <IconButton @icon="fi-stop" @label="stop" {{action "stop"}} />
+        <IconButton @icon="fi-previous" @label="reset" {{action "reset"}} />
+      </div>
     <ButtonPrimary class="ml3" @label={{"+ track"}} {{on "click" this.addTrack}}/>
   </div>
 </nav>
 
 <div class="flex project-tracks-height overflow-hidden">
   {{#if (and this.sidebarOpen this.activeTrack (not this.activeTrack.isDeleted))}}
-    <SidebarWrapper class="h-100">
+    <SidebarWrapper class="h-100 bw2 br b--yellow" @onCloseSidebar={{fn this.toggleSidebar false}}>
       <DrumFilePicker
         @track={{this.activeTrack}}
       />
@@ -31,7 +30,6 @@
         />
       {{/each}}
     </div>
-
     {{outlet}}
   </div>
 </div>

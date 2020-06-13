@@ -1,10 +1,16 @@
-
-<div>
-  {{#each @model as |project|}}
-    {{#link-to "user.creator.project" project.creator project}}
-      {{project.title}}
-    {{/link-to}}
-  {{/each}}
+<div class="mv3 ph3">
+  <h2>Try a demo project or start a new one</h2>
+  <ul class="list ph0">
+    {{#each @model as |project|}}
+      <li>
+        <h3>
+          {{#link-to "user.creator.project" project.creator project class="blue"}}
+            {{project.title}}
+          {{/link-to}}
+        </h3>
+      </li>
+    {{/each}}
+  </ul>
   {{outlet}}
 </div>
 

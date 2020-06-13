@@ -24,6 +24,18 @@ export default class UserCreatorProjectTrackController extends Controller {
     return this.channelStripNodes?.lastObject?.trackControls?.firstObject;
   }
 
+  get trackNodesTabs() {
+    console.log('track', this.trackNodesForControls);
+    
+    return this.trackNodesForControls.map((trackNode, idx) => {
+      return {
+        label: trackNode.nodeType,
+        value: idx, // the node index sets which tab is visible with template logic
+      }
+    })
+  }
+
+
   // FIXME this task type throws error
   // Error: Attempted to handle event `didCommit` on <track-control:1> while in state root.loaded.updated.uncommitted. 
   @restartableTask

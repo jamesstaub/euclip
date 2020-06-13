@@ -1,5 +1,6 @@
 <div class="flex shrink-1 h-100 sidebar-max-width" ...attributes>
-  <div class="bg-dark-gray w-100">
+  <div class="bg-dark-gray w-100 relative">
+    <IconButton class="light-fill bn absolute right-0 top-0" @icon="fi-cancel" {{on "click" (fn @onCloseSidebar)}} />
     {{yield}}
   </div>
 </div>

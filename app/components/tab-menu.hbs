@@ -1,17 +1,23 @@
-<div class="flex-0 f7 tc br flex {{if @verticle "flex-column h-100"}}">
+<div class="flex-0 f7 tc br flex {{if @verticle "flex-column h-100"}}" ...attributes>
   {{yield}}
   {{#each @items as |item|}}
-    <ButtonPrimary
-      class="ba b--black br0 h-auto grow-1" 
-      {{on "click" (fn this.select item.value)}}
-      @tab={{true}}
-      @label={{item.label}}
-      @selected={{eq this.selectedValue item.value}}
-    />
-      
+    {{#if @verticle}}
+      <button
+        class="flex flex-column items-center ba b--black br0 h-auto grow-1 {{if (eq this.selectedValue item.value) "bg-light-blue black" "bg-yellow black"}}" 
+        {{on "click" (fn this.select item.value)}}
+        title={{item.label}}
+      >
+        {{svg-jar item.icon width=item.iconWidth height=item.iconHeight}}
+        <span class="{{if item.icon "f7" "f5"}}">{{item.label}}</span>
+      </button>    
+    {{else}}
+      <ButtonPrimary 
+        class="{{if (eq this.selectedValue item.value) "bg-dark-gray yellow" "bg-dark-gray light-gray"}}"
+        @label={{item.label}} 
+        {{on "click" (fn this.select item.value)}} 
+      />
+    {{/if}}
 
   {{/each}}
 </div>
 
-{{!-- <img alt="Rhythm and Automation editor" src="/assets/icons/automation.svg"> --}}
-{{!-- <img alt="Script Editor" src="/assets/icons/script.svg"> --}}
