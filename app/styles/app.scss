@@ -13,6 +13,10 @@ a {
   @extend .pointer;
 }
 
+button {
+  cursor: pointer;
+}
+
 input:focus, button:focus {
   outline-color: $yellow;
 }
@@ -39,7 +43,8 @@ $footer-height: 22.5rem;
 .sidebar-width { 
   width: 30%;
   max-width: $sidebar-width;
-} 
+}
+
 .sidebar-max-width { 
   max-width: 30%;
 } 
@@ -47,4 +52,14 @@ $footer-height: 22.5rem;
 /* drum file picker*/
 .file-search-height {
   height: calc(100% - 8rem);
+}
+
+/* dropdown menu */ 
+.dropdown-menu {
+  z-index: 3;
+}
+.scrim {
+  width: 100vw;
+  height: 100vh;
+  z-index: 2;
 }

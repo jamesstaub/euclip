@@ -12,7 +12,7 @@
       </button>
     {{else}}
       <button 
-        class="pointer w4 pa2 f5 ttu {{if (eq this.val item.value) "bg-dark-gray yellow" "bg-gray light-gray"}}"
+        class="w4 pa2 f5 ttu {{if (eq this.val item.value) "bg-dark-gray yellow" "bg-gray light-gray"}}"
         title={{item.label}}
         {{on "click" (fn this.select item.value)}} 
         ...attributes

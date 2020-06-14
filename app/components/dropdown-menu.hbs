@@ -1,21 +1,26 @@
-
 <button 
-  class="link bn {{if this.open "bg-gray" "bg-none"}}" 
+  class="link bn bg-light-gray" 
   {{on "click" this.toggleOpen}}
+  {{did-insert (fn this.setPosition)}}
 >
-    [{{if this.open "-" "+"}}]
+  {{svg-jar "fi-dots" width="1rem" height="2rem"}}
 </button>
 
 {{#if this.open}}
-  <ul class="absolute right-1 top-0 ma3 bg-white flex flex-column list pa0 mao {{if this.open "shadow-2"}}">
-    {{#each @items as |item|}}
-      <li>
-        <button title={{item.label}} {{on "click" item.select}}>
-          {{item.label}}
-        </button>
-      </li>
-    {{/each}}
-  </ul>
-  {{yield}}
+  {{#ember-wormhole to="dropdown-target"}}
+    <ul
+      class="dropdown-menu absolute ma3 bg-white flex flex-column list pa0 mao {{if this.open "shadow-2"}}"
+      {{did-insert this.addPositionClass}}
+    >
+      {{#each @items as |item|}}
+        <li>
+          <button title={{item.label}} {{on "click" item.select}}>
+            {{item.label}}
+          </button>
+        </li>
+      {{/each}}
+    </ul>
+    {{yield}}
+    <div class="scrim absolute bg-transparent" {{on "click" (fn this.toggleOpen)}}></div>
+  {{/ember-wormhole}}
 {{/if}}
-
