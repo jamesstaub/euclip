@@ -72,12 +72,13 @@ export default class TrackControlModel extends Model {
     // till then this first condition is not met
     if (this.trackNode.nodeSelector) {
       __(this.trackNode.nodeSelector).attr(attrs);
-    } else {      
-      const node = __._getNode(this.trackNode.get('nodeUUID'));
+    } else {
+      const uuid = this.trackNode.get('nodeUUID');
+      const node = __._getNode(uuid);
       if(node) {
         node.attr(attrs);
-      } else {
-        this.findNodeOrDestroy();
+      } else if (uuid) {
+        console.log('orphan audio node', uuid);
       }
     }
   }
@@ -95,15 +96,6 @@ export default class TrackControlModel extends Model {
     }
   }
 
-  // the nodeUUID could no longer be found in the Cracked object, so delete it's corresponding data model
-  async findNodeOrDestroy() {
-    // FIXME: handle nodes loaded from server that do not yet have nodeUUID property
-    // try to find them before destroying
-    if (!(this.isDeleted || this.isEmpty)) {
-      this.deleteRecord(); // first delete synchronously so isDestroyed flag prevents further method calls
-      this.unloadRecord(); // track-node API deletes the controls on the back end, but remove from store just in case
-    }
-  }
 
   // TODO finish implementing the contents of interfaceType dropdown for
   // each node attributes's control 

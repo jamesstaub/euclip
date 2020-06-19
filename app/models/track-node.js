@@ -14,14 +14,21 @@ export default class TrackNodeModel extends Model {
   @attr() parentMacro; // AudioNode of macro this node belongs to (not serialized)
   @attr('boolean') isChannelStripChild; // flag saved if the parentMacro is set on this node
 
-  constructor() {
-    super(...arguments);
+  static validTrackNodes(track) {
+    return track.get('trackNodes').filter((trackNode) => {
+      // TODO delete trackNodes that have an orphaned uuid
+      return trackNode.nodeUUID && __._getNode(trackNode.nodeUUID);
+    });
+  }
 
-    this.on('didDelete', () => {
-      // TODO the uuid may have been re-written before the AudioNode object has been removed from the DOM
-      // check findOrCreate method to make sure AudioNodes are deleted there
-      this.nodeUUID;
-    }); 
+  static channelStripNodes(track) {
+    return this.validTrackNodes(track)
+      .filter((trackNode) => trackNode.parentMacro && trackNode.parentMacro.getType() === 'channelStrip');
+  }
+
+  static channelStripNode(track, type) {
+    return this.channelStripNodes(track)
+      .find((trackNode)=> trackNode.nodeType === type);
   }
 
   /**
