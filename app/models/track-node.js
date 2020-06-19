@@ -11,6 +11,9 @@ export default class TrackNodeModel extends Model {
   @attr('string') nodeType;
   @attr('number') order;
 
+  @attr() parentMacro; // AudioNode of macro this node belongs to (not serialized)
+  @attr('boolean') isChannelStripChild; // flag saved if the parentMacro is set on this node
+
   constructor() {
     super(...arguments);
 
@@ -39,7 +42,7 @@ export default class TrackNodeModel extends Model {
     this._defaultControlInterface = this.defaultControlInterface;
   }
 
-  get isChannelStripChild() {   
-    return this.parentMacro && this.parentMacro.getType() === 'channelStrip';
-  }
+  // get isChannelStripChild() {   
+  //   return this.parentMacro && this.parentMacro.getType() === 'channelStrip';
+  // }
 }

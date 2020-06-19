@@ -9,6 +9,7 @@
       {{on "click"  this.toggleDrumFilePicker}}
       @label="Drum Machine: {{@track.filepath}}"
     >
+      {{@track.id}}
       {{if @track.filepath @track.filename}}
     </ButtonPrimary>
 

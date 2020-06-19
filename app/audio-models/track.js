@@ -37,7 +37,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       
       // FIXME not sure why node.isMacroComponent() is false for channelStrip 
       if (type === 'channelStrip') {
-        this.channelStripNode = node;
+        this.channelStripAudioNode = node;
         
       } else if (!node.isMacroComponent() && ENV.APP.supportedAudioNodes.indexOf(type) > -1) {        
         const trackNode = {}
@@ -75,9 +75,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
    * pull out the child nodeds and push them into the array that findOrCreate deals with
    * **/
   pushMacroNodes() {
-    if (this.channelStripNode) {      
+    if (this.channelStripAudioNode) {      
       this
-        .channelStripNode
+        .channelStripAudioNode
         .getNativeNode()
         .flat()
         .forEach((node)=> {         
@@ -90,7 +90,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
           }[node.constructor.name];
 
           trackNode[node.uuid] = type;
-          trackNode.parentMacro = this.channelStripNode;
+          trackNode.parentMacro = this.channelStripAudioNode;
           this.trackAudioNodes.push(trackNode);
       });
     }    
@@ -121,29 +121,32 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       let nodesOfThisType = existingtrackNodes.filterBy('nodeType', type);
       //nodes are ordered by index, so take the first one of it's type
       let trackNode = nodesOfThisType.shift();
-    
+      const trackNodeAttrs = {
+        nodeUUID: uuid, // always update uuid since the audio nodes will be new every time
+        nodeType: type,
+        order: idx,
+        parentMacro: node.parentMacro,
+        defaultControlInterface: __._getNode(uuid).ui || 'slider' // get the custom ui saved on the AudioNode, which was defined by the user
+      };
+      
+      // the parentMacro property is a cracked web audio node which happens to be a macro 
+      // this is used to determine if the node should appear with the normal node controls, 
+      // or separated as in the channel strip component. 
+      // since the AudioNodes are ephemeral, but the TrackNode models persist to the database
+      // we need to save a boolean telling the data model that it expects to have a channel strip maco audio node 
+      trackNodeAttrs.isChannelStripChild = trackNodeAttrs.parentMacro && trackNodeAttrs.parentMacro.getType() === 'channelStrip';
+
       if (trackNode) {
         // then remove it from the possible future choices in existingtrackNodes
         existingtrackNodes = existingtrackNodes.rejectBy('nodeUUID', trackNode.nodeUUID);        
-        
-        trackNode.setProperties({
-          nodeUUID: uuid, // update uuid since the audio nodes will be new every time
-          order: idx,
-          parentMacro: node.parentMacro
-        }); 
+        trackNode.setProperties(trackNodeAttrs); 
         
         if (defaultControlInterface) {
           // if the `ui` attribute was changed in the script editor, update the interfaceName of track-controls
           trackNode.updateDefaultControlInterface(defaultControlInterface);
         }
-      } else {        
-        trackNode = this.trackNodes.createRecord({
-          nodeUUID: uuid,
-          nodeType: type,
-          order: idx,
-          parentMacro: node.parentMacro,
-          defaultControlInterface: __._getNode(uuid).ui || 'slider' // get the custom ui saved on the AudioNode, which was defined by the user
-        });
+      } else {
+        trackNode = this.trackNodes.createRecord(trackNodeAttrs);
       }
       // OPTIMIZE
       // refactor the trackNode endpoint to support a single batch save

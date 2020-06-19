@@ -193,6 +193,7 @@ export default function() {
       // which is why we use the trackNodeIdMap to assign the newly created node id later
       trackControlAttrs = targetTrack.trackControls.models.map(({attrs}) => {
         delete attrs.id;
+        delete attrs.trackId;
         return attrs;
       });
 
@@ -213,6 +214,7 @@ export default function() {
       }
     }
 
+    
     let track = schema.tracks.create(trackAttrs);
     
     track.createInitScript({
@@ -226,26 +228,28 @@ export default function() {
     if (trackNodeAttrs && trackControlAttrs) {
       trackNodeAttrs.forEach((attrs) => {
         attrs.trackId = track.id;
-        console.log('new track id', track.id);
         let oldNodeId = attrs.id;
         delete attrs.id;
 
         const newNode = track.createTrackNode(attrs);
         trackNodeIdMap[oldNodeId] = newNode.id;
+        newNode.save();
 
-        // delete attrs.id;
-        // let trackNode = track.createTrackNode(attrs);
         // let trackControlAttr = trackControlAttrs.findBy('trackNodeId', targetNodeId);
         // delete trackControlAttr.trackNodeId;
         // trackNode.createTrackControl(trackControlAttr);
       });
-
+      
       trackControlAttrs.forEach((attrs) => {
-        const node = schema.trackNodes.find(trackNodeIdMap[attrs.trackNodeId]);
-        attrs.trackNodeId = node.id;
+        // use trackNodeIdMap to find the newly created trackNode for this control
+        attrs.trackId = track.id;
+        const trackNode = schema.trackNodes.find(trackNodeIdMap[attrs.trackNodeId]);
+        attrs.trackNodeId = trackNode.id;
         track.createTrackControl(attrs);
       });
     }
+    // FIXME track.trackNodeIds contains duplicates, maybe this stems from whatever is causing 500 error on second duplicate
+    track.save();
     return track;
   });
 
