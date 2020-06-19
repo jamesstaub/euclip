@@ -11,6 +11,11 @@ export default class TrackContainerComponent extends Component {
   }
 
   @action
+  async duplicateTrack() {
+    this.args.track.duplicate();
+  }
+
+  @action
   updateTrackSequence(idx) {
     //if sequence is different than euclidean output 
     // manually override sequence
@@ -19,7 +24,7 @@ export default class TrackContainerComponent extends Component {
     // TODO throttle save with task?
     // this.args.track.save();
   }
-  
+
   @action
   toggleDrumFilePicker() {
     this.args.onToggleSidebar()

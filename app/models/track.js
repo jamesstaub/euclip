@@ -20,6 +20,7 @@ export default class TrackModel extends TrackAudioModel {
   @belongsTo('onstep-script') onstepScript
 
   @hasMany('track-node') trackNodes
+  @hasMany('track-control') trackControls
 
   // euclidean rhythm params
   @attr('number', {
@@ -43,6 +44,7 @@ export default class TrackModel extends TrackAudioModel {
     const onstepScript = await this.onstepScript;
     const trackNodes = await this.trackNodes;
 
+    debugger
     this.store.unloadRecord(initScript);
     this.store.unloadRecord(onstepScript);
     
@@ -71,8 +73,6 @@ export default class TrackModel extends TrackAudioModel {
   get filename() {
     const pathSegments = this.filepath.split('/');    
     return pathSegments[pathSegments.length-1].split('.')[0].replace(/%20/g, ' ');
-    
-    
   }
 
   get filepathUrl() {
@@ -94,5 +94,11 @@ export default class TrackModel extends TrackAudioModel {
     } catch (e) {
       this.rollbackAttributes();
     }
+  }
+
+  async duplicate() {
+    const project = await this.get('project');
+    const newTrack = project.get('tracks').createRecord();
+    return await project.setupAndSaveNewTrack(newTrack, { adapterOptions: { duplicateId: this.id }});
   }
 }

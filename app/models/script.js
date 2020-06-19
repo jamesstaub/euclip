@@ -4,6 +4,7 @@ import { tracked } from '@glimmer/tracking';
 
 export default class ScriptModel extends Model {
   @tracked safeCode
+  @tracked alert
   @tracked scriptScope
 
   // the code written by the user
@@ -22,7 +23,7 @@ export default class ScriptModel extends Model {
         // newFunction defined in inherited script class
         return this.newFunction();
       } catch (e) {
-        alert('problem with script', e.message);
+        this.alert = `problem with script ${e.message}` 
       }
     }
     return null;

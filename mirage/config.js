@@ -117,17 +117,21 @@ const defaultForAttr = function(attr) {
 }
 
 const createTrackControls = function (trackNode) {  
-  const controlAttrs = controlsForNode(trackNode.nodeType);
+  const controlAttrs = controlsForNode(trackNode['node-type']);
   return controlAttrs.map((controlAttr) => {
     const defaults = defaultForAttr(controlAttr);
     defaults.controlValue = defaults.defaultValue;
     // NOTE API should validate interface names and note types on track controls       
-    return trackNode.createTrackControl({ 
+    const trackControl  = trackNode.createTrackControl({
+      trackId: trackNode.trackId,
+      trackNodeId: trackNode.id,
       nodeAttr: controlAttr, 
-      interfaceName: trackNode.defaultControlInterface || 'slider', // all controls for 
+      interfaceName: trackNode['default-control-interface'] || 'slider', // all controls for 
       controlArrayValue: [], // api must initialize this whenever a multislider is created
       ...defaults
     });
+    trackControl.save(); //maybe dont need?
+    return trackControl;
   });
 }
 
@@ -170,22 +174,78 @@ export default function() {
 
   this.get('/projects/:slug/tracks');
   this.post('/projects/:slug/tracks', (schema, request) => {
-    // TODO implement different track types (euclidean, )
-    // Also use the factory here instead of hardcode
-    const initScriptAttrs = this.create('init-script').attrs
-    const onstepScriptAttrs = this.create('onstep-script').attrs
-    const track = schema.tracks.create({
-      hits: 1,
-      steps: 8,
-      offset: '',
-      filepath: '/SequentialCircuits%20Tom/kick.mp3',
-    });
+    let trackAttrs, initScriptAttrs, onstepScriptAttrs, trackNodeAttrs, trackControlAttrs;
+    let trackNodeIdMap = {};
+
+    // POST to duplicate an existing track
+    if (request.queryParams.duplicateId) {
+      let targetTrack = schema.tracks.find(request.queryParams.duplicateId);
+      trackAttrs = targetTrack.attrs;
+      initScriptAttrs = targetTrack.initScript.attrs;
+      onstepScriptAttrs = targetTrack.onstepScript.attrs;
+
+      trackNodeAttrs = targetTrack.trackNodes.models.map(({attrs}) => {
+        attrs.trackControlIds = [];
+        return attrs;
+      });
+
+      // trackControlAttrs will contain the control copied from's nodeID, 
+      // which is why we use the trackNodeIdMap to assign the newly created node id later
+      trackControlAttrs = targetTrack.trackControls.models.map(({attrs}) => {
+        delete attrs.id;
+        return attrs;
+      });
+
+      trackAttrs.trackNodeIds = [];
+      trackAttrs.trackControlIds = [];
+      delete trackAttrs.id;
+      delete initScriptAttrs.id;
+      delete onstepScriptAttrs.id;
+    } else {
+      // POST to create a new default track
+      initScriptAttrs = this.create('init-script').attrs;
+      onstepScriptAttrs = this.create('onstep-script').attrs;
+      trackAttrs = {
+        hits: 1,
+        steps: 8,
+        offset: 0,
+        filepath: '/SequentialCircuits%20Tom/kick.mp3', //todo, generative default audio?
+      }
+    }
+
+    let track = schema.tracks.create(trackAttrs);
+    
     track.createInitScript({
       ...initScriptAttrs
     });
+
     track.createOnstepScript({
       ...onstepScriptAttrs
     });
+
+    if (trackNodeAttrs && trackControlAttrs) {
+      trackNodeAttrs.forEach((attrs) => {
+        attrs.trackId = track.id;
+        console.log('new track id', track.id);
+        let oldNodeId = attrs.id;
+        delete attrs.id;
+
+        const newNode = track.createTrackNode(attrs);
+        trackNodeIdMap[oldNodeId] = newNode.id;
+
+        // delete attrs.id;
+        // let trackNode = track.createTrackNode(attrs);
+        // let trackControlAttr = trackControlAttrs.findBy('trackNodeId', targetNodeId);
+        // delete trackControlAttr.trackNodeId;
+        // trackNode.createTrackControl(trackControlAttr);
+      });
+
+      trackControlAttrs.forEach((attrs) => {
+        const node = schema.trackNodes.find(trackNodeIdMap[attrs.trackNodeId]);
+        attrs.trackNodeId = node.id;
+        track.createTrackControl(attrs);
+      });
+    }
     return track;
   });
 
@@ -209,18 +269,17 @@ export default function() {
   // this.get('/machines/') // get a list of drum machines)
   // this.post('/projects/:slug/tracks/machine'); // create many tracks for each sound of a drum machine
 
-  this.post('/track-nodes/', (schema, { requestBody }) => {
-    const attrs = JSON.parse(requestBody).data.attributes;
-    // FIXME: any reason not to just create the node with all options instead of plucking them out?
-    const nodeType = attrs['node-type'];
-    const order = attrs.order;
-    const defaultControlInterface = attrs['default-control-interface'];
-
-    const trackNode = schema.trackNodes.create({ nodeType, order, defaultControlInterface});
+  this.post('/track-nodes/', async (schema, { requestBody }) => {
+    const { attributes, relationships } = JSON.parse(requestBody).data;
+    attributes.trackId = relationships.track.data.id;
+    const trackNode = schema.trackNodes.create(attributes);
+    await trackNode.save();
     const trackControls = createTrackControls(trackNode);
     trackControls.forEach((control)=> control.save());
     return trackNode;
   });
+  
+  this.patch('/track-nodes/:id');
 
   this.del('/track-nodes/:id', async ({ trackNodes }, request) => {
     const id = request.params.id;

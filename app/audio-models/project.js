@@ -22,7 +22,6 @@ export default class ProjectAudioModel extends Model.extend(Evented) {
       __.begin('channelStrip', params).gain(1).panner({ui: 'dial'}).end('channelStrip');
       return cracked;
     }
-
     this.trigger('initTracks');
   }
 

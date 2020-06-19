@@ -5,6 +5,8 @@ import { isArray } from '@ember/array';
 const { attr, belongsTo } = DS;
 
 export default class TrackControlModel extends Model {
+  @belongsTo('track') track;
+  @belongsTo('trackNode') trackNode;
   @attr('string') interfaceName; // type of nexus ui element
   @attr('string') nodeAttr; // the audio attr that will be controlled
   @attr('number') min;
@@ -38,10 +40,9 @@ export default class TrackControlModel extends Model {
 
   bindTrackEvents(track) {
     track.on('trackStep', this.onTrackStep.bind(this));
-    
     this.on('didDelete', ()=>{
       this.off('trackStep', this.onTrackStep.bind(this));
-    }) 
+    });
   }
 
 
@@ -71,12 +72,12 @@ export default class TrackControlModel extends Model {
     // till then this first condition is not met
     if (this.trackNode.nodeSelector) {
       __(this.trackNode.nodeSelector).attr(attrs);
-    } else {
+    } else {      
       const node = __._getNode(this.trackNode.get('nodeUUID'));
       if(node) {
         node.attr(attrs);
       } else {
-        this.onNodeRemoved();
+        this.findNodeOrDestroy();
       }
     }
   }
@@ -95,15 +96,13 @@ export default class TrackControlModel extends Model {
   }
 
   // the nodeUUID could no longer be found in the Cracked object, so delete it's corresponding data model
-  // FIXME probably better to cascade delete on the server
-  // also FIXME this method should be probs be on the Node
-  async onNodeRemoved() {
-    this.deleteRecord(); // first delete synchronously so isDestroyed flag prevents further method calls
-    const trackNode = await this.get('trackNode');
-    if (trackNode) {//may have redundantly deleted the track node already
-      await trackNode.destroyRecord(); // the API will delete this trackControl record along with the trackNode
+  async findNodeOrDestroy() {
+    // FIXME: handle nodes loaded from server that do not yet have nodeUUID property
+    // try to find them before destroying
+    if (!(this.isDeleted || this.isEmpty)) {
+      this.deleteRecord(); // first delete synchronously so isDestroyed flag prevents further method calls
+      this.unloadRecord(); // track-node API deletes the controls on the back end, but remove from store just in case
     }
-    this.unloadRecord(); // track-node API deletes the controls on the back end, but remove from store just in case
   }
 
   // TODO finish implementing the contents of interfaceType dropdown for
@@ -159,7 +158,7 @@ export default class TrackControlModel extends Model {
     this.set('controlValue', this.defaultValue);
     this.set('controlArrayValue', Array.from(
       new Array(this.controlArrayValue.length
-      ), () => this.defaultValue ));
+    ), () => this.defaultValue ));
     
       this.get('track').saveTrackControl.perform();
   }

@@ -12,15 +12,17 @@ export default class DropdownMenuComponent extends Component {
   
   @action
   addPositionClass(list) {
+    const {x, y} = this.buttonElement.getClientRects()[0];
+    this.menuX = x + this.offsetX;
+    this.menuY = y + this.offsetY;
+
     list.style.top = `${this.menuY}px`;
     list.style.left = `${this.menuX}px`;
   }
 
   @action
-  setPosition(btn) {
-    const {x, y} = btn.getClientRects()[0];
-    this.menuX = x + this.offsetX;
-    this.menuY = y + this.offsetY;
+  setPosition(button) {
+    this.buttonElement = button;
   }
 
   @action

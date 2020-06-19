@@ -1,3 +1,6 @@
+{{#if @scriptModel.alert}}
+  <p class="bg-dark-red pa3 ma0 white absolute top-0 right-0">{{@scriptModel.alert}}</p>
+{{/if}}
 {{ember-ace
   class="grow-1"
   lines=(if this.isExpanded 48 16)

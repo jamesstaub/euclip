@@ -1,6 +1,8 @@
 import Model from '@ember-data/model';
 import Evented from '@ember/object/evented';
 import ENV from '../config/environment';
+import { task } from "ember-concurrency-decorators";
+import { waitForProperty } from 'ember-concurrency';
 
 export default class TrackAudioModel extends Model.extend(Evented) {  
 
@@ -11,14 +13,15 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   bindProjectEvents(project, initScript) {
     // project and initScript are awaited on the route
     // so this event can be synchronous
-
-    // FIXME should this method also call setupAudioFromScripts outright?
-    // what should happen when new tracks are added while the project is playing
-    project.on('initTracks', () => {
-      if (!this.isDeleted) {
-        this.setupAudioFromScripts(initScript);
-      }
-    });
+    // FIXME: properly unbind on delete and don't rebind 
+    if(!this.isBoundInitTracks) {
+      project.on('initTracks', () => {
+        if (!this.isDeleted) {
+          this.setupAudioFromScripts(initScript);
+        }
+        this.set('isBoundInitTracks', true);
+      });
+    }
   }
 
   setupAudioFromScripts(initScript) {
@@ -27,8 +30,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // { uuid: type } 
     this.set('trackAudioNodes', []); 
 
-
-    // _onCreateNode was added to the Cracked library to give access to the AudioNode object upon creation
+    // cracked._onCreateNode was added to the Cracked library to give access to the AudioNode object upon creation
     __.onCreateNode = (node, type, creationParams, userSettings) => {
       // this callback gets called when a user creates cracked audio nodes in the script editor ui
       // macro components should not get individual ui controls
@@ -54,12 +56,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       }
     }
 
-    this.showChannelStrip = false;
-
     this.unbindTrack();
      // run script to create audio nodes
     initScript.functionRef();
-
 
     this.pushMacroNodes();
     this.findOrCreateTrackNodeRecords();
@@ -75,8 +74,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
    * 
    * pull out the child nodeds and push them into the array that findOrCreate deals with
    * **/
-  pushMacroNodes() {   
-    if (this.channelStripNode) {
+  pushMacroNodes() {
+    if (this.channelStripNode) {      
       this
         .channelStripNode
         .getNativeNode()
@@ -94,12 +93,18 @@ export default class TrackAudioModel extends Model.extend(Evented) {
           trackNode.parentMacro = this.channelStripNode;
           this.trackAudioNodes.push(trackNode);
       });
-    }
+    }    
   }
 
   /**
    * find-or-create TrackNode records for each audio node object
    * created on this track
+   * 
+   * this method assumes that cracked audio nodes were created by the script, 
+   * and we now need to create or update TrackNode ember data records.
+   * 
+   * 
+   * 
    * 
    * FIXME: how to re-order if user adds new nodes between existing ones?
    */
@@ -119,8 +124,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     
       if (trackNode) {
         // then remove it from the possible future choices in existingtrackNodes
-        existingtrackNodes = existingtrackNodes.rejectBy('nodeUUID', trackNode.nodeUUID);
-
+        existingtrackNodes = existingtrackNodes.rejectBy('nodeUUID', trackNode.nodeUUID);        
+        
         trackNode.setProperties({
           nodeUUID: uuid, // update uuid since the audio nodes will be new every time
           order: idx,
@@ -131,8 +136,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
           // if the `ui` attribute was changed in the script editor, update the interfaceName of track-controls
           trackNode.updateDefaultControlInterface(defaultControlInterface);
         }
-        return trackNode; // FIXME dont return here, allow node to save below (requries fix for adapter error)
-      } else {
+      } else {        
         trackNode = this.trackNodes.createRecord({
           nodeUUID: uuid,
           nodeType: type,
@@ -156,8 +160,18 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       this.trackNodes.filter((record) => {
         return !this.trackAudioNodes.findBy('uuid', record.nodeUUID);
       }).forEach((record)=> {
-        return record.destroyRecord();
+        this.waitAndDestory.perform(record);
       });
+    }
+  }
+
+  // this gets called when a track is duplicated but the nodes are inFlight,
+  // so we check isSaving before trying to destory them.
+  @task
+  *waitAndDestory(record) {
+    yield waitForProperty(record, 'isSaving', false);
+    if (record.isDeleted) {
+      return record.destroyRecord();     
     }
   }
   

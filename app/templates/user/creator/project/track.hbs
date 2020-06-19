@@ -24,39 +24,56 @@
 
         {{#if (eq this.controlUi "sequence")}}
           <div class="flex flex-column mh3 pv3">
-            <NexusSlider 
-              @value={{@model.hits}} 
-              @onChangeValue={{perform @model.updateTrackTask "hits"}} 
-              @min={{0}}
-              @max={{this.maxSteps}}
-              @step={{1}}
-              @size={{array 300 20}}
+            <TrackControlWrapper
+              @hideConfig={{true}}
+              @hideInterfaceMenu={{true}}
             >
-              <span class="f7 fw5">hits:</span>
-              <span class="f7">{{@model.hits}}</span>
-            </NexusSlider>
-            <NexusSlider 
-              @value={{@model.steps}} 
-              @onChangeValue={{perform @model.updateTrackTask "steps"}} 
-              @min={{0}}
-              @max={{this.maxSteps}}
-              @step={{1}}
-              @size={{array 300 20}}
+              <NexusSlider 
+                @value={{@model.hits}} 
+                @onChangeValue={{perform @model.updateTrackTask "hits"}} 
+                @min={{0}}
+                @max={{this.maxSteps}}
+                @step={{1}}
+                @size={{array 300 20}}
+              >
+                <span class="f7 fw5">hits:</span>
+                <span class="f7">{{@model.hits}}</span>
+              </NexusSlider>
+            </TrackControlWrapper>
+
+            <TrackControlWrapper
+              @hideConfig={{true}}
+              @hideInterfaceMenu={{true}}
             >
-              <span class="f7 fw5">steps:</span>
-              <span class="f7">{{@model.steps}}</span>
-            </NexusSlider>
-            <NexusSlider 
-              @value={{@model.offset}} 
-              @onChangeValue={{perform @model.updateTrackTask "offset"}} 
-              @min={{0}}
-              @max={{this.maxSteps}}
-              @step={{1}}
-              @size={{array 300 20}}
+              <NexusSlider 
+                @value={{@model.steps}} 
+                @onChangeValue={{perform @model.updateTrackTask "steps"}} 
+                @min={{0}}
+                @max={{this.maxSteps}}
+                @step={{1}}
+                @size={{array 300 20}}
+              >
+                <span class="f7 fw5">steps:</span>
+                <span class="f7">{{@model.steps}}</span>
+              </NexusSlider>
+            </TrackControlWrapper>
+
+            <TrackControlWrapper
+              @hideConfig={{true}}
+              @hideInterfaceMenu={{true}}
             >
-              <span class="f7 fw5">offset:</span>
-              <span class="f7">{{@model.offset}}</span>
-            </NexusSlider>  
+              <NexusSlider 
+                @value={{@model.offset}} 
+                @onChangeValue={{perform @model.updateTrackTask "offset"}} 
+                @min={{0}}
+                @max={{this.maxSteps}}
+                @step={{1}}
+                @size={{array 300 20}}
+              >
+                <span class="f7 fw5">offset:</span>
+                <span class="f7">{{@model.offset}}</span>
+              </NexusSlider> 
+            </TrackControlWrapper> 
           </div>
         {{/if}}
       </div>
@@ -97,7 +114,7 @@
       {{/if}}
 
       {{#if (eq this.controlUi "scripts")}}
-        <div class="flex flex-column grow-1 mh3 pv3">
+        <div class="flex flex-column grow-1 mh3 pv3 relative">
           <div>
             <button {{on "click" (fn this.setUi "scriptUi" "init")}}>init</button>
             <button {{on "click" (fn this.setUi "scriptUi" "onstep")}}>step</button>

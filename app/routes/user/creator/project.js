@@ -6,7 +6,7 @@ export default class UserCreatorProjectRoute extends Route {
   }
 
   afterModel(project) {
-    return this.awaitAndBindTracks(project);
+    return project.awaitAndBindTracks();
   }
 
   setupController(controller, project) {
@@ -16,15 +16,5 @@ export default class UserCreatorProjectRoute extends Route {
     });
   }
 
-  async awaitAndBindTracks(project) {
-    const tracks = await project.tracks;
-    const tracksReady = await Promise.all(tracks.map(async (track) => {
-      const initScript = await track.initScript;
-      await track.onstepScript;
-      track.bindProjectEvents(project, initScript);
-      return track;
-    }));
-    project.initSignalChain();
-    return tracksReady;
-  }
+
 }
