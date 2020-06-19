@@ -78,7 +78,9 @@ export default class TrackControlModel extends Model {
       if(node) {
         node.attr(attrs);
       } else if (uuid) {
-        console.log('orphan audio node', uuid);
+        // there's no audio node for this trackNode's uuid, so clear it
+        // maybe should delete, maybe will get reassigned
+        this.set('nodeUUID', null);
       }
     }
   }

@@ -121,6 +121,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       let nodesOfThisType = existingtrackNodes.filterBy('nodeType', type);
       //nodes are ordered by index, so take the first one of it's type
       let trackNode = nodesOfThisType.shift();
+      
+      
+      
       const trackNodeAttrs = {
         nodeUUID: uuid, // always update uuid since the audio nodes will be new every time
         nodeType: type,
@@ -157,13 +160,14 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   /**
    * if a node was removed by user, the trackAudioNodes array will be without it
    * so make sure we delete it from the store
+   * FIXME: this still leaves orphaned trackNode records, but when duplicating, we might not have the uuid yet?
    */
   cleanupNodes() {
     if (this.trackNodes.length > this.trackAudioNodes.length) {
-      this.trackNodes.filter((record) => {
-        return !this.trackAudioNodes.findBy('uuid', record.nodeUUID);
-      }).forEach((record)=> {
-        this.waitAndDestory.perform(record);
+      this.trackNodes.forEach((record) => {
+        if (!record.nodeUUID || !this.trackAudioNodes.findBy('uuid', record.nodeUUID)) {
+          this.waitAndDestory.perform(record);
+        }
       });
     }
   }
@@ -172,7 +176,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   // so we check isSaving before trying to destory them.
   @task
   *waitAndDestory(record) {
+    yield waitForProperty(this.get('trackNodes'), 'isFulfilled', true);
     yield waitForProperty(record, 'isSaving', false);
+
     if (record.isDeleted) {
       return record.destroyRecord();     
     }

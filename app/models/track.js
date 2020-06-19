@@ -43,8 +43,6 @@ export default class TrackModel extends TrackAudioModel {
     const initScript = await this.initScript;
     const onstepScript = await this.onstepScript;
     const trackNodes = await this.trackNodes;
-
-    debugger
     this.store.unloadRecord(initScript);
     this.store.unloadRecord(onstepScript);
     
