@@ -7,7 +7,7 @@ import TrackNodeModel from '../../../../models/track-node';
 
 export default class UserCreatorProjectTrackController extends Controller {
 
-  maxSteps = 32;
+  maxSteps = 64;
   visibleNodeIdx = 0;
   controlUi = 'controls'
   scriptUi = 'init';

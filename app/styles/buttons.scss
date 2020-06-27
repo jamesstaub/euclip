@@ -1,0 +1,12 @@
+button {
+  cursor: pointer;
+}
+
+input:focus, button:focus {
+  outline-color: $yellow;
+}
+
+.dropdown-btn.light-btn {
+  fill: $white;
+  background-color: transparent;
+}

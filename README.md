@@ -8,6 +8,7 @@
 Tracks 
 - copy paste tracks
 - new track menu (different script presets)
+- BUG:  changing a track's sample causes the playhead to go out of sync (try to duplicate a track, then change the sound file)
 
 Track Controls
 - wrapper: 
@@ -24,6 +25,8 @@ Track Controls
   - - add a sequence BPM divider
   - - add reverse/pingpong mode for tracks
   - - ability for track to have many chainable sequences (perhaps with their own script editor for the chaining logic!?)
+  - - in addition to Euclidean tab, add some sorta generative/evolving/automated UI
+
 Scripts
   - implement a `.connect(this.mixer)` to create uniform track gain slider
   or it could be a `__().channelout()` macro which is a `gain`, `panner` and `connect(master)`
@@ -36,6 +39,10 @@ Scripts
   - access to slider value in functions would effectively allow non-linear sliders
     - Math.sin(sliderValue)
     - in that case should the application of the slider value be exposed to the on step function? alternatively, it remains in the background, but can be overwritten by time the onstep function is called
+  
+  - rather than footer, script UI button should be on each track flushed right, open sidebar
+
+
 
 Files
   - drag and drop UI for local sounds

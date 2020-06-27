@@ -2,6 +2,7 @@
 @import 'type';
 @import 'custom-properties';
 @import 'ember-cli-tachyons-sass';
+@import 'buttons';
 @import 'nexus.scss';
 @import 'helpers.scss';
 
@@ -13,13 +14,6 @@ a {
   @extend .pointer;
 }
 
-button {
-  cursor: pointer;
-}
-
-input:focus, button:focus {
-  outline-color: $yellow;
-}
 
 ::placeholder {
   color: $gray;

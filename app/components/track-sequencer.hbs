@@ -1,10 +1,25 @@
-<div class="flex w-100 pa3">
-  {{#each @sequence as |step idx|}}
-    <SequencerStep 
-      {{on "click" (fn @onClickStep idx)}}
-      @step={{step}} 
-      @stepIndex={{seq-step-offset @stepIndex @sequence}} 
-      @idx={{idx}}
-    />
-  {{/each}}
+<div class="flex w-100 pa3 justify-between">
+  <div class="flex justify-between" {{did-update (fn this.autoPageOnUpdate @sequence @stepIndex @isCurrentTrack)}}>
+    {{#each this.sequencePaginated as |step idx|}}
+      <SequencerStep 
+        {{on "click" (fn @onClickStep idx)}}
+        @step={{step}} 
+        @stepIndex={{seq-step-offset @stepIndex @sequence}} 
+        @idx={{add idx this.currentPageStartIdx}}
+      />
+    {{/each}}
+  </div>
+  <div class="flex w4">
+    {{#each this.paginationButtons as |pageIdx|}}
+      {{#if (add pageIdx 1)}}
+        <PaginationButton 
+          {{on "click" (fn this.setPage pageIdx)}} @label={{add pageIdx 1}}
+          @selected={{eq pageIdx this.page}}
+          @highlight={{eq pageIdx pageForstepindex}}
+        />
+      {{else}}
+        <PaginationButton disabled/>
+      {{/if}}
+    {{/each}}
+  </div>
 </div>

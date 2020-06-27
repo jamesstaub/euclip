@@ -3,31 +3,36 @@
   {{on "click" @selectActiveTrack}}
   ...attributes 
 >
-  <div class="flex relative justify-between">    
-    <ButtonPrimary
-      class="truncate ma2"
-      {{on "click"  this.toggleDrumFilePicker}}
-      @label="Drum Machine: {{@track.filepath}}"
-    >
-      {{@track.id}}
-      {{if @track.filepath @track.filename}}
-    </ButtonPrimary>
-
+  <div class="flex relative justify-between items-center">
+    <div class="grow-0 shrink-0">
+      <ButtonPrimary
+        class="truncate ma2 f7"
+        {{on "click"  this.toggleDrumFilePicker}}
+        @label="Drum Machine: {{@track.filepath}}"
+      >
+        {{@track.id}}
+        {{if @track.filepath @track.filename}}
+      </ButtonPrimary>
+    </div>
     {{yield}}
-
-    {{#if @track.sequence}}
-      <TrackSequencer 
-        @sequence={{@track.sequence}}
-        @stepIndex={{@track.stepIndex}}
-        @onClickStep={{fn this.updateTrackSequence}}
+    <div class="grow-1 basis-auto">
+      {{#if @track.sequence}}
+        <TrackSequencer 
+          @sequence={{@track.sequence}}
+          @stepIndex={{@track.stepIndex}}
+          @onClickStep={{fn this.updateTrackSequence}}
+          @isCurrentTrack={{@isActive}}
+        />
+      {{/if}}
+    </div>
+    <div class="grow-0 shrink-0">
+      <DropdownMenu 
+        class="h-100 flex-grow light-btn"
+        @items={{array 
+          (hash label="delete" select=(fn this.deleteTrack)) 
+          (hash label="duplicate" select=(fn this.duplicateTrack)) 
+        }}
       />
-    {{/if}}
-    <DropdownMenu 
-      class="h-100 flex-grow"
-      @items={{array 
-        (hash label="delete" select=(fn this.deleteTrack)) 
-        (hash label="duplicate" select=(fn this.duplicateTrack)) 
-      }}
-    />
+    </div>
   </div>
 </div>
