@@ -18,7 +18,6 @@
           @items={{array 
             (hash label="sequence" value="sequence" icon="fi-squares" iconWidth="2rem" iconHeight="4rem")
             (hash label="controls" value="controls" icon="automation" iconWidth="4rem" iconHeight="4rem")
-            (hash label="scripts" value="scripts" icon="fi-code" iconWidth="2rem" iconHeight="4rem")
           }}
         />
 
@@ -112,31 +111,12 @@
           </div>
         </div>
       {{/if}}
-
-      {{#if (eq this.controlUi "scripts")}}
-        <div class="flex flex-column grow-1 mh3 pv3 relative">
-          <div>
-            <button {{on "click" (fn this.setUi "scriptUi" "init")}}>init</button>
-            <button {{on "click" (fn this.setUi "scriptUi" "onstep")}}>step</button>
-          </div>
-          {{!-- 
-            TODO perhaps design a symbolic UI for track nodes when in script view
-            to demonstrate nodes getting added/removed
-          --}}
-          <div>
-            {{#if (and @model.initScript (eq this.scriptUi "init"))}}
-              <ScriptEditor @scriptModel={{@model.initScript}}/>
-            {{/if}}
-
-            {{#if (and @model.onstepScript (eq this.scriptUi "onstep"))}}
-              <ScriptEditor @scriptModel={{@model.onstepScript}}/>
-            {{/if}}
-          </div>
-        </div>
-      {{/if}}
     </div>
   {{/unless}}
-
+    {{!-- 
+      TODO perhaps design a symbolic UI for track nodes when in script view
+      to demonstrate nodes getting added/removed
+    --}}
 </div>
 
 {{outlet}}

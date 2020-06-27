@@ -1,0 +1,16 @@
+<div class="flex flex-column grow-1 mh3 mv4 relative">
+  <div>
+    <button {{on "click" (fn this.setUi "init")}}>init</button>
+    <button {{on "click" (fn this.setUi "onstep")}}>step</button>
+  </div>
+  
+  <div>
+    {{#if (and @track.initScript (eq this.scriptUi "init"))}}
+      <ScriptEditor @scriptModel={{@track.initScript}}/>
+    {{/if}}
+
+    {{#if (and @track.onstepScript (eq this.scriptUi "onstep"))}}
+      <ScriptEditor @scriptModel={{@track.onstepScript}}/>
+    {{/if}}
+  </div>
+</div>

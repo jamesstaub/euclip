@@ -11,25 +11,38 @@
 </nav>
 
 <div class="flex project-tracks-height overflow-hidden">
-  {{#if (and this.sidebarOpen this.activeTrack (not this.activeTrack.isDeleted))}}
-    <SidebarWrapper class="h-100 bw2 br b--yellow" @onCloseSidebar={{fn this.toggleSidebar false}}>
+  {{#if (and this.leftSidebarOpen this.activeTrack (not this.activeTrack.isDeleted))}}
+    <SidebarWrapper 
+      class="left-sidebar-width h-100 bw2 br b--yellow"
+        @direction="left"
+      @onCloseSidebar={{fn this.toggleSidebar false}}
+    >
       <DrumFilePicker
         @track={{this.activeTrack}}
       />
     </SidebarWrapper>
   {{/if}}
 
-  <div class="bg-dark-gray h-100 flex flex-column justify-between grow-1">
+  <div class="bg-dark-gray h-100 flex flex-column justify-between shrink-1 grow-1">
     <div class="overflow-scroll">
       {{#each @model.tracks as |track|}}
         <TrackContainer
           @track={{track}} 
           @isActive={{eq track.id this.activeTrack.id}} 
           @selectActiveTrack={{fn this.transitionToTrack track.id}}
-          @onToggleSidebar={{fn this.toggleSidebar track.id}}
+          @onToggleFilePicker={{fn this.toggleSidebar track.id "left"}}
+          @onToggleScripts={{fn this.toggleSidebar track.id "right"}}
         />
       {{/each}}
     </div>
     {{outlet}}
   </div>
+  {{#if (and this.rightSidebarOpen this.activeTrack (not this.activeTrack.isDeleted))}}
+    <SidebarWrapper class="right-sidebar-width grow-1 shrink-0 h-100 bw2 br b--yellow"
+      @direction="right"
+      @onCloseSidebar={{fn this.toggleSidebar false}}
+    >
+      <ScriptWrapper @track={{this.activeTrack}}/>
+    </SidebarWrapper>
+  {{/if}}
 </div>

@@ -4,7 +4,8 @@ import { tracked } from '@glimmer/tracking';
 
 export default class UserCreatorProjectController extends Controller {
   @tracked activeTrack;
-  @tracked sidebarOpen;
+  @tracked leftSidebarOpen;
+  @tracked rightSidebarOpen;
 
   @action
   transitionToTrack(id) {
@@ -37,13 +38,19 @@ export default class UserCreatorProjectController extends Controller {
   }
 
   @action
-  toggleSidebar(trackId) {
-    const shouldToggle = trackId === this.activeTrack.id || !this.sidebarOpen;
-    if (shouldToggle) {
-      this.sidebarOpen = !this.sidebarOpen;
+  toggleSidebar(trackId, direction) {    
+    const sidebarProps = {
+      left: 'leftSidebarOpen',
+      right: 'rightSidebarOpen'
     }
-    if (!trackId) {
-      this.sidebarOpen = false;
+
+    const shouldToggle = trackId === this.activeTrack.id || !this[sidebarProps[direction]];
+
+    this.leftSidebarOpen = false;
+    this.rightSidebarOpen = false;
+
+    if (shouldToggle) {
+      this[sidebarProps[direction]] = !this[sidebarProps[direction]];
     }
   }
 

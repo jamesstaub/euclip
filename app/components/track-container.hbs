@@ -7,7 +7,7 @@
     <div class="grow-0 shrink-0">
       <ButtonPrimary
         class="truncate ma2 f7"
-        {{on "click"  this.toggleDrumFilePicker}}
+        {{on "click"  @onToggleFilePicker}}
         @label="Drum Machine: {{@track.filepath}}"
       >
         {{@track.id}}
@@ -25,7 +25,16 @@
         />
       {{/if}}
     </div>
-    <div class="grow-0 shrink-0">
+    <div class="grow-0 shrink-0 flex items-center">
+      <ButtonPrimary
+        class="truncate ma2 f7 light-fill flex flex-column items-center"
+        {{on "click" @onToggleScripts}}
+        @label="scripts"
+      >
+        {{svg-jar "fi-code" width="40px" height="20px"}}
+        <span class="f7">script</span>
+      </ButtonPrimary>
+
       <DropdownMenu 
         class="h-100 flex-grow light-btn"
         @items={{array 

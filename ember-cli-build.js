@@ -12,6 +12,11 @@ module.exports = function(defaults) {
     },
     'ember-math-helpers': {
       only: ['add'],
+    },
+    ace: {
+      themes: ['ambiance', 'chaos'],
+      modes: ['javascript'],
+      workers: ['javascript']
     }
   });
 

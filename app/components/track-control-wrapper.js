@@ -11,9 +11,7 @@ export default class TrackControlWrapperComponent extends Component {
 
   @action
   toggleConfig() {
-    this.showConfig = !this.showConfig;
-    console.log(this.showConfig);
-    
+    this.showConfig = !this.showConfig;    
   }
 
   @action

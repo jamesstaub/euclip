@@ -34,14 +34,14 @@ $footer-height: 22.5rem;
 .project-tracks-height { height: $project-tracks-height; }
 .footer-height { height: $footer-height; }
 
-.sidebar-width { 
+.left-sidebar-width { 
   width: 30%;
   max-width: $sidebar-width;
 }
 
-.sidebar-max-width { 
-  max-width: 30%;
-} 
+.right-sidebar-width {
+  width: 50%;
+}
 
 /* drum file picker*/
 .file-search-height {
