@@ -14,7 +14,7 @@
   {{#if (and this.leftSidebarOpen this.activeTrack (not this.activeTrack.isDeleted))}}
     <SidebarWrapper 
       class="left-sidebar-width h-100 bw2 br b--yellow"
-        @direction="left"
+      @direction="left"
       @onCloseSidebar={{fn this.toggleSidebar false}}
     >
       <DrumFilePicker
@@ -38,11 +38,11 @@
     {{outlet}}
   </div>
   {{#if (and this.rightSidebarOpen this.activeTrack (not this.activeTrack.isDeleted))}}
-    <SidebarWrapper class="right-sidebar-width grow-1 shrink-0 h-100 bw2 br b--yellow"
+    <SidebarWrapper class="right-sidebar-width h-100 bw2 bl b--yellow"
       @direction="right"
       @onCloseSidebar={{fn this.toggleSidebar false}}
     >
-      <ScriptWrapper @track={{this.activeTrack}}/>
+      <ScriptWrapper @track={{this.activeTrack}} @presets={{this.presets}}/>
     </SidebarWrapper>
   {{/if}}
 </div>

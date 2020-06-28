@@ -17,6 +17,11 @@ $width-6: 32rem !default;
 .min-w-5 { min-width: $width-5; }
 .min-w-6 { min-width: $width-6; }
 
+.small-square {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
 
 /* Icons */
 .light-fill {

@@ -11,7 +11,7 @@ module.exports = function(defaults) {
       ]
     },
     'ember-math-helpers': {
-      only: ['add'],
+      only: ['add', 'gt'],
     },
     ace: {
       themes: ['ambiance', 'chaos'],

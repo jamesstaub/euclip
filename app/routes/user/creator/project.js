@@ -14,7 +14,13 @@ export default class UserCreatorProjectRoute extends Route {
       activeTrack: project.get('tracks.firstObject'),
       model: project
     });
+    this.getPresets(controller);
   }
 
+  async getPresets(controller) {
+    const response = await fetch('/presets');
+    const presets = await response.json();
+    controller.set('presets', presets);
+  }
 
 }

@@ -23,27 +23,32 @@ export default class ProjectAudioModel extends Model.extend(Evented) {
       return cracked;
     }
     this.trigger('initTracks');
+    return this;
   }
 
   startLoop() {
     __.loop('start');
     __.loop(100);
     this.isPlaying = true;
+    return this;
   }
 
   stopLoop() {
     this.isPlaying = false;
     __.loop('stop');
     __('*').stop();
+    return this;
   }
 
   disconnectAll() {
     // remove all existing cracked audio nodes
     __('*').unbind('step');
     __.reset();
+    return this;
   }
 
   resetLoop() {
     __.loop('reset');
+    return this;
   }
 }

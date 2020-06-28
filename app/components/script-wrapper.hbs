@@ -1,15 +1,30 @@
-<div class="flex flex-column grow-1 mh3 mv4 relative">
-  <div>
-    <button {{on "click" (fn this.setUi "init")}}>init</button>
-    <button {{on "click" (fn this.setUi "onstep")}}>step</button>
+<div class="flex flex-column grow-1 mh3 mt5 relative">
+  <div class="flex justify-between">
+    <TabMenu
+      @onSelect={{fn this.setUi}}
+      @selectedValue={{"init"}}
+      @items={{array 
+        (hash label="setup" value="init")
+        (hash label="update" value="onstep")
+      }}
+    />
+
+    <select class="f6 mh2" {{on "change" this.selectPreset}}>
+      <option>PRESETS</option>
+      {{#each @presets as |preset idx|}}
+        <option value={{idx}}>{{preset.title}}</option>
+      {{/each}}
+    </select>
   </div>
-  
+
   <div>
     {{#if (and @track.initScript (eq this.scriptUi "init"))}}
+      <p class="yellow f6">Runs once to setup your signal chain.</p>
       <ScriptEditor @scriptModel={{@track.initScript}}/>
     {{/if}}
 
     {{#if (and @track.onstepScript (eq this.scriptUi "onstep"))}}
+      <p class="yellow f6">Runs on every beat to trigger sound and modulate parameters.</p>
       <ScriptEditor @scriptModel={{@track.onstepScript}}/>
     {{/if}}
   </div>

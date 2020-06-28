@@ -1,7 +1,5 @@
 import Component from '@glimmer/component';
 import { action } from '@ember/object';
-import { keepLatestTask, task } from 'ember-concurrency-decorators';
-import { timeout } from 'ember-concurrency';
 
 export default class ScriptEditorComponent extends Component {
   get functionIsLoaded() {
@@ -9,48 +7,31 @@ export default class ScriptEditorComponent extends Component {
     return (safeCode === editorContent) && functionRef;
   }
   
-  /*
-  Task to save a property on the script model instance
-  */
-  @task
-  *invokeScript() {   
-    // don't actually set safeCode here. set the `code` property, then allow only the API to write safeCode (hence why it must be async)
-    const script = yield this.args.scriptModel;
-    yield this.saveScriptTask.perform('safeCode', script.get('editorContent'));
-    if (script.name === 'init-script') {
-      const track = yield script.get('track');
-      track.setupAudioFromScripts(script);
-    }
-  }
-
-  @keepLatestTask
-  *saveScriptTask(property, value) {
-    // yield proxy to model record
-    const scriptModel = yield this.args.scriptModel;
-    scriptModel.set(property, value);
-    yield timeout(300);
-    yield scriptModel.save();
+  @action
+  async onUpdateEditor(content) {
+    const scriptModel = await this.args.scriptModel;
+    scriptModel.saveScriptTask.perform('editorContent', content);
   }
 
   @action
-  onUpdateEditor(content) {
-    this.saveScriptTask.perform('editorContent', content);
+  async loadScript() {
+    const scriptModel = await this.args.scriptModel;
+    scriptModel.runCode.perform();
   }
 
   @action
-  loadScript() {
-    this.invokeScript.perform();
+  // revert the editor to the code that is currently running
+  async discardChanges() {
+    // await proxy to model record
+    const scriptModel = await this.args.scriptModel;
+    scriptModel.saveScriptTask.perform('editorContent', this.args.scriptModel.get('safeCode'));
   }
 
   @action
-  discardChanges() {
-    // revert the editor to the code that is currently running
-    this.saveScriptTask.perform('editorContent', this.args.scriptModel.get('safeCode'));
-  }
-
-  @action
-  disableScript() {
-    this.saveFunctionTask.perform('code', '');
+  async disableScript() {
+    // await proxy to model record
+    const scriptModel = await this.args.scriptModel;
+    scriptModel.saveFunctionTask.perform('code', '');
     // TODO set a condition so functionRef() is null
     // this.track.set('customFunctionRef', null);
   }

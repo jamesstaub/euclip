@@ -6,8 +6,21 @@ import { waitForProperty } from 'ember-concurrency';
 
 export default class TrackAudioModel extends Model.extend(Evented) {  
 
+  // getters to expose data to the init and onstep script scopes for user
   get samplerSelector() {
     return `#${this.id}`;
+  }
+
+  // serialize 2d array of track control values to use in scripts
+  get trackControlData() {
+    return this.get('trackControls').map((trackControl) => {
+      // FIXME when user switches a control from single to multi, both values will be truthy/
+      // need an 'activeValue' that switches with it
+      if (trackControl.get('controlArrayValue.length')) {
+        return trackControl.get('controlArrayValue');
+      }
+      return trackControl.get('controlValue');
+    });
   }
 
   bindProjectEvents(project, initScript) {
@@ -116,7 +129,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // to find or create corresponding trackNode model records 
     this.trackAudioNodes.forEach((node, idx) => {
       const [uuid, type] = Object.entries(node)[0];
-      const defaultControlInterface =  __._getNode(uuid).ui;
+      const defaultControlInterface =  __._getNode(uuid)?.ui;
 
       let nodesOfThisType = existingtrackNodes.filterBy('nodeType', type);
       //nodes are ordered by index, so take the first one of it's type
@@ -129,7 +142,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         nodeType: type,
         order: idx,
         parentMacro: node.parentMacro,
-        defaultControlInterface: __._getNode(uuid).ui || 'slider' // get the custom ui saved on the AudioNode, which was defined by the user
+        defaultControlInterface: defaultControlInterface || 'slider' // get the custom ui saved on the AudioNode, which was defined by the user
       };
       
       // the parentMacro property is a cracked web audio node which happens to be a macro 
@@ -226,7 +239,10 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // this is not an issue for non sampler nodes
     // TODO: same fix for sampler start, end
     // ALSO TODO: how can this be fixed to support LFOs to modulate speed?
-    const speedControl = this.get('trackNodes')?.findBy('nodeType', 'sampler')?.get('trackControls')?.findBy('nodeAttr', 'speed');
+    const speedControl = this.get('trackNodes')
+      ?.findBy('nodeType', 'sampler')
+      ?.get('trackControls')
+      ?.findBy('nodeAttr', 'speed');
 
     return {
       // the track should either have a sampler or an oscillator 
@@ -241,7 +257,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         if (speedControl) {
           speedControl.onTrackStep(index);
         }
-      }
+      },
+      sliders: this.trackControlData
     };
   } 
 }

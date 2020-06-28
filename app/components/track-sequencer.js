@@ -40,6 +40,10 @@ export default class TrackSequencerComponent extends Component {
     return Math.floor(idx / this.pageSize);
   }
 
+  get showPages() {
+    return this.totalPages > 1;
+  }
+
   @action
   setPage(idx) {
     this.autopageEnabled = false;

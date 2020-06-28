@@ -297,6 +297,10 @@ export default function() {
   this.patch('init-scripts/:id');
   this.patch('onstep-scripts/:id');
 
+  this.get('/presets', (schema) => {
+    return schema.db.presets;
+  });
+
   this.passthrough('https://storage.googleapis.com/**');
   this.passthrough('https://drumserver.herokuapp.com');
   this.passthrough('https://drumserver.herokuapp.com/**');

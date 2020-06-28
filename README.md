@@ -28,9 +28,7 @@ Track Controls
   - - in addition to Euclidean tab, add some sorta generative/evolving/automated UI
 
 Scripts
-  - implement a `.connect(this.mixer)` to create uniform track gain slider
-  or it could be a `__().channelout()` macro which is a `gain`, `panner` and `connect(master)`
-    -  this would also support a master mixer view for all tracks
+  -  create a  "mixer view" for mixing all tracks that have a `channelStrip` macro
   - rebuild collection of example scripts
   - add helper function to set speed as a factor of the sequencer length (for loops)
   - add helper to access UI value in script, so you could do speed: `slider val + __.rand()`
@@ -41,6 +39,15 @@ Scripts
     - in that case should the application of the slider value be exposed to the on step function? alternatively, it remains in the background, but can be overwritten by time the onstep function is called
   
   - rather than footer, script UI button should be on each track flushed right, open sidebar
+
+  - when a node is initialized with attributes eg.
+  ```
+  .filter({
+    frequency: 440,
+    q: 20
+  })
+  ```
+  then the track-controls should also be initialized with those as the default values
 
 
 

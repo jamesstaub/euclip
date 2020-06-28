@@ -1,5 +1,8 @@
 import DS from 'ember-data';
 const { Model, attr, belongsTo } = DS;
+import { keepLatestTask, task } from 'ember-concurrency-decorators';
+import { timeout } from 'ember-concurrency';
+
 import { tracked } from '@glimmer/tracking';
 
 export default class ScriptModel extends Model {
@@ -7,11 +10,12 @@ export default class ScriptModel extends Model {
   @tracked alert
   @tracked scriptScope
 
-  // the code written by the user
+  // the code written by the user which has been submitted 
   @attr('string') code;  
-  // code after server runs security parser. API enforce never writable by the client
+  // code after server runs security parser. READ ONLY. written by API only never writable by the client
   @attr('string') safeCode;
   
+  // the current state of the editor, regardless of it being submitted
   @attr('string') editorContent;
 
   @belongsTo('track') track;
@@ -23,9 +27,40 @@ export default class ScriptModel extends Model {
         // newFunction defined in inherited script class
         return this.newFunction();
       } catch (e) {
-        this.alert = `problem with script ${e.message}` 
+        this.onScriptError(e);
+        // expects a function to be returned
+        return () => {};
       }
     }
     return null;
   }
+
+  async onScriptError(e) {
+    const project = await this.get('track.project');
+    project.stopLoop().resetLoop();
+
+    await timeout(100); // hack to avoid double render
+    this.alert = `problem with script ${e.message}`;
+  }
+
+  /*
+  Task to save a property on the script model instance
+  */
+ @task
+ *runCode() {
+   this.alert = null;
+   //TODO don't actually set safeCode here. set the `code` property, then allow only the API to write safeCode (hence why it must be async)
+   yield this.saveScriptTask.perform('safeCode', this.get('editorContent'));
+   if (this.name === 'init-script') {
+     const track = yield this.get('track');
+     track.setupAudioFromScripts(this);
+   }
+ }
+
+ @keepLatestTask
+ *saveScriptTask(property, value) {
+   this.set(property, value);
+   yield timeout(300);
+   yield this.save();
+ }
 }

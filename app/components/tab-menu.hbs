@@ -1,18 +1,19 @@
-<div class="flex-0 f7 tc br flex {{if @verticle "flex-column h-100"}}" ...attributes>
-  {{yield}}
+<div class="flex f7 tc flex {{if @verticle "flex-column h-100"}}" ...attributes>
   {{#each @items as |item|}}
     {{#if @verticle}}
       <button
-        class="flex flex-column items-center ba b--black br0 h-auto grow-1 {{if (eq this.val item.value) "bg-light-blue black" "bg-yellow black"}}" 
+        class="flex flex-column items-center ba b--dark-gray br0 h-auto grow-1 {{if (eq this.val item.value) "bg-light-blue black" "bg-yellow black"}}" 
         {{on "click" (fn this.select item.value)}}
         title={{item.label}}
       >
-        {{svg-jar item.icon width=item.iconWidth height=item.iconHeight}}
-        <span class="{{if item.icon "f7" "f5"}}">{{item.label}}</span>
+        <div class="flex flex-column justify-center items-center h-100 mb3">
+          {{svg-jar item.icon width=item.iconWidth height=item.iconHeight}}
+          <span class="{{if item.icon "f7" "f5"}}">{{item.label}}</span>
+        </div>
       </button>
     {{else}}
       <button 
-        class="w4 pa2 f5 ttu {{if (eq this.val item.value) "bg-dark-gray yellow" "bg-gray light-gray"}}"
+        class="w4 pa2 f6 ttu ba b--dark-gray {{if (eq this.val item.value) "bg-dark-gray yellow" "bg-gray light-gray"}}"
         title={{item.label}}
         {{on "click" (fn this.select item.value)}} 
         ...attributes
@@ -20,7 +21,6 @@
         {{item.label}}
       </button>
     {{/if}}
-
   {{/each}}
 </div>
 

@@ -6,7 +6,7 @@
   <div class="flex relative justify-between items-center">
     <div class="grow-0 shrink-0">
       <ButtonPrimary
-        class="truncate ma2 f7"
+        class="truncate ma2 f7 w4"
         {{on "click"  @onToggleFilePicker}}
         @label="Drum Machine: {{@track.filepath}}"
       >
@@ -27,7 +27,7 @@
     </div>
     <div class="grow-0 shrink-0 flex items-center">
       <ButtonPrimary
-        class="truncate ma2 f7 light-fill flex flex-column items-center"
+        class="truncate ma2 f7 light-fill flex items-center"
         {{on "click" @onToggleScripts}}
         @label="scripts"
       >

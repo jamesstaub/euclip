@@ -6,7 +6,7 @@ export default class UserCreatorProjectController extends Controller {
   @tracked activeTrack;
   @tracked leftSidebarOpen;
   @tracked rightSidebarOpen;
-
+  
   @action
   transitionToTrack(id) {
     this.transitionToRoute('user.creator.project.track', this.model.tracks.findBy('id', id));
