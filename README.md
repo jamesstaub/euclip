@@ -6,9 +6,13 @@
 ## TODO:
 
 Tracks 
-- copy paste tracks
+
+### features
 - new track menu (different script presets)
-- BUG:  changing a track's sample causes the playhead to go out of sync (try to duplicate a track, then change the sound file)
+
+### bugs
+sequence stops on add new track
+- changing a track's sample causes the playhead to go out of sync (try to duplicate a track, then change the sound file)
 
 Track Controls
 - wrapper: 
@@ -28,19 +32,21 @@ Track Controls
   - - in addition to Euclidean tab, add some sorta generative/evolving/automated UI
 
 Scripts
+  ### features
   -  create a  "mixer view" for mixing all tracks that have a `channelStrip` macro
   - rebuild collection of example scripts
   - add helper function to set speed as a factor of the sequencer length (for loops)
   - add helper to access UI value in script, so you could do speed: `slider val + __.rand()`
+    - - Math.sin(sliderValue)
+  - - access to slider value in functions would effectively allow non-linear sliders
   - add examples of __.ms2freq using the track tempo to control LFO speeds
 
-  - access to slider value in functions would effectively allow non-linear sliders
-    - Math.sin(sliderValue)
-    - in that case should the application of the slider value be exposed to the on step function? alternatively, it remains in the background, but can be overwritten by time the onstep function is called
-  
-  - rather than footer, script UI button should be on each track flushed right, open sidebar
-
+  ### fixes
+  - need a comprehensive solution for unique selectors 
+  - - only supporting this.samplerSelector is confusing bc. maybe instead a `uniqueSelector()` helper
+      which reads `this.id` internally, allowing you to duplicate tracks an preserve their unique inner-references
   - when a node is initialized with attributes eg.
+  - verify if `.remove()` is needed in init scripts (or do they all get torn down)
   ```
   .filter({
     frequency: 440,

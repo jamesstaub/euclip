@@ -30,7 +30,6 @@ const lfos = [
 `if (data) {
   this.playSample(index);
   __('#lfo-1').connect(this.samplerSelector);
-  __('#lfo-1').start();  
 }`
   }
 ];
@@ -44,7 +43,7 @@ const synths = [
 __('.my-sines').remove();
 __('.my-envelopes').remove();
 
-__().channelStrip({ class:'sineMixer' }).connect('#mixer');
+__().channelStrip({ id:'sineMixer' }).connect('#mixer');
 
 // create 8 sine waves in a loop, each with an ADSR for envelop control
 // connect them to the channel strip macro created above
@@ -56,9 +55,7 @@ for (var i = 0; i < 8; i++) {
   .adsr({
     class: 'my-envelopes'
   })
-  .connect('.sineMixer')
-
-  
+  .connect('#sineMixer')  
 }
 `,
     onstepScript:

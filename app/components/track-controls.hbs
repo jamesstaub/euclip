@@ -1,0 +1,38 @@
+<div>
+  {{#each @trackNodesForControls as |trackNode idx|}}
+    {{#if (eq @visibleNodeIdx idx)}}
+      <div class="flex flex-wrap tc mh3">
+        {{#each trackNode.trackControls as |trackControl|}}
+          <TrackControlWrapper 
+            @sequence={{@track.sequence}}
+            @trackControl={{trackControl}}
+            @saveTrackControl={{this.saveTrackControl}}
+          >
+            {{!-- 
+              render the track control component eg nexus-multislider
+              this is equivalent to <NexusMultislider> but can be set dynamically
+              --}}
+            <SequencePagination 
+              @sequence={{@track.sequence}} 
+              @stepIndex={{@track.stepIndex}}
+              as |sequencePaginated page|
+            >
+            {{page}}
+              <div class="sequencer-width" {{did-update (fn this.scrollToPageOffset page)}}>
+                {{component 
+                  (concat "nexus-" trackControl.interfaceName)
+                  value=trackControl.controlValue
+                  values=trackControl.controlArrayComputed
+                  min=trackControl.min
+                  max=trackControl.max
+                  defaultValue=trackControl.defaultValue
+                  onChangeValue=(fn @updateControl trackControl)
+                }}
+              </div>
+            </SequencePagination>
+          </TrackControlWrapper>
+        {{/each}}
+      </div>
+    {{/if}}
+  {{/each}}
+</div>

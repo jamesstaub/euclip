@@ -12,8 +12,8 @@
 {{yield}}
 
 {{#if (not functionIsLoaded)}}
-  <span class="dark-gray flex">
-    No script loaded.
+  <span class="yellow dark-gray flex">
+    Script not loaded.
   </span>
 {{/if}}
 
@@ -41,7 +41,7 @@
 
 
 {{#if illegalTokens}}
-  <p class="mv0 flex items-center">
+  <p class="mv0 flex items-center yellow">
     remove unsupported keywords: {{illegalTokens}}
   </p>
 {{/if}}

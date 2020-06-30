@@ -43,6 +43,11 @@ $footer-height: 22.5rem;
   width: 50%;
 }
 
+.sequencer-width {
+  width: 36rem;
+  overflow: scroll;
+}
+
 /* drum file picker*/
 .file-search-height {
   height: calc(100% - 8rem);

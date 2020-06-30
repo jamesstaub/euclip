@@ -9,7 +9,8 @@ export default NexusBase.extend({
   init() {
     this._super(...arguments);
     this.setProperties({
-      elementName: 'Multislider'
+      elementName: 'Multislider',
+
     });
   },
 
@@ -19,8 +20,11 @@ export default NexusBase.extend({
 
   options: computed('max', 'min', 'step', 'values.[]', 'size', {
     get() {
+      const height = 120;
+      const width = 32 * this.values.length;
+      const size = [width, height];
       return {
-        size: this.size || [400, 120],
+        size: size,
         min: this.min,
         max: this.max,
         candycane: 3,

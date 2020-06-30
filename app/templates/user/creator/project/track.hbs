@@ -3,7 +3,7 @@
  --}}
 <div class="w-100 bt bw1">
   {{#unless @model.isDeleted}}
-    <div class="flex bg-yellow flex-wrap justify-between footer-height">
+    <div class="flex bg-yellow justify-between footer-height">
       <div class="flex h-100">
         <ChannelStrip
           @channelStripGainControl={{this.channelStripGainControl}}
@@ -84,31 +84,12 @@
             @items={{this.trackNodesTabs}}
             @selectedValue={{this.visibleNodeIdx}}
           />
-          <div>
-            {{#each this.trackNodesForControls as |trackNode idx|}}
-              {{#if (eq this.visibleNodeIdx idx)}}
-                <div class="flex flex-wrap tc mh3">
-                  {{#each trackNode.trackControls as |trackControl|}}
-                    <TrackControlWrapper 
-                      @sequence={{@model.sequence}}
-                      @trackControl={{trackControl}}
-                      @saveTrackControl={{this.saveTrackControl}}
-                    >
-                      {{component 
-                        (concat "nexus-" trackControl.interfaceName)
-                        value=trackControl.controlValue
-                        values=trackControl.controlArrayComputed
-                        min=trackControl.min
-                        max=trackControl.max
-                        defaultValue=trackControl.defaultValue
-                        onChangeValue=(fn this.updateControl trackControl)
-                      }}
-                    </TrackControlWrapper>
-                  {{/each}}
-                </div>
-              {{/if}}
-            {{/each}}
-          </div>
+          <TrackControls 
+            @track={{@model}}
+            @trackNodesForControls={{this.trackNodesForControls}} 
+            @visibleNodeIdx={{this.visibleNodeIdx}}
+            @updateControl={{fn this.updateControl}}
+          />
         </div>
       {{/if}}
     </div>
