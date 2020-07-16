@@ -1,8 +1,9 @@
 import Model from '@ember-data/model';
 import DS from 'ember-data';
-import { isArray } from '@ember/array';
-
 const { attr, belongsTo } = DS;
+import { isArray } from '@ember/array';
+import { timeout } from 'ember-concurrency';
+import { keepLatestTask } from "ember-concurrency-decorators";
 
 export default class TrackControlModel extends Model {
   @belongsTo('track') track;
@@ -154,6 +155,12 @@ export default class TrackControlModel extends Model {
       new Array(this.controlArrayValue.length
     ), () => this.defaultValue ));
     
-      this.get('track').saveTrackControl.perform();
+      this.saveTrackControl.perform();
+  }
+
+  @keepLatestTask
+  *saveTrackControl() {
+    yield timeout(300);
+    yield this.save();
   }
 }

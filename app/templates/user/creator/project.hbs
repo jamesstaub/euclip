@@ -26,7 +26,7 @@
   <div class="bg-dark-gray h-100 flex flex-column justify-between shrink-1 grow-1">
     <div class="overflow-scroll">
       {{#each @model.tracks as |track|}}
-        <TrackContainer
+        <TrackListItem
           @track={{track}} 
           @isActive={{eq track.id this.activeTrack.id}} 
           @selectActiveTrack={{fn this.transitionToTrack track.id}}

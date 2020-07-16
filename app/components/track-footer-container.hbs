@@ -1,0 +1,97 @@
+<div class="w-100 bt bw1">
+  {{#unless @track.isDeleted}}
+    <div class="flex bg-yellow justify-between footer-height">
+      <div class="flex h-100">
+        <ChannelStrip
+          @channelStripGainControl={{this.channelStripGainControl}}
+          @channelStripPannerControl={{this.channelStripPannerControl}}
+          @updateValue={{fn this.updateControl}}
+        />
+        <TabMenu
+          @verticle={{true}}
+          @onSelect={{fn this.setUi "controlUi"}}
+          @selectedValue={{"controls"}}
+          @items={{array 
+            (hash label="sequence" value="sequence" icon="fi-squares" iconWidth="2rem" iconHeight="4rem")
+            (hash label="controls" value="controls" icon="automation" iconWidth="4rem" iconHeight="4rem")
+          }}
+        />
+
+        {{#if (eq this.controlUi "sequence")}}
+          <div class="flex flex-column mh3 pv3">
+            <TrackControlWrapper
+              @hideConfig={{true}}
+              @hideInterfaceMenu={{true}}
+            >
+              <NexusSlider 
+                @value={{@track.hits}} 
+                @onChangeValue={{perform @track.updateTrackTask "hits"}} 
+                @min={{0}}
+                @max={{this.maxSteps}}
+                @step={{1}}
+                @size={{array 300 20}}
+              >
+                <span class="f7 fw5">hits:</span>
+                <span class="f7">{{@track.hits}}</span>
+              </NexusSlider>
+            </TrackControlWrapper>
+
+            <TrackControlWrapper
+              @hideConfig={{true}}
+              @hideInterfaceMenu={{true}}
+            >
+              <NexusSlider 
+                @value={{@track.steps}} 
+                @onChangeValue={{perform @track.updateTrackTask "steps"}} 
+                @min={{0}}
+                @max={{this.maxSteps}}
+                @step={{1}}
+                @size={{array 300 20}}
+              >
+                <span class="f7 fw5">steps:</span>
+                <span class="f7">{{@track.steps}}</span>
+              </NexusSlider>
+            </TrackControlWrapper>
+
+            <TrackControlWrapper
+              @hideConfig={{true}}
+              @hideInterfaceMenu={{true}}
+            >
+              <NexusSlider 
+                @value={{@track.offset}} 
+                @onChangeValue={{perform @track.updateTrackTask "offset"}} 
+                @min={{0}}
+                @max={{this.maxSteps}}
+                @step={{1}}
+                @size={{array 300 20}}
+              >
+                <span class="f7 fw5">offset:</span>
+                <span class="f7">{{@track.offset}}</span>
+              </NexusSlider> 
+            </TrackControlWrapper> 
+          </div>
+        {{/if}}
+      </div>
+      {{#if (eq this.controlUi "controls")}}
+        <div class="flex flex-column grow-1 pv3">
+          <TabMenu
+            class="ph3 mb3"
+            @onSelect={{fn this.setUi "visibleNodeIdx"}}
+            @items={{this.trackNodesTabs}}
+            @selectedValue={{this.visibleNodeIdx}}
+          />
+          <TrackControls 
+            @track={{@track}}
+            @trackNodesForControls={{this.trackNodesForControls}} 
+            @visibleNodeIdx={{this.visibleNodeIdx}}
+            @updateControl={{fn this.updateControl}}
+          />
+        </div>
+      {{/if}}
+    </div>
+  {{/unless}}
+    {{!-- 
+      TODO perhaps design a symbolic UI for track nodes when in script view
+      to demonstrate nodes getting added/removed
+    --}}
+</div>

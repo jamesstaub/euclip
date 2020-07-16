@@ -1,8 +1,6 @@
-import DS from 'ember-data';
-const { Model, attr, belongsTo } = DS;
+import Model, { attr, belongsTo } from '@ember-data/model';
 import { keepLatestTask, task } from 'ember-concurrency-decorators';
 import { timeout } from 'ember-concurrency';
-
 import { tracked } from '@glimmer/tracking';
 
 export default class ScriptModel extends Model {

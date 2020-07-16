@@ -17,13 +17,13 @@ export default class TrackControlWrapperComponent extends Component {
   @action
   setValue(value) {
     this.args.trackControl.setValue(value);
-    this.args.saveTrackControl.perform(this.args.trackControl);
+    this.args.trackControl.saveTrackControl.perform();
   }
 
   @action
   changeUiType({value}) {
     this.args.trackControl.set('interfaceName', value);
-    this.args.saveTrackControl.perform(this.args.trackControl);
+    this.args.trackControl.saveTrackControl.perform();
   }
 
   @action
@@ -32,7 +32,7 @@ export default class TrackControlWrapperComponent extends Component {
       value = value.value; // dropdown menu's value is an object
     }
     this.args.trackControl.set(key, value);
-    this.args.saveTrackControl.perform(this.args.trackControl);
+    this.args.trackControl.saveTrackControl.perform();
   }
 
   @action

@@ -41,7 +41,9 @@ Scripts
   - - access to slider value in functions would effectively allow non-linear sliders
   - add examples of __.ms2freq using the track tempo to control LFO speeds
 
-  ### fixes
+  ### bugs
+  - use the LFO example, then add an additional gain node
+  - - result is the channelStrip gain not working anymore
   - need a comprehensive solution for unique selectors 
   - - only supporting this.samplerSelector is confusing bc. maybe instead a `uniqueSelector()` helper
       which reads `this.id` internally, allowing you to duplicate tracks an preserve their unique inner-references

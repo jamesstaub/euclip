@@ -6,7 +6,6 @@
           <TrackControlWrapper 
             @sequence={{@track.sequence}}
             @trackControl={{trackControl}}
-            @saveTrackControl={{this.saveTrackControl}}
           >
             {{!-- 
               render the track control component eg nexus-multislider
@@ -17,7 +16,6 @@
               @stepIndex={{@track.stepIndex}}
               as |sequencePaginated page|
             >
-            {{page}}
               <div class="sequencer-width" {{did-update (fn this.scrollToPageOffset page)}}>
                 {{component 
                   (concat "nexus-" trackControl.interfaceName)

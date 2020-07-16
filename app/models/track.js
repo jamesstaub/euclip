@@ -64,8 +64,7 @@ export default class TrackModel extends TrackAudioModel {
 
   get sequence() {
     // TODO implement support for custom sequence
-    // this.customSequence ||
-    return E(this.hits, this.steps, this.offset)
+    return this.customSequence || E(this.hits, this.steps, this.offset)
   }
 
   get filename() {

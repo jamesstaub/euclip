@@ -1,6 +1,5 @@
 import ProjectAudioModel from '../audio-models/project';
-import DS from 'ember-data';
-const { hasMany, belongsTo, attr } = DS;
+import { attr, hasMany, belongsTo } from '@ember-data/model';
 
 export default class ProjectModel extends ProjectAudioModel {
   @attr('string') title;

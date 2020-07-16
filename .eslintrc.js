@@ -23,8 +23,8 @@ module.exports = {
   env: {
     browser: true
   },
-  rules: {
-  },
+  ignorePatterns: ['ember/no-get'],
+  rules: {  },
   overrides: [
     // node files
     {
@@ -50,7 +50,7 @@ module.exports = {
         browser: false,
         node: true
       },
-      plugins: ['node'],
+      plugins: ['node', 'ember'],
       rules: Object.assign({}, require('eslint-plugin-node').configs.recommended.rules, {
         // add your custom rules and overrides for node files here
 
@@ -59,6 +59,7 @@ module.exports = {
         'node/no-unpublished-require': 'off'
       }),
       extends: [
+        'eslint:recommended',
         'plugin:node/recommended'
       ],
     }

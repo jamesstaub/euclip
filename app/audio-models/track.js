@@ -69,13 +69,14 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       }
     }
 
-    this.unbindTrack();
+    this.unbindSamplerFromSequence();
+
      // run script to create audio nodes
     initScript.functionRef();
 
     this.pushMacroNodes();
     this.findOrCreateTrackNodeRecords();
-    this.cleanupNodes();
+    this.cleanupNodeRecords();
     this.bindTrackControls();
     this.bindToSequencer();
   }
@@ -175,7 +176,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
    * so make sure we delete it from the store
    * FIXME: this still leaves orphaned trackNode records, but when duplicating, we might not have the uuid yet?
    */
-  cleanupNodes() {
+  cleanupNodeRecords() {
     if (this.trackNodes.length > this.trackAudioNodes.length) {
       this.trackNodes.forEach((record) => {
         if (!record.nodeUUID || !this.trackAudioNodes.findBy('uuid', record.nodeUUID)) {
@@ -211,7 +212,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
   bindToSequencer() {
     let onStepCallback = this.onStepCallback.bind(this);
-    __(this.samplerSelector).unbind('step');
     __(this.samplerSelector).bind(
       'step', // on every crack sequencer step
       onStepCallback, // call this function (bound to component scope)
@@ -219,8 +219,10 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     );
   }
 
-  unbindTrack() {
+  unbindSamplerFromSequence() {
     __(this.samplerSelector).unbind('step');
+    // FIXME need to remove all nodes that were deleted
+    // (sampler gets removed every time it plays)
     __(this.samplerSelector).remove();
   }
   
