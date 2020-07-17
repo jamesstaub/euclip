@@ -47,8 +47,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // this callback gets called when a user creates cracked audio nodes in the script editor ui
     // macro components should not get individual ui controls
     __.onCreateNode = (node, type, creationParams, userSettings) => {
-      
-      // 
+
+      // add a track-id class to every node created so it can be properly cleaned up
       let existingClass = creationParams.settings.class;
       creationParams.settings.class = `${existingClass ? existingClass + ',' : ''}track-${this.id}`
       
@@ -71,11 +71,14 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         }
       }
     }
-
-    this.unbindSamplerFromSequence();
+    this.unbindAndRemoveCrackedNodes();
 
      // run script to create audio nodes
+     
     initScript.functionRef();
+
+    // nullify this callback after creating track nodes to prevent it from getting called outside of this track
+    __.onCreateNode = null;
 
     this.pushMacroNodes();
     this.findOrCreateTrackNodeRecords();
@@ -89,7 +92,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
    * Currently the only node that gets trackNode models for it's individual child nodes are channelStrips
    * since channelStrip is a special case managed by euclip
    * 
-   * pull out the child nodeds and push them into the array that findOrCreate deals with
+   * pull out the child nodes and push them into the array that findOrCreate deals with
    * **/
   pushMacroNodes() {
     if (this.channelStripAudioNode) {      
@@ -222,12 +225,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     );
   }
 
-  unbindSamplerFromSequence() {
+  unbindAndRemoveCrackedNodes() {
     __(this.samplerSelector).unbind('step');
-    // FIXME need to remove all nodes that were deleted
-    // (sampler gets removed every time it plays)
-    // __(this.samplerSelector).remove();
-    
     __(`.track-${this.id}`).remove();
   }
   
