@@ -325,11 +325,13 @@ cracked.find = function () {
 function createNode(type, creationParams, userSettings) {
     var node = new AudioNode(type, creationParams, userSettings || {});
     saveNode(node);
-
+    
     //EUCLIP:
     //callback defined on global cracked object to set classes on new nodes
     if (__.isFun(__.onCreateNode)) {
         __.onCreateNode(node, type, creationParams, userSettings);
+        // EUCLIP: resave node after onCreateNode to ensure custom selectors get pushed to nodeLookup
+        saveNode(node);
     }
 
     //bail if we're only creating a macro wrapper
@@ -2040,9 +2042,11 @@ function setNodeLookup(node) {
                 setter(_nodeLookup, (prefix + "#" + params[x]), node.getUUID());
             } else if (x === "class") {
                 var classArr = params[x].split(",");
-                classArr.forEach(function () {
-                    selector_array.push((prefix + "." + params[x]));
-                    setter(_nodeLookup, (prefix + "." + params[x]), node.getUUID());
+                
+                // EUCLIP: bug fix use className instead of params[x] after split
+                classArr.forEach(function (className) {
+                    selector_array.push((prefix + "." + className));
+                    setter(_nodeLookup, (prefix + "." + className), node.getUUID());
                 });
             }
         }

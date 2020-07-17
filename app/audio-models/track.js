@@ -44,16 +44,19 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     this.set('trackAudioNodes', []); 
 
     // cracked._onCreateNode was added to the Cracked library to give access to the AudioNode object upon creation
+    // this callback gets called when a user creates cracked audio nodes in the script editor ui
+    // macro components should not get individual ui controls
     __.onCreateNode = (node, type, creationParams, userSettings) => {
-      // this callback gets called when a user creates cracked audio nodes in the script editor ui
-      // macro components should not get individual ui controls
+      
+      // 
+      let existingClass = creationParams.settings.class;
+      creationParams.settings.class = `${existingClass ? existingClass + ',' : ''}track-${this.id}`
       
       // FIXME not sure why node.isMacroComponent() is false for channelStrip 
       if (type === 'channelStrip') {
         this.channelStripAudioNode = node;
-        
       } else if (!node.isMacroComponent() && ENV.APP.supportedAudioNodes.indexOf(type) > -1) {        
-        const trackNode = {}
+        const trackNode = {};
         const uuid = node.getUUID();
         trackNode[uuid] = type;
         trackNode.uuid = uuid;
@@ -223,7 +226,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     __(this.samplerSelector).unbind('step');
     // FIXME need to remove all nodes that were deleted
     // (sampler gets removed every time it plays)
-    __(this.samplerSelector).remove();
+    // __(this.samplerSelector).remove();
+    
+    __(`.track-${this.id}`).remove();
   }
   
   onStepCallback(index, data, array) {
