@@ -1,28 +1,30 @@
 /* code to be moved to server  */
-const controlsForNode = function(nodeType) {
+const paramsForNode = function(nodeType) {
   switch (nodeType) {
+    case 'bitcrusher':
+      return ['frequency', 'bits'];
+    case 'comb':
+      return ['delay', 'damping', 'cutoff', 'feedback'];
+    case 'delay':
+      return ['delay', 'damping', 'feedback', 'cutoff', 'frequency'];
     case 'gain':
       return ['gain'];
-    case 'panner':
-      return ['pan'];
-    case 'sampler':
-      return ['speed'];
     case 'lowpass' || 'highpass' || 'bandpass' || 'allpasss' || 'notch':
       return ['frequency', 'q'];
     case 'lowshelf' || 'highshelf' || 'peaking':
       return ['frequency', 'q', 'gain'];
-    case 'reverb':
-      return ['decay', 'reverse'];
-    case 'delay':
-      return ['delay', 'damping', 'feedback', 'cutoff', 'frequency'];
-    case 'bitcrusher':
-      return ['frequency', 'bits'];
     case 'overdrive':
       return ['drive', 'color', 'postCut'];
+    case 'panner':
+      return ['pan'];
+    case 'reverb':
+      return ['decay', 'reverse'];
     case 'ring':
       return ['distortion', 'frequency'];
-    case 'comb':
-      return ['delay', 'damping', 'cutoff', 'feedback'];
+    case 'sampler':
+      return ['speed', /* 'start', 'end'*/];
+    case 'sine' || 'square' || 'triangle' || 'sawtooth':
+      return ['frequency'];
     default:
       return [];
   }
@@ -73,6 +75,11 @@ const defaultForAttr = function(attr) {
       paramDefaults.max = 2;
       paramDefaults.defaultValue = .5;
       break;
+    case 'end':
+      paramDefaults.min = 0;
+      paramDefaults.max = 1;
+      paramDefaults.defaultValue = 1;
+      break;
     case 'feedback':
       paramDefaults.min = 0;
       paramDefaults.max = 1;
@@ -111,13 +118,19 @@ const defaultForAttr = function(attr) {
     case 'speed':
       paramDefaults.min = .125;
       paramDefaults.max = 2;
-      paramDefaults.defaultValue = 1;  
+      paramDefaults.defaultValue = 1; 
+      break;
+    case 'start':
+      paramDefaults.min = 0;
+      paramDefaults.max = 1;
+      paramDefaults.defaultValue = 0;
+      break;
   }
   return paramDefaults;
 }
 
 const createTrackControls = function (trackNode) {  
-  const controlAttrs = controlsForNode(trackNode['node-type']);
+  const controlAttrs = paramsForNode(trackNode['node-type']);
   return controlAttrs.map((controlAttr) => {
     const defaults = defaultForAttr(controlAttr);
     defaults.controlValue = defaults.defaultValue;

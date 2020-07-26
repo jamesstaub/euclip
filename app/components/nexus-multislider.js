@@ -18,11 +18,10 @@ export default NexusBase.extend({
     return !arraysEqual(this.values, this.nexusElement.values);
   },
 
-  options: computed('max', 'min', 'step', 'values.[]', 'size', {
+  options: computed('max', 'min', 'width', 'step', 'values.[]', 'size', {
     get() {
       const height = 120;
-      const width = 32 * this.values.length;
-      const size = [width, height];
+      const size = [this.width, height];
       return {
         size: size,
         min: this.min,

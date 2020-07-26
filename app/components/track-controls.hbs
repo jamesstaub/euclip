@@ -1,22 +1,53 @@
-<div>
+<div class="overflow-scroll">
   {{#each @trackNodesForControls as |trackNode idx|}}
     {{#if (eq @visibleNodeIdx idx)}}
+      <div class="flex flex-column tc mh3">
+        {{#each trackNode.trackControls as |trackControl|}}
+          {{#if trackControl.isMultislider}}
+            <TrackControlWrapper
+              @sequence={{@track.sequence}}
+              @trackControl={{trackControl}}
+              as |multisliderWidth|
+            >
+              {{!-- 
+                render the track control component eg nexus-multislider
+                this is equivalent to <NexusMultislider> but can be set dynamically
+                --}}
+              <SequencePagination 
+                @sequence={{@track.sequence}} 
+                @stepIndex={{@track.stepIndex}}
+                as |sequencePaginated page|
+              >
+                <div 
+                  class="sequencer-width"
+                  {{did-update (fn this.scrollToPageOffset page)}}
+                >
+                  <NexusMultislider
+                    @values={{trackControl.controlArrayComputed}}
+                    @min={{trackControl.min}}
+                    @max={{trackControl.max}}
+                    @width={{multisliderWidth}}
+                    @defaultValue={{trackControl.defaultValue}}
+                    @onChangeValue={{fn @updateControl trackControl}}
+                  />
+                </div>
+              </SequencePagination>
+            </TrackControlWrapper>
+          {{/if}}
+        {{/each}}
+      </div>
+      
       <div class="flex flex-wrap tc mh3">
         {{#each trackNode.trackControls as |trackControl|}}
-          <TrackControlWrapper 
-            @sequence={{@track.sequence}}
-            @trackControl={{trackControl}}
-          >
-            {{!-- 
-              render the track control component eg nexus-multislider
-              this is equivalent to <NexusMultislider> but can be set dynamically
-              --}}
-            <SequencePagination 
-              @sequence={{@track.sequence}} 
-              @stepIndex={{@track.stepIndex}}
-              as |sequencePaginated page|
+          {{#unless trackControl.isMultislider}}
+            <TrackControlWrapper
+              @sequence={{@track.sequence}}
+              @trackControl={{trackControl}}
             >
-              <div class="sequencer-width" {{did-update (fn this.scrollToPageOffset page)}}>
+              {{!-- 
+                render the track control component eg nexus-slider
+                this is equivalent to <NexusSlider> but can be set dynamically
+                --}}
                 {{component 
                   (concat "nexus-" trackControl.interfaceName)
                   value=trackControl.controlValue
@@ -26,9 +57,8 @@
                   defaultValue=trackControl.defaultValue
                   onChangeValue=(fn @updateControl trackControl)
                 }}
-              </div>
-            </SequencePagination>
-          </TrackControlWrapper>
+            </TrackControlWrapper>
+          {{/unless}}
         {{/each}}
       </div>
     {{/if}}

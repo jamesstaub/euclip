@@ -34,6 +34,7 @@ export default Component.extend({
 
   // logic for when the @value param should set the nexus element's value from above 
   // (as opposed to when the user directly interacts with it)
+  // this here is the default case for most nexus- components but some like multislider override this
   valueShouldUpdate() {
     return this.nexusElement && this.options && (this.valueChanged() || this.optionsChanged());
   },

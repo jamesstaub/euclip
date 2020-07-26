@@ -42,10 +42,15 @@ Scripts
   - add examples of __.ms2freq using the track tempo to control LFO speeds
 
   ### bugs
+
+  - implement track-node order in onCreateNode callback to ensure they appear in the right order when nodes get removed/edited.
+  - track node 404 errors when trying to update removed nodes
+
   - use the LFO example, then add an additional gain node
   - - result is the channelStrip gain not working anymore
-  - need a comprehensive solution for unique selectors 
-  - - only supporting this.samplerSelector is confusing bc. maybe instead a `uniqueSelector()` helper
+
+  - - finish refactor of track-based selectors, probably remove this.samplerSelector
+  - - this.samplerSelector is confusing bc. maybe instead a `uniqueSelector()` helper
       which reads `this.id` internally, allowing you to duplicate tracks an preserve their unique inner-references
   - when a node is initialized with attributes eg.
   - verify if `.remove()` is needed in init scripts (or do they all get torn down)

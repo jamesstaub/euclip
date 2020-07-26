@@ -1,6 +1,4 @@
-import Model from '@ember-data/model';
-import DS from 'ember-data';
-const { attr, belongsTo } = DS;
+import Model, { attr, belongsTo } from '@ember-data/model';
 import { isArray } from '@ember/array';
 import { timeout } from 'ember-concurrency';
 import { keepLatestTask } from "ember-concurrency-decorators";
@@ -34,6 +32,10 @@ export default class TrackControlModel extends Model {
     // I think this must be defined to prevent an error.
     // TODO use this instead of the on change event for multislider?
     // this.set('controlArrayValue', controlArrayValue)
+  }
+
+  get isMultislider() {
+    return this.interfaceName === 'multislider';
   }
 
   @belongsTo('track-node') trackNode;
@@ -137,6 +139,10 @@ export default class TrackControlModel extends Model {
         return oneD;
       case 'distortion':
         return oneD;
+      case 'start':
+        return oneD;
+      case 'end':
+        return oneD;
       default:
         return [];
     }
@@ -160,7 +166,10 @@ export default class TrackControlModel extends Model {
 
   @keepLatestTask
   *saveTrackControl() {
-    yield timeout(300);
+    // FIXME: need a better strategy to prevent the last save response from coming in 
+    // out of sync with current UI state. (occurs when lots of rapid changes are made to nexus-multislider)
+    yield timeout(5000);
+    // http://ember-concurrency.com/docs/examples/autocomplete/
     yield this.save();
   }
 }

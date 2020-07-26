@@ -1,12 +1,27 @@
 import Component from "@glimmer/component";
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
+import { htmlSafe } from '@ember/template';
+
+const SINGLE_SLIDER_WIDTH = 32.2;
 
 export default class TrackControlWrapperComponent extends Component {
   @tracked showConfig
 
   get isConfigurable() {
     return !(this.args.hideConfig || this.args.trackControl?.interfaceName === 'number');
+  }
+
+  get multisliderWidth() {
+    return SINGLE_SLIDER_WIDTH * this.args.trackControl?.controlArrayComputed?.length || 0;
+  }
+
+  get wrapperStyle() {
+    if (this.args.trackControl?.isMultislider) {
+      return htmlSafe(`width: ${this.multisliderWidth + SINGLE_SLIDER_WIDTH}px`);
+    } else {
+      return null;
+    }
   }
 
   @action

@@ -10,12 +10,18 @@ $width-6: 32rem !default;
 
 
 /* Sizing*/
+
+.w6 {
+  width: $width-6;
+}
+
 .min-w-1 { min-width: $width-1; }
 .min-w-2 { min-width: $width-2; }
 .min-w-3 { min-width: $width-3; }
 .min-w-4 { min-width: $width-4; }
 .min-w-5 { min-width: $width-5; }
 .min-w-6 { min-width: $width-6; }
+
 
 .small-square {
   width: 1.5rem;

@@ -15,7 +15,7 @@
     <SidebarWrapper 
       class="left-sidebar-width h-100 bw2 br b--yellow"
       @direction="left"
-      @onCloseSidebar={{fn this.toggleSidebar false}}
+      @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id "left"}}
     >
       <DrumFilePicker
         @track={{this.activeTrack}}
@@ -23,7 +23,7 @@
     </SidebarWrapper>
   {{/if}}
 
-  <div class="bg-dark-gray h-100 flex flex-column justify-between shrink-1 grow-1">
+  <div class="bg-dark-gray h-100 flex flex-column justify-between shrink-1 grow-1 {{if this.rightSidebarOpen "w-50"}}">
     <div class="overflow-scroll">
       {{#each @model.tracks as |track|}}
         <TrackListItem
@@ -40,7 +40,7 @@
   {{#if (and this.rightSidebarOpen this.activeTrack (not this.activeTrack.isDeleted))}}
     <SidebarWrapper class="right-sidebar-width h-100 bw2 bl b--yellow"
       @direction="right"
-      @onCloseSidebar={{fn this.toggleSidebar false}}
+      @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id "right"}}
     >
       <ScriptWrapper @track={{this.activeTrack}} @presets={{this.presets}}/>
     </SidebarWrapper>

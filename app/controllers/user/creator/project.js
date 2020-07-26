@@ -38,17 +38,12 @@ export default class UserCreatorProjectController extends Controller {
   }
 
   @action
-  toggleSidebar(trackId, direction) {    
+  toggleSidebar(trackId, direction) {
     const sidebarProps = {
       left: 'leftSidebarOpen',
       right: 'rightSidebarOpen'
     }
-
     const shouldToggle = trackId === this.activeTrack.id || !this[sidebarProps[direction]];
-
-    this.leftSidebarOpen = false;
-    this.rightSidebarOpen = false;
-
     if (shouldToggle) {
       this[sidebarProps[direction]] = !this[sidebarProps[direction]];
     }

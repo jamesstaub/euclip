@@ -19,7 +19,27 @@ module.exports = function(environment) {
 
     APP: {
       userEndpoint: '/users/me',
-      supportedAudioNodes: ['gain', 'sampler', 'lowpass', 'highpass', 'bandpass', 'allpasss', 'notch', 'lowshelf', 'highshelf', 'peaking', 'reverb', 'delay', 'bitcrusher', 'overdrive', 'ring', 'comb']
+      supportedAudioNodes: [
+        'allpasss', 
+        'bandpass', 
+        'bitcrusher', 
+        'comb',
+        'delay', 
+        'gain', 
+        'highpass', 
+        'highshelf', 
+        'lowshelf', 
+        'lowpass', 
+        'notch', 
+        'overdrive', 
+        'peaking', 
+        'reverb', 
+        'ring', 
+        'sampler',
+        'sine',
+        'square',
+        'sawtooth',
+      ]
       // Here you can pass flags/options to your application instance
       // when it is created
     }

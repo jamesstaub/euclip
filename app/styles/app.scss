@@ -41,6 +41,7 @@ $footer-height: 22.5rem;
 
 .right-sidebar-width {
   width: 50%;
+  max-width: $sidebar-width;
 }
 
 .sequencer-width {

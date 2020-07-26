@@ -1,9 +1,8 @@
-import DS from 'ember-data';
+import { attr, belongsTo, hasMany } from '@ember-data/model';
 import E from '../utils/euclidean';
 import { tracked } from '@glimmer/tracking';
 import TrackAudioModel from '../audio-models/track';
 import { keepLatestTask } from "ember-concurrency-decorators";
-const { belongsTo, hasMany, attr } = DS;
 
 export default class TrackModel extends TrackAudioModel {
   @tracked hits;
