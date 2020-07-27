@@ -330,8 +330,8 @@ function createNode(type, creationParams, userSettings) {
     //callback defined on global cracked object to set classes on new nodes
     if (__.isFun(__.onCreateNode)) {
         __.onCreateNode(node, type, creationParams, userSettings);
-        // EUCLIP: resave node after onCreateNode to ensure custom selectors get pushed to nodeLookup
-        saveNode(node);
+        // EUCLIP: ensure custom selectors get pushed to nodeLookup
+        setNodeLookup(node);
     }
 
     //bail if we're only creating a macro wrapper

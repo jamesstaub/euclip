@@ -6,12 +6,12 @@ export default class TrackListItemComponent extends Component {
   @service router
 
   @action
-  async deleteTrack() {
+  deleteTrack() {
     this.args.track.destroyAndCleanup();
   }
 
   @action
-  async duplicateTrack() {
+  duplicateTrack() {
     this.args.track.duplicate();
   }
 

@@ -15,7 +15,7 @@ export default class UserCreatorProjectController extends Controller {
   @action
   async addTrack() {
     const track = this.model.tracks.createRecord({ hits: 1 });
-    this.model.setupAndSaveNewTrack(track);
+    await this.model.setupAndSaveNewTrack(track);
   }
 
   @action

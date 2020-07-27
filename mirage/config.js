@@ -129,7 +129,7 @@ const defaultForAttr = function(attr) {
   return paramDefaults;
 }
 
-const createTrackControls = function (trackNode) {  
+const createTrackControls = function (trackNode) {    
   const controlAttrs = paramsForNode(trackNode['node-type']);
   return controlAttrs.map((controlAttr) => {
     const defaults = defaultForAttr(controlAttr);
@@ -226,8 +226,9 @@ export default function() {
         filepath: '/SequentialCircuits%20Tom/kick.mp3', //todo, generative default audio?
       }
     }
-
     
+    trackAttrs.project = schema.projects.findBy({'slug': request.params.slug});
+
     let track = schema.tracks.create(trackAttrs);
     
     track.createInitScript({
@@ -262,6 +263,7 @@ export default function() {
       });
     }
     // FIXME track.trackNodeIds contains duplicates, maybe this stems from whatever is causing 500 error on second duplicate
+  
     track.save();
     return track;
   });
@@ -306,9 +308,11 @@ export default function() {
   });
 
   this.patch('/track-controls/:id');
-
   this.patch('init-scripts/:id');
   this.patch('onstep-scripts/:id');
+  this.del('/track-controls/:id');
+  this.del('init-scripts/:id');
+  this.del('onstep-scripts/:id');
 
   this.get('/presets', (schema) => {
     return schema.db.presets;

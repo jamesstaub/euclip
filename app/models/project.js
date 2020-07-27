@@ -22,10 +22,11 @@ export default class ProjectModel extends ProjectAudioModel {
   // maybe move this to track?
   async setupAndSaveNewTrack(track, saveOptions) {
     await track.save(saveOptions);
-    this.awaitAndBindTracks();
-    // const initScript = await track.get('initScript');
-    // track.bindProjectEvents(this, initScript);
-    // track.setupAudioFromScripts(initScript);
+    await this.awaitAndBindTracks();
+    
+    if (this.isPlaying) {
+      this.startLoop();
+    }
     return track;
   }
 }

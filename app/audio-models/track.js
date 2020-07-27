@@ -142,8 +142,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       //nodes are ordered by index, so take the first one of it's type
       let trackNode = nodesOfThisType.shift();
       
-      
-      
       const trackNodeAttrs = {
         nodeUUID: uuid, // always update uuid since the audio nodes will be new every time
         nodeType: type,

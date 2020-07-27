@@ -37,28 +37,30 @@ export default class TrackModel extends TrackAudioModel {
   @attr() customSequence
 
   async destroyAndCleanup() {
-    this.unbindTrack();
+    this.unbindAndRemoveCrackedNodes();
 
-    const initScript = await this.initScript;
-    const onstepScript = await this.onstepScript;
+    this.initScript.content.destroyRecord();
+    this.onstepScript.content.destroyRecord();
     const trackNodes = await this.trackNodes;
-    this.store.unloadRecord(initScript);
-    this.store.unloadRecord(onstepScript);
+    // this.store.unloadRecord(initScript);
+    // this.store.unloadRecord(onstepScript);
     
     trackNodes.forEach((trackNode) => {
       try {
         if (trackNode && trackNode.trackControls) {
           // Move this logic to trackNode model so it can be used on removeNode
           trackNode.trackControls.forEach((trackControl) => {
-            this.store.unloadRecord(trackControl);
+            trackControl.destroyRecord();
+            // this.store.unloadRecord(trackControl);
           });
-          this.store.unloadRecord(trackNode);
+          // this.store.unloadRecord(trackNode);
+          trackNode.destroyRecord();
         }
       } catch (error) {
         console.error('TODO ensure track relations are properly deleted', error);        
       }
     });
-    return this.destroyRecord();
+    await this.destroyRecord();
   }
 
   get sequence() {
