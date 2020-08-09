@@ -182,7 +182,7 @@ export default function() {
     return schema.projects.findBy({slug:params.slug});
   });
 
-  this.put('/projects/:slug');
+  this.patch('/projects/:slug');
   this.del('/projects/:slug');
 
   this.get('/projects/:slug/tracks');
@@ -220,7 +220,7 @@ export default function() {
       initScriptAttrs = this.create('init-script').attrs;
       onstepScriptAttrs = this.create('onstep-script').attrs;
       trackAttrs = {
-        hits: 1,
+        hits: 4,
         steps: 8,
         offset: 0,
         filepath: '/SequentialCircuits%20Tom/kick.mp3', //todo, generative default audio?

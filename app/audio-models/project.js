@@ -6,6 +6,11 @@ import Evented from '@ember/object/evented';
  *  containing methods for project-level web audio state
  */
 export default class ProjectAudioModel extends Model.extend(Evented) {
+
+  get loopInterval() {
+    return 1000 * 60 / this.bpm;
+  }
+
   initSignalChain() {
     this.disconnectAll();
     
@@ -27,8 +32,8 @@ export default class ProjectAudioModel extends Model.extend(Evented) {
   }
 
   startLoop() {
-    __.loop('start');
-    __.loop(100);
+    __.loop('start');    
+    __.loop(this.loopInterval);
     this.isPlaying = true;
     return this;
   }

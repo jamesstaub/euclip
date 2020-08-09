@@ -2,7 +2,8 @@
   <TrackControlWrapper
     @hideConfig={{true}}
     @hideInterfaceMenu={{true}}
-    @trackControl={{@channelStripGainControl}} 
+    @trackControl={{@channelStripGainControl}}
+    @wrapperStyleClass="flex flex-column"
   >
     <NexusSlider 
       @value={{@channelStripGainControl.controlValue}}
@@ -16,7 +17,8 @@
   <TrackControlWrapper
     @hideConfig={{true}}
     @hideInterfaceMenu={{true}}
-    @trackControl={{@channelStripPannerControl}} 
+    @trackControl={{@channelStripPannerControl}}
+    @wrapperStyleClass="flex flex-column"
   >
     <NexusSlider 
       @value={{@channelStripPannerControl.controlValue}}

@@ -3,7 +3,7 @@ import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import { htmlSafe } from '@ember/template';
 
-const SINGLE_SLIDER_WIDTH = 32.2;
+const MULTISLIDER_WIDTH = 32.2;
 
 export default class TrackControlWrapperComponent extends Component {
   @tracked showConfig
@@ -13,12 +13,14 @@ export default class TrackControlWrapperComponent extends Component {
   }
 
   get multisliderWidth() {
-    return SINGLE_SLIDER_WIDTH * this.args.trackControl?.controlArrayComputed?.length || 0;
+    return MULTISLIDER_WIDTH * this.args.trackControl?.controlArrayComputed?.length || 0;
   }
 
   get wrapperStyle() {
     if (this.args.trackControl?.isMultislider) {
-      return htmlSafe(`width: ${this.multisliderWidth + SINGLE_SLIDER_WIDTH}px`);
+      // TODO make 16 dynamic for responsive screen changes in sliders per page 
+      const width = Math.min(this.multisliderWidth, MULTISLIDER_WIDTH * 16);
+      return htmlSafe(`width: ${width}px`);
     } else {
       return null;
     }

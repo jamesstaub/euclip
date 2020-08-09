@@ -1,10 +1,12 @@
 @import 'colors';
 @import 'type';
 @import 'custom-properties';
+@import 'tachyons-variable-overrides';
 @import 'ember-cli-tachyons-sass';
 @import 'buttons';
-@import 'nexus.scss';
 @import 'helpers.scss';
+@import 'nexus.scss';
+@import 'track.scss';
 
 html, body {
   height: 100%;
@@ -20,11 +22,11 @@ a {
 }
 
 
-$app-header-height: 4rem;
+$app-header-height: 4.2rem;
 $project-header-height: 4rem;
 $project-tracks-height: calc(100% - #{$app-header-height} - #{$project-header-height});
 $sidebar-width: 36rem;
-$footer-height: 22.5rem;
+$footer-height: 20rem;
 
 .app-header-height {
   height: $app-header-height;
@@ -44,10 +46,6 @@ $footer-height: 22.5rem;
   max-width: $sidebar-width;
 }
 
-.sequencer-width {
-  width: 36rem;
-  overflow: scroll;
-}
 
 /* drum file picker*/
 .file-search-height {

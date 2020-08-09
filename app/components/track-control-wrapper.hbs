@@ -1,14 +1,16 @@
-<div class="relative" style={{wrapperStyle}}>
-  <div class="pa3 ba b--light-yellow" data-node-uuid={{@trackControl.trackNode.nodeUUID}}>
+<div class="flex pa3" style={{wrapperStyle}}>
+  <div class="relative {{@wrapperStyleClass}}" data-node-uuid={{@trackControl.trackNode.nodeUUID}}>
     {{yield multisliderWidth}}
-    {{!-- todo: custom selector for control (so it can control multiple nodes) --}}
-    <p class="tc">{{@trackControl.nodeAttr}}</p>
+    
+    <label class="tc">
+      {{@trackControl.nodeAttr}} 
+    </label>
+    {{#if this.isConfigurable}}
+      <button class="absolute top-0 right-0" {{on "click" this.toggleConfig}}>[•]</button>
+    {{/if}}
   </div>
 
   {{#if this.isConfigurable}}
-    <div class="absolute top-0 right-0">
-      <button {{on "click" this.toggleConfig}}>[•]</button>
-    </div>
     {{#if this.showConfig}}
       <div>
         <div class="ml1 flex flex-column justify-between mb4">
@@ -28,7 +30,6 @@
             @max={{20000}}
             @step={{0.25}}
           />
-
           <NexusNumber 
             @label="default" 
             @value={{@trackControl.defaultValue}} 

@@ -18,10 +18,11 @@
         />
 
         {{#if (eq this.controlUi "sequence")}}
-          <div class="flex flex-column mh3 pv3">
+          <div class="sequence-control-sliders flex flex-column mh3 pv3">
             <TrackControlWrapper
               @hideConfig={{true}}
               @hideInterfaceMenu={{true}}
+              @wrapperStyleClass="flex items-center row-reverse"
             >
               <NexusSlider 
                 @value={{@track.hits}} 
@@ -31,31 +32,31 @@
                 @step={{1}}
                 @size={{array 300 20}}
               >
-                <span class="f7 fw5">hits:</span>
-                <span class="f7">{{@track.hits}}</span>
+                <span class="w3 mr3">hits: {{@track.hits}}</span>
               </NexusSlider>
             </TrackControlWrapper>
 
             <TrackControlWrapper
               @hideConfig={{true}}
               @hideInterfaceMenu={{true}}
+              @wrapperStyleClass="flex items-center row-reverse"
             >
-              <NexusSlider 
-                @value={{@track.steps}} 
-                @onChangeValue={{perform @track.updateTrackTask "steps"}} 
+              <NexusSlider
+                @value={{@track.steps}}
+                @onChangeValue={{perform @track.updateTrackTask "steps"}}
                 @min={{0}}
                 @max={{this.maxSteps}}
                 @step={{1}}
                 @size={{array 300 20}}
               >
-                <span class="f7 fw5">steps:</span>
-                <span class="f7">{{@track.steps}}</span>
+                <span class="w3 mr3">steps: {{@track.steps}}</span>
               </NexusSlider>
             </TrackControlWrapper>
 
             <TrackControlWrapper
               @hideConfig={{true}}
               @hideInterfaceMenu={{true}}
+              @wrapperStyleClass="flex items-center row-reverse"
             >
               <NexusSlider 
                 @value={{@track.offset}} 
@@ -65,8 +66,7 @@
                 @step={{1}}
                 @size={{array 300 20}}
               >
-                <span class="f7 fw5">offset:</span>
-                <span class="f7">{{@track.offset}}</span>
+                <span class="w3 mr3">offset: {{@track.offset}}</span>
               </NexusSlider> 
             </TrackControlWrapper> 
           </div>
@@ -80,7 +80,7 @@
             @items={{this.trackNodesTabs}}
             @selectedValue={{this.visibleNodeIdx}}
           />
-          <TrackControls 
+          <TrackControls
             @track={{@track}}
             @trackNodesForControls={{this.trackNodesForControls}} 
             @visibleNodeIdx={{this.visibleNodeIdx}}

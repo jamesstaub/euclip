@@ -5,6 +5,16 @@
         <IconButton @icon="fi-play" @label="play" {{action "play"}} />
         <IconButton @icon="fi-stop" @label="stop" {{action "stop"}} />
         <IconButton @icon="fi-previous" @label="reset" {{action "reset"}} />
+        <div class="flex items-center ba b--dark-gray bw1">
+          <NexusNumber
+            @value={{this.model.bpm}} 
+            @onChangeNumber={{fn this.updateProject "bpm"}}
+            @min={{0}}
+            @max={{500}}
+            @step={{1}}
+          />
+          <span class="pr3">bpm</span>
+        </div>
       </div>
     <ButtonPrimary class="ml3" @label={{"+ track"}} {{on "click" this.addTrack}}/>
   </div>

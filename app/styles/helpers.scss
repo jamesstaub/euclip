@@ -1,5 +1,3 @@
-/*Tachyons-style helpers */
-$width-6: 32rem !default;
 
 /* Backgrounds */
 
@@ -7,9 +5,10 @@ $width-6: 32rem !default;
 .grow-1 { flex-grow: 1; }
 .shrink-1 { flex-shrink: 1; }
 .basis-auto { flex-basis: auto; }
-
+.row-reverse { flex-direction: row-reverse; }
 
 /* Sizing*/
+
 
 .w6 {
   width: $width-6;

@@ -1,0 +1,12 @@
+<nav class="app-header-height bg-dark-gray light-gray flex items-center justify-between pr3">
+  <div class="ml3 pa2">
+    <LinkTo @route="user">
+      {{svg-jar "logo-250-min" width=@logoWidth}}
+    </LinkTo>
+  </div>
+  <div>
+    <LinkTo class="white ttu mr3" @route="about">about</LinkTo>
+    <LinkTo class="yellow ttu mr3" @route="user.new">new project</LinkTo>
+    {{yield}}
+  </div>
+</nav>

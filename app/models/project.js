@@ -4,6 +4,7 @@ import { attr, hasMany, belongsTo } from '@ember-data/model';
 export default class ProjectModel extends ProjectAudioModel {
   @attr('string') title;
   @attr('string') slug;
+  @attr('number') bpm;
   @belongsTo('user') creator;
   @hasMany('track') tracks;
 

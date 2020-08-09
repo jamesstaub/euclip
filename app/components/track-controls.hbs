@@ -23,6 +23,8 @@
                   {{did-update (fn this.scrollToPageOffset page)}}
                 >
                   <NexusMultislider
+                    @stepIndex={{@track.stepIndex}}
+                    @sequence={{@track.sequence}}
                     @values={{trackControl.controlArrayComputed}}
                     @min={{trackControl.min}}
                     @max={{trackControl.max}}

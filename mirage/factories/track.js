@@ -1,8 +1,8 @@
 import { Factory } from 'ember-cli-mirage';
 
 export default Factory.extend({
-  hits: i => __.random(1, 6),
-  steps: i => __.random(8,16),
+  hits: i => 4,
+  steps: i => 8,
   offset: i => 0,
   filepath: i => {
     return [

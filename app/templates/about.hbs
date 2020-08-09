@@ -1,17 +1,48 @@
-{{outlet}}
-<div>
-  <h2>about euclip  </h2>
-  <section>
-    <h4>Live Coding</h4>
-  </section>
-  <section>
-    <h4>Dynamic UI</h4>
-  </section>
-  <section>
-    <h4>Credits</h4>
-    <div>Cracked</div>
-    <div>Nexus UI</div>
-    <div>Ember JS</div>
-    <div>Icons made by Sophie Greenspan and <a href="https://www.flaticon.com/authors/pixel-perfect" title="Pixel perfect">Pixel perfect</a> from <a href="https://www.flaticon.com/"     title="Flaticon">www.flaticon.com</a></div>
-  </section>
-</div>
+<NavBar @logoWidth="280px"/>
+<section class="pa3">
+  <div>
+    <h1>about euclip </h1>
+    <section>
+      <p>EUCLIP is a hybrid live coding environment for electronic music.</p>
+      <p>Write your own code or use preset snippits to build signal chains and musical logic.</p>
+    </section>
+    <section>
+      <h4>Dynamic UI</h4>
+      <p>EUCLIP's interface is created from the musical code you write.</p>
+      <p>
+        Say you write some code to create this signal chain on one of your tracks.
+        <code>[sampler-->lowpass filter-->output]</code>
+      </p>
+      <p>EUCLIP will create sliders to control the different parameters of those audio nodes such as <code>speed</code> for the sampler, <code>frequency</code> and <code>Q</code> for the filter etc.</p>
+      <p>You can control those properties manually with the sliders, or write code to change them algorithmically.</p>
+    </section>
+
+    <section>
+      <h4>Writing Musical Code</h4>
+      <p>EUCLIP's audio engine is powered by the Cracked library.</p>
+      <p>Cracked provides an ergonomic syntax for creating powerful audio signal chains</p>
+      <p>Euclip is track based...</p>
+      <p><code>__()</code> is global... setup scripts vs onstep scripts.</p>
+      <p>automatic selectors for modifying parameters</p>
+    </section>
+
+    <section>
+      <h4>Credits</h4>
+      <p>EUCLIP is built and maintained by James Staub using the following open source projects:</p>
+      <ul class="list pl0">  
+        <li>Cracked: web audio library by Bill Orcutt</li>
+        <li>Nexus UI library for musically useful interface elements</li>
+        <li>Ember JS web framework putting it all together.</li>
+      </ul>
+
+      <p>Special thanks to Sophie Greenspan for the logo, icons and theme, and additional icons from <a href="https://www.flaticon.com/authors/pixel-perfect" title="Pixel perfect">Pixel Perfect</a></p>
+    </section>
+
+    <section>
+      <h4>Contact</h4>
+      <p>Reach out on <a href="https://twitter.com/euclip_app">twitter</a></p>
+      <p>Report an issue on <a href="https://github.com/jamesstaub/euclip-octane/issues">github</a></p>
+    </section>
+    {{outlet}}
+  </div>
+</section>

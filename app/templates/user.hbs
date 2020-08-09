@@ -1,18 +1,12 @@
-<nav class="app-header-height bg-dark-gray light-gray flex items-center justify-between pr3">
-  <div class="ml3">
-    {{svg-jar "logo-250-min" width="140px"}}
-  </div>
-  <div>
-    <LinkTo class="yellow ttu mr3" @route="user.new">new project</LinkTo>
-    {{#if this.session.isAuthenticated}}
-      {{!-- <span class="mh2">{{this.session.currentUser.username}}</span> --}}
-      <a role="button" {{action "invalidateSession"}}>
-        logout
-      </a>
-    {{else}}
-      <LinkTo class="yellow" @route="login">login</LinkTo>
-    {{/if}}
-  </div>
-</nav>
+<NavBar @logoWidth="180px">
+  {{#if this.session.isAuthenticated}}
+    {{!-- <span class="mh2">{{this.session.currentUser.username}}</span> --}}
+    <a role="button" {{action "invalidateSession"}}>
+      logout
+    </a>
+  {{else}}
+    <LinkTo class="yellow" @route="login">login</LinkTo>
+  {{/if}}
+</NavBar>
 
 {{outlet}}

@@ -13,6 +13,15 @@ export default class UserCreatorProjectController extends Controller {
   }
 
   @action
+  updateProject(key, value) {
+    this.model.set(key, value);
+    if (this.model.isPlaying) {
+      this.model.startLoop();
+    }
+    // this.model.save();
+  }
+
+  @action
   async addTrack() {
     const track = this.model.tracks.createRecord({ hits: 1 });
     await this.model.setupAndSaveNewTrack(track);

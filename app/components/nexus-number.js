@@ -12,7 +12,7 @@ export default NexusBase.extend({
       min: -100000,
       max: 100000,
       step: 0.1
-    })
+    });
   },
 
   options: computed('max', 'min', 'step', 'value', {
@@ -29,6 +29,12 @@ export default NexusBase.extend({
   onChangeValue(value) {
     this.onChangeNumber(value);
   },
+
+  nexusInit() {
+    this._super(...arguments);
+    this.number.colorize('accent', '#52ebff');
+    this.number.colorize('fill', 'transparent');
+  }
   
   // TODO
   // number boxes dont support manually entering a value that is between a given step size

@@ -3,5 +3,11 @@
 }
 
 .nexus-number input {
-  text-align: center;
+  background-color: transparent;
+}
+
+.sequencer-width {
+  $multislider-width: 32.2px;
+  max-width: calc(32.2px * 16);
+  overflow: scroll;
 }
