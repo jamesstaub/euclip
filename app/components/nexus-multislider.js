@@ -13,13 +13,15 @@ export default NexusBase.extend({
       elementName: 'Multislider',
       sliderColor: '#52ebff',
       sliderBgColor: '#f7f7f7',
-      red: '#9d534f'
+      red: 'rgb(217, 83, 79)'
     });
   },
 
   didInsertElement() {
     this._super(...arguments);
+    // hackish way to select the <rect> elements that need to be styled
     this.set('sliderQuery', this.nexusElement.parent.querySelectorAll(`rect[height="120"]`));
+    this.set('sliderCapQuery', this.nexusElement.parent.querySelectorAll(`rect[height="5"]`));
     this.applyStyle();
   },
 
@@ -37,16 +39,16 @@ export default NexusBase.extend({
 
   applyStyle() {
     if(this.nexusElement && this.sequence) {
-      // hackish way to select the <rect> elements that need to be styled
-      let bgColor = this.sliderBgColor;
-      let fgColor = this.sliderColor;
-
-      this.sliderQuery.forEach((el, idx) => {
-        let stroke = fgColor;
-        let fill = this.sequence[idx] ? fgColor : bgColor;
-        el.setAttribute('style', `stroke: ${stroke}; fill: ${fill}; opacity: 1`);
-      });
+      this.sliderQuery.forEach(this.styleRectElement.bind(this));
+      this.sliderCapQuery.forEach(this.styleRectElement.bind(this))
     }
+  },
+
+  // callback when iterating over querySelector of svg <rect>s
+  styleRectElement(el, idx) {
+    let stroke = this.sliderColor;
+    let fill = this.sequence[idx] ? this.sliderColor : this.sliderBgColor;
+    el.setAttribute('style', `stroke: ${stroke}; fill: ${fill}; opacity: 1`);
   },
 
   styleOnStep() {
@@ -55,8 +57,10 @@ export default NexusBase.extend({
       // hack to avoid off by one error in current step display
       if (rectIndex === -1) {
         rectIndex = this.sequence.length - 1;
-      }      
-      this.sliderQuery[rectIndex].setAttribute('style', `stroke: ${this.red}; fill: ${this.red}; opacity: 1`);
+      }
+      let style = `stroke: ${this.red}; fill: ${this.red}; opacity: 1`;
+      this.sliderQuery[rectIndex].setAttribute('style', style);
+      this.sliderCapQuery[rectIndex].setAttribute('style', style);
     }
   },
 
@@ -72,13 +76,10 @@ export default NexusBase.extend({
         size: size,
         min: this.min,
         max: this.max,
-        // candycane: 3,
         numberOfSliders: this.values.length,
         step: this.step,
         values: this.values
       };
     }
   }),
-
-
 });

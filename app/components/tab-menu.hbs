@@ -15,8 +15,7 @@
       <button 
         class="w4 pa2 f6 ttu ba b--dark-gray {{if (eq this.val item.value) "bg-dark-gray yellow" "bg-gray light-gray"}}"
         title={{item.label}}
-        {{on "click" (fn this.select item.value)}} 
-        ...attributes
+        {{on "click" (fn this.select item.value)}}
       >
         {{item.label}}
       </button>

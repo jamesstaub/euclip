@@ -18,57 +18,63 @@
         />
 
         {{#if (eq this.controlUi "sequence")}}
-          <div class="sequence-control-sliders flex flex-column mh3 pv3">
-            <TrackControlWrapper
-              @hideConfig={{true}}
-              @hideInterfaceMenu={{true}}
-              @wrapperStyleClass="flex items-center row-reverse"
-            >
-              <NexusSlider 
-                @value={{@track.hits}} 
-                @onChangeValue={{perform @track.updateTrackTask "hits"}} 
-                @min={{0}}
-                @max={{this.maxSteps}}
-                @step={{1}}
-                @size={{array 300 20}}
+          <div>
+            <h3 class="ma3">Euclidean Rhythm</h3>
+            <div class="sequence-control-sliders flex flex-column mh3 pv3">
+              <TrackControlWrapper
+                class="pv3"
+                @hideConfig={{true}}
+                @hideInterfaceMenu={{true}}
+                @wrapperStyleClass="flex items-center row-reverse"
               >
-                <span class="w3 mr3">hits: {{@track.hits}}</span>
-              </NexusSlider>
-            </TrackControlWrapper>
+                <NexusSlider 
+                  @value={{@track.hits}} 
+                  @onChangeValue={{perform @track.updateTrackTask "hits"}} 
+                  @min={{0}}
+                  @max={{this.maxSteps}}
+                  @step={{1}}
+                  @size={{array 300 20}}
+                >
+                  <span class="w3 mr3">hits: {{@track.hits}}</span>
+                </NexusSlider>
+              </TrackControlWrapper>
 
-            <TrackControlWrapper
-              @hideConfig={{true}}
-              @hideInterfaceMenu={{true}}
-              @wrapperStyleClass="flex items-center row-reverse"
-            >
-              <NexusSlider
-                @value={{@track.steps}}
-                @onChangeValue={{perform @track.updateTrackTask "steps"}}
-                @min={{0}}
-                @max={{this.maxSteps}}
-                @step={{1}}
-                @size={{array 300 20}}
+              <TrackControlWrapper
+                class="pv3"
+                @hideConfig={{true}}
+                @hideInterfaceMenu={{true}}
+                @wrapperStyleClass="flex items-center row-reverse"
               >
-                <span class="w3 mr3">steps: {{@track.steps}}</span>
-              </NexusSlider>
-            </TrackControlWrapper>
+                <NexusSlider
+                  @value={{@track.steps}}
+                  @onChangeValue={{perform @track.updateTrackTask "steps"}}
+                  @min={{0}}
+                  @max={{this.maxSteps}}
+                  @step={{1}}
+                  @size={{array 300 20}}
+                >
+                  <span class="w3 mr3">steps: {{@track.steps}}</span>
+                </NexusSlider>
+              </TrackControlWrapper>
 
-            <TrackControlWrapper
-              @hideConfig={{true}}
-              @hideInterfaceMenu={{true}}
-              @wrapperStyleClass="flex items-center row-reverse"
-            >
-              <NexusSlider 
-                @value={{@track.offset}} 
-                @onChangeValue={{perform @track.updateTrackTask "offset"}} 
-                @min={{0}}
-                @max={{this.maxSteps}}
-                @step={{1}}
-                @size={{array 300 20}}
+              <TrackControlWrapper
+                class="pv3"
+                @hideConfig={{true}}
+                @hideInterfaceMenu={{true}}
+                @wrapperStyleClass="flex items-center row-reverse"
               >
-                <span class="w3 mr3">offset: {{@track.offset}}</span>
-              </NexusSlider> 
-            </TrackControlWrapper> 
+                <NexusSlider 
+                  @value={{@track.offset}} 
+                  @onChangeValue={{perform @track.updateTrackTask "offset"}} 
+                  @min={{0}}
+                  @max={{this.maxSteps}}
+                  @step={{1}}
+                  @size={{array 300 20}}
+                >
+                  <span class="w3 mr3">offset: {{@track.offset}}</span>
+                </NexusSlider> 
+              </TrackControlWrapper> 
+            </div>
           </div>
         {{/if}}
       </div>

@@ -1,6 +1,5 @@
 import Model from '@ember-data/model';
-import DS from 'ember-data';
-const { belongsTo, hasMany, attr } = DS;
+import { attr, belongsTo, hasMany } from '@ember-data/model';
 
 export default class TrackNodeModel extends Model {
   @belongsTo('track') track;
@@ -38,8 +37,7 @@ export default class TrackNodeModel extends Model {
    * FIXME probably still a bug here when you load saved controls from the API
    */
   async updateDefaultControlInterface(defaultControlInterface) {
-    this.set('defaultControlInterface', defaultControlInterface);
-    
+    this.set('defaultControlInterface', defaultControlInterface);    
     if (this._defaultControlInterface !== this.defaultControlInterface) {
       this.get('trackControls').forEach((trackControl) => {
         trackControl.set('interfaceName', defaultControlInterface);
@@ -48,8 +46,4 @@ export default class TrackNodeModel extends Model {
     }
     this._defaultControlInterface = this.defaultControlInterface;
   }
-
-  // get isChannelStripChild() {   
-  //   return this.parentMacro && this.parentMacro.getType() === 'channelStrip';
-  // }
 }

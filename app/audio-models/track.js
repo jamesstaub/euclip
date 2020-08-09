@@ -141,7 +141,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       let nodesOfThisType = existingtrackNodes.filterBy('nodeType', type);
       //nodes are ordered by index, so take the first one of it's type
       let trackNode = nodesOfThisType.shift();
-      
+
       const trackNodeAttrs = {
         nodeUUID: uuid, // always update uuid since the audio nodes will be new every time
         nodeType: type,
@@ -161,7 +161,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         // then remove it from the possible future choices in existingtrackNodes
         existingtrackNodes = existingtrackNodes.rejectBy('nodeUUID', trackNode.nodeUUID);        
         trackNode.setProperties(trackNodeAttrs); 
-        
+
         if (defaultControlInterface) {
           // if the `ui` attribute was changed in the script editor, update the interfaceName of track-controls
           trackNode.updateDefaultControlInterface(defaultControlInterface);
@@ -182,8 +182,10 @@ export default class TrackAudioModel extends Model.extend(Evented) {
    */
   cleanupNodeRecords() {
     if (this.trackNodes.length > this.trackAudioNodes.length) {
+      console.error('FIXME this is not deleting nodes or controls when they get removed');
       this.trackNodes.forEach((record) => {
         if (!record.nodeUUID || !this.trackAudioNodes.findBy('uuid', record.nodeUUID)) {
+          console.log('cleanup record', record.id);
           this.waitAndDestory.perform(record);
         }
       });

@@ -35,6 +35,11 @@ export default class TrackControlModel extends Model {
   }
 
   get isMultislider() {
+    // hack to prevent bug when a gain node is deleted, channel strip gain inherits it's defaultInterace property
+    // see error in audio-models/track cleanupNodeRecords
+    if (this.get('trackNode.isChannelStripChild')) {
+      return false;
+    }
     return this.interfaceName === 'multislider';
   }
 
@@ -106,7 +111,7 @@ export default class TrackControlModel extends Model {
   // each node attributes's control 
   get uiOptions() {
     const bool = ['toggle']
-    const oneD = ['slider', 'multislider', 'number'];
+    const oneD = ['slider', 'multislider'];
     const twoD = ['position']; // control 2 attributes
     const tonal = ['piano'];
     const array = ['envelope']
