@@ -11,8 +11,6 @@ Tracks
 - new track menu (different script presets)
 
 ### bugs
-sequence stops on add new track
-- changing a track's sample causes the playhead to go out of sync (try to duplicate a track, then change the sound file)
 
 Track Controls
 - wrapper: 
@@ -42,7 +40,8 @@ Scripts
   - add examples of __.ms2freq using the track tempo to control LFO speeds
 
   ### bugs
-
+  - duplicate a track, set channelstrip gain to 0, restart sequencer, gain sounds back at 1
+  
   - implement track-node order in onCreateNode callback to ensure they appear in the right order when nodes get removed/edited.
   - track node 404 errors when trying to update removed nodes
 

@@ -46,3 +46,5 @@ In Euclip, almost everything that controls sound is created with code. The code 
 - this.slider usage example
 
 # on step script
+
+if there on step script is modifying an audio node's property it will override whatever state the slider is in. 

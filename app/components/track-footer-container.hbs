@@ -1,7 +1,7 @@
 <div class="w-100 bt bw1">
   {{#unless @track.isDeleted}}
     <div class="flex bg-yellow justify-between footer-height">
-      <div class="flex h-100">
+      <div class="flex h-100 w-100">
         <ChannelStrip
           @channelStripGainControl={{this.channelStripGainControl}}
           @channelStripPannerControl={{this.channelStripPannerControl}}
@@ -20,7 +20,7 @@
         {{#if (eq this.controlUi "sequence")}}
           <div>
             <h3 class="ma3">Euclidean Rhythm</h3>
-            <div class="sequence-control-sliders flex flex-column mh3 pv3">
+            <div class="sequence-control-sliders flex flex-column mh3">
               <TrackControlWrapper
                 class="pv3"
                 @hideConfig={{true}}
@@ -77,23 +77,26 @@
             </div>
           </div>
         {{/if}}
+        {{#if (eq this.controlUi "controls")}}
+          <div class="w-100 overflow-hidden">
+            <h3 class="ma3">Node Controls</h3>
+            <div class="flex flex-column grow-1 overflow-scroll">
+              <TabMenu
+                class="ph3 mb3"
+                @onSelect={{fn this.setUi "visibleNodeIdx"}}
+                @items={{this.trackNodesTabs}}
+                @selectedValue={{this.visibleNodeIdx}}
+              />
+              <TrackControls
+                @track={{@track}}
+                @trackNodesForControls={{this.trackNodesForControls}} 
+                @visibleNodeIdx={{this.visibleNodeIdx}}
+                @updateControl={{fn this.updateControl}}
+              />
+            </div>
+          </div>
+        {{/if}}
       </div>
-      {{#if (eq this.controlUi "controls")}}
-        <div class="flex flex-column grow-1 pv3">
-          <TabMenu
-            class="ph3 mb3"
-            @onSelect={{fn this.setUi "visibleNodeIdx"}}
-            @items={{this.trackNodesTabs}}
-            @selectedValue={{this.visibleNodeIdx}}
-          />
-          <TrackControls
-            @track={{@track}}
-            @trackNodesForControls={{this.trackNodesForControls}} 
-            @visibleNodeIdx={{this.visibleNodeIdx}}
-            @updateControl={{fn this.updateControl}}
-          />
-        </div>
-      {{/if}}
     </div>
   {{/unless}}
     {{!-- 

@@ -24,7 +24,7 @@ const paramsForNode = function(nodeType) {
     case 'sampler':
       return ['speed', /* 'start', 'end'*/];
     case 'sine' || 'square' || 'triangle' || 'sawtooth':
-      return ['frequency'];
+      return ['frequency', 'detune'];
     default:
       return [];
   }
@@ -65,6 +65,11 @@ const defaultForAttr = function(attr) {
       paramDefaults.max = 6;
       paramDefaults.defaultValue = 2;
       break;
+    case 'detune':
+      paramDefaults.min = 0;
+      paramDefaults.max = 100;
+      paramDefaults.defaultValue = 0;
+      break;
     case 'distortion':
       paramDefaults.min = 0;
       paramDefaults.max = 3;
@@ -83,7 +88,7 @@ const defaultForAttr = function(attr) {
     case 'feedback':
       paramDefaults.min = 0;
       paramDefaults.max = 1;
-      paramDefaults.defaultValue = 0.84;
+      paramDefaults.defaultValue = 0;
       break;
     case 'frequency':
       paramDefaults.min = 0;
@@ -286,7 +291,7 @@ export default function() {
   });
 
   // this.get('/machines/') // get a list of drum machines)
-  // this.post('/projects/:slug/tracks/machine'); // create many tracks for each sound of a drum machine
+  // this.get('/projects/:slug/tracks/machine'); // create many tracks for each sound of a drum machine
 
   this.post('/track-nodes/', async (schema, { requestBody }) => {
     const { attributes, relationships } = JSON.parse(requestBody).data;

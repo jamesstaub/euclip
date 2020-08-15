@@ -122,6 +122,8 @@ export default class TrackControlModel extends Model {
         return oneD;
       case 'frequency':
         return oneD;
+      case 'detune':
+        return oneD;
       case 'q':
         return oneD;
       case 'decay':
@@ -166,7 +168,7 @@ export default class TrackControlModel extends Model {
       new Array(this.controlArrayValue.length
     ), () => this.defaultValue ));
     
-      this.saveTrackControl.perform();
+    this.saveTrackControl.perform();
   }
 
   @keepLatestTask

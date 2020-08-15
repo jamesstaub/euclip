@@ -3,6 +3,7 @@ import Evented from '@ember/object/evented';
 import ENV from '../config/environment';
 import { task } from "ember-concurrency-decorators";
 import { waitForProperty } from 'ember-concurrency';
+import filterNumericAttrs from '../utils/filter-numeric-attrs';
 
 export default class TrackAudioModel extends Model.extend(Evented) {  
 
@@ -40,7 +41,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   setupAudioFromScripts(initScript) {
     // array to store audio node uuids created in this track's script
     // not to be confused with trackNode models, 
-    // { uuid: type } 
+    // { uuid: type, atts: { filename: '...', speed: 1} } 
     this.set('trackAudioNodes', []); 
 
     // cracked._onCreateNode was added to the Cracked library to give access to the AudioNode object upon creation
@@ -60,9 +61,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         const uuid = node.getUUID();
         trackNode[uuid] = type;
         trackNode.uuid = uuid;
-        
+        trackNode.userSettings = userSettings; // save the initialization attributes so they can be used to update TrackControl's min/max/default param values
         this.trackAudioNodes.push(trackNode);
-
         // 'ui' is a custom attr that users can set in the script editor when defining a cracked audio node
         // new AudioNode objects won't get initialized with it by default so we hack it on here
         // see cracked.js line 330
@@ -136,8 +136,10 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // to find or create corresponding trackNode model records 
     this.trackAudioNodes.forEach((node, idx) => {
       const [uuid, type] = Object.entries(node)[0];
-      const defaultControlInterface =  __._getNode(uuid)?.ui;
-
+      const defaultControlInterface =  __._getNode(uuid)?.ui || 'slider'
+      
+      // grab the attributes passed in to the initialization of a cracked node that will be used to set default state of track controls (eg. frequency, gain, speed etc.)
+      const userSettingsForControl = filterNumericAttrs(node.userSettings);
       let nodesOfThisType = existingtrackNodes.filterBy('nodeType', type);
       //nodes are ordered by index, so take the first one of it's type
       let trackNode = nodesOfThisType.shift();
@@ -147,7 +149,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         nodeType: type,
         order: idx,
         parentMacro: node.parentMacro,
-        defaultControlInterface: defaultControlInterface || 'slider' // get the custom ui saved on the AudioNode, which was defined by the user
+        defaultControlInterface // get the custom ui saved on the AudioNode, which was defined by the user
       };
       
       // the parentMacro property is a cracked web audio node which happens to be a macro 
@@ -162,13 +164,15 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         existingtrackNodes = existingtrackNodes.rejectBy('nodeUUID', trackNode.nodeUUID);        
         trackNode.setProperties(trackNodeAttrs); 
 
-        if (defaultControlInterface) {
-          // if the `ui` attribute was changed in the script editor, update the interfaceName of track-controls
-          trackNode.updateDefaultControlInterface(defaultControlInterface);
-        }
       } else {
         trackNode = this.trackNodes.createRecord(trackNodeAttrs);
       }
+
+      // if the `ui` attribute was changed in the script editor, update the interfaceName of track-controls
+      trackNode.updateDefaultControlInterface(defaultControlInterface);
+      // update track control with user default values
+      trackNode.updateDefaultValue(userSettingsForControl);
+
       // OPTIMIZE
       // refactor the trackNode endpoint to support a single batch save
       trackNode.save();

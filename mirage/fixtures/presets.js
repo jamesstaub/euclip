@@ -1,5 +1,30 @@
-import onstepScript from "../factories/onstep-script";
 
+const samples = [
+  {
+    title: 'looping sample',
+    description: 'with loop:true the sample will just infinitely repeat outside of the sequencer. ADSR triggers an envelope on each step',
+    initScript:`
+  __()
+    .sampler({
+      id: 'loopy',
+      path: this.filepath,
+      ui: 'slider',
+      speed: 4,
+      loop: true,//infinitely repeat
+    })
+    .adsr('fast')
+    .channelStrip()
+    .connect('#mixer');
+
+  __('#loopy').start();
+  
+`,
+    onstepScript:`if (data) {
+  __('adsr').adsr('trigger');
+}
+`
+  }
+]
 const lfos = [
   {
     title: 'modulate sampler',
@@ -7,28 +32,27 @@ const lfos = [
     initScript: 
 `__()
   .sampler({
-    id: this.id,
     path: this.filepath,
     ui: 'multislider',
   })
   .channelStrip()
   .connect('#mixer');
 
-  __('#lfo-1').remove();
   __().lfo({
     id: 'lfo-1',
     type: 'sine', // sine, sawtooth, square, triangle, pink
-    frequency: 1, // Hz
+    frequency: 4, // Hz
     gain: 2,// LFO amplitude (max value for speed)
     modulates:'speed'
   }).connect(this.samplerSelector);
 
-  __('#lfo-1').start();
+__('#lfo-1').start();
 
 `,
     onstepScript:
 `if (data) {
   this.playSample(index);
+  // need to connect lfo to sampler on every step
   __('#lfo-1').connect(this.samplerSelector);
 }`
   }
@@ -71,11 +95,13 @@ for (var i = 0; i < 8; i++) {
     var note = __.random_scale('minor', 3, 6);
     __('#sin-'+i).attr({ frequency: note });
   }
+} else {
+  __('.my-sines').stop();    
 }
 
 `
   }
 ]
 
-const presets = [...lfos, ...synths];
+const presets = [...lfos, ...synths, ...samples];
 export default presets
