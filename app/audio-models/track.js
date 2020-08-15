@@ -9,7 +9,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
   // getters to expose data to the init and onstep script scopes for user
   get samplerSelector() {
-    return `#${this.id}`;
+    return `sampler .track-${this.id}`;
   }
 
   // serialize 2d array of track control values to use in scripts
@@ -48,7 +48,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // this callback gets called when a user creates cracked audio nodes in the script editor ui
     // macro components should not get individual ui controls
     __.onCreateNode = (node, type, creationParams, userSettings) => {
-
       // add a track-id class to every node created so it can be properly cleaned up
       let existingClass = creationParams.settings.class;
       creationParams.settings.class = `${existingClass ? existingClass + ',' : ''}track-${this.id}`

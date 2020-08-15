@@ -13,6 +13,8 @@ const paramsForNode = function(nodeType) {
       return ['frequency', 'q'];
     case 'lowshelf' || 'highshelf' || 'peaking':
       return ['frequency', 'q', 'gain'];
+    case 'lfo':
+      return ['frequency', 'gain'];
     case 'overdrive':
       return ['drive', 'color', 'postCut'];
     case 'panner':
@@ -30,9 +32,7 @@ const paramsForNode = function(nodeType) {
   }
 }
 
-// TODO refactor this to take attr/node combinations
-// (eg. frequency min/max is different for a filter than for an LFO )
-const defaultForAttr = function(attr) {
+const defaultForAttr = function(attr, nodeType) {
   const paramDefaults = {};
   switch (attr) {
     case 'bits':
@@ -91,9 +91,15 @@ const defaultForAttr = function(attr) {
       paramDefaults.defaultValue = 0;
       break;
     case 'frequency':
-      paramDefaults.min = 0;
-      paramDefaults.max = 10000;
-      paramDefaults.defaultValue = 300;
+      if (nodeType === 'lfo') {
+        paramDefaults.min = 0;
+        paramDefaults.max = 20;
+        paramDefaults.defaultValue = 5;  
+      } else {
+        paramDefaults.min = 0;
+        paramDefaults.max = 10000;
+        paramDefaults.defaultValue = 300;
+      }
       break;
     case 'gain':
       paramDefaults.min = 0;
@@ -137,7 +143,7 @@ const defaultForAttr = function(attr) {
 const createTrackControls = function (trackNode) {    
   const controlAttrs = paramsForNode(trackNode['node-type']);
   return controlAttrs.map((controlAttr) => {
-    const defaults = defaultForAttr(controlAttr);
+    const defaults = defaultForAttr(controlAttr, trackNode['node-type']);
     defaults.controlValue = defaults.defaultValue;
     // NOTE API should validate interface names and note types on track controls       
     const trackControl  = trackNode.createTrackControl({

@@ -70,6 +70,8 @@ export default Component.extend({
   },
 
   willDestroyElement() {
-    this.nexusElement.destroy();
+    if (this.nexusElement) {
+      this.nexusElement.destroy();
+    }
   }
 });

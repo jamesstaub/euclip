@@ -24,6 +24,7 @@ Euclip uses the Nexus JS interface library. Currently, just a few Nexus elements
 ## Euclip additions to cracked library
 - `ui:` attribute
 - `playSample()`
+- `channelStrip()` macro
 - `uniqueSelector` helper (tbd)
 - `this.slider`
 <!-- discussion of selectors
