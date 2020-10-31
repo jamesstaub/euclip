@@ -53,7 +53,7 @@
     "ember-maybe-import-regenerator": "^0.1.6",
     "ember-qunit": "^4.4.1",
     "ember-resolver": "^8.0.0",
-    "ember-simple-auth": "^2.1.0",
+    "ember-simple-auth": "^3.0.1",
     "ember-source": "https://s3.amazonaws.com/builds.emberjs.com/beta/shas/bdd219f7c716d6a7a4731ca739e04d1dac43a9cd.tgz",
     "ember-svg-jar": "^2.2.3",
     "ember-template-lint": "^2.6.0",
