@@ -179,7 +179,7 @@ export default function() {
     }
   };
 
-  this.get('/users/me', (schema) => {
+  this.get('/users/login', (schema) => {
     const user = schema.users.first();
     return user;
   });

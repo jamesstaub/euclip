@@ -1,24 +1,55 @@
-<form {{action "authenticate" on="submit"}}>
-  <label for="identification">
-    Login
-  </label>
-  {{input id="identification" placeholder="Enter Login" value=this.identification}}
-  <label for="password">
-    Password
-  </label>
-  {{input
-    id="password"
-    placeholder="Enter Password"
-    type="password"
-    value=this.password
-  }}
-  <button type="submit">
-    Login
-  </button>
-  {{#if this.errorMessage}}
-    <p>
-      {{this.errorMessage}}
-    </p>
-  {{/if}}
-</form>
-{{outlet}}
+<div class="mw4 center">
+  <form {{action "authenticate" on="submit"}}>
+    <fieldset class="mb4">
+      <legend>Login</legend>
+      <label for="email">
+        Email
+      </label>
+      {{input id="email" placeholder="Enter Login" value=this.email}}
+      <label for="password">
+        Password
+      </label>
+      {{input
+        id="password"
+        placeholder="Enter Password"
+        type="password"
+        value=this.password
+        autocomplete=true
+      }}
+      <button type="submit">
+        Login
+      </button>
+      {{#if this.errorMessage}}
+      <p>
+        {{this.errorMessage}}
+      </p>
+      {{/if}}
+    </fieldset>
+    <fieldset>
+      <legend>Sign up</legend>
+      <label for="signup-email">
+        Email
+      </label>
+      {{input id="signup-email" placeholder="Enter Login" value=this.email}}
+      <label for="signup-password">
+        Password
+      </label>
+      {{input
+        id="signup-password"
+        placeholder="Enter Password"
+        type="password"
+        value=this.password
+        autocomplete=true
+      }}
+      <button type="submit">
+        Login
+      </button>
+      {{#if this.errorMessage}}
+      <p>
+        {{this.errorMessage}}
+      </p>
+      {{/if}}
+    </fieldset>
+  </form>
+  {{outlet}}
+</div>
