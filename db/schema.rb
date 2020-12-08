@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_08_20_194632) do
+ActiveRecord::Schema.define(version: 2020_12_08_041451) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
@@ -48,12 +48,84 @@ ActiveRecord::Schema.define(version: 2020_08_20_194632) do
     t.index ["user_id"], name: "index_allowlisted_jwts_on_user_id"
   end
 
+  create_table "init_scripts", force: :cascade do |t|
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+  end
+
+  create_table "onstep_scripts", force: :cascade do |t|
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+  end
+
+  create_table "projects", force: :cascade do |t|
+    t.text "title"
+    t.text "slug"
+    t.integer "bpm", default: 120, null: false
+    t.uuid "creator_id", null: false
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["creator_id"], name: "index_projects_on_creator_id"
+  end
+
+  create_table "scripts", force: :cascade do |t|
+    t.text "code"
+    t.text "editor_content"
+    t.bigint "track_id", null: false
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["track_id"], name: "index_scripts_on_track_id"
+  end
+
+  create_table "track_controls", force: :cascade do |t|
+    t.integer "min"
+    t.integer "max"
+    t.float "default_value"
+    t.float "control_value"
+    t.text "control_array_value"
+    t.text "node_attr"
+    t.text "interface_name"
+    t.bigint "track_node_id", null: false
+    t.bigint "track_id", null: false
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["track_id"], name: "index_track_controls_on_track_id"
+    t.index ["track_node_id"], name: "index_track_controls_on_track_node_id"
+  end
+
+  create_table "track_nodes", force: :cascade do |t|
+    t.text "default_control_interface"
+    t.boolean "is_channel_strip_child"
+    t.text "node_type"
+    t.integer "order"
+    t.bigint "track_id", null: false
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["track_id"], name: "index_track_nodes_on_track_id"
+  end
+
+  create_table "tracks", force: :cascade do |t|
+    t.integer "hits"
+    t.integer "steps"
+    t.integer "offset"
+    t.text "filepath"
+    t.text "custom_sequence"
+    t.bigint "project_id", null: false
+    t.bigint "init_script_id", null: false
+    t.bigint "onstep_script_id", null: false
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["init_script_id"], name: "index_tracks_on_init_script_id"
+    t.index ["onstep_script_id"], name: "index_tracks_on_onstep_script_id"
+    t.index ["project_id"], name: "index_tracks_on_project_id"
+  end
+
   create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "first_name", null: false
     t.string "last_name", null: false
     t.string "username", null: false
     t.string "email", null: false
-    t.jsonb "settings", default: {}, null: false
+    t.jsonb "settings", default: {"roles"=>["user"]}, null: false
     t.string "encrypted_password", null: false
     t.string "password_salt", null: false
     t.string "reset_password_token"
@@ -70,6 +142,7 @@ ActiveRecord::Schema.define(version: 2020_08_20_194632) do
     t.datetime "discarded_at"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.integer "project_id"
     t.index ["discarded_at"], name: "index_users_on_discarded_at"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
@@ -80,4 +153,12 @@ ActiveRecord::Schema.define(version: 2020_08_20_194632) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "allowlisted_jwts", "users", on_delete: :cascade
+  add_foreign_key "projects", "users", column: "creator_id", on_delete: :cascade
+  add_foreign_key "scripts", "tracks"
+  add_foreign_key "track_controls", "track_nodes"
+  add_foreign_key "track_controls", "tracks"
+  add_foreign_key "track_nodes", "tracks"
+  add_foreign_key "tracks", "init_scripts"
+  add_foreign_key "tracks", "onstep_scripts"
+  add_foreign_key "tracks", "projects"
 end

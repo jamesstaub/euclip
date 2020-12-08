@@ -24,6 +24,9 @@ Rails.application.routes.draw do
   namespace :v1 do
     resources :users, only: %i[index show] do
       get :avatar, on: :member
+      resources :projects, only: [:index]
     end
+    
+    resources :projects
   end
 end

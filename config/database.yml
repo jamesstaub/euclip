@@ -5,14 +5,14 @@ default: &default
 
 development:
   <<: *default
-  database: sandbox_api_development
+  database: euclip_api_development
 
 test:
   <<: *default
-  database: sandbox_api_test
+  database: euclip_api_test
 
 # production:
 #   <<: *default
-#   database: sandbox_api_production
-#   username: sandbox_api
-#   password: <%= ENV['SANDBOX_API_DATABASE_PASSWORD'] %>
+#   database: euclip_api_production
+#   username: euclip_api
+#   password: <%= ENV['EUCLIP_API_DATABASE_PASSWORD'] %>

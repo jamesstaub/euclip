@@ -13,6 +13,8 @@ class User < ApplicationRecord
          jwt_revocation_strategy: self, stretches: 20,
          authentication_keys: [:login]
 
+  has_many :projects, foreign_key: "creator_id"
+  
   has_one_attached :avatar
 
   before_create :add_user_role, if: lambda { |u| u.settings.blank? }
@@ -79,7 +81,7 @@ class User < ApplicationRecord
   private
 
   def add_user_role
-    settings.merge!(roles: ['user']) if settings.blank?
+    settings.merge!(roles: ['user', 'admin']) if settings.blank?
   end
 
   def capitalize_names

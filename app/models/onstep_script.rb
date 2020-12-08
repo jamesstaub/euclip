@@ -1,0 +1,2 @@
+class OnstepScript < Script
+end

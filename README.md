@@ -1,4 +1,4 @@
-# Sandbox API
+# Devise auth solution forked from Sandbox API
 
 This is a Ruby 2.7.x, Rails 6.0.x API which uses PostgreSQL, Devise for Authentication, and RSpec for the test suite. Its purpose is to be a base API setup, with authentication. This code can be used `as-is` or you can modify the content for your purposes. It uses Devise AllowlistedJwt token authentication. How to create, update, deactivate, login, and logout a user is demonstrated below.
 
@@ -110,6 +110,30 @@ Users can be created and updated using `form-data` or `JSON`. However, to add an
 ### Creating a User with Form-Data (to upload an avatar)
 
 To POST, you can use curl or postman or any utility that allows you to send `multipart/form-data`. The following example demonstrates how to use curl:
+
+```js
+data = {
+  user: {
+    first_name: "james",
+    last_name: "staub",
+    username: "euclip",
+    email: "jamesstaub@gmail.com",
+    password: "3uCl1p#",
+    password_confirmation: "3uCl1p#",
+  },
+};
+
+fetch("https://localhost:3000/registration", {
+  body: JSON.stringify(data),
+  headers: {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "*",
+  },
+  method: "POST",
+});
+
+```
 
 ```sh
 curl -v \

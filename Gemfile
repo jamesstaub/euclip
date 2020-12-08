@@ -46,6 +46,7 @@ group :development do
   gem 'meta_request'
   gem 'solargraph'
   gem 'squasher'
+  gem 'pry'
 end
 
 

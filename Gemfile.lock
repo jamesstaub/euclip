@@ -386,6 +386,7 @@ DEPENDENCIES
   oj
   pagy
   pg
+  pry
   pry-byebug
   pry-rails
   puma

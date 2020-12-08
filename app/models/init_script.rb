@@ -1,0 +1,2 @@
+class InitScript < Script
+end

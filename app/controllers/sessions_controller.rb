@@ -14,7 +14,13 @@ class SessionsController < Devise::SessionsController
   private
 
   def respond_with(resource, _opts = {})
-    render json: UserSerializer.new(resource).to_hash, status: :ok
+    user = UserSerializer.new(resource).to_hash
+
+    # FIXME, probably want to override application-level respond_with to include token
+    user[:token] = request.env['warden-jwt_auth.token']
+    user[:login] = resource.username
+
+    render json: user, status: :ok
   end
 
   def signout_user(all_sessions: false)
