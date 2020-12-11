@@ -7,8 +7,8 @@ class CreateTracks < ActiveRecord::Migration[6.0]
       t.text :filepath
       t.text :custom_sequence
       t.belongs_to :project, null: false, foreign_key: true
-      t.belongs_to :init_script, null: false, foreign_key: true
-      t.belongs_to :onstep_script, null: false, foreign_key: true
+      t.belongs_to :init_script, foreign_key: true
+      t.belongs_to :onstep_script, foreign_key: true
 
       t.timestamps
     end

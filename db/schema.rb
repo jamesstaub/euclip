@@ -71,7 +71,7 @@ ActiveRecord::Schema.define(version: 2020_12_08_041451) do
   create_table "scripts", force: :cascade do |t|
     t.text "code"
     t.text "editor_content"
-    t.bigint "track_id", null: false
+    t.bigint "track_id"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.index ["track_id"], name: "index_scripts_on_track_id"
@@ -111,8 +111,8 @@ ActiveRecord::Schema.define(version: 2020_12_08_041451) do
     t.text "filepath"
     t.text "custom_sequence"
     t.bigint "project_id", null: false
-    t.bigint "init_script_id", null: false
-    t.bigint "onstep_script_id", null: false
+    t.bigint "init_script_id"
+    t.bigint "onstep_script_id"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.index ["init_script_id"], name: "index_tracks_on_init_script_id"

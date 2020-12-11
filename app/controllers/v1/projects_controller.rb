@@ -1,4 +1,6 @@
 class V1::ProjectsController < ApplicationController
+  before_action ->{ authenticate_user!(force: true) }, only: %i[create update]
+
   def index
     @pagy, @projects = pagy(Project.where(creator_id: params["user_id"]).order(created_at: :asc))
     render json: ProjectSerializer.new(
@@ -8,7 +10,7 @@ class V1::ProjectsController < ApplicationController
   end
 
   def create
-    @project = Project.new(creator: current_user)
+    @project = Project.create!(creator_id: current_user.id)
     if @project.save
       render json: ProjectSerializer.new(
         @project

@@ -24,9 +24,11 @@ Rails.application.routes.draw do
   namespace :v1 do
     resources :users, only: %i[index show] do
       get :avatar, on: :member
-      resources :projects, only: [:index]
+      resources :projects, only: %i[index]
     end
     
-    resources :projects
+    resources :projects, param: :slug do
+      resources :tracks
+    end
   end
 end

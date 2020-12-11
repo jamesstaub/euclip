@@ -1,5 +1,12 @@
 class Track < ApplicationRecord
   belongs_to :project
-  belongs_to :init_script
-  belongs_to :onstep_script
+  has_one :init_script
+  has_one :onstep_script
+
+  def self.create_with_relations(params)
+    init_script = InitScript.create!
+    onstep_script = OnstepScript.create!
+    params.merge!({ init_script: init_script, onstep_script: onstep_script })
+    Track.create(params)
+  end
 end
