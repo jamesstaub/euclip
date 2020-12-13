@@ -22,6 +22,7 @@ export default class ProjectModel extends ProjectAudioModel {
 
   // maybe move this to track?
   async setupAndSaveNewTrack(track, saveOptions) {
+    // Optimize. dont wait to save, instead save async and unbind if save fails
     await track.save(saveOptions);
     await this.awaitAndBindTracks();
     

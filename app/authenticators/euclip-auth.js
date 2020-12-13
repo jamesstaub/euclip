@@ -1,34 +1,25 @@
 import { inject as service } from '@ember/service';
 import DeviseAuthenticator from 'ember-simple-auth/authenticators/devise';
 import ENV from '../config/environment';
-import { isEmpty } from '@ember/utils';
 
 export default DeviseAuthenticator.extend({
   store: service(),
   session: service(),
+  currentUser: service(),
 
   serverTokenEndpoint: `${ENV.APP.userEndpoint}`,
+  invalidateEndpoint: `${ENV.APP.invalidateEndpoint}`,
 
-  restore(data) {
-    if (this.session.currentUser) {
-      Promise.resolve();
-    } else {
-      // should be a GET to session endpoint
-      // return this.authenticate();
+  identificationAttributeName: 'login',
+
+  async invalidate() {
+    if (this.session.isAuthenticated) {
+      let headers = {};
+      headers['Authorization'] = `Bearer ${this.session.data.authenticated.token}`;
+      const response = await fetch(this.invalidateEndpoint, { method: 'DELETE', headers: headers});
+      if (response.status !== 200) {
+        console.error('Problem invalidating server session')
+      }
     }
   },
-
-  invalidate(data) {
-    this.session.set('currentUser', null);
-  },
-
-  // overriding the defaul devise _validate, which requires token be in the response data. seemingly no need for that
-  // also format resourcename (email) per JSONAPI specs
-  _validate(data) {
-    const identificationAttributeName = this.identificationAttributeName;
-    const resourceName = this.resourceName;
-    const _data = data[resourceName] ? data[resourceName] : data;
-  
-    return !isEmpty(_data.data.attributes[identificationAttributeName]);
-  }
 });

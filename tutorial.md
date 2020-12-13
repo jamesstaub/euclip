@@ -27,6 +27,12 @@ Euclip uses the Nexus JS interface library. Currently, just a few Nexus elements
 - `channelStrip()` macro
 - `uniqueSelector` helper (tbd)
 - `this.slider`
+
+## Selectors
+### overview
+
+### sampler is a special case
+this.samplerSelector
 <!-- discussion of selectors
     TODO: should there be a universal strategy for auto-selectors ?
     or only support samplerSelector etc

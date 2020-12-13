@@ -1,6 +1,6 @@
 <NavBar @logoWidth="180px">
   {{#if this.session.isAuthenticated}}
-    {{!-- <span class="mh2">{{this.session.currentUser.username}}</span> --}}
+    <span class="mh2">{{this.currentUser.user.username}}</span>
     <a role="button" {{action "invalidateSession"}}>
       logout
     </a>

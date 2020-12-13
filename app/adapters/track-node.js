@@ -1,6 +1,6 @@
-import JSONAPIAdapter from '@ember-data/adapter/json-api';
+import ApplicationAdapter from "./application";
 
-export default class ProjectAdapter extends JSONAPIAdapter {
+export default class ProjectAdapter extends ApplicationAdapter {
   urlForCreateRecord(modelName) {
     return `${this._buildURL(modelName)}?include=track-controls`;
   }

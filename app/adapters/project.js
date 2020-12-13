@@ -1,11 +1,10 @@
-import JSONAPIAdapter from '@ember-data/adapter/json-api';
+import ApplicationAdapter from "./application";
 
-export default class ProjectAdapter extends JSONAPIAdapter {
+export default class ProjectAdapter extends ApplicationAdapter {
   urlForQueryRecord(params, modelName) {
     const slug = params.slug;
     delete params.slug;
-    const baseUrl = this.buildURL(modelName);
-    return `${baseUrl}/${encodeURIComponent(slug)}`;
+    return `/projects/${encodeURIComponent(slug)}`;
   }
 
   urlForFindAll(modelName, snapshot) {

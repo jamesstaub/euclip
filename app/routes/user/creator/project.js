@@ -1,4 +1,5 @@
 import Route from '@ember/routing/route';
+import { action } from '@ember/object';
 
 export default class UserCreatorProjectRoute extends Route {
   model({ slug }) {
@@ -18,9 +19,15 @@ export default class UserCreatorProjectRoute extends Route {
   }
 
   async getPresets(controller) {
-    const response = await fetch('/presets');
+    const response = await fetch('/v1/presets');
     const presets = await response.json();
     controller.set('presets', presets);
+  }
+
+  @action
+  error(error) {
+    console.log(error);
+    this.transitionTo('user.my-projects');
   }
 
 }

@@ -1,21 +1,28 @@
-<div class="mw4 center">
+<NavBar @logoWidth="280px" />
+<div class="mt4 mw4 center">
+  {{#if session.isAuthenticated}}
+  <p>Logged in as {{session.currentUser.username}}</p>
+  <button {{on "click" this.invalidateSession}}>
+    Logout
+  </button>
+  {{else}}
   <form {{action "authenticate" on="submit"}}>
     <fieldset class="mb4">
       <legend>Login</legend>
-      <label for="email">
+      <label for="username">
         Email
       </label>
-      {{input id="email" placeholder="Enter Login" value=this.email}}
+      {{input id="username" placeholder="Enter Login" value=this.username}}
       <label for="password">
         Password
       </label>
       {{input
-        id="password"
-        placeholder="Enter Password"
-        type="password"
-        value=this.password
-        autocomplete=true
-      }}
+          id="password"
+          placeholder="Enter Password"
+          type="password"
+          value=this.password
+          autocomplete=true
+        }}
       <button type="submit">
         Login
       </button>
@@ -27,20 +34,20 @@
     </fieldset>
     <fieldset>
       <legend>Sign up</legend>
-      <label for="signup-email">
+      <label for="signup-username">
         Email
       </label>
-      {{input id="signup-email" placeholder="Enter Login" value=this.email}}
+      {{input id="signup-username" placeholder="Enter Login" value=this.username}}
       <label for="signup-password">
         Password
       </label>
       {{input
-        id="signup-password"
-        placeholder="Enter Password"
-        type="password"
-        value=this.password
-        autocomplete=true
-      }}
+            id="signup-password"
+            placeholder="Enter Password"
+            type="password"
+            value=this.password
+            autocomplete=true
+          }}
       <button type="submit">
         Login
       </button>
@@ -51,5 +58,6 @@
       {{/if}}
     </fieldset>
   </form>
+  {{/if}}
   {{outlet}}
 </div>

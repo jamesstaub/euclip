@@ -3,9 +3,21 @@ import { inject as service } from '@ember/service';
 import ENV from '../config/environment';
 
 export default class UserRoute extends Route {
-  @service session
-  constructor() {
-    // fetch(ENV.APP.DRUMSERVER_HOST); // fire a ping to wakeup free heroku server
-    super(...arguments);
+  @service session;
+  @service currentUser;
+
+  beforeModel() {
+    fetch(ENV.APP.DRUMSERVER_HOST); // fire a ping to wakeup free heroku server
+    return this._loadCurrentUser();
+  }
+
+  async _loadCurrentUser() {
+    try {
+      await this.currentUser.load();
+    } catch(err) {
+      console.log('invalidate');
+      await this.session.invalidate();
+    }
   }
 }
+

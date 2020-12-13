@@ -1,7 +1,8 @@
 # euclip
 
-`ember s --ssl-key "/Users/admin/.ssh/server.key" --ssl-cert "/Users/admin/.ssh/server.crt"`
-
+local development against api server using a self signed certificate
+`ember s --proxy https://localhost:3000  --secure-proxy=false`
+`rails server -b 'ssl://127.0.0.1:3000?key=/Users/admin/.ssh/server.key&cert=/Users/admin/.ssh/server.crt'`
 
 ## TODO:
 

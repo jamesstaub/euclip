@@ -23,8 +23,15 @@ export default class UserCreatorProjectController extends Controller {
 
   @action
   async addTrack() {
-    const track = this.model.tracks.createRecord({ hits: 1 });
-    await this.model.setupAndSaveNewTrack(track);
+    let track = this.model.tracks.createRecord({ hits: 1 });
+    try {
+      track = await this.model.setupAndSaveNewTrack(track);
+    } catch (error) {
+      // TODO: implement offline track creation if save fails
+      // indicate with a global "saved" state to allow local changes
+      // useful for mutliperson editing scenarios + modifying other users' projects
+      track.deleteRecord();
+    }
   }
 
   @action

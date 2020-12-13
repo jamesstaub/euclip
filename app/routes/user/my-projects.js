@@ -7,10 +7,9 @@ export default class UserMyProjectsRoute extends Route {
     if (this.session.isAuthenticated) {
       // TODO separate endpoint for user's projects
       // and all public projects
-      debugger
       return this.store.findAll('project', { 
         adapterOptions: {
-          userId: this.currentUser.id
+          userId: this.currentUser.user.id
         },
         include: 'creator,tracks,tracks.init-script,tracks.onstep-script'
       });

@@ -1,7 +1,9 @@
-import DS from 'ember-data';
-const { Model, hasMany, attr } = DS;
+import Model from '@ember-data/model'
+import { attr, hasMany,  } from '@ember-data/model';
 
 export default class UserModel extends Model {
   @attr('string') username;
+  @attr('string') email;
+  @attr('string') avatar;
   @hasMany('project') projects;
 }

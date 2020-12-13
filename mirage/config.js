@@ -179,25 +179,30 @@ export default function() {
     }
   };
 
-  this.get('/users/login', (schema) => {
+  this.get('/v1/users/:id', (schema) => {
     const user = schema.users.first();
     return user;
   });
 
-  this.get('/users/:id/projects', (schema) => {
+  this.get('/login', (schema) => {
+    const user = schema.users.first();
+    return user;
+  });
+
+  this.get('/v1/users/:id/projects', (schema) => {
     return schema.projects.all();
   });
   
-  this.post('/projects');
-  this.get('/projects/:slug', (schema, { params }) => {
+  this.post('/v1/projects');
+  this.get('/v1/projects/:slug', (schema, { params }) => {
     return schema.projects.findBy({slug:params.slug});
   });
 
-  this.patch('/projects/:slug');
-  this.del('/projects/:slug');
+  this.patch('/v1/projects/:slug');
+  this.del('/v1/projects/:slug');
 
-  this.get('/projects/:slug/tracks');
-  this.post('/projects/:slug/tracks', (schema, request) => {
+  this.get('/v1/projects/:slug/tracks');
+  this.post('/v1/projects/:slug/tracks', (schema, request) => {
     let trackAttrs, initScriptAttrs, onstepScriptAttrs, trackNodeAttrs, trackControlAttrs;
     let trackNodeIdMap = {};
 
@@ -279,13 +284,13 @@ export default function() {
     return track;
   });
 
-  this.patch('/tracks/:id');
+  this.patch('/v1/tracks/:id');
 
-  this.get('/projects/:slug/tracks/:id', (schema, { params }) => {
+  this.get('/v1/projects/:slug/tracks/:id', (schema, { params }) => {
     return schema.tracks.find(params.id);
   });
 
-  this.del('/tracks/:id', async ({ tracks }, request) => {
+  this.del('/v1/tracks/:id', async ({ tracks }, request) => {
     const id = request.params.id;
     const track = tracks.find(id);
     track.destroy();
@@ -296,10 +301,10 @@ export default function() {
     return track;
   });
 
-  // this.get('/machines/') // get a list of drum machines)
-  // this.get('/projects/:slug/tracks/machine'); // create many tracks for each sound of a drum machine
+  // this.get('/v1/machines/') // get a list of drum machines)
+  // this.get('/v1/projects/:slug/tracks/machine'); // create many tracks for each sound of a drum machine
 
-  this.post('/track-nodes/', async (schema, { requestBody }) => {
+  this.post('/v1/track-nodes/', async (schema, { requestBody }) => {
     const { attributes, relationships } = JSON.parse(requestBody).data;
     attributes.trackId = relationships.track.data.id;
     const trackNode = schema.trackNodes.create(attributes);
@@ -309,23 +314,23 @@ export default function() {
     return trackNode;
   });
   
-  this.patch('/track-nodes/:id');
+  this.patch('/v1/track-nodes/:id');
 
-  this.del('/track-nodes/:id', async ({ trackNodes }, request) => {
+  this.del('/v1/track-nodes/:id', async ({ trackNodes }, request) => {
     const id = request.params.id;
     const trackNode = trackNodes.find(id);
     trackNode.trackControls.destroy();
     return trackNode;
   });
 
-  this.patch('/track-controls/:id');
-  this.patch('init-scripts/:id');
-  this.patch('onstep-scripts/:id');
-  this.del('/track-controls/:id');
-  this.del('init-scripts/:id');
-  this.del('onstep-scripts/:id');
+  this.patch('/v1/track-controls/:id');
+  this.patch('/v1/init-scripts/:id');
+  this.patch('/v1/onstep-scripts/:id');
+  this.del('/v1/track-controls/:id');
+  this.del('/v1/init-scripts/:id');
+  this.del('/v1/onstep-scripts/:id');
 
-  this.get('/presets', (schema) => {
+  this.get('/v1/presets', (schema) => {
     return schema.db.presets;
   });
 

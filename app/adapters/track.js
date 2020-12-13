@@ -1,6 +1,6 @@
-import JSONAPIAdapter from '@ember-data/adapter/json-api';
+import ApplicationAdapter from './application';
 
-export default class TrackAdapter extends JSONAPIAdapter {
+export default class TrackAdapter extends ApplicationAdapter {
   // TODO cleanup by overwriting buildUrl method
   urlForCreateRecord(modelName, snapshot) {
     let url = `/projects/${snapshot.record.project.get('slug')}/tracks?include=project,init-script,onstep-script`;

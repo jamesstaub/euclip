@@ -7,23 +7,28 @@ export default class LoginController extends Controller {
   
   constructor(){
     super(...arguments);
-    this.email = 'admin@admin.com';
-    this.password = 'admin123';
+    this.username = 'euclip';
+    this.password = '3uCl1p#';
   }
- 
+
   @action
   async authenticate() {
     try {
-      await this.session.authenticate('authenticator:euclip-auth', this.email,this.password);
+      await this.session.authenticate('authenticator:euclip-auth', this.username, this.password);
     } catch (error) {
       this.set('errorMessage', error.error || error);
     }
 
     if (this.session.isAuthenticated) {
       this.transitionToRoute('user.my-projects');
-      // What to do with all this success?
     }
+ 
     // dont bubble
     return false;
+  }
+
+  @action
+  invalidateSession() {
+    this.session.invalidate();
   }
 }

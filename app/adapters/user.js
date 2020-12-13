@@ -1,10 +1,7 @@
-import JSONAPIAdapter from '@ember-data/adapter/json-api';
+import ApplicationAdapter from './application';
 import ENV from '../config/environment';
 
-export default class UserAdapter extends JSONAPIAdapter {
-  urlForFindRecord() {
-    return ENV.APP.userEndpoint;
-  }
+export default class UserAdapter extends ApplicationAdapter {
   urlForQueryRecord() {
     return ENV.APP.userEndpoint;
   }

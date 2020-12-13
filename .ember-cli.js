@@ -13,4 +13,6 @@ module.exports = {
   */
   "disableAnalytics": false,
   "ssl": true,
+  "ssl-key":"/Users/admin/.ssh/server.key",
+  "ssl-cert":"/Users/admin/.ssh/server.crt"
 }
