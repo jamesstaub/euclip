@@ -2,6 +2,7 @@ class Track < ApplicationRecord
   belongs_to :project
   has_one :init_script
   has_one :onstep_script
+  has_many :track_nodes
 
   attribute :hits, :integer, default: 4
   attribute :steps, :integer, default: 8
@@ -10,7 +11,7 @@ class Track < ApplicationRecord
 
   def self.create_with_relations(params)
     Track.transaction do
-      track = Track.create!(params)
+      track = self.create!(params)
       track.create_init_script!
       track.create_onstep_script!
       track

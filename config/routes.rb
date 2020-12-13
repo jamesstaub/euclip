@@ -30,5 +30,6 @@ Rails.application.routes.draw do
     resources :projects, param: :slug do
       resources :tracks
     end
+    resources :track_nodes, :path => '/track-nodes'
   end
 end
