@@ -1,10 +1,9 @@
 class Project < ApplicationRecord
-  after_save :set_defaults
-  # The set_defaults will only work if the object is new
-
   belongs_to :creator, class_name: "User" 
-  attribute :bpm, :integer, default: 120
+  has_many :tracks
 
+  after_save :set_defaults
+  attribute :bpm, :integer, default: 120
   validates :creator, presence: true
   
   private 

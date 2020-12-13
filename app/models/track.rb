@@ -3,10 +3,17 @@ class Track < ApplicationRecord
   has_one :init_script
   has_one :onstep_script
 
+  attribute :hits, :integer, default: 4
+  attribute :steps, :integer, default: 8
+  attribute :offset, :integer, default: 0
+  attribute :filepath, :string, default: '/SequentialCircuits%20Tom/kick.mp3'
+
   def self.create_with_relations(params)
-    init_script = InitScript.create!
-    onstep_script = OnstepScript.create!
-    params.merge!({ init_script: init_script, onstep_script: onstep_script })
-    Track.create(params)
+    Track.transaction do
+      track = Track.create!(params)
+      track.create_init_script!
+      track.create_onstep_script!
+      track
+    end
   end
 end

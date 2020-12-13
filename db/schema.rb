@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_12_08_041451) do
+ActiveRecord::Schema.define(version: 2020_12_11_222322) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
@@ -48,16 +48,6 @@ ActiveRecord::Schema.define(version: 2020_12_08_041451) do
     t.index ["user_id"], name: "index_allowlisted_jwts_on_user_id"
   end
 
-  create_table "init_scripts", force: :cascade do |t|
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
-  end
-
-  create_table "onstep_scripts", force: :cascade do |t|
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
-  end
-
   create_table "projects", force: :cascade do |t|
     t.text "title"
     t.text "slug"
@@ -69,7 +59,8 @@ ActiveRecord::Schema.define(version: 2020_12_08_041451) do
   end
 
   create_table "scripts", force: :cascade do |t|
-    t.text "code"
+    t.text "type"
+    t.text "safe_code"
     t.text "editor_content"
     t.bigint "track_id"
     t.datetime "created_at", precision: 6, null: false
@@ -111,13 +102,11 @@ ActiveRecord::Schema.define(version: 2020_12_08_041451) do
     t.text "filepath"
     t.text "custom_sequence"
     t.bigint "project_id", null: false
-    t.bigint "init_script_id"
-    t.bigint "onstep_script_id"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
-    t.index ["init_script_id"], name: "index_tracks_on_init_script_id"
-    t.index ["onstep_script_id"], name: "index_tracks_on_onstep_script_id"
+    t.bigint "script_id"
     t.index ["project_id"], name: "index_tracks_on_project_id"
+    t.index ["script_id"], name: "index_tracks_on_script_id"
   end
 
   create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -158,7 +147,5 @@ ActiveRecord::Schema.define(version: 2020_12_08_041451) do
   add_foreign_key "track_controls", "track_nodes"
   add_foreign_key "track_controls", "tracks"
   add_foreign_key "track_nodes", "tracks"
-  add_foreign_key "tracks", "init_scripts"
-  add_foreign_key "tracks", "onstep_scripts"
   add_foreign_key "tracks", "projects"
 end

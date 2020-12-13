@@ -6,14 +6,15 @@ class V1::TracksController < ApplicationController
     @track = Track.create_with_relations({project_id: @project.id})
     if @track.save
       render json: TrackSerializer.new(
-        @track
+        @track,
+        include: included_relations
       ), status: :ok
     else
       render json: { errors: @track.errors.full_messages.join(', ') }, status: :unprocessable_entity
     end
   end
 
-  private 
+  private
 
   def set_project
     project_slug = params.require(:project_slug)

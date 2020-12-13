@@ -21,4 +21,4 @@ project = Project.create!({
   creator: admin,
 })
 
-# Track.create_with_relations(project: project)
+Track.create_with_relations(project: project)

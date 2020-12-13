@@ -5,7 +5,18 @@ class V1::ProjectsController < ApplicationController
     @pagy, @projects = pagy(Project.where(creator_id: params["user_id"]).order(created_at: :asc))
     render json: ProjectSerializer.new(
       @projects,
-      { meta: { pagination: pagy_metadata(@pagy) } }
+      {
+        include: included_relations,
+        meta: { pagination: pagy_metadata(@pagy) }
+      }
+    ), status: :ok
+  end
+
+  def show
+    @project = Project.find_by(slug: params["slug"])
+    render json: ProjectSerializer.new(
+      @project,
+      include: included_relations
     ), status: :ok
   end
 
