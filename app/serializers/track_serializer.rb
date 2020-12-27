@@ -5,4 +5,6 @@ class TrackSerializer
   belongs_to :project
   has_one :init_script
   has_one :onstep_script
+  has_many :track_nodes
+  has_many :track_controls
 end

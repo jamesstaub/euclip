@@ -87,7 +87,7 @@ ActiveRecord::Schema.define(version: 2020_12_11_222322) do
   create_table "track_nodes", force: :cascade do |t|
     t.text "default_control_interface"
     t.boolean "is_channel_strip_child"
-    t.text "node_type"
+    t.text "node_type", null: false
     t.integer "order"
     t.bigint "track_id", null: false
     t.datetime "created_at", precision: 6, null: false

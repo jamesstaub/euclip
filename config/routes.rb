@@ -28,8 +28,13 @@ Rails.application.routes.draw do
     end
     
     resources :projects, param: :slug do
-      resources :tracks
+      resources :tracks, only: %i[show create]
     end
+
+    resources :tracks, only: %i[update]
     resources :track_nodes, :path => '/track-nodes'
+
+    resources :init_scripts, :controller => 'scripts', :path => '/init-scripts'
+    resources :onstep_scripts, :controller => 'scripts', :path => '/onstep-scripts'
   end
 end

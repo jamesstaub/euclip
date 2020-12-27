@@ -2,7 +2,8 @@ class Track < ApplicationRecord
   belongs_to :project
   has_one :init_script
   has_one :onstep_script
-  has_many :track_nodes
+  has_many :track_nodes, :dependent => :destroy
+  has_many :track_controls, :through => :track_nodes
 
   attribute :hits, :integer, default: 4
   attribute :steps, :integer, default: 8

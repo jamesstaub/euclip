@@ -12,6 +12,9 @@ require "action_mailbox/engine"
 require "action_text/engine"
 require "action_view/railtie"
 require "action_cable/engine"
+require_relative "../app/middlewares/snake_case_parameters"
+
+
 # require "sprockets/railtie"
 # require "rails/test_unit/railtie"
 
@@ -38,5 +41,7 @@ module EuclipApi
     config.autoload_paths += %W(#{config.root}/lib)
     config.autoload_paths += Dir["#{config.root}/lib/*"]
     config.autoload_paths += Dir["#{config.root}/lib/**/"]
+
+    config.middleware.use SnakeCaseParameters
   end
 end
