@@ -24,6 +24,8 @@ module.exports = function(environment) {
     APP: {
       userEndpoint: '/login',
       invalidateEndpoint: '/logout',
+      
+      // nodes defined in cracked library that euclip supports for TrackNodes and TrackControls
       supportedAudioNodes: [
         'allpasss', 
         'bandpass', 
@@ -38,16 +40,18 @@ module.exports = function(environment) {
         'lowpass',
         'notch', 
         'overdrive', 
-        'peaking', 
+        'panner',
+        'peaking',
         'reverb', 
         'ring', 
         'sampler',
         'sine',
         'square',
         'sawtooth',
-      ]
-      // Here you can pass flags/options to your application instance
-      // when it is created
+      ],
+      
+      // JSON API include? query param string of related models for calls to projects endpoint
+      projectIncludeParams: 'creator,tracks,tracks.track-nodes,tracks.track-controls,tracks.init-script,tracks.onstep-script',
     }
   };
 

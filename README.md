@@ -68,7 +68,12 @@ Files
   - drag and drop UI for local sounds
   - set filepath local for library 
   - waveform UI control for slicing (array of start times)
+  - support a dropbox URL or local folder
 
+Misc featurs:
+  - multiplayer websocket editing
+  - contributor chat box
+  - assistant in chat window suggesting next steps with actions
 
 ## Documentation:
 
@@ -87,6 +92,10 @@ init:
 onstep:
   - index, data, array args
 
+
+
+## Globals
+`cracked` and `__` are globally available as the single instance of the cracked audio context
 
 ## Prerequisites
 

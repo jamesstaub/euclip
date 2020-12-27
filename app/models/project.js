@@ -13,7 +13,12 @@ export default class ProjectModel extends ProjectAudioModel {
     const tracksReady = await Promise.all(tracks.map(async (track) => {
       const initScript = await track.initScript;
       await track.onstepScript;
-      track.bindProjectEvents(this, initScript);
+      try {
+        track.bindProjectEvents(this, initScript);
+      } catch (error) {
+        console.error('FAILED TO BIND AUDIO');
+        console.error(error);
+      }
       return track;
     }));
     this.initSignalChain();

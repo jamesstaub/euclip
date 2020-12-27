@@ -10,7 +10,6 @@ export default class TrackModel extends TrackAudioModel {
   @tracked offset;
   @tracked filepath;
 
-  @attr('string') type
   @attr('string') filepath
 
   @belongsTo('project') project

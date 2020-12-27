@@ -16,6 +16,7 @@ export default class ApplicationAdapter extends JSONAPIAdapter.extend(DataAdapte
     if (this.session.isAuthenticated) {
       headers['Authorization'] = `Bearer ${this.session.data.authenticated.token}`;
     }
+    headers['Content-Type'] = 'application/vnd.api+json';
 
     return headers;
   }

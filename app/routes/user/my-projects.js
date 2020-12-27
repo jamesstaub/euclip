@@ -1,5 +1,7 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
+import ENV from 'euclip/config/environment';
+
 export default class UserMyProjectsRoute extends Route {
   @service session
   @service currentUser
@@ -11,7 +13,7 @@ export default class UserMyProjectsRoute extends Route {
         adapterOptions: {
           userId: this.currentUser.user.id
         },
-        include: 'creator,tracks,tracks.init-script,tracks.onstep-script'
+        include: ENV.APP.projectIncludeParams
       });
     }
   }

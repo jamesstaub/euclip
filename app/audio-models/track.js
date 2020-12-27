@@ -44,7 +44,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // { uuid: type, atts: { filename: '...', speed: 1} } 
     this.set('trackAudioNodes', []); 
 
-    // cracked._onCreateNode was added to the Cracked library to give access to the AudioNode object upon creation
+    // cracked.onCreateNode was added to the Cracked library to give access to the AudioNode object upon creation
     // this callback gets called when a user creates cracked audio nodes in the script editor ui
     // macro components should not get individual ui controls
     __.onCreateNode = (node, type, creationParams, userSettings) => {
@@ -105,7 +105,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
           const trackNode = {}
           const type = {
             'GainNode': 'gain',
-            'StereoPannerNode': 'panner'
+            'PannerNode': 'panner'
           }[node.constructor.name];
 
           trackNode[node.uuid] = type;
@@ -123,9 +123,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
    * and we now need to create or update TrackNode ember data records.
    * 
    * 
-   * 
-   * 
    * FIXME: how to re-order if user adds new nodes between existing ones?
+   *
    */
   findOrCreateTrackNodeRecords() {
     // trackNode records already created for this track
@@ -136,7 +135,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     this.trackAudioNodes.forEach((node, idx) => {
       const [uuid, type] = Object.entries(node)[0];
       const defaultControlInterface =  __._getNode(uuid)?.ui || 'slider'
-      
+
       // grab the attributes passed in to the initialization of a cracked node that will be used to set default state of track controls (eg. frequency, gain, speed etc.)
       const userSettingsForControl = filterNumericAttrs(node.userSettings);
       let nodesOfThisType = existingtrackNodes.filterBy('nodeType', type);
@@ -162,7 +161,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         // then remove it from the possible future choices in existingtrackNodes
         existingtrackNodes = existingtrackNodes.rejectBy('nodeUUID', trackNode.nodeUUID);        
         trackNode.setProperties(trackNodeAttrs); 
-
       } else {
         trackNode = this.trackNodes.createRecord(trackNodeAttrs);
       }
@@ -188,7 +186,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       console.error('FIXME this is not deleting nodes or controls when they get removed');
       this.trackNodes.forEach((record) => {
         if (!record.nodeUUID || !this.trackAudioNodes.findBy('uuid', record.nodeUUID)) {
-          console.log('cleanup record', record.id);
           this.waitAndDestory.perform(record);
         }
       });

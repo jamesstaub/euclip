@@ -1,9 +1,10 @@
 import Route from '@ember/routing/route';
 import { action } from '@ember/object';
+import ENV from 'euclip/config/environment';
 
 export default class UserCreatorProjectRoute extends Route {
   model({ slug }) {
-    return this.store.queryRecord('project', { slug, include: 'creator,tracks,tracks.init-script,tracks.onstep-script' });
+    return this.store.queryRecord('project', { slug, include: ENV.APP.projectIncludeParams });
   }
 
   afterModel(project) {
