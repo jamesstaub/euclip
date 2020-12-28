@@ -1,7 +1,7 @@
-class V1::TracksController < ApplicationController
+class V1::TracksController < V1::BaseController
   respond_to :json
   before_action ->{ authenticate_user!(force: true) }, only: %i[create update]
-  before_action :set_track, only: %i[show update]
+  before_action :set_track, only: %i[show update destroy]
   before_action :set_project, only: %i[show create]
 
   def show
@@ -20,8 +20,8 @@ class V1::TracksController < ApplicationController
     end
   end
 
-  def update  
-    @track.update(@attributes)
+  def update
+    @track.update(cleaned_params)
     if @track.save
       render json: TrackSerializer.new(
         @track,
@@ -32,8 +32,19 @@ class V1::TracksController < ApplicationController
     end
   end
 
+  def destroy
+    @track.destroy
+  end
+
   private
   
+  def cleaned_params
+    # TODO: 
+    # eventually filepath should be like any other TrackControl attribute
+    # and a Sequence model can contain properties for euclidean, custom, or other types of sequences
+    @attributes.permit(:filepath, :hits, :steps, :offset, :custom_sequence)
+  end
+
   def set_track
     @track = Track.find(params[:id])
   end

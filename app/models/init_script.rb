@@ -15,6 +15,7 @@ class InitScript < Script
   .connect('#mixer')
     
     } if self.safe_code.nil?
+
     super
   end
 end

@@ -1,10 +1,12 @@
 class OnstepScript < Script
   def set_default
     self.type = "OnstepScript"
-    self.safe_code = %{if (data) {
+
+      self.safe_code = %{if (data) {
   this.playSample(index);
 } 
-    }
+    } if self.safe_code.nil?
+
     super
   end
 end

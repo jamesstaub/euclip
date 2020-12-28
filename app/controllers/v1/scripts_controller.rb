@@ -1,4 +1,4 @@
-class V1::ScriptsController < ApplicationController
+class V1::ScriptsController < V1::BaseController
   before_action :set_script, only: %i[show update]
   before_action :set_clean_attrs, only: %i[create update]
   before_action :serializer_klass, only: %i[create update]
@@ -24,11 +24,10 @@ class V1::ScriptsController < ApplicationController
   # The client sends the 'code' attribute which represents the currently saved 
   # state of the text editor
   # 'safe_code' is saved in the database after the 'code' string is sanitized
-
   def set_clean_attrs
     # TODO implement the javascript code cleaning solution implemented in a google 
     # function script to strip out potentially malicious code
-    attrs = @attributes.permit(:code, :safe_code, :editor_content).to_h
+    attrs = @attributes.permit(:code, :editor_content).to_h
     attrs[:safe_code] = attrs[:code]
     @clean_attrs = attrs.except(:code)
   end

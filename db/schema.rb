@@ -73,26 +73,15 @@ ActiveRecord::Schema.define(version: 2020_12_11_222322) do
     t.integer "max"
     t.float "default_value"
     t.float "control_value"
-    t.text "control_array_value"
+    t.float "control_array_value", default: [], array: true
     t.text "node_attr"
     t.text "interface_name"
-    t.bigint "track_node_id", null: false
+    t.text "node_type"
+    t.integer "node_order"
     t.bigint "track_id", null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.index ["track_id"], name: "index_track_controls_on_track_id"
-    t.index ["track_node_id"], name: "index_track_controls_on_track_node_id"
-  end
-
-  create_table "track_nodes", force: :cascade do |t|
-    t.text "default_control_interface"
-    t.boolean "is_channel_strip_child"
-    t.text "node_type", null: false
-    t.integer "order"
-    t.bigint "track_id", null: false
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
-    t.index ["track_id"], name: "index_track_nodes_on_track_id"
   end
 
   create_table "tracks", force: :cascade do |t|
@@ -144,8 +133,6 @@ ActiveRecord::Schema.define(version: 2020_12_11_222322) do
   add_foreign_key "allowlisted_jwts", "users", on_delete: :cascade
   add_foreign_key "projects", "users", column: "creator_id", on_delete: :cascade
   add_foreign_key "scripts", "tracks"
-  add_foreign_key "track_controls", "track_nodes"
   add_foreign_key "track_controls", "tracks"
-  add_foreign_key "track_nodes", "tracks"
   add_foreign_key "tracks", "projects"
 end

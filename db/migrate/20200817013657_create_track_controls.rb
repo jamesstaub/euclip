@@ -5,10 +5,13 @@ class CreateTrackControls < ActiveRecord::Migration[6.0]
       t.integer :max
       t.float :default_value
       t.float :control_value
-      t.text :control_array_value
+      t.float :control_array_value, array: true, default: []
       t.text :node_attr
       t.text :interface_name
-      t.belongs_to :track_node, null: false, foreign_key: true
+      
+      t.text :node_type
+      t.integer :node_order
+
       t.belongs_to :track, null: false, foreign_key: true
 
       t.timestamps

@@ -1,4 +1,4 @@
-class V1::ProjectsController < ApplicationController
+class V1::ProjectsController < V1::BaseController
   before_action ->{ authenticate_user!(force: true) }, only: %i[create update]
 
   def index
