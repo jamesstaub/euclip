@@ -96,7 +96,7 @@ for (var i = 0; i < 8; i++) {
     __('#sin-'+i).attr({ frequency: note });
   }
 } else {
-  __('.my-sines').stop();    
+  __('my-envelopes').adsr('trigger', [0.01, 0.01, 0, 10]); 
 }
 
 `

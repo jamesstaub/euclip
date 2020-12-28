@@ -40,6 +40,14 @@ Scripts
   - - access to slider value in functions would effectively allow non-linear sliders
   - add examples of __.ms2freq using the track tempo to control LFO speeds
 
+ - User testing question:
+  - what is the best way to manage an onstep script that is mutating a particular parameter at certain times,
+    and the UI is mutating the same parameter at other times?
+    - should track controls have a `disable` feature?
+    - or should the script explicitly call `applyTrackControl` so it is extra clear?
+    - - and if so, perhaps the trackControl should have some UI indicating if applyTrackControl is beging called (subtle indicator light)
+
+
   ### bugs
   - duplicate a track, set channelstrip gain to 0, restart sequencer, gain sounds back at 1
   

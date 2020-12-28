@@ -163,15 +163,16 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
       if (trackNode) {
         // then remove it from the possible future choices in existingtrackNodes
-        existingtrackNodes = existingtrackNodes.rejectBy('nodeUUID', trackNode.nodeUUID);        
+        existingtrackNodes = existingtrackNodes.rejectBy('nodeUUID', trackNode.nodeUUID);
         trackNode.setProperties(trackNodeAttrs);
       } else {
-        // a recird id necessary for client-side relationships between track-node and track-controller
-        // so this convoluted string should ensure no duplicate ids ever happen
-        // however when a trackNode is found in the if block above, it will update and these id values will be outdated
+        // ID is necessary for client-side relationships between track-node and track-controller
+        // so we're using the audio node's UUID at time of creation.
+        // however when a trackNode is found and updated in the if block above, 
+        // it will update with a new audio node uuid and this id value will be outdated
         // so theyre just a representation of the state of original creation
         trackNodeAttrs = {
-          id: `${this.id}-${type}-${idx}-${this.trackAudioNodes.length}`,
+          id: `${uuid}`,
           ...trackNodeAttrs
         }
         trackNode = this.trackNodes.createRecord(trackNodeAttrs);
@@ -192,7 +193,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   cleanupNodeRecords() {
     const trackControlsToDelete = [];
     if (this.trackNodes.length > this.trackAudioNodes.length) {
-      console.error('FIXME this is not deleting nodes or controls when they get removed');
+      console.error('FIXME this is not yet deleting nodes or controls when they get removed');
       this.trackNodes.forEach((record) => {
         if (!record.nodeUUID || !this.trackAudioNodes.findBy('uuid', record.nodeUUID)) {
           console.error('TODO send array of track control ids to delete to new endpoint')

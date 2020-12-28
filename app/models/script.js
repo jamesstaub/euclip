@@ -60,7 +60,7 @@ export default class ScriptModel extends Model {
  @keepLatestTask
  *saveScriptTask(property, value) {
    this.set(property, value);
-   yield timeout(300);
+   yield timeout(1000);
    yield this.save();
  }
 }

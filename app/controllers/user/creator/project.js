@@ -13,12 +13,14 @@ export default class UserCreatorProjectController extends Controller {
   }
 
   @action
+  // OPTIMIZE:
+  // Throttle this with a concurrency task
   updateProject(key, value) {
     this.model.set(key, value);
     if (this.model.isPlaying) {
       this.model.startLoop();
     }
-    // this.model.save();
+    this.model.save();
   }
 
   @action

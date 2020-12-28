@@ -55,14 +55,22 @@ export default class TrackControlModel extends Model {
   @belongsTo('track') track;
 
   bindTrackEvents(track) {
-    track.on('trackStep', this.onTrackStep.bind(this));
-    this.on('didDelete', ()=>{
-      this.off('trackStep', this.onTrackStep.bind(this));
-    });
+    // chennelstrip nodes wont ever have onstep events or
+    // multisldier controls
+    if (!this.get('trackNode.isChannelStripChild')) {
+      track.on('trackStep', this.onTrackStep.bind(this));
+      this.on('didDelete', ()=>{
+        this.off('trackStep', this.onTrackStep.bind(this));
+      });
+    }
   }
 
 
   onTrackStep(index) {
+    if (this.nodeType !== this.trackNode.get('nodeType')) {
+      throw "Something is wrong: trackControl trackNode mismatch";
+    }
+    console.log('bind', this.nodeAttr);
     // this might get called by the sequencer while we're trying to delete the node or control    
     if (!this.isDestroyed ) {
       if (this.nodeAttr && this.interfaceName === 'multislider') {
@@ -94,9 +102,6 @@ export default class TrackControlModel extends Model {
       const uuid = this.trackNode.get('nodeUUID');
       const node = __._getNode(uuid);
       if(node) {
-        if (this.nodeType ==='sampler') {
-          console.log(attrs);
-        }
         node.attr(attrs);
       } else if (uuid) {
         // there's no audio node for this trackNode's uuid, so clear it.
