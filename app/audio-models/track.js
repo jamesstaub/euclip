@@ -1,8 +1,6 @@
 import Model from '@ember-data/model';
 import Evented from '@ember/object/evented';
 import ENV from '../config/environment';
-import { task } from "ember-concurrency-decorators";
-import { waitForProperty } from 'ember-concurrency';
 import filterNumericAttrs from '../utils/filter-numeric-attrs';
 
 export default class TrackAudioModel extends Model.extend(Evented) {  
@@ -82,16 +80,20 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     this.pushMacroNodes();
     this.findOrCreateTrackNodeRecords();
     this.cleanupNodeRecords();
+    this.setupTrackControls();
     this.bindTrackControls();
     this.bindToSequencer();
   }
 
 
   /**
-   * Currently the only node that gets trackNode models for it's individual child nodes are channelStrips
-   * since channelStrip is a special case managed by euclip
+   * Currently the only audio node that gets trackNode models for it's individual child nodes are channelStrips
+   * since channelStrip is a special case managed by euclip.
    * 
-   * pull out the child nodes and push them into the array that findOrCreate deals with
+   * the channelStrip macro encapsulates the main volume+pan sliders for a track
+   * 
+   * This function selects channelStrips child audio nodes and push them into the array that findOrCreate deals with,
+   * ensuring they track control records get created for them
    * **/
   pushMacroNodes() {
     if (this.channelStripAudioNode) {      
@@ -105,7 +107,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
           const trackNode = {}
           const type = {
             'GainNode': 'gain',
-            'PannerNode': 'panner'
+            'StereoPannerNode': 'panner'
           }[node.constructor.name];
 
           trackNode[node.uuid] = type;
@@ -119,9 +121,11 @@ export default class TrackAudioModel extends Model.extend(Evented) {
    * find-or-create TrackNode records for each audio node object
    * created on this track
    * 
-   * this method assumes that cracked audio nodes were created by the script, 
+   * this method assumes that cracked audio nodes (which are wrappers around web audio AudioNode objects) were created by the script, 
    * and we now need to create or update TrackNode ember data records.
    * 
+   * TrackNode records are ephemeral, so trackNode.save is never called. 
+   * TrackControls however, get created on the server, and returned to the client where they are associated with the TrackNode records
    * 
    * FIXME: how to re-order if user adds new nodes between existing ones?
    *
@@ -134,7 +138,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // to find or create corresponding trackNode model records 
     this.trackAudioNodes.forEach((node, idx) => {
       const [uuid, type] = Object.entries(node)[0];
-      const defaultControlInterface =  __._getNode(uuid)?.ui || 'slider'
+      const defaultControlInterface =  __._getNode(uuid)?.ui || 'slider';
 
       // grab the attributes passed in to the initialization of a cracked node that will be used to set default state of track controls (eg. frequency, gain, speed etc.)
       const userSettingsForControl = filterNumericAttrs(node.userSettings);
@@ -142,14 +146,14 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       //nodes are ordered by index, so take the first one of it's type
       let trackNode = nodesOfThisType.shift();
 
-      const trackNodeAttrs = {
+      let trackNodeAttrs = {
         nodeUUID: uuid, // always update uuid since the audio nodes will be new every time
         nodeType: type,
         order: idx,
         parentMacro: node.parentMacro,
         defaultControlInterface // get the custom ui saved on the AudioNode, which was defined by the user
       };
-      
+
       // the parentMacro property is a cracked web audio node which happens to be a macro 
       // this is used to determine if the node should appear with the normal node controls, 
       // or separated as in the channel strip component. 
@@ -160,8 +164,16 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       if (trackNode) {
         // then remove it from the possible future choices in existingtrackNodes
         existingtrackNodes = existingtrackNodes.rejectBy('nodeUUID', trackNode.nodeUUID);        
-        trackNode.setProperties(trackNodeAttrs); 
+        trackNode.setProperties(trackNodeAttrs);
       } else {
+        // a recird id necessary for client-side relationships between track-node and track-controller
+        // so this convoluted string should ensure no duplicate ids ever happen
+        // however when a trackNode is found in the if block above, it will update and these id values will be outdated
+        // so theyre just a representation of the state of original creation
+        trackNodeAttrs = {
+          id: `${this.id}-${type}-${idx}-${this.trackAudioNodes.length}`,
+          ...trackNodeAttrs
+        }
         trackNode = this.trackNodes.createRecord(trackNodeAttrs);
       }
 
@@ -169,11 +181,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       trackNode.updateDefaultControlInterface(defaultControlInterface);
       // update track control with user default values
       trackNode.updateDefaultValue(userSettingsForControl);
-
-      // OPTIMIZE
-      // refactor the trackNode endpoint to support a single batch save
-      trackNode.save();
-    });    
+    });
   }
 
   /**
@@ -182,28 +190,55 @@ export default class TrackAudioModel extends Model.extend(Evented) {
    * FIXME: this still leaves orphaned trackNode records, but when duplicating, we might not have the uuid yet?
    */
   cleanupNodeRecords() {
+    const trackControlsToDelete = [];
     if (this.trackNodes.length > this.trackAudioNodes.length) {
       console.error('FIXME this is not deleting nodes or controls when they get removed');
       this.trackNodes.forEach((record) => {
         if (!record.nodeUUID || !this.trackAudioNodes.findBy('uuid', record.nodeUUID)) {
-          this.waitAndDestory.perform(record);
+          console.error('TODO send array of track control ids to delete to new endpoint')
+          trackControlsToDelete.push(record.trackControls);
+          record.deleteRecord();
         }
       });
     }
+    
+    trackControlsToDelete.flatMap((trackControl) => trackControl.id)
   }
 
-  // this gets called when a track is duplicated but the nodes are inFlight,
-  // so we check isSaving before trying to destory them.
-  @task
-  *waitAndDestory(record) {
-    yield waitForProperty(this.get('trackNodes'), 'isFulfilled', true);
-    yield waitForProperty(record, 'isSaving', false);
+  /**
+   * Manually manage the relationships between db-persisted track-controls
+   * and locally ephemeral track-nodes 
+   */
+  setupTrackControls() {
+    this.trackControls
+      .filter((trackControl) => trackControl.get('track.id') === this.id)
+      .forEach((trackControl) => {
+        // TODO find the existing trackNode this control belongs to and push to collection
+        // infer based on type, attr and order
+        
+        const nodeForControl = this.trackNodes
+          .filterBy('nodeType', trackControl.nodeType)
+          .findBy('order', trackControl.nodeOrder);
 
-    if (record.isDeleted) {
-      return record.destroyRecord();     
-    }
+        // set the realtion on the control to keep ember-data happy
+        trackControl.set('trackNode', nodeForControl);
+
+        // then push the control to the node's relation array
+        nodeForControl?.trackControls.pushObject(trackControl);
+      });
+
+    // call method (defined on tracknode model) to validate if track node has proper controls
+    // if not create controls for node
+    this.trackNodes.forEach((trackNode) => {
+      // naively assume that if any trackControls exist, 
+      // all proper andnecessary trackControls exist for this node
+      // TODO: better validation
+      if (trackNode.trackControls.length === 0) {
+        trackNode.createTrackControls();
+      }
+    });
   }
-  
+
   /**
    * track controls are added/updated to the store after find-or-create track nodes
    * bindTrackEvents causes them to listen to this.trigger('trackStep')
@@ -258,7 +293,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       playSample(index) {
         __(this.samplerSelector).stop()
         __(this.samplerSelector).start();
-        
+
         // // HACK see above
         if (speedControl) {
           speedControl.onTrackStep(index);

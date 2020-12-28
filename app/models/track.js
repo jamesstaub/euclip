@@ -38,22 +38,21 @@ export default class TrackModel extends TrackAudioModel {
   async destroyAndCleanup() {
     this.unbindAndRemoveCrackedNodes();
 
-    this.initScript.content.destroyRecord();
-    this.onstepScript.content.destroyRecord();
     const trackNodes = await this.trackNodes;
-    // this.store.unloadRecord(initScript);
-    // this.store.unloadRecord(onstepScript);
+    // this.store.unloadRecord(this.initScript);
+    // this.store.unloadRecord(this.onstepScript);
     
     trackNodes.forEach((trackNode) => {
       try {
-        if (trackNode && trackNode.trackControls) {
-          // Move this logic to trackNode model so it can be used on removeNode
-          trackNode.trackControls.forEach((trackControl) => {
-            trackControl.destroyRecord();
-            // this.store.unloadRecord(trackControl);
-          });
-          // this.store.unloadRecord(trackNode);
-          trackNode.destroyRecord();
+        if (trackNode) {
+          this.store.unloadRecord(trackNode);
+          if (trackNode.trackControls) {
+            trackNode.trackControls.forEach((trackControl) => {
+              // these are deleted via :dependent_destory on the server, 
+              // so just unload them on track delete
+              this.store.unloadRecord(trackControl);
+            });
+          }
         }
       } catch (error) {
         console.error('TODO ensure track relations are properly deleted', error);        

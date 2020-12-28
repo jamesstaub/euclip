@@ -1497,7 +1497,7 @@ cracked.stereoPanner = function (userParams) {
         "mapping": {
             "pan": "pan.value"
         },
-        "method": "createPanner", // EUCLIP change method to avoid createStereoPanner error in safari
+        "method": "createStereoPanner", // This throws an error in safari but createPanner doesn't seem to work in chrome
         "settings": {}
     };
     createNode("stereoPanner", creationParams, userParams);

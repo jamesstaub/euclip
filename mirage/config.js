@@ -1,164 +1,3 @@
-/* code to be moved to server  */
-const paramsForNode = function(nodeType) {
-  switch (nodeType) {
-    case 'bitcrusher':
-      return ['frequency', 'bits'];
-    case 'comb':
-      return ['delay', 'damping', 'cutoff', 'feedback'];
-    case 'delay':
-      return ['delay', 'damping', 'feedback', 'cutoff', 'frequency'];
-    case 'gain':
-      return ['gain'];
-    case 'lowpass' || 'highpass' || 'bandpass' || 'allpasss' || 'notch':
-      return ['frequency', 'q'];
-    case 'lowshelf' || 'highshelf' || 'peaking':
-      return ['frequency', 'q', 'gain'];
-    case 'lfo':
-      return ['frequency', 'gain'];
-    case 'overdrive':
-      return ['drive', 'color', 'postCut'];
-    case 'panner':
-      return ['pan'];
-    case 'reverb':
-      return ['decay', 'reverse'];
-    case 'ring':
-      return ['distortion', 'frequency'];
-    case 'sampler':
-      return ['speed', /* 'start', 'end'*/];
-    case 'sine' || 'square' || 'triangle' || 'sawtooth':
-      return ['frequency', 'detune'];
-    default:
-      return [];
-  }
-}
-
-const defaultForAttr = function(attr, nodeType) {
-  const paramDefaults = {};
-  switch (attr) {
-    case 'bits':
-      paramDefaults.min = 1;
-      paramDefaults.max = 16;
-      paramDefaults.defaultValue = 6;
-      break;
-    case 'color':
-      paramDefaults.min = 0;
-      paramDefaults.max = 1000;
-      paramDefaults.defaultValue = 800;
-      break;
-    case 'cutoff':
-      paramDefaults.min = 0;
-      paramDefaults.max = 4000;
-      paramDefaults.defaultValue = 1500;
-      break;
-    case 'damping':
-      paramDefaults.min = 0;
-      paramDefaults.max = 1;
-      paramDefaults.defaultValue = 0.84;
-      break;
-    case 'decay':
-      paramDefaults.min = 0;
-      paramDefaults.max = 4;
-      paramDefaults.defaultValue = 0;
-      break;
-    case 'delay':
-      paramDefaults.min = 0;
-      paramDefaults.max = 6;
-      paramDefaults.defaultValue = 2;
-      break;
-    case 'detune':
-      paramDefaults.min = 0;
-      paramDefaults.max = 100;
-      paramDefaults.defaultValue = 0;
-      break;
-    case 'distortion':
-      paramDefaults.min = 0;
-      paramDefaults.max = 3;
-      paramDefaults.defaultValue = 1;
-      break;
-    case 'drive':
-      paramDefaults.min = 0;
-      paramDefaults.max = 2;
-      paramDefaults.defaultValue = .5;
-      break;
-    case 'end':
-      paramDefaults.min = 0;
-      paramDefaults.max = 1;
-      paramDefaults.defaultValue = 1;
-      break;
-    case 'feedback':
-      paramDefaults.min = 0;
-      paramDefaults.max = 1;
-      paramDefaults.defaultValue = 0;
-      break;
-    case 'frequency':
-      if (nodeType === 'lfo') {
-        paramDefaults.min = 0;
-        paramDefaults.max = 20;
-        paramDefaults.defaultValue = 5;  
-      } else {
-        paramDefaults.min = 0;
-        paramDefaults.max = 10000;
-        paramDefaults.defaultValue = 300;
-      }
-      break;
-    case 'gain':
-      paramDefaults.min = 0;
-      paramDefaults.max = 1;
-      paramDefaults.defaultValue = 1;
-      break;
-    case 'pan':
-      paramDefaults.min = -1;
-      paramDefaults.max = 1;
-      paramDefaults.defaultValue = 0;
-      break;
-    case 'postCut':
-      paramDefaults.min = 0;
-      paramDefaults.max = 5000;
-      paramDefaults.defaultValue = 3000;
-      break;
-    case 'q':
-      paramDefaults.min = 0;
-      paramDefaults.max = 20;
-      paramDefaults.defaultValue = 0;
-      break;
-    case 'seconds':
-      paramDefaults.min = 0;
-      paramDefaults.max = 6;
-      paramDefaults.defaultValue = 0;
-      break;
-    case 'speed':
-      paramDefaults.min = .125;
-      paramDefaults.max = 2;
-      paramDefaults.defaultValue = 1; 
-      break;
-    case 'start':
-      paramDefaults.min = 0;
-      paramDefaults.max = 1;
-      paramDefaults.defaultValue = 0;
-      break;
-  }
-  return paramDefaults;
-}
-
-const createTrackControls = function (trackNode) {    
-  const controlAttrs = paramsForNode(trackNode['node-type']);
-  return controlAttrs.map((controlAttr) => {
-    const defaults = defaultForAttr(controlAttr, trackNode['node-type']);
-    defaults.controlValue = defaults.defaultValue;
-    // NOTE API should validate interface names and note types on track controls       
-    const trackControl  = trackNode.createTrackControl({
-      trackId: trackNode.trackId,
-      trackNodeId: trackNode.id,
-      nodeAttr: controlAttr, 
-      interfaceName: trackNode['default-control-interface'] || 'slider', // all controls for 
-      controlArrayValue: [], // api must initialize this whenever a multislider is created
-      ...defaults
-    });
-    trackControl.save(); //maybe dont need?
-    return trackControl;
-  });
-}
-
 export default function() {
   // Hack per https://github.com/kturney/ember-mapbox-gl/issues/53#issuecomment-397417884
   // for decoding array buffers 
@@ -304,18 +143,6 @@ export default function() {
   // this.get('/v1/machines/') // get a list of drum machines)
   // this.get('/v1/projects/:slug/tracks/machine'); // create many tracks for each sound of a drum machine
 
-  this.post('/v1/track-nodes/', async (schema, { requestBody }) => {
-    const { attributes, relationships } = JSON.parse(requestBody).data;
-    attributes.trackId = relationships.track.data.id;
-    const trackNode = schema.trackNodes.create(attributes);
-    await trackNode.save();
-    const trackControls = createTrackControls(trackNode);
-    trackControls.forEach((control)=> control.save());
-    return trackNode;
-  });
-  
-  this.patch('/v1/track-nodes/:id');
-
   this.del('/v1/track-nodes/:id', async ({ trackNodes }, request) => {
     const id = request.params.id;
     const trackNode = trackNodes.find(id);
@@ -323,6 +150,10 @@ export default function() {
     return trackNode;
   });
 
+  this.post('/v1/track-controls', (schema, request) => {
+    console.error('NOT IMLPEMENTED: create track controls');
+  });
+  
   this.patch('/v1/track-controls/:id');
   this.patch('/v1/init-scripts/:id');
   this.patch('/v1/onstep-scripts/:id');

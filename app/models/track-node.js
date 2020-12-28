@@ -1,5 +1,6 @@
 import Model from '@ember-data/model';
 import { attr, belongsTo, hasMany } from '@ember-data/model';
+import { defaultForAttr, paramsForNode } from '../utils/cracked';
 
 export default class TrackNodeModel extends Model {
   @belongsTo('track') track;
@@ -31,14 +32,24 @@ export default class TrackNodeModel extends Model {
   }
 
   /**
-   * cache default interface so a user can use the dropdown menu to change a node's individual controls,
+   * Cache default interface so a user can use the dropdown menu to change a node's individual controls,
    * without it getting overwritten every time the script get loaded (which happens constantly)
    * 
    * FIXME probably still a bug here when you load saved controls from the API
-   * 
    *  
    * Also TODO: this currently sets the same ui attribute to all controls for a node, which might not be desirable.
    * say you wanted to initialize a sampler node with a multislider for the speed param, but a regular slider for start.,
+   * 
+   *  TODO: implement optional parsing of a cracked node's `ui` attribute to recognize a pattern such as
+   * ```
+   *   {
+   *    ui: {
+   *        speed: 'multislider',
+   *        start: 'number'
+   *        end: 'number'
+   *       }
+   *    }
+   * ```
    */
   updateDefaultControlInterface(defaultControlInterface) {
     this.set('defaultControlInterface', defaultControlInterface);    
@@ -70,6 +81,35 @@ export default class TrackNodeModel extends Model {
         trackControl.save();
       }
       trackControl.set('_defaultValue', userDefault);
+    });
+  }
+  
+
+  /**
+   * Create TrackControls for the ephemeral TrackNodes
+   * locally-created records will be available syncronously,
+   * and then save to db non-blocking
+   * 
+   */
+  createTrackControls() {
+    const controlAttrs = paramsForNode(this.nodeType);
+    return controlAttrs.map((controlAttr) => {
+      const defaults = defaultForAttr(controlAttr, this.nodeType);
+      defaults.controlValue = defaults.defaultValue;
+      // NOTE API should validate interface names and note types on track controls       
+      const trackControl  = this.store.createRecord('track-control', {
+        nodeAttr: controlAttr,
+        interfaceName: this.defaultControlInterface || 'slider',
+        controlArrayValue: [], // all controls for api must initialize this whenever a multislider is created
+        
+        track: this.track,
+        trackNode: this,
+        nodeType: this.nodeType,
+        nodeOrder: this.order, 
+        ...defaults,
+      });
+      trackControl.save();
+      return trackControl;
     });
   }
 }

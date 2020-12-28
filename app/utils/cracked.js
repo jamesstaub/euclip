@@ -54,3 +54,155 @@ export function stopLoop() {
   __.loop('stop');    
   __('*').stop();
 }
+
+
+/**
+ * Configuration for createing TrackControl records assigned to TrackNodes 
+ * based on the supported node types in the cracked library.
+ */
+export function paramsForNode(nodeType) {
+  switch (nodeType) {
+    case 'bitcrusher':
+      return ['frequency', 'bits'];
+    case 'comb':
+      return ['delay', 'damping', 'cutoff', 'feedback'];
+    case 'delay':
+      return ['delay', 'damping', 'feedback', 'cutoff', 'frequency'];
+    case 'gain':
+      return ['gain'];
+    case 'lowpass' || 'highpass' || 'bandpass' || 'allpasss' || 'notch':
+      return ['frequency', 'q'];
+    case 'lowshelf' || 'highshelf' || 'peaking':
+      return ['frequency', 'q', 'gain'];
+    case 'lfo':
+      return ['frequency', 'gain'];
+    case 'overdrive':
+      return ['drive', 'color', 'postCut'];
+    case 'panner':
+      return ['pan'];
+    case 'reverb':
+      return ['decay', 'reverse'];
+    case 'ring':
+      return ['distortion', 'frequency'];
+    case 'sampler':
+      return ['speed', /* 'start', 'end'*/];
+    case 'sine' || 'square' || 'triangle' || 'sawtooth':
+      return ['frequency', 'detune'];
+    default:
+      return [];
+  }
+}
+
+/**
+ * 
+ * @param {String} attr
+ * @param {String} nodeType 
+ * TrackControl default value for each attribute
+ */
+export function defaultForAttr(attr, nodeType) {
+  const paramDefaults = {};
+  switch (attr) {
+    case 'bits':
+      paramDefaults.min = 1;
+      paramDefaults.max = 16;
+      paramDefaults.defaultValue = 6;
+      break;
+    case 'color':
+      paramDefaults.min = 0;
+      paramDefaults.max = 1000;
+      paramDefaults.defaultValue = 800;
+      break;
+    case 'cutoff':
+      paramDefaults.min = 0;
+      paramDefaults.max = 4000;
+      paramDefaults.defaultValue = 1500;
+      break;
+    case 'damping':
+      paramDefaults.min = 0;
+      paramDefaults.max = 1;
+      paramDefaults.defaultValue = 0.84;
+      break;
+    case 'decay':
+      paramDefaults.min = 0;
+      paramDefaults.max = 4;
+      paramDefaults.defaultValue = 0;
+      break;
+    case 'delay':
+      paramDefaults.min = 0;
+      paramDefaults.max = 6;
+      paramDefaults.defaultValue = 2;
+      break;
+    case 'detune':
+      paramDefaults.min = 0;
+      paramDefaults.max = 100;
+      paramDefaults.defaultValue = 0;
+      break;
+    case 'distortion':
+      paramDefaults.min = 0;
+      paramDefaults.max = 3;
+      paramDefaults.defaultValue = 1;
+      break;
+    case 'drive':
+      paramDefaults.min = 0;
+      paramDefaults.max = 2;
+      paramDefaults.defaultValue = .5;
+      break;
+    case 'end':
+      paramDefaults.min = 0;
+      paramDefaults.max = 1;
+      paramDefaults.defaultValue = 1;
+      break;
+    case 'feedback':
+      paramDefaults.min = 0;
+      paramDefaults.max = 1;
+      paramDefaults.defaultValue = 0;
+      break;
+    case 'frequency':
+      if (nodeType === 'lfo') {
+        paramDefaults.min = 0;
+        paramDefaults.max = 20;
+        paramDefaults.defaultValue = 5;  
+      } else {
+        paramDefaults.min = 0;
+        paramDefaults.max = 10000;
+        paramDefaults.defaultValue = 300;
+      }
+      break;
+    case 'gain':
+      paramDefaults.min = 0;
+      paramDefaults.max = 1;
+      paramDefaults.defaultValue = 1;
+      break;
+    case 'pan':
+      paramDefaults.min = -1;
+      paramDefaults.max = 1;
+      paramDefaults.defaultValue = 0;
+      break;
+    case 'postCut':
+      paramDefaults.min = 0;
+      paramDefaults.max = 5000;
+      paramDefaults.defaultValue = 3000;
+      break;
+    case 'q':
+      paramDefaults.min = 0;
+      paramDefaults.max = 20;
+      paramDefaults.defaultValue = 0;
+      break;
+    case 'seconds':
+      paramDefaults.min = 0;
+      paramDefaults.max = 6;
+      paramDefaults.defaultValue = 0;
+      break;
+    case 'speed':
+      paramDefaults.min = .125;
+      paramDefaults.max = 2;
+      paramDefaults.defaultValue = 1; 
+      break;
+    case 'start':
+      paramDefaults.min = 0;
+      paramDefaults.max = 1;
+      paramDefaults.defaultValue = 0;
+      break;
+  }
+  return paramDefaults;
+}

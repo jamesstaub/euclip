@@ -41,14 +41,16 @@ export default class ScriptModel extends Model {
     this.alert = `problem with script ${e.message}`;
   }
 
-  /*
-  Task to save a property on the script model instance
-  */
+  /**
+   * Task to save a property on the script model instance
+   * sets the `code` property to the current editorContnet, then saves it to API
+   * API will return a paylaod with a `safeCode` property, which is ultimately what gets used
+   * to create audio nodes
+   */
  @task
  *runCode() {
    this.alert = null;
-   //TODO don't actually set safeCode here. set the `code` property, then allow only the API to write safeCode (hence why it must be async)
-   yield this.saveScriptTask.perform('safeCode', this.get('editorContent'));
+   yield this.saveScriptTask.perform('code', this.get('editorContent'));
    if (this.name === 'init-script') {
      const track = yield this.get('track');
      track.setupAudioFromScripts(this);

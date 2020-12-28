@@ -11,9 +11,9 @@ export default class ScriptSerializer extends ApplicationSerializer {
    * we do not send up the property safeCode
    * because that is only ever written by the server and read-only by the client
    */
-  extractAttributes() {
-    let attrs = super.extractAttributes(...arguments);
-    attrs['code'] = attrs['safeCode'];
-    return attrs;
-  }
+  // extractAttributes() {
+  //   let attrs = super.extractAttributes(...arguments);
+  //   attrs['code'] = attrs['safeCode'];
+  //   return attrs;
+  // }
 }

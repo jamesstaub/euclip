@@ -6,8 +6,14 @@ import { keepLatestTask } from "ember-concurrency-decorators";
 export default class TrackControlModel extends Model {
   @belongsTo('track') track;
   @belongsTo('trackNode') trackNode;
-  @attr('string') interfaceName; // type of nexus ui element
+  
+  // while redundant, nodeType and trackNodeOrder are needed here when POSTing 
+  // because TrackNode models do not exist in the back end
+  @attr('string') nodeType;
+  @attr('number') nodeOrder;
   @attr('string') nodeAttr; // the audio attr that will be controlled
+
+  @attr('string') interfaceName; // type of nexus ui element
   @attr('number') min;
   @attr('number') max;
   @attr('number') defaultValue;
@@ -17,14 +23,16 @@ export default class TrackControlModel extends Model {
   get controlArrayComputed() {
     // fill the trackControl model's array with defaul value if it is not the correct length
     const sequence = this.get('trackNode.track.sequence');
+
+    const controlArrayValue = this.controlArrayValue || [];
     while (
-      this.controlArrayValue.length < sequence.length
+      controlArrayValue.length < sequence.length
     ) {
-      this.controlArrayValue.push(
+      controlArrayValue.push(
         this.defaultValue
       );
     }
-    const a = this.controlArrayValue.slice(0, sequence.length);
+    const a = controlArrayValue.slice(0, sequence.length);
     return a;
   }
 
@@ -58,7 +66,8 @@ export default class TrackControlModel extends Model {
     // this might get called by the sequencer while we're trying to delete the node or control    
     if (!this.isDestroyed ) {
       if (this.nodeAttr && this.interfaceName === 'multislider') {
-        this.setAttrs(this.controlArrayValue[index]);
+        const stepValue = this.controlArrayComputed[index];
+        this.setAttrs(stepValue);
       } else {
         this.setAttrs(this.controlValue);
       }
@@ -67,7 +76,7 @@ export default class TrackControlModel extends Model {
 
   /* 
     Query and update the audio node object
-    used for sliders and 1 dimensional values
+    used for sliders and 1 dimensional track-control values
 
     this is fired immediately for sliders
     and triggered on each step for multisliders
@@ -75,6 +84,7 @@ export default class TrackControlModel extends Model {
   setAttrs(val) {
     const attrs = {};
     attrs[this.nodeAttr] = val;
+    // NOTE:
     // users can (someday) declare a custom selector on a control (like a class) 
     // so it can control multiple nodes at once
     // till then this first condition is not met
@@ -84,10 +94,13 @@ export default class TrackControlModel extends Model {
       const uuid = this.trackNode.get('nodeUUID');
       const node = __._getNode(uuid);
       if(node) {
+        if (this.nodeType ==='sampler') {
+          console.log(attrs);
+        }
         node.attr(attrs);
       } else if (uuid) {
-        // there's no audio node for this trackNode's uuid, so clear it
-        // maybe should delete, maybe will get reassigned
+        // there's no audio node for this trackNode's uuid, so clear it.
+        // this trackControl may then get reassigned to a new or updated trackNode
         this.set('nodeUUID', null);
       }
     }
