@@ -1,7 +1,7 @@
 import Model, { attr, belongsTo } from '@ember-data/model';
 import { isArray } from '@ember/array';
-import { timeout } from 'ember-concurrency';
-import { keepLatestTask } from "ember-concurrency-decorators";
+import { timeout, waitForProperty } from 'ember-concurrency';
+import { keepLatestTask, task } from "ember-concurrency-decorators";
 
 export default class TrackControlModel extends Model {
   @belongsTo('track') track;
@@ -54,30 +54,20 @@ export default class TrackControlModel extends Model {
   @belongsTo('track-node') trackNode;
   @belongsTo('track') track;
 
-  bindTrackEvents(track) {
-    // chennelstrip nodes wont ever have onstep events or
-    // multisldier controls
-    if (!this.get('trackNode.isChannelStripChild')) {
-      track.on('trackStep', this.onTrackStep.bind(this));
-      this.on('didDelete', ()=>{
-        this.off('trackStep', this.onTrackStep.bind(this));
-      });
-    }
-  }
-
-
-  onTrackStep(index) {
+  attrOnTrackStep(index) {
     if (this.nodeType !== this.trackNode.get('nodeType')) {
-      throw "Something is wrong: trackControl trackNode mismatch";
+      // throw "Something is wrong: trackControl trackNode mismatch";
     }
-    console.log('bind', this.nodeAttr);
-    // this might get called by the sequencer while we're trying to delete the node or control    
+    // this might get called by the sequencer while we're trying to delete the node or control
     if (!this.isDestroyed ) {
       if (this.nodeAttr && this.interfaceName === 'multislider') {
         const stepValue = this.controlArrayComputed[index];
+        // FIXME: should setAttrs always happen in user's code editor?
         this.setAttrs(stepValue);
+        return stepValue;
       } else {
         this.setAttrs(this.controlValue);
+        return this.controlValue;
       }
     }
   }
@@ -92,6 +82,7 @@ export default class TrackControlModel extends Model {
   setAttrs(val) {
     const attrs = {};
     attrs[this.nodeAttr] = val;
+
     // NOTE:
     // users can (someday) declare a custom selector on a control (like a class) 
     // so it can control multiple nodes at once
@@ -196,5 +187,13 @@ export default class TrackControlModel extends Model {
     yield timeout(5000);
     // http://ember-concurrency.com/docs/examples/autocomplete/
     yield this.save();
+  }
+
+  @task
+  *awaitAndDestroy() {
+    console.log('await and destroy');
+    yield waitForProperty(this, 'isSaving', false)
+    console.log('destroy');
+    this.destroyRecord();
   }
 }

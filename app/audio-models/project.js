@@ -9,7 +9,7 @@ import { defineChannelStripMacro, createMasterDac, startLoop, stopLoop } from '.
 export default class ProjectAudioModel extends Model.extend(Evented) {
 
   get loopInterval() {
-    return 1000 * 60 / this.bpm;
+    return 1000 * 60 / (this.bpm * 2);
   }
 
   initSignalChain() {

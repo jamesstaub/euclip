@@ -1,4 +1,5 @@
 import ApplicationAdapter from "./application";
+import ENV from 'euclip/config/environment';
 
 export default class ProjectAdapter extends ApplicationAdapter {
   urlForQueryRecord(params, modelName) {
@@ -8,8 +9,8 @@ export default class ProjectAdapter extends ApplicationAdapter {
   }
 
   urlForFindAll(modelName, snapshot) {
-    const {userId} =  snapshot.adapterOptions;
-    const url = `/users/${userId}/projects`;
+    const {userId} = snapshot.adapterOptions;
+    const url = `/users/${userId}/projects?include=${ENV.APP.projectIncludeParams}`;
     return url;
   }
 }

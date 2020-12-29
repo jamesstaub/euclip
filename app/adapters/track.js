@@ -12,7 +12,9 @@ export default class TrackAdapter extends ApplicationAdapter {
   }
 
   urlForFindRecord(id, modelName, { adapterOptions }) {
-    const slug = adapterOptions.slug;
+    // FIXME: adapter options should do the trick but findRecord is getting called mysteriously when routing to a project
+    // so I'm not sure where to pass the adapterOptioons
+    const slug = adapterOptions?.slug;
     return `/projects/${slug}/tracks/${id}`;
   }
 }

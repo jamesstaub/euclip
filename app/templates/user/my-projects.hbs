@@ -4,8 +4,8 @@
     {{#each @model as |project|}}
       <li>
         <h3>
-          {{#link-to "user.creator.project" project.creator project class="blue"}}
-            {{project.title}}
+          {{#link-to "user.creator.project" project.creator project.slug class="blue"}}
+            {{or project.title "untitled"}}
           {{/link-to}}
         </h3>
       </li>

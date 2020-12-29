@@ -81,7 +81,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     this.findOrCreateTrackNodeRecords();
     this.cleanupNodeRecords();
     this.setupTrackControls();
-    this.bindTrackControls();
     this.bindToSequencer();
   }
 
@@ -188,22 +187,18 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   /**
    * if a node was removed by user, the trackAudioNodes array will be without it
    * so make sure we delete it from the store
-   * FIXME: this still leaves orphaned trackNode records, but when duplicating, we might not have the uuid yet?
    */
-  cleanupNodeRecords() {
-    const trackControlsToDelete = [];
+   cleanupNodeRecords() {
     if (this.trackNodes.length > this.trackAudioNodes.length) {
-      console.error('FIXME this is not yet deleting nodes or controls when they get removed');
       this.trackNodes.forEach((record) => {
-        if (!record.nodeUUID || !this.trackAudioNodes.findBy('uuid', record.nodeUUID)) {
-          console.error('TODO send array of track control ids to delete to new endpoint')
-          trackControlsToDelete.push(record.trackControls);
+        if (record && (!record.nodeUUID || !this.trackAudioNodes.findBy('uuid', record.nodeUUID))) {
+          record.trackControls.forEach((trackControl) => {
+            trackControl.awaitAndDestroy.perform();
+          });
           record.deleteRecord();
         }
       });
-    }
-    
-    trackControlsToDelete.flatMap((trackControl) => trackControl.id)
+    }  
   }
 
   /**
@@ -240,18 +235,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     });
   }
 
-  /**
-   * track controls are added/updated to the store after find-or-create track nodes
-   * bindTrackEvents causes them to listen to this.trigger('trackStep')
-  */
-  bindTrackControls() {
-    this.get('trackNodes').forEach((trackNode)=>{
-      trackNode.get('trackControls').forEach((trackControl)=>{
-        trackControl.bindTrackEvents(this);
-      })
-    })
-  }
-
   bindToSequencer() {
     let onStepCallback = this.onStepCallback.bind(this);
     __(this.samplerSelector).bind(
@@ -267,9 +250,11 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   }
   
   onStepCallback(index, data, array) {
-    //track controls subscribe to trackStep event
     this.set('stepIndex', index);
-    this.trigger('trackStep', index);
+    this.trackControls.forEach((trackControl) => {
+      trackControl.attrOnTrackStep(index);
+    })
+
     // FIXME must trigger track controls first to apply sliders, but they get zapped out 
     // somehow when the function is called
     this.onstepScript.get('functionRef')(index, data, array);
@@ -281,24 +266,29 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // this is not an issue for non sampler nodes
     // TODO: same fix for sampler start, end
     // ALSO TODO: how can this be fixed to support LFOs to modulate speed?
-    const speedControl = this.get('trackNodes')
-      ?.findBy('nodeType', 'sampler')
-      ?.get('trackControls')
-      ?.findBy('nodeAttr', 'speed');
+    const speedControl = this.trackControls.filterBy('nodeType', 'sampler').findBy('nodeAttr', 'speed');
 
     return {
       // the track should either have a sampler or an oscillator 
       filepath: this.filepathUrl,
       id: this.id,
       samplerSelector: this.samplerSelector,
+      
+      // // TODO remove attrOnTrackStep() above and instead
+      // // implemenet it to be called in a mungeable way in user's script
+      // trackControls: this.trackControls.map((trackControl) => {
+      //   return {
+      //     nodeSelector: trackControl.nodeType,
+      //     control: trackControl.nodeAttr,
+      //     value(index) {
+      //       return trackControl.attrOnTrackStep(index);
+      //     }
+      //   }
+      // }),
       playSample(index) {
+        const trackControlAttrs = speedControl.attrOnTrackStep(index);
         __(this.samplerSelector).stop()
-        __(this.samplerSelector).start();
-
-        // // HACK see above
-        if (speedControl) {
-          speedControl.onTrackStep(index);
-        }
+        __(this.samplerSelector).attr({speed: trackControlAttrs}).start();
       },
       sliders: this.trackControlData
     };
