@@ -85,6 +85,7 @@ ActiveRecord::Schema.define(version: 2020_12_11_222322) do
   end
 
   create_table "tracks", force: :cascade do |t|
+    t.integer "order"
     t.integer "hits"
     t.integer "steps"
     t.integer "offset"

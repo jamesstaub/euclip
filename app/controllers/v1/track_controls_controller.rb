@@ -33,9 +33,8 @@ class V1::TrackControlsController < V1::BaseController
 
   def destroy
     @track_control.destroy
-    render status: :ok
+    render json: { meta: {} }, status: :ok
   end
-
   
   private
 

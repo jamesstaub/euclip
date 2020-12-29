@@ -1,6 +1,7 @@
 class CreateTracks < ActiveRecord::Migration[6.0]
   def change
     create_table :tracks do |t|
+      t.integer :order
       t.integer :hits
       t.integer :steps
       t.integer :offset

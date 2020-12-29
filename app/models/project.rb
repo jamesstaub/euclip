@@ -5,6 +5,12 @@ class Project < ApplicationRecord
   after_save :set_defaults
   attribute :bpm, :integer, default: 120
   validates :creator, presence: true
+
+  def reorder_tracks!
+    self.tracks.each_with_index {|track, idx|
+      track.update!(order: idx + 1)
+    }
+  end
   
   private 
   

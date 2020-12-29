@@ -33,7 +33,13 @@ class V1::TracksController < V1::BaseController
   end
 
   def destroy
+    project = @track.project
     @track.destroy
+    project.reorder_tracks!
+
+    render json: TrackSerializer.new(
+      project.tracks
+    )
   end
 
   private
