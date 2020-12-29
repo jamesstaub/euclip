@@ -4,13 +4,13 @@
   ...attributes 
 >
   <div class="flex relative justify-between items-center">
+    <span class="f3 code {{unless @isActive "yellow"}}">{{@track.order}}</span>
     <div class="grow-0 shrink-0">
       <ButtonPrimary
         class="w4 truncate ma2 f7"
         {{on "click"  @onToggleFilePicker}}
         @label="Drum Machine: {{@track.filepath}}"
       >
-        {{@track.id}}
         {{if @track.filepath @track.filename}}
       </ButtonPrimary>
     </div>

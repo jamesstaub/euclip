@@ -17,4 +17,10 @@ export default class TrackAdapter extends ApplicationAdapter {
     const slug = adapterOptions?.slug;
     return `/projects/${slug}/tracks/${id}`;
   }
+
+  async deleteRecord(store) {
+    // server updates other track order properties when a track is deleted
+    const response = await super.deleteRecord(...arguments);
+    store.pushPayload('track', response);
+  }
 }

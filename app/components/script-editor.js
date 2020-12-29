@@ -18,17 +18,14 @@ export default class ScriptEditorComponent extends Component {
     this.initializeEditorValue();
     
     // make sure editor content doesn't get stuck when changing tracks
-    this.router.on('routeDidChange', () => {
-      this.initializeEditorValue();
-    })
+    this.router.on('routeDidChange', this.initializeEditorValue.bind(this));
   }
     
   /**
    * chaching editorContent property instead of passing the scriptMode.editorContent directly 
    * to ACE editor prevents a strange rendering bug
    */
-  async initializeEditorValue() {
-    await this.args.scriptModel;
+  initializeEditorValue() {
     this.editorContent = this.args.scriptModel.get('editorContent');
   }
   

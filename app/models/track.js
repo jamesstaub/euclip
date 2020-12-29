@@ -20,7 +20,9 @@ export default class TrackModel extends TrackAudioModel {
   @hasMany('track-node') trackNodes
   @hasMany('track-control') trackControls
 
-  // euclidean rhythm params
+  @attr('number') order
+
+  // euclidean rhythm params (should eventually move to a Sequence model)
   @attr('number', {
     defaultValue() { return 0 }
   }) hits
@@ -59,6 +61,7 @@ export default class TrackModel extends TrackAudioModel {
       }
     });
     await this.destroyRecord();
+
   }
 
   get sequence() {
