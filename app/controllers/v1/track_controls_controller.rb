@@ -1,7 +1,7 @@
 class V1::TrackControlsController < V1::BaseController
   before_action ->{ authenticate_user!(force: true) }, only: %i[create update]
   before_action :set_track, only: %i[create update]
-  before_action :set_track_control, only: %i[show update]
+  before_action :set_track_control, only: %i[show update destroy]
 
   def show
     render json: TrackControlSerializer.new(@track_control), status: :ok
@@ -30,6 +30,12 @@ class V1::TrackControlsController < V1::BaseController
       render json: { errors: @track_control.errors.full_messages.join(', ') }, status: :unprocessable_entity
     end
   end
+
+  def destroy
+    @track_control.destroy
+    render status: :ok
+  end
+
   
   private
 

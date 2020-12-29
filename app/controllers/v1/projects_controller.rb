@@ -1,5 +1,6 @@
 class V1::ProjectsController < V1::BaseController
   before_action ->{ authenticate_user!(force: true) }, only: %i[create update]
+  before_action :set_project, only: %i[update]
 
   def index
     @pagy, @projects = pagy(Project.where(creator_id: params["user_id"]).order(created_at: :asc))
@@ -29,5 +30,27 @@ class V1::ProjectsController < V1::BaseController
     else
       render json: { errors: @project.errors.full_messages.join(', ') }, status: :unprocessable_entity
     end
+  end
+
+  def update
+    @project.update(clean_params)
+    if @project.save
+      render json: ProjectSerializer.new(
+        @project,
+        include: included_relations
+      ), status: :ok
+    else
+      render json: { errors: @project.errors.full_messages.join(', ') }, status: :unprocessable_entity
+    end
+  end
+
+  private
+
+  def set_project
+    @project = Project.find(@data.require(:id))
+  end
+  
+  def clean_params
+    @attributes.permit(:title, :slug, :bpm)
   end
 end
