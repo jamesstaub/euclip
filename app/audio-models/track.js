@@ -71,7 +71,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     this.unbindAndRemoveCrackedNodes();
 
      // run script to create audio nodes
-     
     initScript.functionRef();
 
     // nullify this callback after creating track nodes to prevent it from getting called outside of this track
@@ -189,16 +188,19 @@ export default class TrackAudioModel extends Model.extend(Evented) {
    * so make sure we delete it from the store
    */
    cleanupNodeRecords() {
-    if (this.trackNodes.length > this.trackAudioNodes.length) {
-      this.trackNodes.forEach((record) => {
-        if (record && (!record.nodeUUID || !this.trackAudioNodes.findBy('uuid', record.nodeUUID))) {
-          record.trackControls.forEach((trackControl) => {
-            trackControl.awaitAndDestroy.perform();
-          });
-          record.deleteRecord();
-        }
-      });
-    }  
+    this.trackNodes.forEach((record) => {
+      if (record && (!record.nodeUUID || !this.trackAudioNodes.findBy('uuid', record.nodeUUID))) {
+        record.trackControls.forEach((trackControl) => {
+          trackControl.awaitAndDestroy.perform();
+        });
+        record.deleteRecord();
+      }
+    });
+    this.trackControls.forEach((trackControl) => {
+      if(trackControl.nodeType !== trackControl.trackNode.get('nodeType')) {
+        trackControl.awaitAndDestroy.perform();
+      }
+    });
   }
 
   /**
@@ -286,9 +288,11 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       //   }
       // }),
       playSample(index) {
-        const trackControlAttrs = speedControl.attrOnTrackStep(index);
-        __(this.samplerSelector).stop()
-        __(this.samplerSelector).attr({speed: trackControlAttrs}).start();
+        if (speedControl) {
+          const speed = speedControl.attrOnTrackStep(index);
+          __(this.samplerSelector).stop()
+          __(this.samplerSelector).attr({speed: speed}).start();
+        }
       },
       sliders: this.trackControlData
     };

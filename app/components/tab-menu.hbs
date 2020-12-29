@@ -1,5 +1,5 @@
 <div class="flex f7 tc flex {{if @verticle "flex-column h-100"}}" ...attributes>
-  {{#each @items as |item|}}
+  {{#each @items key="order" as |item|}}
     {{#if @verticle}}
       <button
         class="flex flex-column items-center ba b--dark-gray br0 h-auto grow-1 {{if (eq this.val item.value) "bg-light-blue black" "bg-yellow black"}}" 

@@ -26,11 +26,10 @@ export default class ScriptModel extends Model {
         return this.newFunction();
       } catch (e) {
         this.onScriptError(e);
-        // expects a function to be returned
-        return () => {};
       }
     }
-    return null;
+    // expects a function to be returned
+    return ()=> {};
   }
 
   async onScriptError(e) {

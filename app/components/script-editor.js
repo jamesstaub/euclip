@@ -1,10 +1,12 @@
 import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
+import { inject as service } from '@ember/service';
 
 
 export default class ScriptEditorComponent extends Component {
   @tracked editorContent
+  @service router;
 
   get functionIsLoaded() {
     const {safeCode, editorContent, functionRef } = this.args.scriptModel.getProperties('safeCode', 'editorContent', 'functionRef');
@@ -14,6 +16,11 @@ export default class ScriptEditorComponent extends Component {
   constructor() {
     super(...arguments);
     this.initializeEditorValue();
+    
+    // make sure editor content doesn't get stuck when changing tracks
+    this.router.on('routeDidChange', () => {
+      this.initializeEditorValue();
+    })
   }
     
   /**
@@ -49,9 +56,7 @@ export default class ScriptEditorComponent extends Component {
   async disableScript() {
     // await proxy to model record
     const scriptModel = await this.args.scriptModel;
-    scriptModel.saveFunctionTask.perform('code', '');
-    // TODO set a condition so functionRef() is null
-    // this.track.set('customFunctionRef', null);
+    scriptModel.saveScriptTask.perform('code', '');
   }
 
 }

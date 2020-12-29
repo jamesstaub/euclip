@@ -44,10 +44,12 @@ export default class TrackFooterContainerComponent extends Component {
     return this.trackNodesForControls.map((trackNode, idx) => {
       return {
         label: trackNode.nodeType,
+        order: trackNode.order,
         value: idx, // the node index sets which tab is visible with template logic
       }
-    })
+    }).sortBy('order')
   }
+
 
   @action
   setUi(key, val) {

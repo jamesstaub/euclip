@@ -56,7 +56,10 @@ export default class TrackControlModel extends Model {
 
   attrOnTrackStep(index) {
     if (this.nodeType !== this.trackNode.get('nodeType')) {
-      // throw "Something is wrong: trackControl trackNode mismatch";
+      // if this case happens, it is hopefully just because trackControls are in the process of deleting in a non-blocking way,
+      //  so we cant wait for the request to finish.
+      // in anycase its invalid and should not be used so try to delete again just in case
+      return;
     }
     // this might get called by the sequencer while we're trying to delete the node or control
     if (!this.isDestroyed ) {
@@ -191,9 +194,9 @@ export default class TrackControlModel extends Model {
 
   @task
   *awaitAndDestroy() {
-    console.log('await and destroy');
     yield waitForProperty(this, 'isSaving', false)
-    console.log('destroy');
-    this.destroyRecord();
+    if (!this.isDeleted && !this.isDeleting) {
+      yield this.destroyRecord();
+    }
   }
 }
