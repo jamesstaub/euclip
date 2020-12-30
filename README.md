@@ -14,20 +14,22 @@ Tracks
 ### bugs
 
 Track Controls
-- wrapper: 
+- wrapper:
   - "functions" [buttons to apply prest shapes like triangle, sine or randomize]
   - copy/paste single control
 
 - element/nodes to implement
-  - Envelope node : breakpoint nexus element
+  - Envelope node : breakpoint nexus element or group of sliders
   - LFOs as controls
   - panner node : dial
-  - XY controls (filters)
+  - multidimensional controls (XY slider, breakpoint)
+  - use for filters, LFOs, 
 
 - Sequence
   - - add a sequence BPM divider
   - - add reverse/pingpong mode for tracks
   - - ability for track to have many chainable sequences (perhaps with their own script editor for the chaining logic!?)
+    - - implement a Sequence model that belongs to Track. move existing seq properties there.
   - - in addition to Euclidean tab, add some sorta generative/evolving/automated UI
 
 Scripts
@@ -50,9 +52,6 @@ Scripts
 
   ### bugs
   - duplicate a track, set channelstrip gain to 0, restart sequencer, gain sounds back at 1
-  
-  - implement track-node order in onCreateNode callback to ensure they appear in the right order when nodes get removed/edited.
-  - track node 404 errors when trying to update removed nodes
 
   - use the LFO example, then add an additional gain node
   - - result is the channelStrip gain not working anymore

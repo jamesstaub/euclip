@@ -52,7 +52,6 @@
       @direction="right"
       @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id "right"}}
     >
-      {{log this.activeTrack.id}}
       <ScriptWrapper @track={{this.activeTrack}} @presets={{this.presets}}/>
     </SidebarWrapper>
   {{/if}}

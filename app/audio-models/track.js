@@ -1,6 +1,7 @@
 import Model from '@ember-data/model';
 import Evented from '@ember/object/evented';
 import ENV from '../config/environment';
+import { arraysEqual, difference } from '../utils/arrays-equal';
 import filterNumericAttrs from '../utils/filter-numeric-attrs';
 
 export default class TrackAudioModel extends Model.extend(Evented) {  
@@ -110,6 +111,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
           trackNode[node.uuid] = type;
           trackNode.parentMacro = this.channelStripAudioNode;
+          trackNode.uuid = node.uuid;
           this.trackAudioNodes.push(trackNode);
       });
     }    
@@ -184,22 +186,20 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   }
 
   /**
-   * if a node was removed by user, the trackAudioNodes array will be without it
+   * if a node was removed by user, the trackAudioNodes array will be without
+   * it at this point.
    * so make sure we delete it from the store
    */
    cleanupNodeRecords() {
-    this.trackNodes.forEach((record) => {
-      if (record && (!record.nodeUUID || !this.trackAudioNodes.findBy('uuid', record.nodeUUID))) {
-        record.trackControls.forEach((trackControl) => {
-          trackControl.awaitAndDestroy.perform();
-        });
-        record.deleteRecord();
-      }
-    });
-    this.trackControls.forEach((trackControl) => {
-      if(trackControl.nodeType !== trackControl.trackNode.get('nodeType')) {
+    const existingNodeRecords = this.trackNodes.map((tn) => tn.get('nodeUUID'));
+    const existingAudioNodes = this.trackAudioNodes.map((tan) => tan.uuid);
+    const nodesToDelete = difference(existingNodeRecords, existingAudioNodes);
+    
+    nodesToDelete.forEach((trackNode) => {
+      trackNode?.trackControls.forEach((trackControl) => {
         trackControl.awaitAndDestroy.perform();
-      }
+      });
+      trackNode?.deleteRecord();
     });
   }
 

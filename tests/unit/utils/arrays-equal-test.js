@@ -1,4 +1,4 @@
-import arraysEqual from 'euclip/utils/arrays-equal';
+import { arraysEqual } from 'euclip/utils/arrays-equal';
 import { module, test } from 'qunit';
 
 module('Unit | Utility | arrays-equal', function() {

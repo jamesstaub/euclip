@@ -1,7 +1,7 @@
 import NexusBase from './nexus-base';
 import { computed } from '@ember/object';
 import { alias } from '@ember/object/computed';
-import arraysEqual from '../utils/arrays-equal';
+import { arraysEqual } from '../utils/arrays-equal';
 import { isPresent } from '@ember/utils';
 
 export default NexusBase.extend({
