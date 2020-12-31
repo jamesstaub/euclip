@@ -1,7 +1,8 @@
 class ApplicationController < ActionController::API
   include Pagy::Backend
   include ActionController::MimeResponds
-  
+  protect_from_forgery
+    
   respond_to :json
 
   rescue_from ActiveRecord::RecordNotFound, with: :record_not_found

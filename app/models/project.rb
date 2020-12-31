@@ -2,7 +2,7 @@ class Project < ApplicationRecord
   belongs_to :creator, class_name: "User" 
   has_many :tracks
 
-  after_save :set_defaults
+  before_save :set_defaults
   attribute :bpm, :integer, default: 120
   validates :creator, presence: true
 
@@ -13,8 +13,9 @@ class Project < ApplicationRecord
   end
   
   private 
-  
+
   def set_defaults
-    self.slug = self.id if self.slug.nil?
+    self.title = "Project #{self.creator.projects.count}" if self.title.nil?
+    self.slug = self.title.gsub(/[^0-9a-z ]/i, '').downcase.delete(" ") if self.slug.nil?
   end
 end

@@ -3,7 +3,8 @@ class TrackSerializer
   set_key_transform :dash
   attributes :id, :order, :hits, :steps, :offset, :filepath, :custom_sequence
   belongs_to :project
-  has_one :init_script
-  has_one :onstep_script
-  has_many :track_controls
+  # in some cases we dont want to return these relationships for the whole list, just a given track
+  has_one :init_script, if: Proc.new { |record, params| !params[:relations_only_for] || (params[:relations_only_for] && record == params[:relations_only_for]) } 
+  has_one :onstep_script, if: Proc.new { |record, params| !params[:relations_only_for] || (params[:relations_only_for] && record == params[:relations_only_for]) } 
+  has_many :track_controls, if: Proc.new { |record, params| !params[:relations_only_for] || (params[:relations_only_for] && record == params[:relations_only_for]) } 
 end

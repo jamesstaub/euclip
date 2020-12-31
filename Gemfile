@@ -26,6 +26,8 @@ gem "aws-sdk-s3", require: false
 # Use Redis adapter to run Action Cable in production
 # gem 'redis', '~> 4.0'
 
+# ------ DATA -------------------
+gem 'amoeba'
 
 # ------ SERIALIZATION -------------------
 gem 'jsonapi-serializer'
@@ -52,7 +54,6 @@ end
 
 group :development, :test do
   gem 'factory_bot_rails'
-  gem 'faker', git: 'https://github.com/stympy/faker.git', branch: 'master'
   gem 'rspec-rails'
   gem 'pry-byebug'
   gem 'pry-rails'

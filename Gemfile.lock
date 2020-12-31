@@ -1,11 +1,3 @@
-GIT
-  remote: https://github.com/stympy/faker.git
-  revision: 9ea5a3d3d57f19cbf14024eca34a51e11f40c487
-  branch: master
-  specs:
-    faker (2.14.0)
-      i18n (>= 1.6, < 2)
-
 GEM
   remote: https://rubygems.org/
   specs:
@@ -68,6 +60,8 @@ GEM
       zeitwerk (~> 2.2, >= 2.2.2)
     addressable (2.7.0)
       public_suffix (>= 2.0.2, < 5.0)
+    amoeba (3.1.0)
+      activerecord (>= 3.2.6)
     argon2 (2.0.2)
       ffi (~> 1.9)
       ffi-compiler (>= 0.1)
@@ -179,10 +173,6 @@ GEM
     jmespath (1.4.0)
     jsonapi-serializer (2.1.0)
       activesupport (>= 4.2)
-    jsonapi.rb (1.6.0)
-      jsonapi-serializer (~> 2.0)
-      rack
-      ransack
     jwt (2.2.2)
     launchy (2.5.0)
       addressable (~> 2.7)
@@ -265,10 +255,6 @@ GEM
       thor (>= 0.20.3, < 2.0)
     rainbow (3.0.0)
     rake (13.0.1)
-    ransack (2.4.0)
-      activerecord (>= 5.2.4)
-      activesupport (>= 5.2.4)
-      i18n
     rb-fsevent (0.10.4)
     rb-inotify (0.10.1)
       ffi (~> 1.0)
@@ -371,6 +357,7 @@ PLATFORMS
 
 DEPENDENCIES
   active_storage_validations
+  amoeba
   aws-sdk-s3
   bootsnap (>= 1.4.2)
   bundler-audit
@@ -381,14 +368,12 @@ DEPENDENCIES
   devise-jwt
   discard
   factory_bot_rails
-  faker!
   hamlit
   hamlit-rails
   html2haml
   humanize
   image_processing (~> 1.2)
   jsonapi-serializer
-  jsonapi.rb
   letter_opener
   listen
   meta_request

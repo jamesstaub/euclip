@@ -1,5 +1,4 @@
 class V1::TrackControlsController < V1::BaseController
-  before_action ->{ authenticate_user!(force: true) }, only: %i[create update]
   before_action :set_track, only: %i[create update]
   before_action :set_track_control, only: %i[show update destroy]
 

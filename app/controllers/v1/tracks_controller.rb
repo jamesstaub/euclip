@@ -1,6 +1,5 @@
 class V1::TracksController < V1::BaseController
   respond_to :json
-  before_action ->{ authenticate_user!(force: true) }, only: %i[create update]
   before_action :set_track, only: %i[show update destroy]
   before_action :set_project, only: %i[show create]
 
@@ -9,11 +8,34 @@ class V1::TracksController < V1::BaseController
   end
 
   def create
+    if params[:duplicate_id]
+      return duplicate
+    end
     @track = Track.create_with_relations({project_id: @project.id})
     if @track.save
       render json: TrackSerializer.new(
         @track,
         include: included_relations
+      ), status: :ok
+    else
+      render json: { errors: @track.errors.full_messages.join(', ') }, status: :unprocessable_entity
+    end
+  end
+
+  def duplicate
+    # eventually this could support copying a track between projects
+    @track = Track.dup_with_relations({project_id: @project.id, duplicate_id: params[:duplicate_id]})
+    if @track.save
+      # when dupliccating, we serialize all tracks for this project because the track orders will be updated
+      render json: TrackSerializer.new(
+        @track.project.tracks,
+        { 
+          include: included_relations,
+          params: {relations_only_for: @track },
+          # pass the ID of the newly created track to client so ember track adapter can
+          # differentiate from the rest of the tracks that are retunrned in this case
+          meta: { created: @track.id }
+        }
       ), status: :ok
     else
       render json: { errors: @track.errors.full_messages.join(', ') }, status: :unprocessable_entity

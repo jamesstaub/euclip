@@ -1,5 +1,4 @@
 class V1::ProjectsController < V1::BaseController
-  before_action ->{ authenticate_user!(force: true) }, only: %i[create update]
   before_action :set_project, only: %i[update]
 
   def index
