@@ -2,11 +2,13 @@
   {{#unless @track.isDeleted}}
     <div class="flex bg-yellow justify-between footer-height">
       <div class="flex h-100 w-100">
+        {{#if (and this.channelStripGainControl this.channelStripPannerControl)}}
         <ChannelStrip
           @channelStripGainControl={{this.channelStripGainControl}}
           @channelStripPannerControl={{this.channelStripPannerControl}}
           @updateValue={{fn this.updateControl}}
         />
+        {{/if}}
         <TabMenu
           @verticle={{true}}
           @onSelect={{fn this.setUi "controlUi"}}

@@ -1,6 +1,6 @@
 <nav class="project-header-height flex justify-between items-center ph3">
   <div class="flex justify-between w-100 items-center">    
-    <h1 class="ma0 f3">{{this.model.title}}</h1>
+    <h1 class="ma0 f3">{{this.model.displayTitle}}</h1>
       <div class="flex">
         <IconButton @icon="fi-play" @label="play" {{action "play"}} />
         <IconButton @icon="fi-stop" @label="stop" {{action "stop"}} />
@@ -35,7 +35,7 @@
 
   <div class="bg-dark-gray h-100 flex flex-column justify-between shrink-1 grow-1 {{if this.rightSidebarOpen "w-50"}}">
     <div class="overflow-scroll">
-      {{#each @model.tracks as |track|}}
+      {{#each this.sortedTracks key="order" as |track|}}
         <TrackListItem
           @track={{track}} 
           @isActive={{eq track.id this.activeTrack.id}} 

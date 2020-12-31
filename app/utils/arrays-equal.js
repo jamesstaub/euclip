@@ -29,7 +29,7 @@ export function difference(a, b) {
   b = b.sort();
   for (var i = 0; i < a.length; ++i) {
     if (a[i] !== b[i]) {
-      diff.push(a);
+      diff.push(a[i]);
     }
   }
   return diff

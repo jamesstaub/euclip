@@ -26,7 +26,9 @@ export default class ScriptEditorComponent extends Component {
    * to ACE editor prevents a strange rendering bug
    */
   initializeEditorValue() {
-    this.editorContent = this.args.scriptModel.get('editorContent');
+    if (this.args.scriptModel) {
+      this.editorContent = this.args.scriptModel.get('editorContent');
+    }
   }
   
   @action

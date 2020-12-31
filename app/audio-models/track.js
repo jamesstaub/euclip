@@ -193,13 +193,13 @@ export default class TrackAudioModel extends Model.extend(Evented) {
    cleanupNodeRecords() {
     const existingNodeRecords = this.trackNodes.map((tn) => tn.get('nodeUUID'));
     const existingAudioNodes = this.trackAudioNodes.map((tan) => tan.uuid);
-    const nodesToDelete = difference(existingNodeRecords, existingAudioNodes);
-    
-    nodesToDelete.forEach((trackNode) => {
-      trackNode?.trackControls.forEach((trackControl) => {
+    const nodeUUIDsToDelete = difference(existingNodeRecords, existingAudioNodes);
+    nodeUUIDsToDelete.forEach((uuid) => {
+      const trackNode = this.store.peekAll('track-node').findBy('nodeUUID', uuid);
+      trackNode.trackControls.forEach((trackControl) => {
         trackControl.awaitAndDestroy.perform();
       });
-      trackNode?.deleteRecord();
+      trackNode.deleteRecord();
     });
   }
 

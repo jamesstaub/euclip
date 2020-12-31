@@ -6,7 +6,16 @@ export default class UserCreatorProjectController extends Controller {
   @tracked activeTrack;
   @tracked leftSidebarOpen;
   @tracked rightSidebarOpen;
-  
+
+  get sortedTracks() {
+    if (this.model.tracks.isFulfilled) {
+      this._sortedTracks = this.model.tracks.sortBy('order');
+      return this._sortedTracks;
+    } else {
+      return this._sortedTracks;
+    }
+  }
+
   @action
   transitionToTrack(id) {
     this.transitionToRoute('user.creator.project.track', this.model.tracks.findBy('id', id));

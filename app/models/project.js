@@ -36,4 +36,8 @@ export default class ProjectModel extends ProjectAudioModel {
     }
     return track;
   }
+
+  get displayTitle() {
+    return this.title || 'untitled';
+  }
 }

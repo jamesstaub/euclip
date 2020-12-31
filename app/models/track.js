@@ -39,20 +39,19 @@ export default class TrackModel extends TrackAudioModel {
 
   destroyAndCleanup() {
     this.unbindAndRemoveCrackedNodes();
-
     // this.store.unloadRecord(this.initScript);
     // this.store.unloadRecord(this.onstepScript);
-    
     this.trackNodes.forEach((trackNode) => {
       if (trackNode) {
         this.store.unloadRecord(trackNode);
       }
     });
-
     this.trackControls.forEach((trackControl) => {
-      // these are deleted via :dependent_destory on the server, 
-      // so just unload them on track delete
-      this.store.unloadRecord(trackControl);
+      if (trackControl) {
+        // these are deleted via :dependent_destory on the server, 
+        // so just unload them on track delete
+        this.store.unloadRecord(trackControl);
+      }
     });
     this.destroyRecord();
   }
