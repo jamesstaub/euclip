@@ -69,8 +69,12 @@ class RegistrationsController < Devise::RegistrationsController
   protected
 
   def configure_permitted_parameters
-    reg_keys = %i[avatar email first_name last_name username]
+    reg_keys = %i[avatar email username]
     devise_parameter_sanitizer.permit(:sign_up, keys: reg_keys)
     devise_parameter_sanitizer.permit(:account_update, keys: reg_keys)
+  end
+
+  def sign_up_params
+    params.require(:data).require(:attributes).permit(:username, :email, :password, :avatar)
   end
 end

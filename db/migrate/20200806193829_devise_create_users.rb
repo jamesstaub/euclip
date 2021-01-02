@@ -3,8 +3,8 @@ class DeviseCreateUsers < ActiveRecord::Migration[6.0]
     create_table :users, id: :uuid do |t|
 
       ## Added Fields
-      t.string :first_name, null: false
-      t.string :last_name,  null: false
+      t.string :first_name
+      t.string :last_name
       t.string :username,   null: false
       t.string :email,      null: false
       t.jsonb  :settings,   null: false, default: { roles: ['user'] }

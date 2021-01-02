@@ -20,8 +20,6 @@ class User < ApplicationRecord
   before_create :add_user_role, if: lambda { |u| u.settings.blank? }
   before_save :capitalize_names
 
-  validates :first_name, :last_name, presence: true
-
   validates :email,
     uniqueness: { case_sensitive: false },
     format: { with: URI::MailTo::EMAIL_REGEXP, message: FORMAT_INVALID },
@@ -33,8 +31,8 @@ class User < ApplicationRecord
 
   validate :username_is_not_an_existing_email, if: lambda { |u| u.username =~ /@/ }
 
-  PASSWORD_FORMAT = /\A.*(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=]).*\z/
-  PW_MESSAGE = 'must include 1 special char @#$%^&+=, 1 CAP char, 1 low char'
+  PASSWORD_FORMAT = /\A.*(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).*\z/
+  PW_MESSAGE = 'must include 1 CAP char, 1 low char'
 
   validates :password,
     format: { with: PASSWORD_FORMAT, message: PW_MESSAGE },

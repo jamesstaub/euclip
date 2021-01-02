@@ -1,5 +1,5 @@
-class V1::BaseController < ApplicationController
-  before_action ->{ authenticate_user!(force: true) }, only: %i[create update]
+class V1::BaseController < ApplicationController  
+  before_action ->{ authenticate_user!(force: true) }, only: %i[create update destroy]
   before_action :set_params, only: %i[create update]
 
   # parse the include?[model-name] query param 
