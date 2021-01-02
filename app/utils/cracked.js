@@ -55,6 +55,10 @@ export function stopLoop() {
   __('*').stop();
 }
 
+export function unbindFromSequencer(samplerSelector) {
+  __(samplerSelector).unbind('step');
+}
+
 
 /**
  * Configuration for createing TrackControl records assigned to TrackNodes 

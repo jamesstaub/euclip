@@ -31,7 +31,7 @@
               >
                 <NexusSlider 
                   @value={{@track.hits}} 
-                  @onChangeValue={{perform @track.updateTrackTask "hits"}} 
+                  @onChangeValue={{perform @track.updateTrackSequence "hits"}} 
                   @min={{0}}
                   @max={{this.maxSteps}}
                   @step={{1}}
@@ -49,7 +49,7 @@
               >
                 <NexusSlider
                   @value={{@track.steps}}
-                  @onChangeValue={{perform @track.updateTrackTask "steps"}}
+                  @onChangeValue={{perform @track.updateTrackSequence "steps"}}
                   @min={{0}}
                   @max={{this.maxSteps}}
                   @step={{1}}
@@ -67,7 +67,7 @@
               >
                 <NexusSlider 
                   @value={{@track.offset}} 
-                  @onChangeValue={{perform @track.updateTrackTask "offset"}} 
+                  @onChangeValue={{perform @track.updateTrackSequence "offset"}} 
                   @min={{0}}
                   @max={{this.maxSteps}}
                   @step={{1}}

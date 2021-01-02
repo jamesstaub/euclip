@@ -2,6 +2,7 @@ import Model from '@ember-data/model';
 import Evented from '@ember/object/evented';
 import ENV from '../config/environment';
 import { arraysEqual, difference } from '../utils/arrays-equal';
+import { unbindFromSequencer } from '../utils/cracked';
 import filterNumericAttrs from '../utils/filter-numeric-attrs';
 
 export default class TrackAudioModel extends Model.extend(Evented) {  
@@ -247,7 +248,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   }
 
   unbindAndRemoveCrackedNodes() {
-    __(this.samplerSelector).unbind('step');
+    unbindFromSequencer(this.samplerSelector);
     __(`.track-${this.id}`).remove();
   }
   

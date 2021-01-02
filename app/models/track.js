@@ -3,6 +3,8 @@ import E from '../utils/euclidean';
 import { tracked } from '@glimmer/tracking';
 import TrackAudioModel from '../audio-models/track';
 import { keepLatestTask } from "ember-concurrency-decorators";
+import { timeout } from 'ember-concurrency';
+import { unbindFromSequencer } from '../utils/cracked';
 
 export default class TrackModel extends TrackAudioModel {
   @tracked hits;
@@ -73,11 +75,25 @@ export default class TrackModel extends TrackAudioModel {
   }
 
   @keepLatestTask
+  *updateTrackSequence(key, value){
+    try {
+      this.set(key, value);
+      unbindFromSequencer(this.samplerSelector);
+      this.bindToSequencer();
+      yield timeout(300)
+      yield this.save();
+    } catch (e) {
+      this.rollbackAttributes();
+    }
+  }
+
+  // REFACTOR: this is only called when the filepath
+  // is updated, filepath should be moved to a TrackControl attribute of Sampler nodes
+  @keepLatestTask
   *updateTrackTask(key, value, reInit=true){
     try {
       this.set(key, value);
       if (reInit)  {
-        // TODO refactor so setupAudioFromScripts does not take arguments, but ensure these models are resolved
         const initScript = yield this.initScript;
         this.setupAudioFromScripts(initScript);
       }
