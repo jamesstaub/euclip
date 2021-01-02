@@ -24,6 +24,7 @@ module.exports = function(environment) {
     APP: {
       userEndpoint: '/login',
       invalidateEndpoint: '/logout',
+      registrationEndpoint: '/registration',
       
       // nodes defined in cracked library that euclip supports for TrackNodes and TrackControls
       supportedAudioNodes: [

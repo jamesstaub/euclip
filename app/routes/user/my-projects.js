@@ -15,6 +15,14 @@ export default class UserMyProjectsRoute extends Route {
         },
         include: ENV.APP.projectIncludeParams
       });
+    } else {
+      this.transitionTo('login');
+    }
+  }
+
+  afterModel(model) {
+    if (this.session.isAuthenticated && !model.length) {
+      this.transitionTo('user.new');
     }
   }
 }

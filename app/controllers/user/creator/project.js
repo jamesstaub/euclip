@@ -8,12 +8,13 @@ export default class UserCreatorProjectController extends Controller {
   @tracked rightSidebarOpen;
 
   get sortedTracks() {
-    if (this.model.tracks.isFulfilled) {
-      this._sortedTracks = this.model.tracks.sortBy('order');
-      return this._sortedTracks;
-    } else {
-      return this._sortedTracks;
-    }
+    return this._sortedTracks = this.model.tracks.sortBy('order');
+    // if (this.model.tracks.isFulfilled || !this._sortedTracks) {
+    //   this._sortedTracks = this.model.tracks.sortBy('order');
+    //   return this._sortedTracks;
+    // } else {
+    //   return this._sortedTracks;
+    // }
   }
 
   @action

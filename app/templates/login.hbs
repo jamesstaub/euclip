@@ -7,57 +7,69 @@
   </button>
   {{else}}
   <form {{action "authenticate" on="submit"}}>
-    <fieldset class="mb4">
-      <legend>Login</legend>
-      <label for="username">
-        Email
-      </label>
-      {{input id="username" placeholder="Enter Login" value=this.username}}
-      <label for="password">
-        Password
-      </label>
-      {{input
-          id="password"
-          placeholder="Enter Password"
-          type="password"
-          value=this.password
-          autocomplete=true
-        }}
-      <button type="submit">
-        Login
-      </button>
-      {{#if this.errorMessage}}
-      <p>
-        {{this.errorMessage}}
-      </p>
-      {{/if}}
-    </fieldset>
-    <fieldset>
-      <legend>Sign up</legend>
-      <label for="signup-username">
-        Email
-      </label>
-      {{input id="signup-username" placeholder="Enter Login" value=this.username}}
-      <label for="signup-password">
-        Password
-      </label>
-      {{input
-            id="signup-password"
+    {{#if this.loginView}}
+      <fieldset class="mb4">
+        <legend>Login</legend>
+        <label for="username">
+          Username
+        </label>
+        {{input id="username" placeholder="Enter Username" value=this.username}}
+        <label for="email">
+          Email
+        </label>
+        {{input id="email" placeholder="Enter Email Address" value=this.email}}
+        <label for="password">
+          Password
+        </label>
+        {{input
+            id="password"
             placeholder="Enter Password"
             type="password"
             value=this.password
             autocomplete=true
           }}
-      <button type="submit">
-        Login
-      </button>
-      {{#if this.errorMessage}}
-      <p>
-        {{this.errorMessage}}
-      </p>
-      {{/if}}
-    </fieldset>
+        <button type="submit">
+          Login
+        </button>
+        {{#if this.errorMessage}}
+        <p>
+          {{this.errorMessage}}
+        </p>
+        {{/if}}
+      </fieldset>
+    {{else}}
+      <fieldset>
+        <legend>Sign up</legend>
+        <label for="username">
+          Username
+        </label>
+        {{input id="username" placeholder="Enter Username" value=this.username}}
+        <label for="email">
+          Email
+        </label>
+        {{input id="email" placeholder="Enter Email Address" value=this.email}}
+        <label for="signup-password">
+          Password
+        </label>
+        {{input
+              id="signup-password"
+              placeholder="Enter Password"
+              type="password"
+              value=this.password
+              autocomplete=true
+            }}
+        <button type="submit">
+          Login
+        </button>
+        {{#if this.errorMessage}}
+        <p>
+          {{this.errorMessage}}
+        </p>
+        {{/if}}
+      </fieldset>
+    {{/if}}
   </form>
+  <p class="center" {{on "click" this.toggleView}}>{{this.toggleViewTxt}}</p>
   {{/if}}
   {{outlet}}
 </div>
