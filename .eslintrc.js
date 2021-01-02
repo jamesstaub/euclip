@@ -23,8 +23,7 @@ module.exports = {
   env: {
     browser: true
   },
-  ignorePatterns: ['ember/no-get'],
-  rules: {  },
+  rules: {},
   overrides: [
     // node files
     {
@@ -50,6 +49,7 @@ module.exports = {
         browser: false,
         node: true
       },
+<<<<<<< HEAD
       plugins: ['node', 'ember'],
       rules: Object.assign({}, require('eslint-plugin-node').configs.recommended.rules, {
         // add your custom rules and overrides for node files here
@@ -62,6 +62,15 @@ module.exports = {
         'eslint:recommended',
         'plugin:node/recommended'
       ],
+=======
+      plugins: ['node'],
+      extends: ['plugin:node/recommended'],
+      rules: {
+        // this can be removed once the following is fixed
+        // https://github.com/mysticatea/eslint-plugin-node/issues/77
+        'node/no-unpublished-require': 'off'
+      }
+>>>>>>> 075d035... v3.18.0...v3.23.0
     }
   ]
 };
