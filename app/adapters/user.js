@@ -1,11 +1,12 @@
-import JSONAPIAdapter from '@ember-data/adapter/json-api';
-import DataAdapterMixin from "ember-simple-auth/mixins/data-adapter-mixin";
 import ENV from '../config/environment';
+import ApplicationAdapter from './application';
 
-export default class UserAdapter extends JSONAPIAdapter.extend(DataAdapterMixin) {
+
+export default class UserAdapter extends ApplicationAdapter {
   urlForQueryRecord() {
-    return ENV.APP.userEndpoint;
+    return `/v1${ENV.APP.userEndpoint}`;
   }
+  
   urlForCreateRecord() {
     return ENV.APP.registrationEndpoint;
   }

@@ -6,6 +6,7 @@ export default DeviseAuthenticator.extend({
   store: service(),
   session: service(),
   currentUser: service(),
+  router: service(),
 
   serverTokenEndpoint: `${ENV.APP.userEndpoint}`,
   invalidateEndpoint: `${ENV.APP.invalidateEndpoint}`,
@@ -19,6 +20,8 @@ export default DeviseAuthenticator.extend({
       const response = await fetch(this.invalidateEndpoint, { method: 'DELETE', headers: headers});
       if (response.status !== 200) {
         console.error('Problem invalidating server session')
+      } else {
+        this.router.transitionTo('login');
       }
     }
   },

@@ -1,75 +1,81 @@
-<NavBar @logoWidth="280px" />
-<div class="mt4 mw4 center">
+<NavBar @logoWidth="220px" />
+<div class="mt4 center">
   {{#if session.isAuthenticated}}
-  <p>Logged in as {{session.currentUser.username}}</p>
-  <button {{on "click" this.invalidateSession}}>
-    Logout
-  </button>
+    <p>Logged in as {{session.currentUser.username}}</p>
+    <button {{on "click" this.invalidateSession}}>
+      Logout
+    </button>
   {{else}}
-  <form {{action "authenticate" on="submit"}}>
-    {{#if this.loginView}}
-      <fieldset class="mb4">
-        <legend>Login</legend>
-        <label for="username">
-          Username
-        </label>
-        {{input id="username" placeholder="Enter Username" value=this.username}}
-        <label for="email">
-          Email
-        </label>
-        {{input id="email" placeholder="Enter Email Address" value=this.email}}
-        <label for="password">
-          Password
-        </label>
-        {{input
-            id="password"
-            placeholder="Enter Password"
-            type="password"
-            value=this.password
-            autocomplete=true
-          }}
-        <button type="submit">
-          Login
-        </button>
-        {{#if this.errorMessage}}
-        <p>
-          {{this.errorMessage}}
-        </p>
-        {{/if}}
-      </fieldset>
-    {{else}}
-      <fieldset>
-        <legend>Sign up</legend>
-        <label for="username">
-          Username
-        </label>
-        {{input id="username" placeholder="Enter Username" value=this.username}}
-        <label for="email">
-          Email
-        </label>
-        {{input id="email" placeholder="Enter Email Address" value=this.email}}
-        <label for="signup-password">
-          Password
-        </label>
-        {{input
-              id="signup-password"
-              placeholder="Enter Password"
-              type="password"
-              value=this.password
-              autocomplete=true
-            }}
-        <button type="submit">
-          Login
-        </button>
-        {{#if this.errorMessage}}
-        <p>
-          {{this.errorMessage}}
-        </p>
-        {{/if}}
-      </fieldset>
-    {{/if}}
-  </form>
-  <p class="center" {{on "click" this.toggleView}}>{{this.toggleViewTxt}}</p>
+    <form {{action "authenticate" on="submit"}}>
+      {{#if this.loginView}}
+        <fieldset class="mb4">
+          <legend>Login</legend>
+          <div>
+            <label for="username">
+              Username
+            </label>
+            {{input id="username" placeholder="Enter Username" value=this.username}}
+          </div>
+          <div>
+            <label for="password">
+              Password
+            </label>
+            {{input
+                id="password"
+                placeholder="Enter Password"
+                type="password"
+                value=this.password
+                autocomplete=true
+              }}
+          </div>
+          <button type="submit">
+            Login
+          </button>
+          {{#if this.errorMessage}}
+          <p>
+            {{this.errorMessage}}
+          </p>
+          {{/if}}
+        </fieldset>
+      {{else}}
+        <fieldset>
+          <legend>Sign up</legend>
+          <div>
+            <label for="username">
+              Username
+            </label>
+            {{input id="username" placeholder="Enter Username" value=this.username}}
+          </div>
+          <div>
+            <label for="email">
+              Email
+            </label>
+            {{input id="email" placeholder="Enter Email Address" value=this.email}}
+          </div>
+          <div>
+            <label for="signup-password">
+              Password
+            </label>
+            {{input
+                  id="signup-password"
+                  placeholder="Enter Password"
+                  type="password"
+                  value=this.password
+                  autocomplete=true
+                }}
+          </div>
+          <button type="submit">
+            Login
+          </button>
+          {{#if this.errorMessage}}
+          <p>
+            {{this.errorMessage}}
+          </p>
+          {{/if}}
+        </fieldset>
+      {{/if}}
+    </form>
+    <p class="tc b pointer" {{on "click" this.toggleView}}>{{this.toggleViewTxt}}</p>
   {{/if}}
   {{outlet}}
 </div>

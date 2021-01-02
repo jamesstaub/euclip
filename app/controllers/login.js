@@ -30,7 +30,7 @@ export default class LoginController extends Controller {
         await user.save();
       }
 
-      await this.session.authenticate('authenticator:euclip-auth', this.email, this.password);
+      await this.session.authenticate('authenticator:euclip-auth', this.username, this.password);
     } catch (error) {
       this.set('errorMessage', error.errors?.firstObject.title || error.errors?.firstObject || error.statusText || error);
     }
