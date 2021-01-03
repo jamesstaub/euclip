@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_12_11_222322) do
+ActiveRecord::Schema.define(version: 2021_01_03_042514) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
@@ -48,6 +48,15 @@ ActiveRecord::Schema.define(version: 2020_12_11_222322) do
     t.index ["user_id"], name: "index_allowlisted_jwts_on_user_id"
   end
 
+  create_table "presets", force: :cascade do |t|
+    t.uuid "creator_id", null: false
+    t.bigint "script_id"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["creator_id"], name: "index_presets_on_creator_id"
+    t.index ["script_id"], name: "index_presets_on_script_id"
+  end
+
   create_table "projects", force: :cascade do |t|
     t.text "title"
     t.text "slug"
@@ -65,6 +74,8 @@ ActiveRecord::Schema.define(version: 2020_12_11_222322) do
     t.bigint "track_id"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.bigint "preset_id"
+    t.index ["preset_id"], name: "index_scripts_on_preset_id"
     t.index ["track_id"], name: "index_scripts_on_track_id"
   end
 
@@ -90,7 +101,7 @@ ActiveRecord::Schema.define(version: 2020_12_11_222322) do
     t.integer "steps"
     t.integer "offset"
     t.text "filepath"
-    t.text "custom_sequence"
+    t.float "custom_sequence", default: [], array: true
     t.bigint "project_id", null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
@@ -132,7 +143,9 @@ ActiveRecord::Schema.define(version: 2020_12_11_222322) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "allowlisted_jwts", "users", on_delete: :cascade
+  add_foreign_key "presets", "users", column: "creator_id", on_delete: :cascade
   add_foreign_key "projects", "users", column: "creator_id", on_delete: :cascade
+  add_foreign_key "scripts", "presets"
   add_foreign_key "scripts", "tracks"
   add_foreign_key "track_controls", "tracks"
   add_foreign_key "tracks", "projects"

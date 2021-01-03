@@ -70,7 +70,7 @@ class V1::TracksController < V1::BaseController
     # TODO: 
     # eventually filepath should be like any other TrackControl attribute
     # and a Sequence model can contain properties for euclidean, custom, or other types of sequences
-    @attributes.permit(:filepath, :hits, :steps, :offset, :custom_sequence)
+    @attributes.permit(:filepath, :hits, :steps, :offset, :custom_sequence => [])
   end
 
   def set_track
