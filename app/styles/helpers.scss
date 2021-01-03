@@ -29,6 +29,13 @@
 
 
 /* Icons */
+.fill-white {
+  fill: $white;
+}
+.fill-dark-gray {
+  fill: $black;
+}
+
 .light-fill {
   fill: $light-gray;
   svg {

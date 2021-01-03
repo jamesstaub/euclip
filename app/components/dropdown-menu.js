@@ -29,4 +29,10 @@ export default class DropdownMenuComponent extends Component {
   toggleOpen() {   
     this.open = !this.open;
   }
+
+  @action
+  onSelectItem(itemAction) {
+    this.open = false;
+    itemAction();
+  }
 }

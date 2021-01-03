@@ -6,7 +6,21 @@ input:focus, button:focus {
   outline-color: $yellow;
 }
 
-.dropdown-btn.light-btn {
-  fill: $white;
-  background-color: transparent;
+
+button:hover {
+  &.bg-dark-gray {
+    background-color: darken($dark-gray, 10);
+  }
+  &.bg-light-gray {
+    background-color: $moon-gray;
+  }
+  &.bg-light-yellow {
+    background-color: lighten($light-yellow, 5);
+  }
+  &.bg-yellow {
+    background-color: $dark-yellow;
+  }
+  &.bg-light-blue {
+    background-color:  darken($light-blue , 10);
+  }
 }

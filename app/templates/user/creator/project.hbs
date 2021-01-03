@@ -16,7 +16,7 @@
           <span class="pr3">bpm</span>
         </div>
       </div>
-    <ButtonPrimary class="ml3" @label={{"+ track"}} {{on "click" this.addTrack}}/>
+    <ButtonPrimary class="ml3" @label={{"Add New Track"}} {{on "click" this.addTrack}}/>
   </div>
 </nav>
 
@@ -52,6 +52,11 @@
       @direction="right"
       @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id "right"}}
     >
+      <div class="mh3 yellow">
+        <h3 class="mv3">Script Editor</h3>
+        <p class="f7">Setup the track's audio nodes and modulate parameters on each step of the sequence.</p>
+        <p class="f7">Node controls are created for the audio nodes you define in the Setup Script. </p>
+      </div>
       <ScriptWrapper @track={{this.activeTrack}} @presets={{this.presets}}/>
     </SidebarWrapper>
   {{/if}}

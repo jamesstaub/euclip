@@ -5,6 +5,8 @@ import TrackAudioModel from '../audio-models/track';
 import { keepLatestTask } from "ember-concurrency-decorators";
 import { timeout } from 'ember-concurrency';
 import { unbindFromSequencer } from '../utils/cracked';
+import { isEmpty } from '@ember/utils';
+
 
 export default class TrackModel extends TrackAudioModel {
   @tracked hits;
@@ -59,8 +61,11 @@ export default class TrackModel extends TrackAudioModel {
   }
 
   get sequence() {
-    // TODO implement support for custom sequence
-    return this.customSequence || E(this.hits, this.steps, this.offset)
+    if (isEmpty(this.customSequence)) {
+      return E(this.hits, this.steps, this.offset)
+    } else {
+      return this.customSequence;
+    }
   }
 
   get filename() {

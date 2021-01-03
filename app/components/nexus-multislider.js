@@ -12,33 +12,26 @@ export default NexusBase.extend({
     this.setProperties({
       elementName: 'Multislider',
       sliderColor: '#52ebff',
+      bgColor: '#075f68',
+      sliderStrokeColor: '#333',
       sliderBgColor: '#f7f7f7',
       red: 'rgb(217, 83, 79)'
     });
   },
-
-  didInsertElement() {
-    this._super(...arguments);
+  
+  nexusInit() {
     // hackish way to select the <rect> elements that need to be styled
+    this._super(...arguments)
     this.set('sliderQuery', this.nexusElement.parent.querySelectorAll(`rect[height="120"]`));
     this.set('sliderCapQuery', this.nexusElement.parent.querySelectorAll(`rect[height="5"]`));
     this.applyStyle();
-  },
-
-  didReceiveAttrs() {
-    this._super(...arguments);
-    this.applyStyle();
     this.styleOnStep();
   },
-    
-  nexusInit() {
-    this._super(...arguments);
-    this.multislider.colorize('accent', '#52ebff');
-    this.multislider.colorize('fill', '#ffffff');
-  },
 
-  applyStyle() {
-    if(this.nexusElement && this.sequence) {
+  applyStyle() {    
+    if(this.nexusElement && this.sequence && this.sliderQuery, this.sliderCapQuery) {
+      this.nexusElement.element.style.backgroundColor = this.bgColor;
+
       this.sliderQuery.forEach(this.styleRectElement.bind(this));
       this.sliderCapQuery.forEach(this.styleRectElement.bind(this))
     }
@@ -46,7 +39,7 @@ export default NexusBase.extend({
 
   // callback when iterating over querySelector of svg <rect>s
   styleRectElement(el, idx) {
-    let stroke = this.sliderColor;
+    let stroke = this.sliderStrokeColor;
     let fill = this.sequence[idx] ? this.sliderColor : this.sliderBgColor;
     el.setAttribute('style', `stroke: ${stroke}; fill: ${fill}; opacity: 1`);
   },

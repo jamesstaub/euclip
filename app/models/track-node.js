@@ -31,6 +31,10 @@ export default class TrackNodeModel extends Model {
       .find((trackNode)=> trackNode.nodeType === type);
   }
 
+  getCrackedNode() {
+    return __._getNode(this.nodeUUID);
+  }
+
   /**
    * Cache default interface so a user can use the dropdown menu to change a node's individual controls,
    * without it getting overwritten every time the script get loaded (which happens constantly)

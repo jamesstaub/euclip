@@ -1,12 +1,11 @@
 <button 
-  class="link bn dropdown-btn" 
+  class="link bn bg-transparent" 
   {{on "click" this.toggleOpen}}
   {{did-insert (fn this.setPosition)}}
   ...attributes
 >
-  {{svg-jar "fi-dots" width="10px" height="20px"}}
+  {{svg-jar "fi-dots" class="fill-white" width="16px" height="40px"}}
 </button>
-
 {{#if this.open}}
   {{#ember-wormhole to="dropdown-target"}}
     <ul
@@ -15,7 +14,7 @@
     >
       {{#each @items as |item|}}
         <li>
-          <button title={{item.label}} {{on "click" item.select}}>
+          <button class="bg-light-gray bn w-100 ph2 pv1" title={{item.label}} {{on "click" (fn this.onSelectItem item.select)}}>
             {{item.label}}
           </button>
         </li>

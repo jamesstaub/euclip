@@ -18,7 +18,7 @@ export default class TrackControlWrapperComponent extends Component {
 
   get multisliderWidthStyle() {
     if (this.args.trackControl?.isMultislider) {
-      // TODO make 16 dynamic for responsive screen changes in sliders per page 
+      // TODO make 16 a variable informed by responsive screensize for responsive screen changes in sliders per page 
       const width = Math.min(this.multisliderWidth, MULTISLIDER_WIDTH * 16);
       return htmlSafe(`width: ${width}px`);
     } else {

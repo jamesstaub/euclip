@@ -29,6 +29,9 @@ export default NexusBase.extend({
     this._super(...arguments);
     this.slider.colorize('accent', '#52ebff');
     this.slider.colorize('fill', '#ffffff');
+    const circle = this.slider.element.querySelector('circle');
+    circle.setAttribute('stroke', '#333');
+    circle.setAttribute('stroke-width', '2px');
   },
 
 });

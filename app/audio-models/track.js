@@ -1,7 +1,8 @@
 import Model from '@ember-data/model';
 import Evented from '@ember/object/evented';
+
 import ENV from '../config/environment';
-import { arraysEqual, difference } from '../utils/arrays-equal';
+import { difference } from '../utils/arrays-equal';
 import { unbindFromSequencer } from '../utils/cracked';
 import filterNumericAttrs from '../utils/filter-numeric-attrs';
 
@@ -266,10 +267,21 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   get scriptScope() {
     // sampler speed is a special case because they rebuild on every play, 
     // so we need to ensure the attrs from the UI controls get applied after .start()
-    // this is not an issue for non sampler nodes
+    // this is not an issue for non sampler nodes.
+    // If an LFO is modulating the sampler speed, the speed controls will be ignored
+    // TODO: It may be possible to multiply the values of the LFO and trackcontrols
+
     // TODO: same fix for sampler start, end
-    // ALSO TODO: how can this be fixed to support LFOs to modulate speed?
-    const speedControl = this.trackControls.filterBy('nodeType', 'sampler').findBy('nodeAttr', 'speed');
+
+    const speedControl = this.trackControls
+      .filterBy('nodeType', 'sampler')
+      .findBy('nodeAttr', 'speed');
+
+    const lfoForSamplerSpeed = this.trackNodes.filterBy('nodeType', 'lfo')
+      .map((trackNode) => trackNode.getCrackedNode())
+      .find((crackedNode) => crackedNode?.isModulatorType() === 'speed');
+      
+    const samplerNode = this.trackNodes.findBy('nodeType', 'sampler')?.getCrackedNode();
 
     return {
       // the track should either have a sampler or an oscillator 
@@ -279,6 +291,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       
       // // TODO remove attrOnTrackStep() above and instead
       // // implemenet it to be called in a mungeable way in user's script
+      // // so that the 
       // trackControls: this.trackControls.map((trackControl) => {
       //   return {
       //     nodeSelector: trackControl.nodeType,
@@ -289,11 +302,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       //   }
       // }),
       playSample(index) {
-        if (speedControl) {
-          const speed = speedControl.attrOnTrackStep(index);
-          __(this.samplerSelector).stop()
-          __(this.samplerSelector).attr({speed: speed}).start();
-        }
+        // there will probably always be a speed control
+        const speed = speedControl.attrOnTrackStep(index);
+        __(this.samplerSelector).stop().attr({speed: speed}).start();
       },
       sliders: this.trackControlData
     };

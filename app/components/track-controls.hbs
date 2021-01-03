@@ -1,67 +1,68 @@
 {{#each @trackNodesForControls as |trackNode idx|}}
   {{#if (eq @visibleNodeIdx idx)}}
-    <div class="h-auto flex flex-column tc mh3 track-controls-container-pb overflow-scroll">
-      {{#each trackNode.trackControls as |trackControl|}}
-        {{#if trackControl.isMultislider}}
-          <TrackControlWrapper
-            class="track-control-wrapper-mb"
-            @sequence={{@track.sequence}}
-            @trackControl={{trackControl}}
-            as |multisliderWidth|
-          >
-            {{!-- 
-              render the track control component eg nexus-multislider
-              this is equivalent to <NexusMultislider> but can be set dynamically
-              --}}
-            <SequencePagination 
-              @sequence={{@track.sequence}} 
-              @stepIndex={{@track.stepIndex}}
-              as |sequencePaginated page|
+    <div class="flex row-reverse justify-end h-100">
+      <div class="flex flex-wrap tc mh3">
+        {{#each trackNode.trackControls as |trackControl|}}
+          {{#unless trackControl.isMultislider}}
+            <TrackControlWrapper
+              @sequence={{@track.sequence}}
+              @trackControl={{trackControl}}
             >
-              <div 
-                class="sequencer-width"
-                {{did-update (fn this.scrollToPageOffset page)}}
-              >
-                <NexusMultislider
-                  @stepIndex={{@track.stepIndex}}
-                  @sequence={{@track.sequence}}
-                  @values={{trackControl.controlArrayComputed}}
-                  @min={{trackControl.min}}
-                  @max={{trackControl.max}}
-                  @width={{multisliderWidth}}
-                  @defaultValue={{trackControl.defaultValue}}
-                  @onChangeValue={{fn @updateControl trackControl}}
-                />
-              </div>
-            </SequencePagination>
-          </TrackControlWrapper>
-        {{/if}}
-      {{/each}}
-    </div>
-    
-    <div class="flex flex-wrap tc mh3">
-      {{#each trackNode.trackControls as |trackControl|}}
-        {{#unless trackControl.isMultislider}}
-          <TrackControlWrapper
-            @sequence={{@track.sequence}}
-            @trackControl={{trackControl}}
-          >
-            {{!-- 
-              render the track control component eg nexus-slider
-              this is equivalent to <NexusSlider> but can be set dynamically
-              --}}
+              {{!-- 
+                render the track control component eg nexus-slider
+                this is equivalent to <NexusSlider> but can be set dynamically
+                --}}
               {{component 
-                (concat "nexus-" trackControl.interfaceName)
-                value=trackControl.controlValue
-                values=trackControl.controlArrayComputed
-                min=trackControl.min
-                max=trackControl.max
-                defaultValue=trackControl.defaultValue
-                onChangeValue=(fn @updateControl trackControl)
-              }}
-          </TrackControlWrapper>
-        {{/unless}}
-      {{/each}}
+                  (concat "nexus-" trackControl.interfaceName)
+                  value=trackControl.controlValue
+                  values=trackControl.controlArrayComputed
+                  min=trackControl.min
+                  max=trackControl.max
+                  defaultValue=trackControl.defaultValue
+                  onChangeValue=(fn @updateControl trackControl)
+                }}
+            </TrackControlWrapper>
+          {{/unless}}
+        {{/each}}
+      </div>
+      <div class="h-auto flex flex-column tc mh3 track-controls-container-pb overflow-y-scroll">
+        {{#each trackNode.trackControls as |trackControl|}}
+          {{#if trackControl.isMultislider}}
+            <TrackControlWrapper
+              class="track-control-wrapper-mb"
+              @sequence={{@track.sequence}}
+              @trackControl={{trackControl}}
+              as |multisliderWidth|
+            >
+              {{!-- 
+                render the track control component eg nexus-multislider
+                this is equivalent to <NexusMultislider> but can be set dynamically
+                --}}
+              <SequencePagination 
+                @sequence={{@track.sequence}} 
+                @stepIndex={{@track.stepIndex}}
+                as |sequencePaginated page|
+              >
+                <div 
+                  class="sequencer-width"
+                  {{did-update (fn this.scrollToPageOffset page)}}
+                >
+                  <NexusMultislider
+                    @stepIndex={{@track.stepIndex}}
+                    @sequence={{@track.sequence}}
+                    @values={{trackControl.controlArrayComputed}}
+                    @min={{trackControl.min}}
+                    @max={{trackControl.max}}
+                    @width={{multisliderWidth}}
+                    @defaultValue={{trackControl.defaultValue}}
+                    @onChangeValue={{fn @updateControl trackControl}}
+                  />
+                </div>
+              </SequencePagination>
+            </TrackControlWrapper>
+          {{/if}}
+        {{/each}}
+      </div>
     </div>
   {{/if}}
 {{/each}}

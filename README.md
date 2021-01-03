@@ -10,6 +10,12 @@ Tracks
 
 ### features
 - new track menu (different script presets)
+  - build preset models in rails
+  - a preset can have one of each script type
+  - the preset menu should overlay the scripts sidebar and use a material ui table with checkboxes indicating which scripts
+  - a toggle should default to "replace existing script"
+  - users can save their own scripts to their "collections"
+
 
 ### bugs
 

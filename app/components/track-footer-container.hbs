@@ -20,7 +20,7 @@
         />
 
         {{#if (eq this.controlUi "sequence")}}
-          <div>
+          <div class="bl">
             <h3 class="ma3">Euclidean Rhythm</h3>
             <div class="sequence-control-sliders flex flex-column mh3">
               <TrackControlWrapper
@@ -37,7 +37,7 @@
                   @step={{1}}
                   @size={{array 300 20}}
                 >
-                  <span class="w3 mr3">hits: {{@track.hits}}</span>
+                  <span class="euclidean-param-label mr3"><span class="fw6">hits:</span> {{@track.hits}}</span>
                 </NexusSlider>
               </TrackControlWrapper>
 
@@ -55,7 +55,7 @@
                   @step={{1}}
                   @size={{array 300 20}}
                 >
-                  <span class="w3 mr3">steps: {{@track.steps}}</span>
+                  <span class="euclidean-param-label mr3"><span class="fw6">steps:</span> {{@track.steps}}</span>
                 </NexusSlider>
               </TrackControlWrapper>
 
@@ -73,15 +73,20 @@
                   @step={{1}}
                   @size={{array 300 20}}
                 >
-                  <span class="w3 mr3">offset: {{@track.offset}}</span>
+                  <span class="euclidean-param-label mr3"><span class="fw6">offset:</span> {{@track.offset}}</span>
                 </NexusSlider> 
               </TrackControlWrapper> 
             </div>
           </div>
         {{/if}}
         {{#if (eq this.controlUi "controls")}}
-          <div class="w-100 overflow-hidden">
-            <h3 class="ma3">Node Controls</h3>
+          <div class="overflow-hidden flex flex-column flex-grow-1 flex-shrink-1 bl">
+            <div class="flex justify-between">
+              <h3 class="ma3">Node Controls</h3>
+              {{#unless @rightSidebarOpen}}
+                <p {{on "click" @onToggleScripts}} class="pointer fw5 f5 tr mr3">Edit Audio Nodes</p>
+              {{/unless}}
+            </div>
             <div class="h-100 flex flex-column grow-1">
               <TabMenu
                 class="ph3 mb3"

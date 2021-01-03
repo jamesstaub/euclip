@@ -1,3 +1,4 @@
+import onstepScript from "../factories/onstep-script";
 
 const samples = [
   {
@@ -54,6 +55,22 @@ __('#lfo-1').start();
   this.playSample(index);
   // need to connect lfo to sampler on every step
   __('#lfo-1').connect(this.samplerSelector);
+}`
+  },
+  {
+    title: 'sampler speed',
+    initScript:
+`
+__().sampler({path:this.filepath}).connect("#mixer")
+__().lfo({modulates:"speed",frequency:1,gain:3}).connect("sampler");
+
+__("lfo").start();
+`,
+    onstepScript:
+`
+__("lfo").connect("sampler");
+if(data){
+  __("sampler").stop().start();
 }`
   }
 ];
