@@ -21,24 +21,42 @@
 .min-w-5 { min-width: $width-5; }
 .min-w-6 { min-width: $width-6; }
 
+.rotate-0 {
+  transform: rotate(0deg);
+}
 
+.rotate-90 {
+  transform: rotate(90deg);
+}
+
+.rotate-0, .rotate-90 {
+  transition: all .5s ease;
+  display: block;
+}
+
+/* SVG */
 .small-square {
   width: 1.5rem;
   height: 1.5rem;
-}
-
-
-/* Icons */
-.fill-white {
-  fill: $white;
-}
-.fill-dark-gray {
-  fill: $black;
 }
 
 .light-fill {
   fill: $light-gray;
   svg {
     fill: $light-gray;
+  }
+}
+
+.dark-fill {
+  fill: $dark-gray;
+  svg {
+    fill: $dark-gray;
+  }
+}
+
+.yellow-fill {
+  fill: $dark-yellow;
+  svg {
+    fill: $dark-yellow;
   }
 }

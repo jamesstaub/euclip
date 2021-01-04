@@ -6,15 +6,16 @@ export default class UserCreatorProjectController extends Controller {
   @tracked activeTrack;
   @tracked leftSidebarOpen;
   @tracked rightSidebarOpen;
+  @tracked _sortedTracks;
 
+  // see note below if weirdness occurs
   get sortedTracks() {
-    return this._sortedTracks = this.model.tracks.sortBy('order');
-    // if (this.model.tracks.isFulfilled || !this._sortedTracks) {
-    //   this._sortedTracks = this.model.tracks.sortBy('order');
-    //   return this._sortedTracks;
-    // } else {
-    //   return this._sortedTracks;
-    // }
+    if (this.model.tracks.isFulfilled) {
+      this._sortedTracks = this.model.tracks.sortBy('order');
+      return this._sortedTracks;
+    } else {
+      return this._sortedTracks;
+    }
   }
 
   @action
@@ -36,6 +37,11 @@ export default class UserCreatorProjectController extends Controller {
   @action
   async addTrack() {
     let track = this.model.tracks.createRecord({ hits: 1 });
+
+    // NOTE this is potentially a bad idea but the cached value in the getter above 
+    // prevents a flicker when adding tracks
+    this._sortedTracks.push(track);
+
     try {
       track = await this.model.setupAndSaveNewTrack(track);
     } catch (error) {

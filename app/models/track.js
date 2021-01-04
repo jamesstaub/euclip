@@ -7,7 +7,6 @@ import { timeout } from 'ember-concurrency';
 import { unbindFromSequencer } from '../utils/cracked';
 import { isEmpty } from '@ember/utils';
 
-
 export default class TrackModel extends TrackAudioModel {
   @tracked hits;
   @tracked steps;

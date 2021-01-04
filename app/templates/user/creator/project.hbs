@@ -27,6 +27,7 @@
       @direction="left"
       @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id "left"}}
     >
+      <h3 class="mt3 yellow ma3 ">Drum Machines</h3>
       <DrumFilePicker
         @track={{this.activeTrack}}
       />
@@ -35,6 +36,7 @@
 
   <div class="bg-dark-gray h-100 flex flex-column justify-between shrink-1 grow-1 {{if this.rightSidebarOpen "w-50"}}">
     <div class="overflow-scroll">
+      {{log this.sortedTracks}}
       {{#each this.sortedTracks key="order" as |track|}}
         <TrackListItem
           @track={{track}} 
@@ -52,10 +54,12 @@
       @direction="right"
       @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id "right"}}
     >
-      <div class="mh3 yellow">
+      <div class="mh3 yellow relative flex flex-column">
         <h3 class="mv3">Script Editor</h3>
-        <p class="f7">Setup the track's audio nodes and modulate parameters on each step of the sequence.</p>
-        <p class="f7">Node controls are created for the audio nodes you define in the Setup Script. </p>
+        <InfoBox class="absolute right-2 top-1">
+          <p class="f6">Setup the track's audio signal chain and Modulate parameters on each step of the sequence.</p>
+          <p class="f6">Node controls are created for the audio nodes you define in the Setup Script. </p>
+        </InfoBox>
       </div>
       <ScriptWrapper @track={{this.activeTrack}} @presets={{this.presets}}/>
     </SidebarWrapper>

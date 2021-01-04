@@ -23,7 +23,6 @@ a {
   color: $gray;
 }
 
-
 $app-header-height: 4.2rem;
 $project-header-height: 4rem;
 $project-tracks-height: calc(100% - #{$app-header-height} - #{$project-header-height});
@@ -50,8 +49,13 @@ $footer-height: 20rem;
 
 
 /* drum file picker*/
-.file-search-height {
-  height: calc(100% - 8rem);
+.drum-file-picker {
+  input::placeholder {
+    color: $moon-gray;
+  }
+  .file-search-height {
+    height: calc(100% - 8rem);
+  }
 }
 
 .scrim {

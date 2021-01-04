@@ -1,0 +1,10 @@
+<div class="light-fill" ...attributes>
+  <button class="bg-transparent bn" {{on "click" this.toggleInfo}}>
+    {{svg-jar "fi-question" width="20px" height="20px"}}
+  </button>
+</div>
+
+{{#if this.open}}
+  {{yield}}
+{{/if}}
+

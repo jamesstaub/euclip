@@ -27,7 +27,7 @@
     </div>
     <div class="grow-0 shrink-0 flex items-center">
       <ButtonPrimary
-        class="truncate ma2 f7 light-fill flex items-center"
+        class="truncate ma2 f7 flex items-center yellow-fill"
         {{on "click" @onToggleScripts}}
         @label="scripts"
       >
@@ -36,7 +36,7 @@
       </ButtonPrimary>
 
       <DropdownMenu 
-        class="h-100 flex-grow fill-white"
+        class="h-100 flex-grow {{if @isActive "dark-fill" "light-fill"}}"
         @items={{array 
           (hash label="delete" select=(fn this.deleteTrack)) 
           (hash label="duplicate" select=(fn this.duplicateTrack)) 

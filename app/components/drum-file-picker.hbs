@@ -1,8 +1,10 @@
 
-  <div class="ph3 mt5 flex flex-wrap justify-between">
-    <Input 
-      class="grow-1 white bg-dark-gray f5 pa3" 
-      placeholder="search for drum sounds"  
+  <div class=" drum-file-picker ph3 mt3 flex flex-wrap justify-between">
+    {{yield}}
+    
+    <Input
+      class="ba bw2 b--yellow grow-1 white bg-dark-gray f5 pa3" 
+      placeholder='Search for drums sounds'
       @key-down={{fn this.search}} @value={{this.searchQuery}}
     />
     {{#if showSearchResults}}

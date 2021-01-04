@@ -89,7 +89,7 @@ export function paramsForNode(nodeType) {
     case 'ring':
       return ['distortion', 'frequency'];
     case 'sampler':
-      return ['speed', /* 'start', 'end'*/];
+      return ['speed', 'start', 'end'];
     case 'sine' || 'square' || 'triangle' || 'sawtooth':
       return ['frequency', 'detune'];
     default:

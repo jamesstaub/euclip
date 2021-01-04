@@ -32,6 +32,7 @@ export default NexusBase.extend({
     const circle = this.slider.element.querySelector('circle');
     circle.setAttribute('stroke', '#333');
     circle.setAttribute('stroke-width', '2px');
+    this.slider.element.style.overflow = 'visible';
   },
 
 });

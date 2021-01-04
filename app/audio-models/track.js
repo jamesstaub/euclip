@@ -276,6 +276,12 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     const speedControl = this.trackControls
       .filterBy('nodeType', 'sampler')
       .findBy('nodeAttr', 'speed');
+    const startControl = this.trackControls
+      .filterBy('nodeType', 'sampler')
+      .findBy('nodeAttr', 'start');
+    const endControl = this.trackControls
+      .filterBy('nodeType', 'sampler')
+      .findBy('nodeAttr', 'end');
 
     const lfoForSamplerSpeed = this.trackNodes.filterBy('nodeType', 'lfo')
       .map((trackNode) => trackNode.getCrackedNode())
@@ -301,10 +307,19 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       //     }
       //   }
       // }),
+      
+      // TODO Generalize this to try to play anything the user may want on step
+      // (ADSR, LFO, ramp)
       playSample(index) {
         // there will probably always be a speed control
         const speed = speedControl.attrOnTrackStep(index);
-        __(this.samplerSelector).stop().attr({speed: speed}).start();
+        const start = startControl.attrOnTrackStep(index);
+        const end = endControl.attrOnTrackStep(index);
+        __(this.samplerSelector).stop().attr({
+          speed: speed, 
+          start: start, 
+          end: end
+        }).start();
       },
       sliders: this.trackControlData
     };

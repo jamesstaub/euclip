@@ -1,5 +1,5 @@
-<div class="flex ba bw1 {{if this.showConfig "pr2 b--dark-gray" "b--yellow"}}" ...attributes>
-  <div class="relative pr3">
+<div class="track-control-wrapper flex br bw1 {{if this.showConfig "pr2 b--dark-gray" "b--yellow"}}" ...attributes>
+  <div class="relative {{if this.isConfigurable "pr3"}}">
     <div class="{{@wrapperStyleClass}}" style={{if @trackControl.isMultislider multisliderWidthStyle}} data-node-uuid={{@trackControl.trackNode.nodeUUID}}>
       {{yield multisliderWidth}}
       
@@ -8,15 +8,16 @@
       </label>
     </div>
     {{#if this.isConfigurable}}
-      <button class="bg-transparent pa0 bn absolute right-0 top-0 mt1" {{on "click" this.toggleConfig}}>
-        {{svg-jar "fi-dots" class="fill-dark-gray" width="16px" height="40px"}}
+      <button class="toggle-config bg-transparent pa0 bn absolute right-0 top-0 mt1 overflow-hidden" {{on "click" this.toggleConfig}}>
+        {{svg-jar "fi-play" class=(concat "dark-fill " (if this.showConfig "rotate-0" "rotate-90"))  width="16px" height="40px"}}
       </button>
     {{/if}}
   </div>
 
   {{#if this.isConfigurable}}
     {{#if this.showConfig}}
-      <div>
+      <div class="ph1">
+        <h5 class="ma1">Control Range</h5>
         <div class="ml1 flex flex-column justify-between mb4">
           <NexusNumber 
             @label="max"
@@ -50,12 +51,15 @@
 
   {{#unless @hideInterfaceMenu}}
     {{#if showConfig}}
-      <div>
-        <NexusSelect
-          @value={{@trackControl.interfaceName}}
-          @selectOptions={{@trackControl.uiOptions}}
-          @onChangeValue={{fn this.changeUiType}}
-        />
+      <div class="ph1 ml2">
+        <h5 class="ma1">Type</h5>
+        <div class="mv3">
+          <NexusSelect
+            @value={{@trackControl.interfaceName}}
+            @selectOptions={{@trackControl.uiOptions}}
+            @onChangeValue={{fn this.changeUiType}}
+          />
+        </div>
       </div>
     {{/if}}
   {{/unless}}

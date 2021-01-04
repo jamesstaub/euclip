@@ -28,6 +28,12 @@ export default NexusBase.extend({
     this.styleOnStep();
   },
 
+  didReceiveAttrs() {
+    this._super(...arguments);
+    this.applyStyle();
+    this.styleOnStep();
+  },
+
   applyStyle() {    
     if(this.nexusElement && this.sequence && this.sliderQuery, this.sliderCapQuery) {
       this.nexusElement.element.style.backgroundColor = this.bgColor;

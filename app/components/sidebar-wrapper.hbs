@@ -1,6 +1,6 @@
 <div class="flex shrink-1 h-100" ...attributes>
   <div class="bg-dark-gray w-100 relative">
-    <IconButton class="light-fill bn absolute right-0 top-0" @icon="fi-cancel" {{on "click" (fn @onCloseSidebar)}} />
+    <IconButton class="light-fill bn absolute right-0 top-0 z-2" @icon="fi-cancel" {{on "click" (fn @onCloseSidebar)}} />
     {{yield}}
   </div>
 </div>
