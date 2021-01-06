@@ -19,12 +19,10 @@
 
   <div>
     {{#if (and @track.initScript (eq this.scriptUi "init"))}}
-      <p class="yellow f7 mt1 ">Runs once to setup your signal chain.</p>
       <ScriptEditor @scriptModel={{@track.initScript}}/>
     {{/if}}
 
     {{#if (and @track.onstepScript (eq this.scriptUi "onstep"))}}
-      <p class="yellow f7 mt1 ">Runs on every beat to trigger sound and modulate parameters.</p>
       <ScriptEditor @scriptModel={{@track.onstepScript}}/>
     {{/if}}
   </div>

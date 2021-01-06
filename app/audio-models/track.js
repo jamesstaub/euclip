@@ -298,6 +298,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       // // TODO remove attrOnTrackStep() above and instead
       // // implemenet it to be called in a mungeable way in user's script
       // // so that the 
+
       // trackControls: this.trackControls.map((trackControl) => {
       //   return {
       //     nodeSelector: trackControl.nodeType,
@@ -308,18 +309,20 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       //   }
       // }),
       
-      // TODO Generalize this to try to play anything the user may want on step
+      // TODO Generalize playSample this to try to play anything the user may want on step
       // (ADSR, LFO, ramp)
       playSample(index) {
-        // there will probably always be a speed control
-        const speed = speedControl.attrOnTrackStep(index);
-        const start = startControl.attrOnTrackStep(index);
-        const end = endControl.attrOnTrackStep(index);
-        __(this.samplerSelector).stop().attr({
-          speed: speed, 
-          start: start, 
-          end: end
-        }).start();
+        if (this.samplerSelector) {
+          // there will probably always be a speed control if there's a sampler
+          const speed = speedControl.attrOnTrackStep(index);
+          const start = startControl.attrOnTrackStep(index);
+          const end = endControl.attrOnTrackStep(index);
+          __(this.samplerSelector).stop().attr({
+            speed: speed, 
+            start: start, 
+            end: end
+          }).start();
+        }
       },
       sliders: this.trackControlData
     };

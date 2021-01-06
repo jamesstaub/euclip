@@ -77,5 +77,8 @@
   },
   "engines": {
     "node": "10.* || >= 12"
+  },
+  "dependencies": {
+    "nexusui": "^2.1.6"
   }
 }

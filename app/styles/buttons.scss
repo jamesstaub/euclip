@@ -6,6 +6,11 @@ input:focus, button:focus {
   outline-color: $yellow;
 }
 
+.light-yellow-button {
+  @extend .dark-fill;
+  color: $dark-gray;
+  background-color: $light-yellow;
+}
 
 button:hover {
   &.bg-dark-gray {
@@ -14,7 +19,7 @@ button:hover {
   &.bg-light-gray {
     background-color: $moon-gray;
   }
-  &.bg-light-yellow {
+  &.bg-light-yellow, &.light-yellow-button {
     background-color: lighten($light-yellow, 5);
   }
   &.bg-yellow {

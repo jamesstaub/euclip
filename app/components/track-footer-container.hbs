@@ -80,9 +80,9 @@
           </div>
         {{/if}}
         {{#if (eq this.controlUi "controls")}}
-          <div class="overflow-hidden flex flex-column flex-grow-1 flex-shrink-1 bl">
+          <div class="overflow-hidden flex flex-column flex-grow-1 shrink-1 bl">
             <div class="flex justify-between">
-              <h3 class="ma3">Node Controls</h3>
+              <h3 class="ma3">Audio Node Controls</h3>
               {{#unless @rightSidebarOpen}}
                 <p {{on "click" @onToggleScripts}} class="pointer fw5 f5 tr mr3">Edit Audio Nodes</p>
               {{/unless}}

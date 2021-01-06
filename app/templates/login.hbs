@@ -6,21 +6,21 @@
       Logout
     </button>
   {{else}}
-    <form {{action "authenticate" on="submit"}}>
+    <form class="mw5 center" {{action "authenticate" on="submit"}}>
       {{#if this.loginView}}
         <fieldset class="mb4">
           <legend>Login</legend>
-          <div>
-            <label for="username">
+          <div class="mb3">
+            <label class="db" for="username">
               Username
             </label>
-            {{input id="username" placeholder="Enter Username" value=this.username}}
+            {{input class="w-100" id="username" placeholder="Enter Username" value=this.username}}
           </div>
-          <div>
-            <label for="password">
+          <div class="mb3">
+            <label class="db" for="password">
               Password
             </label>
-            {{input
+            {{input class="w-100"
                 id="password"
                 placeholder="Enter Password"
                 type="password"
@@ -28,9 +28,13 @@
                 autocomplete=true
               }}
           </div>
-          <button type="submit">
-            Login
-          </button>
+          <div class="flex items-center">
+            <ButtonPrimary type="submit">
+              Login
+            </ButtonPrimary>
+            <span class="mh2">or</span>
+            <p class="pointer" {{on "click" this.toggleView}}>{{this.toggleViewTxt}}</p>
+          </div>
           {{#if this.errorMessage}}
           <p>
             {{this.errorMessage}}
@@ -40,23 +44,23 @@
       {{else}}
         <fieldset>
           <legend>Sign up</legend>
-          <div>
-            <label for="username">
+          <div class="mb3">
+            <label class="db" for="username">
               Username
             </label>
-            {{input id="username" placeholder="Enter Username" value=this.username}}
+            {{input class="w-100" id="username" placeholder="Enter Username" value=this.username}}
           </div>
-          <div>
-            <label for="email">
+          <div class="mb3">
+            <label class="db" for="email">
               Email
             </label>
-            {{input id="email" placeholder="Enter Email Address" value=this.email}}
+            {{input class="w-100" id="email" placeholder="Enter Email Address" value=this.email}}
           </div>
-          <div>
-            <label for="signup-password">
+          <div class="mb3">
+            <label class="db" for="signup-password">
               Password
             </label>
-            {{input
+            {{input class="w-100"
                   id="signup-password"
                   placeholder="Enter Password"
                   type="password"
@@ -64,18 +68,21 @@
                   autocomplete=true
                 }}
           </div>
-          <button type="submit">
-            Login
-          </button>
+          <div class="flex items-center">
+            <ButtonPrimary type="submit">
+              Sign Up
+            </ButtonPrimary>
+            <span class="mh2">or</span>
+            <p class="pointer" {{on "click" this.toggleView}}>{{this.toggleViewTxt}}</p>
+          </div>
           {{#if this.errorMessage}}
-          <p>
-            {{this.errorMessage}}
-          </p>
+            <p>
+              {{this.errorMessage}}
+            </p>
           {{/if}}
         </fieldset>
       {{/if}}
     </form>
-    <p class="tc b pointer" {{on "click" this.toggleView}}>{{this.toggleViewTxt}}</p>
   {{/if}}
   {{outlet}}
 </div>

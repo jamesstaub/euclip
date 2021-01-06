@@ -34,6 +34,6 @@ module.exports = function(defaults) {
   // please specify an object with the list of modules as keys
   // along with the exports of each module as its value.
   app.import('vendor/i_dropped_my_phone_the_screen_cracked/dist/cracked.js');
-  app.import('vendor/nexusui/dist/NexusUI.js');
+
   return app.toTree();
 };

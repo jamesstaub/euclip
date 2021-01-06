@@ -44,6 +44,7 @@
           @selectActiveTrack={{fn this.transitionToTrack track.id}}
           @onToggleFilePicker={{fn this.toggleSidebar track.id "left"}}
           @onToggleScripts={{fn this.toggleSidebar track.id "right"}}
+          @rightSidebarOpen={{this.rightSidebarOpen}} 
         />
       {{/each}}
     </div>
@@ -57,8 +58,9 @@
       <div class="mh3 yellow relative flex flex-column">
         <h3 class="mv3">Script Editor</h3>
         <InfoBox class="absolute right-2 top-1">
-          <p class="f6">Setup the track's audio signal chain and Modulate parameters on each step of the sequence.</p>
-          <p class="f6">Node controls are created for the audio nodes you define in the Setup Script. </p>
+          <p class="f6 mv1">Scripts are where you define the audio signal chain for each track.</p>
+          <p class="f6 mv1">Setup Script runs once to create your audio signal chain.</p>
+          <p class="f6 mv1">Automate Script runs on every step of the sequencer. This is where you trigger sound and modulate parameters.</p>
         </InfoBox>
       </div>
       <ScriptWrapper @track={{this.activeTrack}} @presets={{this.presets}}/>

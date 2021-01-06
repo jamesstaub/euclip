@@ -9,7 +9,7 @@ local development against api server using a self signed certificate
 Tracks 
 
 ### features
-- new track menu (different script presets)
+- new track dropdown menu options (different script presets)
   - build preset models in rails
   - a preset can have one of each script type
   - the preset menu should overlay the scripts sidebar and use a material ui table with checkboxes indicating which scripts
@@ -17,12 +17,28 @@ Tracks
   - users can save their own scripts to their "collections"
 
 
-### bugs
+Track Nodes
+  - Track NodeTab UI
+  - hover over node tabs to show cracked uui and selectors
+  - 
 
+Track Controls
+  - Move Sampler filepath to track control (with source node attribute)
+  - When a sampler is present, add a new footer menu button for Sample Editor (start, end, slice manager)
+  - Oscillators also get Track Controls to control their type. 
+
+
+Project
+  - Save "Snapshots"
+  - Arrange mode: chain multiple projects together
+  - Rails Action Cables for live editing
+
+### bugs
 Track Controls
 - wrapper:
   - "functions" [buttons to apply prest shapes like triangle, sine or randomize]
   - copy/paste single control
+
 
 - element/nodes to implement
   - Envelope node : breakpoint nexus element or group of sliders

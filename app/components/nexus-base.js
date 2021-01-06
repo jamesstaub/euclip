@@ -2,6 +2,7 @@ import Component from '@ember/component';
 import { guidFor } from '@ember/object/internals';
 import { computed } from '@ember/object';
 import { isPresent } from '@ember/utils';
+import Nexus from 'nexusui';
 
 /* Inherited by other `nexus-[]` components for initialization of Nexus JS library component
  *
@@ -57,7 +58,7 @@ export default Component.extend({
     if (this.nexusElement) {
       this.nexusElement.destroy();
     }
-    
+
     const nexusElement = new Nexus[this.elementName](`#${this.nexusId}`, this.options);
     this.set('nexusElement', nexusElement);
     this.nexusElement.on('change', (v) => {
