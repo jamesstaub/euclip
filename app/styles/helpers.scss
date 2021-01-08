@@ -5,10 +5,6 @@
   @extend .bg-near-black;
 }
 
-.hover-bg-dark-yellow:hover {
-  background-color: $dark-yellow;
-}
-
 /* Flexbox */
 .grow-1 { flex-grow: 1; }
 .shrink-1 { flex-shrink: 1; }
