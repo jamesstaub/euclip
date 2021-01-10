@@ -15,10 +15,8 @@ admin = User.create!({
   password_confirmation: "3uCl1p#",
 })
 
-project = Project.create!({
+project = Project.create_with_relations!({
   title: "Euclip Intro",
   slug: 'euclip-intro',
   creator: admin,
 })
-
-Track.create_with_relations(project: project)

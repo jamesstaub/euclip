@@ -11,7 +11,7 @@ class V1::TracksController < V1::BaseController
     if params[:duplicate_id]
       return duplicate
     end
-    @track = Track.create_with_relations({project_id: @project.id})
+    @track = Track.create_with_relations!({project_id: @project.id})
     if @track.save
       render json: TrackSerializer.new(
         @track,
@@ -31,8 +31,10 @@ class V1::TracksController < V1::BaseController
         @track.project.tracks,
         { 
           include: included_relations,
+          # no need to pass related models to client for anything other than
+          # the duplicated track, only the track orders have been updated on others
           params: {relations_only_for: @track },
-          # pass the ID of the newly created track to client so ember track adapter can
+          # pass the ID of the newly created track in the {meat} to client so ember track adapter can
           # differentiate from the rest of the tracks that are retunrned in this case
           meta: { created: @track.id }
         }
@@ -69,8 +71,7 @@ class V1::TracksController < V1::BaseController
   def cleaned_params
     # TODO: 
     # eventually filepath should be like any other TrackControl attribute
-    # and a Sequence model can contain properties for euclidean, custom, or other types of sequences
-    @attributes.permit(:filepath, :hits, :steps, :offset, :custom_sequence => [])
+    @attributes.permit(:filepath)
   end
 
   def set_track

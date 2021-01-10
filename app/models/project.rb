@@ -12,6 +12,13 @@ class Project < ApplicationRecord
     }
   end
   
+  def self.create_with_relations!(params)
+    project = Project.create!(params)
+    first_track = Track.create_with_relations!(project: project)
+    master_track = Track.create_with_relations!(project: project, is_master: true)
+    project
+  end
+
   private 
 
   def set_defaults

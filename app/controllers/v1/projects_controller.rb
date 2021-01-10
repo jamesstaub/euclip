@@ -21,10 +21,11 @@ class V1::ProjectsController < V1::BaseController
   end
 
   def create
-    @project = Project.create!(creator_id: current_user.id)
+    @project = Project.create_with_relations!(creator_id: current_user.id)
     if @project.save
       render json: ProjectSerializer.new(
-        @project
+        @project,
+        include: included_relations
       ), status: :ok
     else
       render json: { errors: @project.errors.full_messages.join(', ') }, status: :unprocessable_entity

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_01_03_042514) do
+ActiveRecord::Schema.define(version: 2021_01_08_171921) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
@@ -79,6 +79,17 @@ ActiveRecord::Schema.define(version: 2021_01_03_042514) do
     t.index ["track_id"], name: "index_scripts_on_track_id"
   end
 
+  create_table "sequences", force: :cascade do |t|
+    t.integer "hits"
+    t.integer "steps"
+    t.integer "offset"
+    t.float "custom_sequence", default: [], array: true
+    t.bigint "track_id", null: false
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["track_id"], name: "index_sequences_on_track_id"
+  end
+
   create_table "track_controls", force: :cascade do |t|
     t.integer "min"
     t.integer "max"
@@ -96,12 +107,9 @@ ActiveRecord::Schema.define(version: 2021_01_03_042514) do
   end
 
   create_table "tracks", force: :cascade do |t|
+    t.boolean "is_master", default: false
     t.integer "order"
-    t.integer "hits"
-    t.integer "steps"
-    t.integer "offset"
     t.text "filepath"
-    t.float "custom_sequence", default: [], array: true
     t.bigint "project_id", null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
@@ -147,6 +155,7 @@ ActiveRecord::Schema.define(version: 2021_01_03_042514) do
   add_foreign_key "projects", "users", column: "creator_id", on_delete: :cascade
   add_foreign_key "scripts", "presets"
   add_foreign_key "scripts", "tracks"
+  add_foreign_key "sequences", "tracks"
   add_foreign_key "track_controls", "tracks"
   add_foreign_key "tracks", "projects"
 end

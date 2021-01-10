@@ -17,4 +17,5 @@ class V1::BaseController < ApplicationController
     @attributes = @data.require(:attributes)
     @relationships = @data.require(:relationships)
   end
+  
 end
