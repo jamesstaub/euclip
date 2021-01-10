@@ -19,9 +19,8 @@ export default class TrackListItemComponent extends Component {
   updateTrackSequence(idx) {
     //if sequence is different than euclidean output 
     // manually override sequence
-    const seq = [...this.args.track.sequence];
+    const seq = [...this.args.track.currentSequence.sequence];
     seq[idx] = Number(!seq[idx]);
     this.args.track.updateTrackTask.perform('customSequence', seq);
   }
-
 }

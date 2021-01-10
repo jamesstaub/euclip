@@ -52,7 +52,7 @@ module.exports = function(environment) {
       ],
       
       // JSON API include? query param string of related models for calls to projects endpoint
-      projectIncludeParams: 'creator,tracks,tracks.track-controls,tracks.init-script,tracks.onstep-script',
+      projectIncludeParams: 'creator,tracks,tracks.sequences,tracks.track-controls,tracks.init-script,tracks.onstep-script',
     }
   };
 

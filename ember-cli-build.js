@@ -13,6 +13,9 @@ module.exports = function(defaults) {
     'ember-math-helpers': {
       only: ['add', 'gt'],
     },
+    'ember-composable-helpers': {
+      only: ['compact'],
+    },
     ace: {
       themes: ['ambiance', 'chaos'],
       modes: ['javascript'],

@@ -13,4 +13,9 @@ export default class ProjectAdapter extends ApplicationAdapter {
     const url = `/users/${userId}/projects?include=${ENV.APP.projectIncludeParams}`;
     return url;
   }
+
+  urlForCreateRecord() {
+    const url = super.urlForCreateRecord(...arguments);
+    return `${url}?include=${ENV.APP.projectIncludeParams}`;
+  }
 }

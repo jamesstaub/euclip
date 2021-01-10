@@ -1,45 +1,26 @@
 import { attr, belongsTo, hasMany } from '@ember-data/model';
-import E from '../utils/euclidean';
 import { tracked } from '@glimmer/tracking';
 import TrackAudioModel from '../audio-models/track';
 import { keepLatestTask } from "ember-concurrency-decorators";
 import { timeout } from 'ember-concurrency';
 import { unbindFromSequencer } from '../utils/cracked';
-import { isEmpty } from '@ember/utils';
 
 export default class TrackModel extends TrackAudioModel {
-  @tracked hits;
-  @tracked steps;
-  @tracked offset;
   @tracked filepath;
-
-  @attr('string') filepath
-
+  
+  @attr('boolean') isMaster  
   @belongsTo('project') project
-
+  
   @belongsTo('init-script') initScript
   @belongsTo('onstep-script') onstepScript
-
+  
   @hasMany('track-node') trackNodes
   @hasMany('track-control') trackControls
-
+  @hasMany('sequence') sequences
+  
   @attr('number') order
-
-  // euclidean rhythm params (should eventually move to a Sequence model)
-  @attr('number', {
-    defaultValue() { return 0 }
-  }) hits
-
-  @attr('number', {
-    defaultValue() { return 8 }
-  }) steps
-
-  @attr('number', {
-    defaultValue() { return 0 }
-  }) offset
-
-  @attr() customSequence
-
+  @attr('string') filepath
+  
   destroyAndCleanup() {
     this.unbindAndRemoveCrackedNodes();
     // this.store.unloadRecord(this.initScript);
@@ -59,12 +40,12 @@ export default class TrackModel extends TrackAudioModel {
     this.destroyRecord();
   }
 
-  get sequence() {
-    if (isEmpty(this.customSequence)) {
-      return E(this.hits, this.steps, this.offset)
-    } else {
-      return this.customSequence;
+  get currentSequence() {
+    if (this.isMaster) {
+      return null;
     }
+    // TODO management of current sequence
+    return this.sequences.firstObject;
   }
 
   get filename() {
@@ -79,16 +60,12 @@ export default class TrackModel extends TrackAudioModel {
   }
 
   @keepLatestTask
-  *updateTrackSequence(key, value){
-    try {
-      this.set(key, value);
-      unbindFromSequencer(this.samplerSelector);
-      this.bindToSequencer();
-      yield timeout(300)
-      yield this.save();
-    } catch (e) {
-      this.rollbackAttributes();
-    }
+  *updateTrackSequence(sequenceRecord, key, value){
+    sequenceRecord.set(key, value);
+    unbindFromSequencer(this.samplerSelector);
+    this.bindToSequencer();
+    yield timeout(300)
+    yield this.save();
   }
 
   // REFACTOR: this is only called when the filepath

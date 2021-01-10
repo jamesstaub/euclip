@@ -3,10 +3,10 @@
     <TabMenu
       @onSelect={{fn this.setUi}}
       @selectedValue={{"init"}}
-      @items={{array 
+      @items={{compact (array 
         (hash label="setup" value="init")
-        (hash label="modulate" value="onstep")
-      }}
+        (if @track.onstepScript (hash label="modulate" value="onstep"))
+      )}}
     />
 
     <select class="f6 mh2" {{on "change" this.selectPreset}}>

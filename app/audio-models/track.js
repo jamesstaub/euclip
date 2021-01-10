@@ -3,7 +3,7 @@ import Evented from '@ember/object/evented';
 
 import ENV from '../config/environment';
 import { difference } from '../utils/arrays-equal';
-import { unbindFromSequencer } from '../utils/cracked';
+import { bindSourcenodeToLoopStep, unbindFromSequencer } from '../utils/cracked';
 import filterNumericAttrs from '../utils/filter-numeric-attrs';
 
 export default class TrackAudioModel extends Model.extend(Evented) {  
@@ -28,7 +28,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   bindProjectEvents(project, initScript) {
     // project and initScript are awaited on the route
     // so this event can be synchronous
-    // FIXME: properly unbind on delete and don't rebind 
+    // FIXME: properly unbind on delete and don't rebind
+    // better yet refactor to avoid Evented, just loop over tracks
     if(!this.isBoundInitTracks) {
       project.on('initTracks', () => {
         if (!this.isDeleted) {
@@ -78,12 +79,14 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
     // nullify this callback after creating track nodes to prevent it from getting called outside of this track
     __.onCreateNode = null;
-
     this.pushMacroNodes();
     this.findOrCreateTrackNodeRecords();
     this.cleanupNodeRecords();
     this.setupTrackControls();
-    this.bindToSequencer();
+
+    if (this.currentSequence) {
+      this.bindToSequencer();
+    }
   }
 
 
@@ -241,11 +244,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
   bindToSequencer() {
     let onStepCallback = this.onStepCallback.bind(this);
-    __(this.samplerSelector).bind(
-      'step', // on every crack sequencer step
-      onStepCallback, // call this function (bound to component scope)
-      this.sequence // passing in array value at position
-    );
+    // TODO: create a generalized "source node" selector to support oscillators, sampler or custom source macros
+    bindSourcenodeToLoopStep(this.samplerSelector, onStepCallback, this.currentSequence.sequence);
   }
 
   unbindAndRemoveCrackedNodes() {

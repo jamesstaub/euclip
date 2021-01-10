@@ -16,9 +16,9 @@
     </div>
     {{yield}}
     <div class="grow-1 basis-auto">
-      {{#if @track.sequence}}
+      {{#if @track.currentSequence.sequence}}
         <TrackSequencer 
-          @sequence={{@track.sequence}}
+          @sequence={{@track.currentSequence.sequence}}
           @stepIndex={{@track.stepIndex}}
           @onClickStep={{fn this.updateTrackSequence}}
           @isCurrentTrack={{@isActive}}

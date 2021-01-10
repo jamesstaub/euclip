@@ -2,6 +2,7 @@ import Model, { attr, belongsTo } from '@ember-data/model';
 import { isArray } from '@ember/array';
 import { timeout, waitForProperty } from 'ember-concurrency';
 import { keepLatestTask, task } from "ember-concurrency-decorators";
+import { getCrackedNode } from '../utils/cracked';
 
 export default class TrackControlModel extends Model {
   @belongsTo('track') track;
@@ -22,18 +23,21 @@ export default class TrackControlModel extends Model {
 
   get controlArrayComputed() {
     // fill the trackControl model's array with defaul value if it is not the correct length
-    const sequence = this.get('trackNode.track.sequence');
-
+    const sequence = this.get('trackNode.track.currentSequence.sequence');
     const controlArrayValue = this.controlArrayValue || [];
-    while (
-      controlArrayValue.length < sequence.length
-    ) {
-      controlArrayValue.push(
-        this.defaultValue
-      );
+    if (sequence) {
+      while (
+        controlArrayValue.length < sequence.length
+      ) {
+        controlArrayValue.push(
+          this.defaultValue
+        );
+      }
+      const a = controlArrayValue.slice(0, sequence.length);
+      return a;
+    } else {
+      return null
     }
-    const a = controlArrayValue.slice(0, sequence.length);
-    return a;
   }
 
   set controlArrayComputed(v) {
@@ -58,9 +62,10 @@ export default class TrackControlModel extends Model {
     if (this.nodeType !== this.trackNode.get('nodeType')) {
       // if this case happens, it is hopefully just because trackControls are in the process of deleting in a non-blocking way,
       //  so we cant wait for the request to finish.
-      // in anycase its invalid and should not be used so try to delete again just in case
+      // in anycase its invalid and should not be used
       return;
     }
+
     // this might get called by the sequencer while we're trying to delete the node or control
     if (!this.isDestroyed ) {
       if (this.nodeAttr && this.interfaceName === 'multislider') {
@@ -94,7 +99,7 @@ export default class TrackControlModel extends Model {
       __(this.trackNode.nodeSelector).attr(attrs);
     } else {
       const uuid = this.trackNode.get('nodeUUID');
-      const node = __._getNode(uuid);
+      const node = getCrackedNode(uuid);
       if(node) {
         node.attr(attrs);
       } else if (uuid) {
@@ -116,6 +121,153 @@ export default class TrackControlModel extends Model {
         this.setAttrs(value);
       }
     }
+  }
+
+  setDefault() {
+    if (this.defaultValue > this.max) {
+      this.set('max', this.defaultValue);
+    }
+    if (this.defaultValue < this.min) {
+      this.set('min', this.defaultValue);
+    }
+
+    this.set('controlValue', this.defaultValue);
+    this.set('controlArrayValue', Array.from(
+      new Array(this.controlArrayValue.length
+    ), () => this.defaultValue ));
+    
+    this.saveTrackControl.perform();
+  }
+
+  @keepLatestTask
+  *saveTrackControl() {
+    // FIXME: need a better strategy to prevent the last save response from coming in 
+    // out of sync with current UI state. (occurs when lots of rapid changes are made to nexus-multislider)
+    yield timeout(5000);
+    // http://ember-concurrency.com/docs/examples/autocomplete/
+    yield this.save();
+  }
+
+  @task
+  *awaitAndDestroy() {
+    yield waitForProperty(this, 'isSaving', false)
+    if (!this.isDeleted && !this.isDeleting) {
+      yield this.destroyRecord();
+    }
+  }
+
+/**
+ * 
+ * @param {String} attr
+ * @param {String} nodeType 
+ * TrackControl default value for each attribute
+ */
+  static defaultForAttr(attr, nodeType) {
+    const paramDefaults = {};
+    switch (attr) {
+      case 'bits':
+        paramDefaults.min = 1;
+        paramDefaults.max = 16;
+        paramDefaults.defaultValue = 6;
+        break;
+      case 'color':
+        paramDefaults.min = 0;
+        paramDefaults.max = 1000;
+        paramDefaults.defaultValue = 800;
+        break;
+      case 'cutoff':
+        paramDefaults.min = 0;
+        paramDefaults.max = 4000;
+        paramDefaults.defaultValue = 1500;
+        break;
+      case 'damping':
+        paramDefaults.min = 0;
+        paramDefaults.max = 1;
+        paramDefaults.defaultValue = 0.84;
+        break;
+      case 'decay':
+        paramDefaults.min = 0;
+        paramDefaults.max = 4;
+        paramDefaults.defaultValue = 0;
+        break;
+      case 'delay':
+        paramDefaults.min = 0;
+        paramDefaults.max = 6;
+        paramDefaults.defaultValue = 2;
+        break;
+      case 'detune':
+        paramDefaults.min = 0;
+        paramDefaults.max = 100;
+        paramDefaults.defaultValue = 0;
+        break;
+      case 'distortion':
+        paramDefaults.min = 0;
+        paramDefaults.max = 3;
+        paramDefaults.defaultValue = 1;
+        break;
+      case 'drive':
+        paramDefaults.min = 0;
+        paramDefaults.max = 2;
+        paramDefaults.defaultValue = .5;
+        break;
+      case 'end':
+        paramDefaults.min = 0;
+        paramDefaults.max = 1;
+        paramDefaults.defaultValue = 1;
+        break;
+      case 'feedback':
+        paramDefaults.min = 0;
+        paramDefaults.max = 1;
+        paramDefaults.defaultValue = 0;
+        break;
+      case 'frequency':
+        if (nodeType === 'lfo') {
+          paramDefaults.min = 0;
+          paramDefaults.max = 20;
+          paramDefaults.defaultValue = 5;  
+        } else {
+          paramDefaults.min = 0;
+          paramDefaults.max = 10000;
+          paramDefaults.defaultValue = 300;
+        }
+        break;
+      case 'gain':
+        paramDefaults.min = 0;
+        paramDefaults.max = 1;
+        paramDefaults.defaultValue = 1;
+        break;
+      case 'pan':
+        paramDefaults.min = -1;
+        paramDefaults.max = 1;
+        paramDefaults.defaultValue = 0;
+        break;
+      case 'postCut':
+        paramDefaults.min = 0;
+        paramDefaults.max = 5000;
+        paramDefaults.defaultValue = 3000;
+        break;
+      case 'q':
+        paramDefaults.min = 0;
+        paramDefaults.max = 20;
+        paramDefaults.defaultValue = 0;
+        break;
+      case 'seconds':
+        paramDefaults.min = 0;
+        paramDefaults.max = 6;
+        paramDefaults.defaultValue = 0;
+        break;
+      case 'speed':
+        paramDefaults.min = .125;
+        paramDefaults.max = 2;
+        paramDefaults.defaultValue = 1; 
+        break;
+      case 'start':
+        paramDefaults.min = 0;
+        paramDefaults.max = 1;
+        paramDefaults.defaultValue = 0;
+        break;
+    }
+    return paramDefaults;
   }
 
 
@@ -164,39 +316,6 @@ export default class TrackControlModel extends Model {
         return oneD;
       default:
         return [];
-    }
-  }
-
-  setDefault() {
-    if (this.defaultValue > this.max) {
-      this.set('max', this.defaultValue);
-    }
-    if (this.defaultValue < this.min) {
-      this.set('min', this.defaultValue);
-    }
-
-    this.set('controlValue', this.defaultValue);
-    this.set('controlArrayValue', Array.from(
-      new Array(this.controlArrayValue.length
-    ), () => this.defaultValue ));
-    
-    this.saveTrackControl.perform();
-  }
-
-  @keepLatestTask
-  *saveTrackControl() {
-    // FIXME: need a better strategy to prevent the last save response from coming in 
-    // out of sync with current UI state. (occurs when lots of rapid changes are made to nexus-multislider)
-    yield timeout(5000);
-    // http://ember-concurrency.com/docs/examples/autocomplete/
-    yield this.save();
-  }
-
-  @task
-  *awaitAndDestroy() {
-    yield waitForProperty(this, 'isSaving', false)
-    if (!this.isDeleted && !this.isDeleting) {
-      yield this.destroyRecord();
     }
   }
 }

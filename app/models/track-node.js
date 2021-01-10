@@ -1,6 +1,7 @@
 import Model from '@ember-data/model';
 import { attr, belongsTo, hasMany } from '@ember-data/model';
-import { defaultForAttr, paramsForNode } from '../utils/cracked';
+import { paramsForNode } from '../utils/cracked';
+import TrackControlModel from './track-control';
 
 export default class TrackNodeModel extends Model {
   @belongsTo('track') track;
@@ -98,7 +99,7 @@ export default class TrackNodeModel extends Model {
   createTrackControls() {
     const controlAttrs = paramsForNode(this.nodeType);
     return controlAttrs.map((controlAttr) => {
-      const defaults = defaultForAttr(controlAttr, this.nodeType);
+      const defaults = TrackControlModel.defaultForAttr(controlAttr, this.nodeType);
       defaults.controlValue = defaults.defaultValue;
       // NOTE API should validate interface names and note types on track controls       
       const trackControl  = this.store.createRecord('track-control', {
