@@ -33,6 +33,16 @@ Project
   - Arrange mode: chain multiple projects together
   - Rails Action Cables for live editing
 
+Sequences
+  - implement a "Matrix View", which replaces the standard track list with an intanace of 
+  nexus sequencer with rows for each track. inherit the Nexus matrix model to allow use of 
+  nexus matrix mutation functions.
+  - despite the matrix data structure, different track sequence lengths can be supported in this view
+  by overlaying a length-slider on each row of the matrix. 
+  the computed value of this matrix model which ultimately gets saved on the track can
+  get trimmed to a given duration
+
+
 ### bugs
 Track Controls
 - wrapper:

@@ -6,15 +6,19 @@
   <div class="flex relative justify-between items-center">
     <span class="f3 code {{unless @isActive "yellow"}}">{{@track.order}}</span>
     <div class="grow-0 shrink-0">
-      <ButtonPrimary
-        class="w4 truncate ma2 f7"
-        {{on "click"  @onToggleFilePicker}}
-        @label="Drum Machine: {{@track.filepath}}"
-      >
-        {{if @track.filepath @track.filename}}
-      </ButtonPrimary>
+      {{#if @track.isMaster}}
+        <p class="bg-dark-gray yellow pv2 ph4">Main</p>
+      {{/if}}
+      {{#each @track.sourceNodeRecords as |trackNode|}}
+        <SourceSelectButton 
+          @trackNode={{trackNode}} 
+          @onToggleFilePicker={{@onToggleFilePicker}} 
+        />
+      {{/each}}
     </div>
+
     {{yield}}
+
     <div class="grow-1 basis-auto">
       {{#if @track.currentSequence.sequence}}
         <TrackSequencer 
@@ -34,14 +38,15 @@
         {{svg-jar "fi-code" width="40px" height="20px"}}
         <span class="f7">script</span>
       </ButtonPrimary>
-
-      <DropdownMenu 
-        class="h-100 flex-grow {{if @isActive "dark-fill" "light-fill"}}"
-        @items={{array 
-          (hash label="delete" select=(fn this.deleteTrack)) 
-          (hash label="duplicate" select=(fn this.duplicateTrack)) 
-        }}
-      />
+      {{#unless @track.isMaster}}
+        <DropdownMenu 
+          class="h-100 flex-grow {{if @isActive "dark-fill" "light-fill"}}"
+          @items={{array 
+            (hash label="delete" select=(fn this.deleteTrack)) 
+            (hash label="duplicate" select=(fn this.duplicateTrack)) 
+          }}
+        />
+      {{/unless}}
     </div>
   </div>
 </div>

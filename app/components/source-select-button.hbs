@@ -1,0 +1,9 @@
+{{#if (and @onToggleFilePicker @trackNode.samplerFilepathControl)}}
+  <ButtonPrimary
+    class="w4 truncate ma2 f7"
+    {{on "click"  @onToggleFilePicker}}
+    @label="Drum Machine: {{@trackNode.samplerFilepathControl}}"
+  >
+    {{if @trackNode.samplerFilepathControl @trackNode.samplerFilepathControl.filename}}
+  </ButtonPrimary>
+{{/if}}

@@ -11,6 +11,8 @@ export default class TrackFooterContainerComponent extends Component {
     super(...arguments);
     this.maxSteps = 64;
     this.visibleNodeIdx = 0;
+    
+    // TODO: use a modifier when footer-container track changes to reinit
     this.controlUi = 'controls'
     this.scriptUi = 'init';
   }

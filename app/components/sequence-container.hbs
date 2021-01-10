@@ -11,7 +11,7 @@
         @value={{@sequence.hits}} 
         @onChangeValue={{perform @updateTrackSequence @sequence "hits"}} 
         @min={{0}}
-        @max={{this.maxSteps}}
+        @max={{@maxSteps}}
         @step={{1}}
         @size={{array 300 20}}
       >
@@ -29,7 +29,7 @@
         @value={{@sequence.steps}}
         @onChangeValue={{perform @updateTrackSequence @sequence "steps"}}
         @min={{0}}
-        @max={{this.maxSteps}}
+        @max={{@maxSteps}}
         @step={{1}}
         @size={{array 300 20}}
       >
@@ -47,7 +47,7 @@
         @value={{@sequence.offset}} 
         @onChangeValue={{perform @updateTrackSequence @sequence "offset"}} 
         @min={{0}}
-        @max={{this.maxSteps}}
+        @max={{@maxSteps}}
         @step={{1}}
         @size={{array 300 20}}
       >

@@ -37,14 +37,25 @@
   <div class="bg-dark-gray h-100 flex flex-column justify-between shrink-1 grow-1 {{if this.rightSidebarOpen "w-50"}}">
     <div class="overflow-scroll">
       {{#each this.sortedTracks key="order" as |track|}}
-        <TrackListItem
-          @track={{track}}
-          @isActive={{eq track.id this.activeTrack.id}} 
-          @selectActiveTrack={{fn this.transitionToTrack track.id}}
-          @onToggleFilePicker={{fn this.toggleSidebar track.id "left"}}
-          @onToggleScripts={{fn this.toggleSidebar track.id "right"}}
-          @rightSidebarOpen={{this.rightSidebarOpen}} 
-        />
+        {{#unless track.isMaster}}
+          <TrackListItem
+            @track={{track}}
+            @isActive={{eq track.id this.activeTrack.id}} 
+            @selectActiveTrack={{fn this.transitionToTrack track.id}}
+            @onToggleFilePicker={{fn this.toggleSidebar track.id "left"}}
+            @onToggleScripts={{fn this.toggleSidebar track.id "right"}}
+            @rightSidebarOpen={{this.rightSidebarOpen}} 
+          />
+        {{/unless}}
+        {{#if track.isMaster}}
+          <TrackListItem
+            @track={{track}}
+            @isActive={{eq track.id this.activeTrack.id}} 
+            @selectActiveTrack={{fn this.transitionToTrack track.id}}
+            @onToggleScripts={{fn this.toggleSidebar track.id "right"}}
+            @rightSidebarOpen={{this.rightSidebarOpen}} 
+          />
+        {{/if}}
       {{/each}}
     </div>
     {{outlet}}

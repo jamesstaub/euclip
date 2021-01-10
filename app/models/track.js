@@ -1,12 +1,11 @@
 import { attr, belongsTo, hasMany } from '@ember-data/model';
-import { tracked } from '@glimmer/tracking';
 import TrackAudioModel from '../audio-models/track';
 import { keepLatestTask } from "ember-concurrency-decorators";
 import { timeout } from 'ember-concurrency';
 import { unbindFromSequencer } from '../utils/cracked';
+import { filterBy } from '@ember/object/computed';
 
 export default class TrackModel extends TrackAudioModel {
-  @tracked filepath;
   
   @attr('boolean') isMaster  
   @belongsTo('project') project
@@ -19,7 +18,6 @@ export default class TrackModel extends TrackAudioModel {
   @hasMany('sequence') sequences
   
   @attr('number') order
-  @attr('string') filepath
   
   destroyAndCleanup() {
     this.unbindAndRemoveCrackedNodes();
@@ -48,24 +46,33 @@ export default class TrackModel extends TrackAudioModel {
     return this.sequences.firstObject;
   }
 
-  get filename() {
-    const pathSegments = this.filepath.split('/');    
-    return pathSegments[pathSegments.length-1].split('.')[0].replace(/%20/g, ' ');
+  // duplicate getter as on trackNodes for convenience
+  get samplerFilepathControl() {
+    return this.trackControls.find((trackControl) => trackControl.isFilepath);
   }
 
   get filepathUrl() {
-    // TOODO create and ENV var to set drum filepath
-    return `/assets/audio/Drum%20Machines%20mp3${this.filepath}`;
+    // TOODO create and ENV var to set drum filepath location
+    
+    // in cracked, sampler nodes must be initialized with a filepath,
+    // which happens before TrackNode and subsequent TrackControl models
+    // can be created, so without this default, we'll never be able to apply
+    // the server-rendered default filepath
+    let defaultFile =  '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CR8KBASS.mp3';
+    return `/assets/audio/Drum%20Machines%20mp3${this.samplerFilepathControl?.controlStringValue || defaultFile}`;
     // return `https://storage.googleapis.com/euclidean-cracked.appspot.com/Drum%20Machines%20mp3${this.filepath}`;
   }
+
+  @filterBy('trackNodes', 'isSourceNode', true) sourceNodeRecords;
 
   @keepLatestTask
   *updateTrackSequence(sequenceRecord, key, value){
     sequenceRecord.set(key, value);
+    // TODO replace samplerSelector with "sourceNodeSelector"
     unbindFromSequencer(this.samplerSelector);
     this.bindToSequencer();
     yield timeout(300)
-    yield this.save();
+    yield sequenceRecord.save();
   }
 
   // REFACTOR: this is only called when the filepath

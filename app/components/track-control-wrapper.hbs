@@ -56,8 +56,8 @@
         <div class="mv3">
           <NexusSelect
             @value={{@trackControl.interfaceName}}
-            @selectOptions={{@trackControl.uiOptions}}
-            @onChangeValue={{fn this.changeUiType}}
+            @selectOptions={{@trackControl.interfaceNamesForAttr}}
+            @onChangeValue={{fn this.changeInterfaceName}}
           />
         </div>
       </div>

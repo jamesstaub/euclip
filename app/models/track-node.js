@@ -7,13 +7,47 @@ export default class TrackNodeModel extends Model {
   @belongsTo('track') track;
   @hasMany('track-control') trackControls;
 
+  /**
+   * this attr is used to catch any user-defined UI preferences such as { ui: 'multislider'}
+   * exceptions need to be made for attrs such as filepath
+   */
   @attr('string') defaultControlInterface;
+
   @attr('string') nodeUUID;
   @attr('string') nodeType;
   @attr('number') order;
 
   @attr() parentMacro; // AudioNode of macro this node belongs to (not serialized)
   @attr('boolean') isChannelStripChild; // flag saved if the parentMacro is set on this node
+
+  get isSourceNode() {
+    return [
+    'buffer', 
+    'sampler', 
+    'triangle', 
+    'sine', 
+    'square', 
+    'saw', 
+    'noise', 
+    'pink', 
+    'white', 
+    'brown'].includes(this.nodeType);
+  }
+
+  /**
+   * Convenience getter to find the TrackControl record for a sampler node's path attribute
+   */
+  get samplerFilepathControl() {
+    return this.trackControls.find((trackControl) => trackControl.isFilepath);
+  }
+
+  get oneDimensionalControls() {
+    return this.trackControls.filter((trackControl) => !(trackControl.isMultislider || trackControl.isFilepath));
+  }
+
+  get multisliderControls() {
+    return this.trackControls.filter((trackControl) => trackControl.isMultislider);
+  }
 
   static validTrackNodes(track) {
     return track.get('trackNodes').filter((trackNode) => {
@@ -30,10 +64,6 @@ export default class TrackNodeModel extends Model {
   static channelStripNode(track, type) {
     return this.channelStripNodes(track)
       .find((trackNode)=> trackNode.nodeType === type);
-  }
-
-  getCrackedNode() {
-    return __._getNode(this.nodeUUID);
   }
 
   /**
@@ -60,7 +90,12 @@ export default class TrackNodeModel extends Model {
     this.set('defaultControlInterface', defaultControlInterface);    
     if (this._defaultControlInterface !== this.defaultControlInterface) {
       this.get('trackControls').forEach((trackControl) => {
-        trackControl.set('interfaceName', defaultControlInterface);
+        if (trackControl.interfaceNamesForAttr.includes(defaultControlInterface)) {
+          trackControl.set('interfaceName', defaultControlInterface);
+        } else {
+          // some track controls may not support the default defined in a script
+          trackControl.set('interfaceName', trackControl.interfaceNamesForAttr[0]);
+        }
         trackControl.save();
       });
     }
@@ -104,9 +139,8 @@ export default class TrackNodeModel extends Model {
       // NOTE API should validate interface names and note types on track controls       
       const trackControl  = this.store.createRecord('track-control', {
         nodeAttr: controlAttr,
-        interfaceName: this.defaultControlInterface || 'slider',
+        interfaceName: this.defaultControlInterface,
         controlArrayValue: [], // all controls for api must initialize this whenever a multislider is created
-        
         track: this.track,
         trackNode: this,
         nodeType: this.nodeType,

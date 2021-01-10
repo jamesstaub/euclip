@@ -3,24 +3,55 @@
     <div class="flex bg-yellow justify-between footer-height">
       <div class="flex h-100 w-100">
         {{#if (and this.channelStripGainControl this.channelStripPannerControl)}}
-        <ChannelStrip
-          @channelStripGainControl={{this.channelStripGainControl}}
-          @channelStripPannerControl={{this.channelStripPannerControl}}
-          @updateValue={{fn this.updateControl}}
-        />
+          {{!-- TODO: (maybe)
+            add a handle to re-open channel strip in case user wants while sidebar open,
+            or, only enforce this on smal screens
+          --}}
+          {{#unless @leftSidebarOpen}}
+            <ChannelStrip
+              @channelStripGainControl={{this.channelStripGainControl}}
+              @channelStripPannerControl={{this.channelStripPannerControl}}
+              @updateValue={{fn this.updateControl}}
+            />
+          {{/unless}}
         {{/if}}
+        {{!-- TODO:
+          when filepath sidebar opens, set this menu
+          to "source"
+          might require a "sidebars-service", or passing a function up to the project controller
+         --}}
         <TabMenu
           @verticle={{true}}
           @onSelect={{fn this.setUi "controlUi"}}
           @selectedValue={{"controls"}}
-          @items={{array 
-            (hash label="sequence" value="sequence" icon="fi-squares" iconWidth="20px" iconHeight="40px")
+          @items={{compact (array 
+            (if @track.sequences.length (hash label="sequence" value="sequence" icon="fi-squares" iconWidth="20px" iconHeight="40px"))
+            (if @track.sourceNodeRecords.length (hash label="source" value="source" icon="fi-sound" iconWidth="20px" iconHeight="40px"))
             (hash label="controls" value="controls" icon="automation" iconWidth="40px" iconHeight="40px")
-          }}
+          )}}
         />
 
         {{#if (eq this.controlUi "sequence")}}
-          <SequenceContainer @sequence={{@track.currentSequence}} @updateTrackSequence={{@track.updateTrackSequence}}/>
+          <SequenceContainer 
+            @sequence={{@track.currentSequence}} 
+            @updateTrackSequence={{@track.updateTrackSequence}}
+            @maxSteps={{this.maxSteps}}
+          />
+        {{/if}}
+        {{#if (eq this.controlUi "source")}}
+          <div class="flex flex-column">
+            <h3 class="ma3">{{@track.samplerFilepathControl.filename}}</h3>
+            <ul class="pa0 list flex">
+              {{#each @track.samplerFilepathControl.pathSegments as |directory|}}
+                <li class="directory-btns">
+                  <button class="textbutton">
+                    {{directory}}
+                  </button>
+                </li>
+              {{/each}}
+            </ul>
+            <p class="ma3">Coming soon: sample waveform editor and custom sound libraries</p>
+          </div>
         {{/if}}
         {{#if (eq this.controlUi "controls")}}
           <div class="overflow-hidden flex flex-column flex-grow-1 shrink-1 bl">

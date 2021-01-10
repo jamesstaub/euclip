@@ -2,6 +2,11 @@ button {
   cursor: pointer;
 }
 
+.textbutton {
+  background: transparent;
+  border-color: transparent;
+}
+
 input:focus, button:focus {
   outline-color: $yellow;
 }
@@ -26,6 +31,9 @@ button:hover {
     background-color: $dark-yellow;
   }
   &.bg-light-blue {
-    background-color:  darken($light-blue , 10);
+    background-color: darken($light-blue , 10);
+  }
+  &.bg-transparent {
+    background-color: rgba(255, 255, 255, .25);
   }
 }

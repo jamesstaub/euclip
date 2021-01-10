@@ -7,11 +7,9 @@
  */
 
 
-
 export function getCrackedNode(uuid) {
   return __._getNode(uuid);
 }
-
 
 /**
  * instantiate a DAC node preceded by a compressor node.
@@ -110,7 +108,7 @@ export function paramsForNode(nodeType) {
     case 'ring':
       return ['distortion', 'frequency'];
     case 'sampler':
-      return ['speed', 'start', 'end'];
+      return ['speed', 'start', 'end', 'path'];
     case 'sine' || 'square' || 'triangle' || 'sawtooth':
       return ['frequency', 'detune'];
     default:

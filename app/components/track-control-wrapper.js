@@ -38,7 +38,7 @@ export default class TrackControlWrapperComponent extends Component {
   }
 
   @action
-  changeUiType({value}) {
+  changeInterfaceName({value}) {
     this.args.trackControl.set('interfaceName', value);
     this.args.trackControl.saveTrackControl.perform();
   }

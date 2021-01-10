@@ -3,7 +3,7 @@ import Evented from '@ember/object/evented';
 
 import ENV from '../config/environment';
 import { difference } from '../utils/arrays-equal';
-import { bindSourcenodeToLoopStep, unbindFromSequencer } from '../utils/cracked';
+import { bindSourcenodeToLoopStep, getCrackedNode, unbindFromSequencer } from '../utils/cracked';
 import filterNumericAttrs from '../utils/filter-numeric-attrs';
 
 export default class TrackAudioModel extends Model.extend(Evented) {  
@@ -143,50 +143,52 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // to find or create corresponding trackNode model records 
     this.trackAudioNodes.forEach((node, idx) => {
       const [uuid, type] = Object.entries(node)[0];
-      const defaultControlInterface =  __._getNode(uuid)?.ui || 'slider';
-
-      // grab the attributes passed in to the initialization of a cracked node that will be used to set default state of track controls (eg. frequency, gain, speed etc.)
-      const userSettingsForControl = filterNumericAttrs(node.userSettings);
-      let nodesOfThisType = existingtrackNodes.filterBy('nodeType', type);
-      //nodes are ordered by index, so take the first one of it's type
-      let trackNode = nodesOfThisType.shift();
-
-      let trackNodeAttrs = {
-        nodeUUID: uuid, // always update uuid since the audio nodes will be new every time
-        nodeType: type,
-        order: idx,
-        parentMacro: node.parentMacro,
-        defaultControlInterface // get the custom ui saved on the AudioNode, which was defined by the user
-      };
-
-      // the parentMacro property is a cracked web audio node which happens to be a macro 
-      // this is used to determine if the node should appear with the normal node controls, 
-      // or separated as in the channel strip component. 
-      // since the AudioNodes are ephemeral, but the TrackNode models persist to the database
-      // we need to save a boolean telling the data model that it expects to have a channel strip maco audio node 
-      trackNodeAttrs.isChannelStripChild = trackNodeAttrs.parentMacro && trackNodeAttrs.parentMacro.getType() === 'channelStrip';
-
-      if (trackNode) {
-        // then remove it from the possible future choices in existingtrackNodes
-        existingtrackNodes = existingtrackNodes.rejectBy('nodeUUID', trackNode.nodeUUID);
-        trackNode.setProperties(trackNodeAttrs);
-      } else {
-        // ID is necessary for client-side relationships between track-node and track-controller
-        // so we're using the audio node's UUID at time of creation.
-        // however when a trackNode is found and updated in the if block above, 
-        // it will update with a new audio node uuid and this id value will be outdated
-        // so theyre just a representation of the state of original creation
-        trackNodeAttrs = {
-          id: `${uuid}`,
-          ...trackNodeAttrs
+      if (getCrackedNode(uuid)) {
+        const defaultControlInterface = getCrackedNode(uuid).ui || 'slider';
+  
+        // grab the attributes passed in to the initialization of a cracked node that will be used to set default state of track controls (eg. frequency, gain, speed etc.)
+        const userSettingsForControl = filterNumericAttrs(node.userSettings);
+        let nodesOfThisType = existingtrackNodes.filterBy('nodeType', type);
+        //nodes are ordered by index, so take the first one of it's type
+        let trackNode = nodesOfThisType.shift();
+  
+        let trackNodeAttrs = {
+          nodeUUID: uuid, // always update uuid since the audio nodes will be new every time
+          nodeType: type,
+          order: idx,
+          parentMacro: node.parentMacro,
+          defaultControlInterface // get the custom ui saved on the AudioNode, which was defined by the user
+        };
+  
+        // the parentMacro property is a cracked web audio node which happens to be a macro 
+        // this is used to determine if the node should appear with the normal node controls, 
+        // or separated as in the channel strip component. 
+        // since the AudioNodes are ephemeral, but the TrackNode models persist to the database
+        // we need to save a boolean telling the data model that it expects to have a channel strip maco audio node 
+        trackNodeAttrs.isChannelStripChild = trackNodeAttrs.parentMacro && trackNodeAttrs.parentMacro.getType() === 'channelStrip';
+  
+        if (trackNode) {
+          // then remove it from the possible future choices in existingtrackNodes
+          existingtrackNodes = existingtrackNodes.rejectBy('nodeUUID', trackNode.nodeUUID);
+          trackNode.setProperties(trackNodeAttrs);
+        } else {
+          // ID is necessary for client-side relationships between track-node and track-controller
+          // so we're using the audio node's UUID at time of creation.
+          // however when a trackNode is found and updated in the if block above, 
+          // it will update with a new audio node uuid and this id value will be outdated
+          // so theyre just a representation of the state of original creation
+          trackNodeAttrs = {
+            id: `${uuid}`,
+            ...trackNodeAttrs
+          }
+          trackNode = this.trackNodes.createRecord(trackNodeAttrs);
         }
-        trackNode = this.trackNodes.createRecord(trackNodeAttrs);
+  
+        // if the `ui` attribute was changed in the script editor, update the interfaceName of track-controls
+        trackNode.updateDefaultControlInterface(defaultControlInterface);
+        // update track control with user default values
+        trackNode.updateDefaultValue(userSettingsForControl);
       }
-
-      // if the `ui` attribute was changed in the script editor, update the interfaceName of track-controls
-      trackNode.updateDefaultControlInterface(defaultControlInterface);
-      // update track control with user default values
-      trackNode.updateDefaultValue(userSettingsForControl);
     });
   }
 
@@ -283,14 +285,14 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       .filterBy('nodeType', 'sampler')
       .findBy('nodeAttr', 'end');
 
+    
     const lfoForSamplerSpeed = this.trackNodes.filterBy('nodeType', 'lfo')
-      .map((trackNode) => trackNode.getCrackedNode())
+      .map((trackNode) => getCrackedNode(trackNode.nodeUUID))
       .find((crackedNode) => crackedNode?.isModulatorType() === 'speed');
       
-    const samplerNode = this.trackNodes.findBy('nodeType', 'sampler')?.getCrackedNode();
+    const samplerNode = getCrackedNode(this.trackNodes.findBy('nodeType', 'sampler')?.nodeUUID);
 
     return {
-      // the track should either have a sampler or an oscillator 
       filepath: this.filepathUrl,
       id: this.id,
       samplerSelector: this.samplerSelector,

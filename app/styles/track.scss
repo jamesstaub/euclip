@@ -20,3 +20,9 @@
   display: flex;
   justify-content: space-between;
 }
+
+.directory-btns {
+  &:not(:first-of-type):before {
+    content: ' / '
+  }
+}

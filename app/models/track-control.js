@@ -10,8 +10,8 @@ export default class TrackControlModel extends Model {
   
   // while redundant, nodeType and trackNodeOrder are needed here when POSTing 
   // because TrackNode models do not exist in the back end
-  @attr('string') nodeType;
   @attr('number') nodeOrder;
+  @attr('string') nodeType;
   @attr('string') nodeAttr; // the audio attr that will be controlled
 
   @attr('string') interfaceName; // type of nexus ui element
@@ -19,6 +19,9 @@ export default class TrackControlModel extends Model {
   @attr('number') max;
   @attr('number') defaultValue;
   @attr('number') controlValue; // number value of control 
+  
+  @attr('string') controlStringValue; // value of control for string attributes
+  
   @attr() controlArrayValue;
 
   get controlArrayComputed() {
@@ -46,6 +49,10 @@ export default class TrackControlModel extends Model {
     // this.set('controlArrayValue', controlArrayValue)
   }
 
+  get isSlider() {
+    return this.interfaceName === 'slider';
+  }
+
   get isMultislider() {
     // hack to prevent bug when a gain node is deleted, channel strip gain inherits it's defaultInterace property
     // see error in audio-models/track cleanupNodeRecords
@@ -53,6 +60,26 @@ export default class TrackControlModel extends Model {
       return false;
     }
     return this.interfaceName === 'multislider';
+  }
+  
+  
+  // TODO these getters could maybe be on a subclass since everything is mostly built for float and float array controls
+  // strings are a special case for sampler file paths only
+  
+  get isFilepath() {
+    return this.nodeType === 'sampler' && this.nodeAttr === 'path';
+  }
+
+  get pathSegments() {
+    if (this.isFilepath && this.controlStringValue) {
+      return this.controlStringValue.replace(/%20/g, ' ').split('/');
+    }
+  }
+
+  get filename() {
+    if (this.pathSegments?.length) {
+      return this.pathSegments[this.pathSegments.length-1].split('.')[0]
+    }
   }
 
   @belongsTo('track-node') trackNode;
@@ -270,20 +297,27 @@ export default class TrackControlModel extends Model {
     return paramDefaults;
   }
 
-
-  // TODO finish implementing the contents of interfaceType dropdown for
-  // each node attributes's control 
-  get uiOptions() {
+  /**
+   * interfaceNamesForAttr populates the dropdown menu on TrackControls with the allowed interfaceNames
+   * which correspond to different TrackControl UI components, depending on what kind of parameter it controls.
+   *  
+   * TODO finish implementing the contents of interfaceType dropdown for
+   * each node attributes's control 
+   */
+  get interfaceNamesForAttr() {
     const bool = ['toggle']
     const oneD = ['slider', 'multislider'];
     const twoD = ['position']; // control 2 attributes
     const tonal = ['piano'];
     const array = ['envelope']
+    const filepath = ['filepath'] //
     switch (this.nodeAttr) {
       case 'gain':
         return oneD;
       case 'speed':
         return oneD;
+      case 'path':
+        return filepath;
       case 'frequency':
         return oneD;
       case 'detune':
