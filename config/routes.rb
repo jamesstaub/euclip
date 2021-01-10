@@ -37,6 +37,8 @@ Rails.application.routes.draw do
     resources :init_scripts, :controller => 'scripts', :path => '/init-scripts'
     resources :onstep_scripts, :controller => 'scripts', :path => '/onstep-scripts'
     
+    resources :sequences, only: %i[create update destroy]
+
     resources :presets
   end
 end

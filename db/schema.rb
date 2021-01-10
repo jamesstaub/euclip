@@ -96,6 +96,7 @@ ActiveRecord::Schema.define(version: 2021_01_08_171921) do
     t.float "default_value"
     t.float "control_value"
     t.float "control_array_value", default: [], array: true
+    t.string "control_string_value"
     t.text "node_attr"
     t.text "interface_name"
     t.text "node_type"

@@ -10,8 +10,8 @@ class Track < ApplicationRecord
   attribute :is_master, :boolean
   attribute :order, :integer
   
-  # filepath is specific to Sampler audio node, should be an attribute of TrackControl
-  attribute :filepath, :string, default: '/SequentialCircuits%20Tom/kick.mp3'
+  scope :ordered_tracks, -> { where(:is_master => false)}
+  scope :master_track, -> { where(:is_master => true)}
 
   amoeba do
     enable
@@ -51,6 +51,7 @@ class Track < ApplicationRecord
   end
 
   def set_new_track_order
-    self.order = self.project.tracks.count + 1 unless self.order.present?
+    self.order = self.project.tracks.ordered_tracks.count + 1 unless self.order.present? || self.is_master
+    self.order = nil if self.is_master
   end
 end

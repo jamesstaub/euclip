@@ -6,6 +6,7 @@ class CreateTrackControls < ActiveRecord::Migration[6.0]
       t.float :default_value
       t.float :control_value
       t.float :control_array_value, array: true, default: []
+      t.string :control_string_value
       t.text :node_attr
       t.text :interface_name
       

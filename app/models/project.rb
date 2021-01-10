@@ -7,7 +7,7 @@ class Project < ApplicationRecord
   validates :creator, presence: true
 
   def reorder_tracks!
-    self.tracks.each_with_index {|track, idx|
+    self.tracks.ordered_tracks.each_with_index {|track, idx|
       track.update!(order: idx + 1)
     }
   end

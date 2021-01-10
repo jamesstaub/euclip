@@ -1,7 +1,7 @@
 class V1::ScriptsController < V1::BaseController
   before_action :set_script, only: %i[show update]
-  before_action :set_clean_attrs, only: %i[create update]
-  before_action :serializer_klass, only: %i[create update]
+  before_action :set_clean_attrs, only: %i[update]
+  before_action :serializer_klass, only: %i[update]
 
   def update
     @script.update(@clean_attrs)

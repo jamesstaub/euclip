@@ -69,9 +69,7 @@ class V1::TracksController < V1::BaseController
   private
   
   def cleaned_params
-    # TODO: 
-    # eventually filepath should be like any other TrackControl attribute
-    @attributes.permit(:filepath)
+    @attributes.permit(:order)
   end
 
   def set_track
