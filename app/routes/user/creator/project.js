@@ -8,7 +8,7 @@ export default class UserCreatorProjectRoute extends Route {
   }
 
   afterModel(project) {
-    return project.awaitAndBindTracks();
+    return project.initSignalChain();
   }
 
   setupController(controller, project) {

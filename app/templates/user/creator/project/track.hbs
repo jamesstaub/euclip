@@ -1,7 +1,7 @@
 {{!-- 
   this template for the /track/:id route is rendered as the footer for the currently selected track
  --}}
-<TrackFooterContainer 
+<TrackFooterContainer
   @track={{@model}}
   @onToggleScripts={{fn this.toggleSidebar track.id "right"}}
   @rightSidebarOpen={{this.project.rightSidebarOpen}}

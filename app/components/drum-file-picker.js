@@ -48,6 +48,12 @@ export default Component.extend({
     return content;
   },
 
+  saveFilepathControl(filepath) {
+    this.track.samplerFilepathControl.set('controlStringValue', filepath);
+    this.track.samplerFilepathControl.save();
+    this.track.setupAudioFromScripts();
+  },
+
   initDirectoryFromTrack: task(function* (filepath) {
     let path = filepath.split('/');
     path.pop();
@@ -99,7 +105,7 @@ export default Component.extend({
     if (type === 'dir') {
       this.updateDirectories.perform(newPath);
     } else if (type === 'audio') {
-      this.track.updateTrackTask.perform('filepath', newPath);
+      this.saveFilepathControl(newPath);
     }
   }),
 
@@ -109,7 +115,7 @@ export default Component.extend({
     directory = `${directory.join('/')}/`;
 
     this.updateDirectories.perform(directory);
-    this.track.updateTrackTask.perform('filepath', result);
+    this.saveFilepathControl(result);
   }),
 
   selectDir: action(function(selectedIdx){

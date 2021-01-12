@@ -13,6 +13,13 @@ export default class TabMenuComponent extends Component {
     return this.args.selectedValue;
   }
 
+  // set from above component
+  @action
+  setSelected(element, [value]) {
+    this.selectedValue = value;
+  }
+
+  // set by clicking tab
   @action
   select(value) {
     this.selectedValue = value;

@@ -47,6 +47,8 @@
             @rightSidebarOpen={{this.rightSidebarOpen}} 
           />
         {{/unless}}
+      {{/each}}
+      {{#each this.sortedTracks as |track|}}
         {{#if track.isMaster}}
           <TrackListItem
             @track={{track}}

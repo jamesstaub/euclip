@@ -52,7 +52,7 @@ export default class ScriptModel extends Model {
    yield this.saveScriptTask.perform('code', this.get('editorContent'));
    if (this.name === 'init-script') {
      const track = yield this.get('track');
-     track.setupAudioFromScripts(this);
+     track.setupAudioFromScripts();
    }
  }
 

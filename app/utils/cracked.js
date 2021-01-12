@@ -11,22 +11,6 @@ export function getCrackedNode(uuid) {
   return __._getNode(uuid);
 }
 
-/**
- * instantiate a DAC node preceded by a compressor node.
- * 
- * All audio channels created for a project can be pointed to the compressor like
- * `__('.my-node-selector').connect("#mixer")`
- */
-export function createMasterDac(id) {
-  // create a compressor -> DAC node for other nodes to connect to
-  __()
-    .compressor({
-      release: .1,
-      id: 'mixer',
-      class: `project-${id}`,
-    })
-    .dac();
-}
 
 /**
  * create the custom `channelStrip` cracked macro, which is relied upon by the Track UI

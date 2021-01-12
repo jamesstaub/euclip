@@ -1,4 +1,4 @@
-<div class="w-100 bt bw1">
+<div class="w-100 bt bw1" {{did-update this.setTabs @track.id}}>
   {{#unless @track.isDeleted}}
     <div class="flex bg-yellow justify-between footer-height">
       <div class="flex h-100 w-100">
@@ -23,7 +23,7 @@
         <TabMenu
           @verticle={{true}}
           @onSelect={{fn this.setUi "controlUi"}}
-          @selectedValue={{"controls"}}
+          @selectedValue={{this.controlUi}}
           @items={{compact (array 
             (if @track.sequences.length (hash label="sequence" value="sequence" icon="fi-squares" iconWidth="20px" iconHeight="40px"))
             (if @track.sourceNodeRecords.length (hash label="source" value="source" icon="fi-sound" iconWidth="20px" iconHeight="40px"))

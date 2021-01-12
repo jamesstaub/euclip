@@ -16,20 +16,28 @@ Tracks
   - a toggle should default to "replace existing script"
   - users can save their own scripts to their "collections"
 
+Track Footer
+  - each section (source, sequencer, controls) should display "Script Variables" in a list
+  styled in the same color as the syntax highlight in the actual script editor
+  - the Script Wrapper gets a collapsable menu with all available variables and their values
 
 Track Nodes
   - Track NodeTab UI
   - hover over node tabs to show cracked uui and selectors
   - 
-
 Track Controls
   - Move Sampler filepath to track control (with source node attribute)
   - When a sampler is present, add a new footer menu button for Sample Editor (start, end, slice manager)
-  - Oscillators also get Track Controls to control their type. 
+  - Oscillators also get Track Controls to control their type. (if the script contains a generic oscillator macro)
+  - implement "functions" [buttons to apply prest shapes like triangle, sine or randomize]
+  - copy/paste single control
 
+Presets:
+  - finish implementing, include all node attributes in presets 
+    (at least for one section of them to learn the nodes)
 
 Project
-  - Save "Snapshots"
+  - Save "Snapshots" (need to plan this out to work with concurrent editing, permissions)
   - Arrange mode: chain multiple projects together
   - Rails Action Cables for live editing
 
@@ -44,11 +52,10 @@ Sequences
 
 
 ### bugs
-Track Controls
-- wrapper:
-  - "functions" [buttons to apply prest shapes like triangle, sine or randomize]
-  - copy/paste single control
 
+After recent refacors, various initialization bugs exist. try adding and removing nodes. 
+
+do LFO track controls work? does it need to re-bind somewhere
 
 - element/nodes to implement
   - Envelope node : breakpoint nexus element or group of sliders

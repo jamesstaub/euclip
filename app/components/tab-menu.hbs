@@ -1,4 +1,8 @@
-<div class="tab-menu flex f7 tc flex {{if @verticle "verticle flex-column h-100"}}" ...attributes>
+<div 
+  class="tab-menu flex f7 tc flex {{if @verticle "verticle flex-column h-100"}}" 
+  {{did-update this.setSelected @selectedValue}}
+  ...attributes
+>
   {{#each @items key="order" as |item|}}
     {{#if @verticle}}
       <button

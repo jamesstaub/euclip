@@ -25,22 +25,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     });
   }
 
-  bindProjectEvents(project, initScript) {
-    // project and initScript are awaited on the route
-    // so this event can be synchronous
-    // FIXME: properly unbind on delete and don't rebind
-    // better yet refactor to avoid Evented, just loop over tracks
-    if(!this.isBoundInitTracks) {
-      project.on('initTracks', () => {
-        if (!this.isDeleted) {
-          this.setupAudioFromScripts(initScript);
-        }
-        this.set('isBoundInitTracks', true);
-      });
-    }
-  }
-
-  setupAudioFromScripts(initScript) {
+  setupAudioFromScripts() {
     // array to store audio node uuids created in this track's script
     // not to be confused with trackNode models, 
     // { uuid: type, atts: { filename: '...', speed: 1} } 
@@ -75,7 +60,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     this.unbindAndRemoveCrackedNodes();
 
      // run script to create audio nodes
-    initScript.functionRef();
+    this.initScript.get('functionRef')();
 
     // nullify this callback after creating track nodes to prevent it from getting called outside of this track
     __.onCreateNode = null;
@@ -313,7 +298,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       
       // TODO Generalize playSample this to try to play anything the user may want on step
       // (ADSR, LFO, ramp)
-      playSample(index) {
+      playSample(index, options) {
         if (this.samplerSelector) {
           // there will probably always be a speed control if there's a sampler
           const speed = speedControl.attrOnTrackStep(index);
@@ -322,7 +307,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
           __(this.samplerSelector).stop().attr({
             speed: speed, 
             start: start, 
-            end: end
+            end: end,
+            ...options
           }).start();
         }
       },

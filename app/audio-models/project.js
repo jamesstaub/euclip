@@ -1,12 +1,11 @@
 import Model from '@ember-data/model';
-import Evented from '@ember/object/evented';
-import { defineChannelStripMacro, createMasterDac, startLoop, stopLoop } from '../utils/cracked';
+import { defineChannelStripMacro, startLoop, stopLoop } from '../utils/cracked';
 
 /* 
  *  base class for the project model
  *  containing methods for project-level web audio state
  */
-export default class ProjectAudioModel extends Model.extend(Evented) {
+export default class ProjectAudioModel extends Model.extend() {
 
   get loopInterval() {
     return 1000 * 60 / (this.bpm * 2);
@@ -14,11 +13,12 @@ export default class ProjectAudioModel extends Model.extend(Evented) {
 
   initSignalChain() {
     this.disconnectAll();
-
-    createMasterDac(this.id);
+    // const tracks = await this.tracks;
+    // await track.initScript;
+    // await track.onstepScript;
     defineChannelStripMacro();
-
-    this.trigger('initTracks');
+    this.masterTrack.setupAudioFromScripts();
+    this.orderedTracks.forEach((track) => track.setupAudioFromScripts());
     return this;
   }
 

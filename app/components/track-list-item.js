@@ -21,6 +21,8 @@ export default class TrackListItemComponent extends Component {
     // manually override sequence
     const seq = [...this.args.track.currentSequence.sequence];
     seq[idx] = Number(!seq[idx]);
-    this.args.track.updateTrackTask.perform('customSequence', seq);
+    this.args.track.currentSequence.set('customSequence', seq);
+    this.args.track.currentSequence.save();
+    this.args.track.setupAudioFromScripts();
   }
 }

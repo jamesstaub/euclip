@@ -2,19 +2,20 @@ import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import TrackNodeModel from '../models/track-node';
 import { tracked } from '@glimmer/tracking';
+import {
+  inject as controller
+} from '@ember/controller';
 
 export default class TrackFooterContainerComponent extends Component {
   @tracked controlUi;
   @tracked visibleNodeIdx;
+  
+  @controller('user.creator.project') project;
 
   constructor() {
     super(...arguments);
     this.maxSteps = 64;
-    this.visibleNodeIdx = 0;
-    
-    // TODO: use a modifier when footer-container track changes to reinit
-    this.controlUi = 'controls'
-    this.scriptUi = 'init';
+    this.setTabs();
   }
 
   get validTrackNodes() {
@@ -52,10 +53,19 @@ export default class TrackFooterContainerComponent extends Component {
     }).sortBy('order')
   }
 
-
   @action
   setUi(key, val) {
     this[key] = val;
+  }
+
+  @action
+  setTabs() {
+    if (this.project.leftSidebarOpen) {
+      this.controlUi = 'source'
+    } else if (!this.controlUi) {
+      this.controlUi = 'controls'
+    }
+    this.visibleNodeIdx = 0;
   }
 
   @action

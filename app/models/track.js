@@ -66,24 +66,23 @@ export default class TrackModel extends TrackAudioModel {
   @filterBy('trackNodes', 'isSourceNode', true) sourceNodeRecords;
 
   @keepLatestTask
-  *updateTrackSequence(sequenceRecord, key, value){
+  *updateTrackSequence(sequenceRecord, key, value) {
     sequenceRecord.set(key, value);
     // TODO replace samplerSelector with "sourceNodeSelector"
     unbindFromSequencer(this.samplerSelector);
     this.bindToSequencer();
-    yield timeout(300)
+    yield timeout(300);
     yield sequenceRecord.save();
   }
 
   // REFACTOR: this is only called when the filepath
   // is updated, filepath should be moved to a TrackControl attribute of Sampler nodes
   @keepLatestTask
-  *updateTrackTask(key, value, reInit=true){
+  *updateTrackTask(key, value, reInit=true) {
     try {
       this.set(key, value);
       if (reInit)  {
-        const initScript = yield this.initScript;
-        this.setupAudioFromScripts(initScript);
+        this.setupAudioFromScripts();
       }
       yield this.save();
     } catch (e) {
