@@ -58,6 +58,7 @@ class V1::TrackControlsController < V1::BaseController
                                :node_type, 
                                :node_attr, 
                                :node_order,
+                               :control_string_value,
                                :control_array_value => [])
 
     attrs.merge(track_id: @track.id)

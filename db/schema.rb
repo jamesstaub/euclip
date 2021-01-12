@@ -110,7 +110,6 @@ ActiveRecord::Schema.define(version: 2021_01_08_171921) do
   create_table "tracks", force: :cascade do |t|
     t.boolean "is_master", default: false
     t.integer "order"
-    t.text "filepath"
     t.bigint "project_id", null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false

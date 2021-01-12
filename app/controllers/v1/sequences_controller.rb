@@ -2,6 +2,8 @@ class V1::SequencesController < V1::BaseController
   before_action :set_sequence, only: %i[show update]
   
   def update
+    # TODO: if updating euclidean hit while there is a custom sequence, revert to euclidean mode (clear seq)
+    # TODO: implement rotation of custom_seq
     @sequence.update(cleaned_params)
     if @sequence.save
       render json: SequenceSerializer.new(

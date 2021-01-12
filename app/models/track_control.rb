@@ -7,7 +7,7 @@ class TrackControl < ApplicationRecord
   def set_default
     # node_attr is the attribute that gets passed to the javascript AudioNode object
     # interface_name informs the ember components how to display different UI types
-    if self.node_attr == 'path'
+    if self.node_attr == 'path' && !self.control_string_value
       self.interface_name = 'filepath'
       self.control_string_value = get_sample_for_idx
     end

@@ -4,4 +4,5 @@ class Sequence < ApplicationRecord
   attribute :hits, :integer, default: 4
   attribute :steps, :integer, default: 8
   attribute :offset, :integer, default: 0
+
 end
