@@ -1,14 +1,23 @@
-.track-control-wrapper {
-  .toggle-config {
-    transform: translateY(-1rem);
-  }
-}
 .track-controls-container-pb {
   padding-bottom: 3.7rem;
 }
 
 .track-control-wrapper-mb {
   margin-bottom: 2.6rem;
+}
+
+.before-scroll-overlay{
+  position: relative;
+  &:after {
+    width: 2rem;
+    height: 80%;
+    position: absolute;
+    left:-2.1rem;
+    bottom:0;
+    background-color: $yellow;
+    opacity: .5;
+    content: " "
+  }
 }
 
 .channel-strip-w {

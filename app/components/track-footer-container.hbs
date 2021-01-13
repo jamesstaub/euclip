@@ -36,45 +36,64 @@
             @sequence={{@track.currentSequence}} 
             @updateTrackSequence={{@track.updateTrackSequence}}
             @maxSteps={{this.maxSteps}}
-          />
+          >
+            <ScriptVariablesList
+              @keys={{array "data" "index" "array"}}
+              @description={{"The sequence variables are most useful in the Modulate Script"}}
+            />
+          </SequenceContainer>
         {{/if}}
         {{#if (eq this.controlUi "source")}}
-          <div class="flex flex-column">
-            <h3 class="ma3">{{@track.samplerFilepathControl.filename}}</h3>
-            <ul class="pa0 list flex">
-              {{#each @track.samplerFilepathControl.pathSegments as |directory|}}
-                <li class="directory-btns">
-                  <button class="textbutton">
-                    {{directory}}
-                  </button>
-                </li>
-              {{/each}}
-            </ul>
-            <p class="ma3">Coming soon: sample waveform editor and custom sound libraries</p>
+          <div class="flex justify-between grow-1">
+            <div class="flex flex-column">
+              <h3 class="ma3">{{@track.samplerFilepathControl.filename}}</h3>
+              <ul class="pa0 list flex">
+                {{#each @track.samplerFilepathControl.pathSegments as |directory|}}
+                  <li class="directory-btns">
+                    <button class="textbutton">
+                      {{directory}}
+                    </button>
+                  </li>
+                {{/each}}
+              </ul>
+              <p class="ma3">Coming soon: sample waveform editor and custom sound libraries</p>
+            </div>
+            
+            <ScriptVariablesList
+              @keys={{array "filepath" "start" "end" "loop"}}
+              @description={{"The sequence variables are most useful in the Modulate Script"}}
+            />
           </div>
         {{/if}}
         {{#if (eq this.controlUi "controls")}}
-          <div class="overflow-hidden flex flex-column flex-grow-1 shrink-1 bl">
-            <div class="flex justify-between">
-              <h3 class="ma3">Audio Node Controls</h3>
-              {{#unless @rightSidebarOpen}}
-                <p {{on "click" @onToggleScripts}} class="pointer fw5 f5 tr mr3">Edit Audio Nodes</p>
-              {{/unless}}
+          <div class="flex justify-between grow-1">
+            <div class="overflow-hidden flex flex-column flex-grow-1 shrink-1 bl">
+              <div class="flex justify-between">
+                <h3 class="ma3">Audio Node Controls</h3>
+                {{#unless @rightSidebarOpen}}
+                  <p {{on "click" @onToggleScripts}} class="pointer fw5 f5 tr mr3">Edit Audio Nodes</p>
+                {{/unless}}
+              </div>
+              <div class="h-100 flex flex-column grow-1 shrink-1 w-100">
+                <TabMenu
+                  class="ph3 mb3"
+                  @onSelect={{fn this.setUi "visibleNodeIdx"}}
+                  @items={{this.trackNodesTabs}}
+                  @selectedValue={{this.visibleNodeIdx}}
+                />
+                <TrackControls
+                  @track={{@track}}
+                  @trackNodesForControls={{this.trackNodesForControls}} 
+                  @visibleNodeIdx={{this.visibleNodeIdx}}
+                  @updateControl={{fn this.updateControl}}
+                />
+              </div>
             </div>
-            <div class="h-100 flex flex-column grow-1">
-              <TabMenu
-                class="ph3 mb3"
-                @onSelect={{fn this.setUi "visibleNodeIdx"}}
-                @items={{this.trackNodesTabs}}
-                @selectedValue={{this.visibleNodeIdx}}
-              />
-              <TrackControls
-                @track={{@track}}
-                @trackNodesForControls={{this.trackNodesForControls}} 
-                @visibleNodeIdx={{this.visibleNodeIdx}}
-                @updateControl={{fn this.updateControl}}
-              />
-            </div>
+            <ScriptVariablesList
+              class="before-scroll-overlay"
+              @keys={{array "data" "index" "array"}}
+              @description={{"The sequence variables are most useful in the Modulate Script"}}
+            />
           </div>
         {{/if}}
       </div>

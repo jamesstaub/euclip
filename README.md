@@ -16,6 +16,9 @@ Tracks
   - a toggle should default to "replace existing script"
   - users can save their own scripts to their "collections"
 
+- implement "undo delete" 
+- - use ember-concurrency to wait before calling save on the deleted record, show a "toast" with restore button
+
 Track Footer
   - each section (source, sequencer, controls) should display "Script Variables" in a list
   styled in the same color as the syntax highlight in the actual script editor
@@ -31,6 +34,7 @@ Track Controls
   - Oscillators also get Track Controls to control their type. (if the script contains a generic oscillator macro)
   - implement "functions" [buttons to apply prest shapes like triangle, sine or randomize]
   - copy/paste single control
+  - hover over track control label and show excerpt of documentation for node
 
 Presets:
   - finish implementing, include all node attributes in presets 

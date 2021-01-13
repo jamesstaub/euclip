@@ -16,8 +16,11 @@ input:focus, button:focus {
   color: $dark-gray;
   background-color: $light-yellow;
 }
+button[disabled] {
+  cursor: default;
+}
 
-button:hover {
+button:not([disabled]):hover {
   &.bg-dark-gray {
     background-color: darken($dark-gray, 10);
   }

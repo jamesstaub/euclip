@@ -1,17 +1,18 @@
 <div class="track-control-wrapper flex br bw1 {{if this.showConfig "pr2 b--dark-gray" "b--yellow"}}" ...attributes>
-  <div class="relative {{if this.isConfigurable "pr3"}}">
-    <div class="{{@wrapperStyleClass}}" style={{if @trackControl.isMultislider multisliderWidthStyle}} data-node-uuid={{@trackControl.trackNode.nodeUUID}}>
+  <div class="relative ph3 pb3">
+    <div class="{{@wrapperStyleClass}} flex flex-column items-center" style={{if @trackControl.isMultislider multisliderWidthStyle}} data-node-uuid={{@trackControl.trackNode.nodeUUID}}>
+      <div class="flex justify-between">
+        <label class="tc dib pv2">
+          {{@trackControl.nodeAttr}}
+        </label>
+        {{#if this.isConfigurable}}
+          <button class="bg-transparent pa0 bn absolute right-1 top-0 mt2 overflow-hidden" {{on "click" this.toggleConfig}}>
+            {{svg-jar "fi-play" class=(concat "dark-fill " (if this.showConfig "rotate-0" "rotate-90"))  width="16px" height="20px"}}
+          </button>
+        {{/if}}
+      </div>
       {{yield multisliderWidth}}
-      
-      <label class="tc mt3 dib">
-        {{@trackControl.nodeAttr}} 
-      </label>
     </div>
-    {{#if this.isConfigurable}}
-      <button class="toggle-config bg-transparent pa0 bn absolute right-0 top-0 mt1 overflow-hidden" {{on "click" this.toggleConfig}}>
-        {{svg-jar "fi-play" class=(concat "dark-fill " (if this.showConfig "rotate-0" "rotate-90"))  width="16px" height="40px"}}
-      </button>
-    {{/if}}
   </div>
 
   {{#if this.isConfigurable}}

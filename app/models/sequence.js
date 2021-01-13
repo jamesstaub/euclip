@@ -1,8 +1,7 @@
-
 import Model, { attr, belongsTo, hasMany } from '@ember-data/model';
 import { tracked } from '@glimmer/tracking';
 import E from '../utils/euclidean';
-import { isEmpty } from '@ember/utils';
+
 export default class SequenceModel extends Model {
   @tracked hits;
   @tracked steps;
@@ -25,11 +24,17 @@ export default class SequenceModel extends Model {
 
   @attr() customSequence
 
+  didUpdate(){
+    if (this.hits > this.steps) {
+      this.steps = this.hits;
+    }
+  }
+
   get sequence() {
-    if (isEmpty(this.customSequence)) {
-      return E(this.hits, this.steps, this.offset)
-    } else {
+    if (this.customSequence?.length) {
       return this.customSequence;
+    } else {
+      return E(this.hits, this.steps, this.offset)
     }
   }
 }

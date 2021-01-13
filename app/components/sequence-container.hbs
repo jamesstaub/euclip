@@ -1,58 +1,61 @@
-<div class="bl">
-  <h3 class="ma3">Euclidean Rhythm</h3>
-  <div class="sequence-control-sliders flex flex-column mh3">
-    <TrackControlWrapper
-      class="pv3"
-      @hideConfig={{true}}
-      @hideInterfaceMenu={{true}}
-      @wrapperStyleClass="flex items-center row-reverse"
-    >
-      <NexusSlider 
-        @value={{@sequence.hits}} 
-        @onChangeValue={{perform @updateTrackSequence @sequence "hits"}} 
-        @min={{0}}
-        @max={{@maxSteps}}
-        @step={{1}}
-        @size={{array 300 20}}
+<div class="bl flex grow-1">
+  <div class="flex justify-between grow-1">
+    <div class="sequence-control-sliders flex flex-column mh3">
+      <h3 class="ma3">Euclidean Rhythm</h3>
+      <TrackControlWrapper
+        class="pv3"
+        @hideConfig={{true}}
+        @hideInterfaceMenu={{true}}
+        @wrapperStyleClass="flex items-center row-reverse"
       >
-        <span class="euclidean-param-label mr3"><span class="fw6">hits:</span> {{@sequence.hits}}</span>
-      </NexusSlider>
-    </TrackControlWrapper>
+        <NexusSlider 
+          @value={{@sequence.hits}} 
+          @onChangeValue={{perform @updateTrackSequence @sequence "hits"}} 
+          @min={{0}}
+          @max={{@maxSteps}}
+          @step={{1}}
+          @size={{array 300 20}}
+        >
+          <span class="euclidean-param-label mr3"><span class="fw6">hits:</span> {{@sequence.hits}}</span>
+        </NexusSlider>
+      </TrackControlWrapper>
 
-    <TrackControlWrapper
-      class="pv3"
-      @hideConfig={{true}}
-      @hideInterfaceMenu={{true}}
-      @wrapperStyleClass="flex items-center row-reverse"
-    >
-      <NexusSlider
-        @value={{@sequence.steps}}
-        @onChangeValue={{perform @updateTrackSequence @sequence "steps"}}
-        @min={{0}}
-        @max={{@maxSteps}}
-        @step={{1}}
-        @size={{array 300 20}}
+      <TrackControlWrapper
+        class="pv3"
+        @hideConfig={{true}}
+        @hideInterfaceMenu={{true}}
+        @wrapperStyleClass="flex items-center row-reverse"
       >
-        <span class="euclidean-param-label mr3"><span class="fw6">steps:</span> {{@sequence.steps}}</span>
-      </NexusSlider>
-    </TrackControlWrapper>
+        <NexusSlider
+          @value={{@sequence.steps}}
+          @onChangeValue={{perform @updateTrackSequence @sequence "steps"}}
+          @min={{0}}
+          @max={{@maxSteps}}
+          @step={{1}}
+          @size={{array 300 20}}
+        >
+          <span class="euclidean-param-label mr3"><span class="fw6">steps:</span> {{@sequence.steps}}</span>
+        </NexusSlider>
+      </TrackControlWrapper>
 
-    <TrackControlWrapper
-      class="pv3"
-      @hideConfig={{true}}
-      @hideInterfaceMenu={{true}}
-      @wrapperStyleClass="flex items-center row-reverse"
-    >
-      <NexusSlider 
-        @value={{@sequence.offset}} 
-        @onChangeValue={{perform @updateTrackSequence @sequence "offset"}} 
-        @min={{0}}
-        @max={{@maxSteps}}
-        @step={{1}}
-        @size={{array 300 20}}
+      <TrackControlWrapper
+        class="pv3"
+        @hideConfig={{true}}
+        @hideInterfaceMenu={{true}}
+        @wrapperStyleClass="flex items-center row-reverse"
       >
-        <span class="euclidean-param-label mr3"><span class="fw6">offset:</span> {{@sequence.offset}}</span>
-      </NexusSlider> 
-    </TrackControlWrapper> 
+        <NexusSlider 
+          @value={{@sequence.offset}} 
+          @onChangeValue={{perform @updateTrackSequence @sequence "offset"}} 
+          @min={{0}}
+          @max={{@maxSteps}}
+          @step={{1}}
+          @size={{array 300 20}}
+        >
+          <span class="euclidean-param-label mr3"><span class="fw6">offset:</span> {{@sequence.offset}}</span>
+        </NexusSlider> 
+      </TrackControlWrapper> 
+    </div>
+    {{yield}}
   </div>
 </div>

@@ -4,7 +4,11 @@
   {{did-insert (fn this.setPosition)}}
   ...attributes
 >
-  {{svg-jar "fi-dots" class="light-fill" width="16px" height="40px"}}
+  {{#if (has-block)}}
+    {{yield}}
+  {{else}}
+    {{svg-jar "fi-dots" class="light-fill" width="16px" height="40px"}}
+  {{/if}}
 </button>
 {{#if this.open}}
   {{#ember-wormhole to="dropdown-target"}}
@@ -20,7 +24,6 @@
         </li>
       {{/each}}
     </ul>
-    {{yield}}
     <div class="scrim absolute bg-transparent" {{on "click" (fn this.toggleOpen)}}></div>
   {{/ember-wormhole}}
 {{/if}}

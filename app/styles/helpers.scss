@@ -1,5 +1,8 @@
 
 /* Backgrounds */
+.bg-dark-yellow {
+   background-color: $dark-yellow;
+}
 
 .hover-bg-near-black:hover {
   @extend .bg-near-black;

@@ -1,30 +1,7 @@
 {{#each @trackNodesForControls as |trackNode idx|}}
   {{#if (eq @visibleNodeIdx idx)}}
-    <div class="flex row-reverse justify-end h-100">
-      <div class="flex flex-wrap tc mh3">
-        {{#each trackNode.oneDimensionalControls as |trackControl|}}
-          <TrackControlWrapper
-            @sequence={{@track.currentSequence.sequence}}
-            @trackControl={{trackControl}}
-            @wrapperStyleClass="mr2"
-          >
-            {{!-- 
-              render the track control component eg nexus-slider
-              this is equivalent to <NexusSlider> but can be set dynamically
-              --}}
-            {{component
-              (concat "nexus-" trackControl.interfaceName)
-              value=trackControl.controlValue
-              values=trackControl.controlArrayComputed
-              min=trackControl.min
-              max=trackControl.max
-              defaultValue=trackControl.defaultValue
-              onChangeValue=(fn @updateControl trackControl)
-            }}
-          </TrackControlWrapper>
-        {{/each}}
-      </div>
-      <div class="h-auto flex flex-column tc mh3 track-controls-container-pb overflow-y-scroll">
+    <div class="flex justify-start h-100 overflow-y-scroll mw-100">
+      <div class="h-auto flex flex-column tc track-controls-container-pb overflow-y">
         {{#each trackNode.multisliderControls as |trackControl|}}
           <TrackControlWrapper
             class="track-control-wrapper-mb"
@@ -36,7 +13,7 @@
             {{!-- 
               render the track control component eg nexus-multislider
               this is equivalent to <NexusMultislider> but can be set dynamically
-              --}}
+            --}}
             <SequencePagination 
               @sequence={{@track.currentSequence.sequence}} 
               @stepIndex={{@track.stepIndex}}
@@ -58,6 +35,29 @@
                 />
               </div>
             </SequencePagination>
+          </TrackControlWrapper>
+        {{/each}}
+      </div>
+      <div class="flex flex-nowrap tc mh3">
+        {{#each trackNode.oneDimensionalControls as |trackControl|}}
+          <TrackControlWrapper
+            @sequence={{@track.currentSequence.sequence}}
+            @trackControl={{trackControl}}
+            @wrapperStyleClass="mh2 ph3"
+          >
+            {{!-- 
+              render the track control component eg nexus-slider
+              this is equivalent to <NexusSlider> but can be set dynamically
+            --}}
+            {{component
+              (concat "nexus-" trackControl.interfaceName)
+              value=trackControl.controlValue
+              values=trackControl.controlArrayComputed
+              min=trackControl.min
+              max=trackControl.max
+              defaultValue=trackControl.defaultValue
+              onChangeValue=(fn @updateControl trackControl)
+            }}
           </TrackControlWrapper>
         {{/each}}
       </div>

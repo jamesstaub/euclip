@@ -1,0 +1,12 @@
+<div class="bl b--dark-gray ph3 mw5" {{did-insert (fn this.showVars)}} ...attributes>
+  <h4 class="mv3">Script Keywords</h4>
+  <p>{{@description}}</p>
+  <ul class="list pa0">
+    {{#each this.scriptVars as |scriptVar|}}
+      <li class="flex flex-column">
+        <span class="code">{{scriptVar.name}}</span>
+        <span>{{scriptVar.description}}</span>
+      </li>
+    {{/each}}
+  </ul>
+</div>

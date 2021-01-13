@@ -65,8 +65,10 @@ export default class TrackModel extends TrackAudioModel {
 
   @filterBy('trackNodes', 'isSourceNode', true) sourceNodeRecords;
 
+  // TODO: dedupe from similar method on track-list-item
   @keepLatestTask
   *updateTrackSequence(sequenceRecord, key, value) {
+    sequenceRecord.set('customSequence', []);
     sequenceRecord.set(key, value);
     // TODO replace samplerSelector with "sourceNodeSelector"
     unbindFromSequencer(this.samplerSelector);
