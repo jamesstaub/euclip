@@ -9,13 +9,12 @@
       {{#if @track.isMaster}}
         <p class="tc pv2 ph3 ml2 f6 ttu bg-dark-gray yellow ba bw1 b--yellow w4 truncate f7">Main Output</p>
       {{/if}}
-      {{#each @track.sourceNodeRecords as |trackNode|}}
-        <SourceSelectButton
-          class={{if @track.isMaster "ml3"}}
-          @trackNode={{trackNode}} 
-          @onToggleFilePicker={{@onToggleFilePicker}} 
-        />
-      {{/each}}
+      
+      <SourceSelectButton
+        @trackNode={{@track.sourceNodeRecords.firstObject}} 
+        @onToggleFilePicker={{@onToggleFilePicker}} 
+      />
+
     </div>
 
     {{yield}}

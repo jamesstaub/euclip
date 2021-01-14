@@ -129,7 +129,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     this.trackAudioNodes.forEach((node, idx) => {
       const [uuid, type] = Object.entries(node)[0];
       if (getCrackedNode(uuid)) {
-        const defaultControlInterface = getCrackedNode(uuid).ui || 'slider';
+        // a `ui` attribute might have been defined in the cracked node definition
+        const userDefinedInterfaceName = getCrackedNode(uuid).ui;
   
         // grab the attributes passed in to the initialization of a cracked node that will be used to set default state of track controls (eg. frequency, gain, speed etc.)
         const userSettingsForControl = filterNumericAttrs(node.userSettings);
@@ -142,7 +143,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
           nodeType: type,
           order: idx,
           parentMacro: node.parentMacro,
-          defaultControlInterface // get the custom ui saved on the AudioNode, which was defined by the user
+          userDefinedInterfaceName // get the custom ui saved on the AudioNode, which was defined by the user
         };
   
         // the parentMacro property is a cracked web audio node which happens to be a macro 
@@ -170,7 +171,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         }
   
         // if the `ui` attribute was changed in the script editor, update the interfaceName of track-controls
-        trackNode.updateDefaultControlInterface(defaultControlInterface);
+        trackNode.updateUserDefinedInterfaceName(userDefinedInterfaceName);
         // update track control with user default values
         trackNode.updateDefaultValue(userSettingsForControl);
       }

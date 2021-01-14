@@ -88,7 +88,7 @@ export function paramsForNode(nodeType) {
     case 'panner':
       return ['pan'];
     case 'reverb':
-      return ['decay', 'reverse'];
+      return ['seconds','decay', 'reverse'];
     case 'ring':
       return ['distortion', 'frequency'];
     case 'sampler':

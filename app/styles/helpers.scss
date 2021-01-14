@@ -8,6 +8,15 @@
   @extend .bg-near-black;
 }
 
+/* Fonts */
+.f8 {
+  font-size: 0.065rem;
+}
+
+.white-{
+  color: $white!important;
+}
+
 /* Flexbox */
 .grow-1 { flex-grow: 1; }
 .shrink-1 { flex-shrink: 1; }
@@ -17,8 +26,6 @@
 .row-reverse { flex-direction: row-reverse; }
 
 /* Sizing*/
-
-
 .w6 {
   width: $width-6;
 }

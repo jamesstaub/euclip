@@ -11,7 +11,7 @@ export default class TrackNodeModel extends Model {
    * this attr is used to catch any user-defined UI preferences such as { ui: 'multislider'}
    * exceptions need to be made for attrs such as filepath
    */
-  @attr('string') defaultControlInterface;
+  @attr('string') userDefinedInterfaceName;
 
   @attr('string') nodeUUID;
   @attr('string') nodeType;
@@ -20,6 +20,8 @@ export default class TrackNodeModel extends Model {
   @attr() parentMacro; // AudioNode of macro this node belongs to (not serialized)
   @attr('boolean') isChannelStripChild; // flag saved if the parentMacro is set on this node
 
+  // TODO: if this is a user-defined macro, check that 
+  // it contains source nodes
   get isSourceNode() {
     return [
     'buffer', 
@@ -86,12 +88,12 @@ export default class TrackNodeModel extends Model {
    *    }
    * ```
    */
-  updateDefaultControlInterface(defaultControlInterface) {
-    this.set('defaultControlInterface', defaultControlInterface);    
-    if (this._defaultControlInterface !== this.defaultControlInterface) {
+  updateUserDefinedInterfaceName(userDefinedInterfaceName) {
+    this.set('userDefinedInterfaceName', userDefinedInterfaceName);    
+    if (this._userDefinedInterfaceName !== this.userDefinedInterfaceName) {
       this.get('trackControls').forEach((trackControl) => {
-        if (trackControl.interfaceNamesForAttr.includes(defaultControlInterface)) {
-          trackControl.set('interfaceName', defaultControlInterface);
+        if (trackControl.interfaceNamesForAttr.includes(userDefinedInterfaceName)) {
+          trackControl.set('interfaceName', userDefinedInterfaceName);
         } else {
           // some track controls may not support the default defined in a script
           trackControl.set('interfaceName', trackControl.interfaceNamesForAttr[0]);
@@ -99,7 +101,7 @@ export default class TrackNodeModel extends Model {
         trackControl.save();
       });
     }
-    this._defaultControlInterface = this.defaultControlInterface;
+    this._userDefinedInterfaceName = this.userDefinedInterfaceName;
   }
 
   /**
@@ -110,7 +112,7 @@ export default class TrackNodeModel extends Model {
    * and updates the trackControl min/max/default values to support that user entered value
    * 
    * cache the user default value and only re-set it if the user changed it, this allows user to use the sliders and 
-   * not have them jump back to the default every time the script re-inits (same problem as updateDefaultControlInterface)
+   * not have them jump back to the default every time the script re-inits (same problem as updateUserDefinedInterfaceName)
    */
   updateDefaultValue(userSettingsForControl) {
     this.get('trackControls').forEach((trackControl) => {
@@ -135,11 +137,12 @@ export default class TrackNodeModel extends Model {
     const controlAttrs = paramsForNode(this.nodeType);
     return controlAttrs.map((controlAttr) => {
       const defaults = TrackControlModel.defaultForAttr(controlAttr, this.nodeType);
+      
+      // set the defaultValue as the trackControl's value
       defaults.controlValue = defaults.defaultValue;
-      // NOTE API should validate interface names and note types on track controls       
+
       const trackControl  = this.store.createRecord('track-control', {
         nodeAttr: controlAttr,
-        interfaceName: this.defaultControlInterface,
         controlArrayValue: [], // all controls for api must initialize this whenever a multislider is created
         track: this.track,
         trackNode: this,
@@ -147,6 +150,11 @@ export default class TrackNodeModel extends Model {
         nodeOrder: this.order, 
         ...defaults,
       });
+      
+      if (this.userDefinedInterfaceName) {
+        trackControl.set('interfaceName', this.userDefinedInterfaceName)
+      }
+      
       trackControl.save();
       return trackControl;
     });
