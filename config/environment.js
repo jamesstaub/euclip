@@ -64,6 +64,7 @@ module.exports = function(environment) {
     // ENV.APP.LOG_TRANSITIONS = true;
     // ENV.APP.LOG_TRANSITIONS_INTERNAL = true;
     ENV.APP.DRUMSERVER_HOST =  'http://127.0.0.1:8000';
+    ENV.APP.AUDIO_PATH = '/assets/audio/Drum%20Machines%20mp3';
     // ENV.APP.DRUMSERVER_HOST = 'https://drumserver.herokuapp.com';
   }
 
@@ -81,7 +82,7 @@ module.exports = function(environment) {
 
   if (environment === 'production') {
     ENV.APP.DRUMSERVER_HOST = 'https://drumserver.herokuapp.com';
-    // here you can enable a production-specific feature
+    ENV.APP.AUDIO_PATH = 'https://storage.googleapis.com/euclidean-cracked.appspot.com/Drum%20Machines%20mp3';
   }
 
   return ENV;

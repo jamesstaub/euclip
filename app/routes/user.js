@@ -15,8 +15,8 @@ export default class UserRoute extends Route {
     try {
       await this.currentUser.load();
     } catch(err) {
-      console.log('invalidate');
-      await this.session.invalidate();
+      this.session.invalidate();
+      this.transitionTo('login');
     }
   }
 }

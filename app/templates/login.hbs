@@ -14,7 +14,7 @@
             <label class="db" for="username">
               Username
             </label>
-            {{input class="w-100" id="username" placeholder="Enter Username" value=this.username}}
+            {{input class="w-100" id="username" autocomplete="username" placeholder="Enter Username" value=this.username}}
           </div>
           <div class="mb3">
             <label class="db" for="password">
@@ -25,7 +25,7 @@
                 placeholder="Enter Password"
                 type="password"
                 value=this.password
-                autocomplete=true
+                autocomplete="current-password"
               }}
           </div>
           <div class="flex items-center">
@@ -54,7 +54,7 @@
             <label class="db" for="email">
               Email
             </label>
-            {{input class="w-100" id="email" placeholder="Enter Email Address" value=this.email}}
+            {{input class="w-100" id="email" autocomplete="email" placeholder="Enter Email Address" value=this.email}}
           </div>
           <div class="mb3">
             <label class="db" for="signup-password">
@@ -65,7 +65,7 @@
                   placeholder="Enter Password"
                   type="password"
                   value=this.password
-                  autocomplete=true
+                  autocomplete="new-password"
                 }}
           </div>
           <div class="flex items-center">

@@ -4,6 +4,7 @@ import { keepLatestTask } from "ember-concurrency-decorators";
 import { timeout } from 'ember-concurrency';
 import { unbindFromSequencer } from '../utils/cracked';
 import { filterBy } from '@ember/object/computed';
+import ENV from 'euclip/config/environment';
 
 export default class TrackModel extends TrackAudioModel {
   
@@ -59,8 +60,9 @@ export default class TrackModel extends TrackAudioModel {
     // can be created, so without this default, we'll never be able to apply
     // the server-rendered default filepath
     let defaultFile =  '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CR8KBASS.mp3';
-    return `/assets/audio/Drum%20Machines%20mp3${this.samplerFilepathControl?.controlStringValue || defaultFile}`;
-    // return `https://storage.googleapis.com/euclidean-cracked.appspot.com/Drum%20Machines%20mp3${this.filepath}`;
+
+    // return `/assets/audio/Drum%20Machines%20mp3${this.samplerFilepathControl?.controlStringValue || defaultFile}`;
+    return `${ENV.APP.AUDIO_PATH}${this.samplerFilepathControl?.controlStringValue || defaultFile}`;
   }
 
   @filterBy('trackNodes', 'isSourceNode', true) sourceNodeRecords;
