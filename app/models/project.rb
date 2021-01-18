@@ -1,6 +1,6 @@
 class Project < ApplicationRecord
   belongs_to :creator, class_name: "User"
-  has_many :tracks
+  has_many :tracks, :dependent => :destroy
 
   before_save :set_defaults
   attribute :bpm, :integer, default: 120

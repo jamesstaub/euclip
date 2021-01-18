@@ -61,6 +61,7 @@ class V1::TrackControlsController < V1::BaseController
                                :control_string_value,
                                :control_array_value => [])
 
-    attrs.merge(track_id: @track.id)
+    
+    attrs.merge(track_id: @track.id).to_h.reject{|_, v| v.blank?}
   end
 end

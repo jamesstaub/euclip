@@ -17,22 +17,20 @@ class InitScript < Script
   id: 'mixer',
   class: 'project-#{self.track.project.id}',
 })
+.channelStrip()
 .dac();
   } if self.safe_code.nil?
   end
 
   def track_default_init
     self.safe_code = %{__()
-      .sampler({
-        id: this.id,
-        path: this.filepath,
-        ui: 'multislider',
-      })
-      .gain({
-        ui: 'multislider',
-      })
-      .channelStrip()
-      .connect('#mixer')
+.sampler({
+  id: this.id,
+  path: this.filepath,
+})
+.gain()
+.channelStrip()
+.connect('#mixer')
         } if self.safe_code.nil?
   end
 end

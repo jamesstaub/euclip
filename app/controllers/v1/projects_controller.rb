@@ -1,5 +1,6 @@
 class V1::ProjectsController < V1::BaseController
-  before_action :set_project, only: %i[update]
+  before_action :set_project_from_id, only: %i[update destroy]
+
 
   def index
     @pagy, @projects = pagy(Project.where(creator_id: params["user_id"]).order(created_at: :asc))
@@ -44,11 +45,22 @@ class V1::ProjectsController < V1::BaseController
     end
   end
 
+  def destroy
+    @project.destroy
+    render json: { meta: {} }, status: :ok
+  end
+
   private
 
-  def set_project
-    @project = Project.find(@data.require(:id))
+  def set_project_from_id
+    if @data
+      project_id = @data.require(:id)
+    else
+      project_id = params.require(:id)
+    end
+    @project = Project.find(project_id)
   end
+  
   
   def clean_params
     @attributes.permit(:title, :slug, :bpm)
