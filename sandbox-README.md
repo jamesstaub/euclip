@@ -82,6 +82,8 @@ Currently, no automatic key generation feature is available, it has to be done m
 * Paste the original credentials you copied (step 1) in the new credentials file (and save + quit vim)
 
 * Add and Commit the file `config/credentials.yml.enc`. DO NOT add and commit the `master.key`
+ for heroku `heroku config:set RAILS_MASTER_KEY=<your-master-key>`
+
 
 <br>
 

@@ -3,3 +3,5 @@
 # Add new mime types for use in respond_to blocks:
 # Mime::Type.register "text/richtext", :rtf
 Mime::Type.register "application/vnd.api+json", :json
+Mime::Type.register "text/html", :html, %w( application/xhtml+xml ), %w( xhtml )
+Mime::Type.register "text/csv", :csv
