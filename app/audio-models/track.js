@@ -62,7 +62,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     this.unbindAndRemoveCrackedNodes();
 
      // run script to create audio nodes
-    this.initScript.get('functionRef')();
+    this.get('initScript').content.invokeFunctionRef();
 
     // nullify this callback after creating track nodes to prevent it from getting called outside of this track
     __.onCreateNode = null;

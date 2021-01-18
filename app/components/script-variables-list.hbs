@@ -1,15 +1,8 @@
-<div class="variables-overlay b--dark-gray ph3 absolute right-0 z-2 yellow overflow-scroll h-100 bw2 bt bl b--yellow"
+<div class="variables-overlay b--dark-gray ph3 z-2 yellow overflow-scroll h-100 bw2 bt bl b--yellow absolute right-0 {{if this.isCollapsed "bottom-0"}}"
   {{did-insert this.setDefaultUi}} 
   ...attributes
 >
   <div class="flex justify-between">
-    {{!-- 
-    {{compact (array
-        (if this.scriptVars (hash label="variables" value="variables"))
-        (if this.selectorsForNode (hash label="selectors" value="selectors"))
-        (if (or @sequencerDocs @nodeDocs) (hash label="attributes" value="docs"))
-      )}}
-     --}}
     <TabMenu
       class="mv3"
       @onSelect={{fn this.setUi "visibleNodeIdx"}}
@@ -17,12 +10,12 @@
       @items={{this.tabItems}}
       @selectedValue={{this.visibleNodeIdx}}
     />
-    <button class="bg-transparent pa0 bn absolute right-1 top-0 mt2 overflow-hidden" {{on "click" this.toggleCollapsed}}>
+    {{!-- <button class="bg-transparent pa0 bn absolute right-1 top-0 mt2 overflow-hidden" {{on "click" this.toggleCollapsed}}>
       {{svg-jar "fi-play" class=(concat "light-fill " (if this.isCollapsed "rotate-270"  "rotate-90"))  width="16px" height="20px"}}
-    </button>
+    </button> --}}
   </div>
 
-  {{#unless isCollapsed}}
+  {{#unless this.isCollapsed}}
     {{#if (and @validTrackNodes (eq this.ui "selectors"))}}
       <SelectorsList @selectorsForNode={{this.selectorsForNode}} />
     {{/if}}

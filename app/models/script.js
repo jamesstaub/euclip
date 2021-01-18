@@ -32,6 +32,10 @@ export default class ScriptModel extends Model {
     return ()=> {};
   }
 
+  /**
+   * Call the Function created of the user-defined script text
+   * wrapped in error hanlder to display problems in the UI
+   */
   invokeFunctionRef() {
     try {
       this.alert = null;

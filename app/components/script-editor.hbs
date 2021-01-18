@@ -1,6 +1,6 @@
 {{ember-ace
   class="grow-1"
-  lines=15
+  lines=@editorLineCount
   editorClass="ace-editor"
   mode="ace/mode/javascript"
   value=this.editorContent
@@ -40,10 +40,10 @@
         discard changes
       </ButtonPrimary>
     {{/if}}
-    {{#if @scriptModel.alert}}
-      <p class="bg-dark-red pa3 ma0 white" data-track={{@scriptModel.track.order}}>{{@scriptModel.alert}}</p>
-    {{/if}}
   </div>
+  {{#if @scriptModel.alert}}
+    <p class="bg-dark-red pa3 ma0 white" data-track={{@scriptModel.track.order}}>{{@scriptModel.alert}}</p>
+  {{/if}}
 
   <div class="flex">
     {{#if (not functionIsLoaded)}}

@@ -3,6 +3,7 @@ import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 export default class ScriptWrapperComponent extends Component {
   @tracked scriptUi;
+  @tracked editorLineCount;
   
   constructor() {
     super(...arguments);
@@ -21,6 +22,15 @@ export default class ScriptWrapperComponent extends Component {
       script.set('editorContent', onstepScript);
       script.get('runCode').perform();
     }
+  }
+
+  @action
+  calculateHeight(element) {
+    const { height } = element.parentElement.getBoundingClientRect();
+    const heightOfNonEditorElements = 470;
+    const editorLineCountMultiplier = 0.057;
+    // This is a sketch approximation to dynamically set the ace-editor height based on the parent component height
+    this.editorLineCount = Math.ceil((height - heightOfNonEditorElements) * editorLineCountMultiplier)
   }
 
   @action
