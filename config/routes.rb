@@ -27,6 +27,8 @@ Rails.application.routes.draw do
       resources :projects, only: %i[index]
     end
     
+    resources :projects, param: :id, only: %i[destroy]
+    
     resources :projects, param: :slug do
       resources :tracks, only: %i[show create]
     end
@@ -41,4 +43,5 @@ Rails.application.routes.draw do
 
     resources :presets
   end
+  get '*ember_path', to: 'ember#index'
 end
