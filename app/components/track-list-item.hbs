@@ -9,12 +9,22 @@
       {{#if @track.isMaster}}
         <p class="tc pv2 ph3 ml2 f6 ttu bg-dark-gray yellow ba bw1 b--yellow w4 truncate f7">Main Output</p>
       {{/if}}
-      
-      <SourceSelectButton
-        @trackNode={{@track.sourceNodeRecords.firstObject}} 
-        @onToggleFilePicker={{@onToggleFilePicker}} 
-      />
-
+      {{#if @track.showFilePicker}}
+        <SourceSelectButton
+          @trackNode={{@track.sourceNodeRecords.firstObject}} 
+          @onToggleFilePicker={{@onToggleFilePicker}} 
+        />
+      {{else}}
+        {{#unless @track.isMaster}}
+          <p class="tc w4 ma2 {{unless @isActive "light-gray"}}">
+            {{#if @track.sourceNodeRecords.firstObject}}
+              {{@track.sourceNodeRecords.firstObject.nodeType}}
+            {{else}}
+              <span {{on "click" @onToggleScripts}} class="f6 pa1">No Source Node</span>
+            {{/if}}
+          </p>
+        {{/unless}}
+      {{/if}}
     </div>
 
     {{yield}}
@@ -31,11 +41,14 @@
     </div>
     <div class="grow-0 shrink-0 flex items-center">
       <ButtonPrimary
-        class="truncate ma2 f7 flex items-center {{if (and @isActive @rightSidebarOpen) "b--light-yellow light-yellow-button" "yellow-fill"}} {{if @track.isMaster "mr3"}}"
+        class="relative truncate ma2 f7 flex items-center {{if (and @isActive @rightSidebarOpen) "b--light-yellow light-yellow-button" "yellow-fill"}} {{if @track.isMaster "mr3"}}"
         {{on "click" @onToggleScripts}}
         @label="scripts"
       >
         {{svg-jar "fi-code" width="40px" height="20px"}}
+        {{#if @track.scriptAlert}}
+          <span class="beacon absolute left-1" title={{@track.scriptAlert}}>⬤</span>
+        {{/if}}
         <span class="f7">script</span>
       </ButtonPrimary>
       {{#unless @track.isMaster}}

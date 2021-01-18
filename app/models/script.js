@@ -25,19 +25,28 @@ export default class ScriptModel extends Model {
         // newFunction defined in inherited script class
         return this.newFunction();
       } catch (e) {
-        this.onScriptError(e);
+        this.onScriptError(e, 'Syntax error:');
       }
     }
     // expects a function to be returned
     return ()=> {};
   }
 
-  async onScriptError(e) {
+  invokeFunctionRef() {
+    try {
+      this.alert = null;
+      this.functionRef(...arguments);
+    } catch (e) {
+      this.onScriptError(e, 'Problem Running Script:');
+    }
+  }
+
+  async onScriptError(e, type) {
     const project = await this.get('track.project');
     project.stopLoop().resetLoop();
 
     await timeout(100); // hack to avoid double render
-    this.alert = `problem with script ${e.message}`;
+    this.alert = `${type} ${e.message || e}`;
   }
 
   /**

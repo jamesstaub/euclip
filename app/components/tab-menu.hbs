@@ -1,5 +1,5 @@
 <div 
-  class="tab-menu flex f7 tc flex {{if @verticle "verticle flex-column h-100"}}" 
+  class="tab-menu relative flex f7 tc flex {{if @verticle "verticle flex-column h-100"}}" 
   {{did-update this.setSelected @selectedValue}}
   ...attributes
 >
@@ -22,6 +22,9 @@
         {{on "click" (fn this.select item.value)}}
       >
         {{item.label}}
+        {{#if item.beacon}}
+          <span class="beacon absolute right-1" title={{item.beacon}}>⬤</span>
+        {{/if}}
       </button>
     {{/if}}
   {{/each}}

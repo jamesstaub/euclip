@@ -4,8 +4,8 @@
       @onSelect={{fn this.setUi}}
       @selectedValue={{"init"}}
       @items={{compact (array 
-        (hash label="setup" value="init")
-        (if @track.onstepScript (hash label="modulate" value="onstep"))
+        (hash label="setup" value="init" beacon=@track.initScript.alert)
+        (if @track.onstepScript (hash label="modulate" value="onstep" beacon=@track.onstepScript.alert))
       )}}
     />
 

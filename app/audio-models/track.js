@@ -10,7 +10,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
   // getters to expose data to the init and onstep script scopes for user
   get samplerSelector() {
-    return `sampler .track-${this.order}`;
+    if (this.samplerNode) {
+      return `sampler .track-${this.order}`;
+    }
   }
 
   // serialize 2d array of track control values to use in scripts
@@ -247,9 +249,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       trackControl.attrOnTrackStep(index);
     })
 
-    // FIXME must trigger track controls first to apply sliders, but they get zapped out 
-    // somehow when the function is called
-    this.onstepScript.get('functionRef')(index, data, array);
+    // FIXME: ideally this would not be a proxy, so .content not used
+    this.get('onstepScript').content.invokeFunctionRef(index, data, array);
   }
 
   get scriptScope() {
@@ -276,7 +277,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       .map((trackNode) => getCrackedNode(trackNode.nodeUUID))
       .find((crackedNode) => crackedNode?.isModulatorType() === 'speed');
       
-    const samplerNode = getCrackedNode(this.trackNodes.findBy('nodeType', 'sampler')?.nodeUUID);
+    // const samplerNode = getCrackedNode(this.trackNodes.findBy('nodeType', 'sampler')?.nodeUUID);
+    const samplerNode = this.samplerNode;
 
     return {
       filepath: this.filepathUrl,
@@ -300,7 +302,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       // TODO Generalize playSample this to try to play anything the user may want on step
       // (ADSR, LFO, ramp)
       playSample(index, options) {
-        if (this.samplerSelector) {
+        if (samplerNode) {
           // there will probably always be a speed control if there's a sampler
           const speed = speedControl.attrOnTrackStep(index);
           const start = startControl.attrOnTrackStep(index);
@@ -311,6 +313,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
             end: end,
             ...options
           }).start();
+        } else {
+          throw "You tried to use playSample() but do not have a sampler defined."
         }
       },
       sliders: this.trackControlData

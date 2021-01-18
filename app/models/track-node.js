@@ -20,21 +20,20 @@ export default class TrackNodeModel extends Model {
   @attr() parentMacro; // AudioNode of macro this node belongs to (not serialized)
   @attr('boolean') isChannelStripChild; // flag saved if the parentMacro is set on this node
 
+  synthNodes = ['triangle', 'sine', 'square', 'saw'];
+  noiseNodes = ['noise', 'pink', 'white', 'brown'];
+
   // TODO: if this is a user-defined macro, check that 
   // it contains source nodes
   get isSourceNode() {
     return [
     'buffer', 
     'sampler', 
-    'triangle', 
-    'sine', 
-    'square', 
-    'saw', 
-    'noise', 
-    'pink', 
-    'white', 
-    'brown'].includes(this.nodeType);
+    ...this.synthNodes,
+    ...this.noiseNodes,
+    ].includes(this.nodeType);
   }
+
 
   /**
    * Convenience getter to find the TrackControl record for a sampler node's path attribute

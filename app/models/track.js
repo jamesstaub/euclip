@@ -47,6 +47,18 @@ export default class TrackModel extends TrackAudioModel {
     return this.sequences.firstObject;
   }
 
+  get scriptAlert() {
+    return this.get('initScript.alert') || this.get('onstepScript.alert');
+  }
+
+  get samplerNode() {
+    return this.sourceNodeRecords.findBy('nodeType', 'sampler');
+  }
+
+  get showFilePicker() {
+    return !!this.samplerNode;
+  }
+  
   // duplicate getter as on trackNodes for convenience
   get samplerFilepathControl() {
     return this.trackControls.find((trackControl) => trackControl.isFilepath);
@@ -65,7 +77,9 @@ export default class TrackModel extends TrackAudioModel {
     return `${ENV.APP.AUDIO_PATH}${this.samplerFilepathControl?.controlStringValue || defaultFile}`;
   }
 
-  @filterBy('trackNodes', 'isSourceNode', true) sourceNodeRecords;
+  get sourceNodeRecords() {
+    return this.trackNodes.filterBy('isSourceNode', true);
+  } 
 
   // TODO: dedupe from similar method on track-list-item
   @keepLatestTask

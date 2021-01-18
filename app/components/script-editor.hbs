@@ -1,6 +1,3 @@
-{{#if @scriptModel.alert}}
-  <p class="bg-dark-red pa3 ma0 white absolute top-0 right-0">{{@scriptModel.alert}}</p>
-{{/if}}
 {{ember-ace
   class="grow-1"
   lines=15
@@ -42,6 +39,9 @@
       >
         discard changes
       </ButtonPrimary>
+    {{/if}}
+    {{#if @scriptModel.alert}}
+      <p class="bg-dark-red pa3 ma0 white" data-track={{@scriptModel.track.order}}>{{@scriptModel.alert}}</p>
     {{/if}}
   </div>
 
