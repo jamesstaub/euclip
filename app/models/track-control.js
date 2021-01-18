@@ -192,6 +192,12 @@ export default class TrackControlModel extends Model {
   static defaultForAttr(attr, nodeType) {
     const paramDefaults = {};
     switch (attr) {
+      case 'attack':
+        paramDefaults.min = 0.003;
+        paramDefaults.max = 1;
+        paramDefaults.defaultValue = 6;
+        paramDefaults.interfaceName = 'slider';
+        break;
       case 'bits':
         paramDefaults.min = 1;
         paramDefaults.max = 16;
@@ -274,8 +280,14 @@ export default class TrackControlModel extends Model {
       case 'gain':
         paramDefaults.min = 0;
         paramDefaults.max = 1;
-        paramDefaults.defaultValue = 1;
+        paramDefaults.defaultValue = .9;
         paramDefaults.interfaceName = 'multislider';
+        break;
+      case 'knee':
+        paramDefaults.min = 0;
+        paramDefaults.max = 40;
+        paramDefaults.defaultValue = 30;
+        paramDefaults.interfaceName = 'slider';
         break;
       case 'pan':
         paramDefaults.min = -1;
@@ -293,6 +305,18 @@ export default class TrackControlModel extends Model {
         paramDefaults.min = 0;
         paramDefaults.max = 20;
         paramDefaults.defaultValue = 0;
+        paramDefaults.interfaceName = 'slider';
+        break;
+      case 'ratio':
+        paramDefaults.min = 1;
+        paramDefaults.max = 20;
+        paramDefaults.defaultValue = 12;
+        paramDefaults.interfaceName = 'slider';
+        break;
+      case 'release':
+        paramDefaults.min = 0;
+        paramDefaults.max = 1;
+        paramDefaults.defaultValue = .25;
         paramDefaults.interfaceName = 'slider';
         break;
       case 'reverse':
@@ -319,6 +343,11 @@ export default class TrackControlModel extends Model {
         paramDefaults.defaultValue = 0;
         paramDefaults.interfaceName = 'slider';
         break;
+      case 'threshold':
+        paramDefaults.min = -60;
+        paramDefaults.max = 0;
+        paramDefaults.defaultValue = -12;
+        paramDefaults.interfaceName = 'slider';
       case 'path':
         paramDefaults.interfaceName = 'filepath';
         break;
@@ -335,7 +364,7 @@ export default class TrackControlModel extends Model {
    */
   get interfaceNamesForAttr() {
     const bool = ['toggle']
-    const oneD = ['slider', 'multislider'];
+    const oneD = ['slider', 'dial', 'multislider'];
     const twoD = ['position']; // control 2 attributes
     const tonal = ['piano'];
     const array = ['envelope']
@@ -373,7 +402,11 @@ export default class TrackControlModel extends Model {
         return oneD;
       case 'distortion':
         return oneD;
+      case 'knee':
+        return oneD;
       case 'start':
+        return oneD;
+      case 'threshold':
         return oneD;
       case 'end':
         return oneD;

@@ -1,9 +1,51 @@
 # Theory of operation
+Euclip is an open-ended music making tool with a hybrid between a coding environment and traditional user interface. It's as a drum machine with it's wires exposed. The Script editors let you build samplers and synthesizers with custom audio signal chains and write musical logic for creating complex patterns.
+
+Euclip projects resemble other Track-based DAWs, but where everything you can control on a track (sample playback, EQ parameters, reverb, LFOs, etc), can be controlled by either a Script or a UI control (like a slider or dial). The scripts that run on Euclip tracks use the Javascript-based music library (i_dropped_my_phone_the_screen_cracked)[https://github.com/billorcutt/i_dropped_my_phone_the_screen_cracked] (referred to here as Cracked).
+
+## Tracks
+A project consists of Tracks. Tracks are comprised of the following
+
+### The `Setup` script
+Here is where the sound source is defined. The basic anatomy of a Setup script is as follows:
+[Sound Source Node] --> [Effects nodes] --> [Connect to Main output]
+
+Every project has a **Main** track where the audio output is defined. All other tracks should *connect* their sources to the Main track.
+
+The Cracked audio library provides a simple syntax for defining and connecting [https://developer.mozilla.org/en-US/docs/Web/API/AudioNode](Audio Nodes).
+
+### The `Modulate` script
+Once you have defined an audio signal chain in the Setup Script, use the Modulate script to map your audio nodes to the track's **Sequencer**
+
+Define how your audio nodes behave with 
+
+### Track Controls
+
+### Sequencer
+By default Euclip tracks use a [https://www.computermusicdesign.com/simplest-euclidean-rhythm-algorithm-explained/#:~:text=Essentially%2C%20a%20euclidean%20rhythm%20consists,length%20of%20a%20rhythmic%20cycle.](Euclidean Rhythm Generator)
+But you can manually change the sequence however you like.
+
+<!-- Coming soon:
+    multiple sequences per track
+ -->
+
+### Source view
+-  - 
+Each track is a wrapper for an audio signal chain. The step sequencers of each track are synced to the main (Loop Function)[https://billorcutt.github.io/i_dropped_my_phone_the_screen_cracked/cracked.html#loop].
+...
+
+## Audio Nodes
+Audio nodes are the objects that make up your signal chain. The code written in the each track should **setup** a signal chain use *selectors* to **modulate**
+
+
+## The Main Track
+
+## Macros
+Euclip provides a `channelStrip` macro which is a creates a default volume + panner node on each track.
+
 
 ## Scripts that create sounds and interfaces
-Euclip is an open-ended music coding environment with a few assumptions baked in to help get started quickly.
 
-A project consists of Tracks. Each track is a wrapper for an audio signal chain. The step sequencers of each track are synced to the project's (Loop function)[link to __.loop() docs].
 
 Euclip scripts are javascript functions that provide access to the Cracked audio library. 
 
@@ -11,13 +53,13 @@ Tracks consist of 2 scripts: 1 to initialize the signal chain, and 1 to change p
 
 When the setup script initializes an audio signal chain, Euclip creates user interface objects (like sliders, number boxes) which give you easy access to control the audio nodes you created on that track.
 
-You can use the `ui` attribute when creating an audio node to specify what kind of interface objects to create.
-
 
 ## UI objects
-Euclip uses the Nexus JS interface library. Currently, just a few Nexus elements are supported, but more will be added soon.
 
-### The ui attribute
+
+### The ui attribute (advanced)
+You can use the `ui` attribute when creating an audio node to specify what kind of interface objects to create.
+
 ...
 
 

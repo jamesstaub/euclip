@@ -3,7 +3,7 @@
 {{/if}}
 {{ember-ace
   class="grow-1"
-  lines=24
+  lines=15
   editorClass="ace-editor"
   mode="ace/mode/javascript"
   value=this.editorContent
@@ -11,37 +11,51 @@
 }}
 {{yield}}
 
-{{#if (not functionIsLoaded)}}
-  <p class="yellow dark-gray flex f7">
-    Script not loaded.
-  </p>
-{{/if}}
+<div class="flex justify-between items-center">
+  <div class="flex">
+    <ButtonPrimary
+      class="mr3  {{if functionIsLoaded "bg-dark-gray light-blue bn" "b--light-blue bg-light-blue dark-gray"}}"
+      @restyle={{true}}
+      {{on "click" (perform @scriptModel.runCode)}}
+      disabled={{functionIsLoaded}}
+      title={{if functionIsLoaded "This script is loaded and running" "Click to load this script"}}
+    >
+      {{#if functionIsLoaded}}
+        Loaded
+      {{else}}
+        Load
+      {{/if}}
+    </ButtonPrimary>
+    {{#if functionIsLoaded}}
+      <ButtonPrimary 
+        {{on "click" this.disableScript}}
+        class="dark-red b--dark-red bg-dark-gray"
+        @restyle={{true}}
+        title="Disable this script. Nodes will be removed and disconnected from the sequencer."
+      >disable</ButtonPrimary>
+    {{else}}
+      <ButtonPrimary
+        class="orange b--orange bg-dark-gray"
+        @restyle={{true}}
+        {{on "click" this.discardChanges}}
+        title="Revert editor to currently running code"
+      >
+        discard changes
+      </ButtonPrimary>
+    {{/if}}
+  </div>
 
-<button
-  {{on "click" (perform @scriptModel.runCode)}}
-  disabled={{functionIsLoaded}}
-  title="Function is loaded"
->
-  {{#if functionIsLoaded}}
-    Loaded
-  {{else}}
-    Load
-  {{/if}}
-</button>
-{{#if functionIsLoaded}}
-  <button {{on "click" this.disableScript}}>disable</button>
-{{else}}
-  <button
-    {{on "click" this.discardChanges}}
-    title="Revert editor to currently running code"
-  >
-    discard changes
-  </button>
-{{/if}}
+  <div class="flex">
+    {{#if (not functionIsLoaded)}}
+      <p class="yellow dark-gray flex f7 mv0">
+        Script not loaded.
+      </p>
+    {{/if}}
 
-
-{{#if illegalTokens}}
-  <p class="mv0 flex items-center yellow">
-    remove unsupported keywords: {{illegalTokens}}
-  </p>
-{{/if}}
+    {{#if illegalTokens}}
+      <p class="mv0 flex items-center yellow">
+        remove unsupported keywords: {{illegalTokens}}
+      </p>
+    {{/if}}
+  </div>
+</div>

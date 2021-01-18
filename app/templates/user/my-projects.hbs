@@ -1,13 +1,27 @@
-<div class="mv3 ph3">
+<div class="mv3 ph3 mw6 center">
   <h2>Try a demo project or start a new one</h2>
   <ul class="list ph0">
     {{#each @model as |project|}}
-      <li>
-        <h3>
-          {{#link-to "user.creator.project" project.creator project.slug class="blue"}}
-            {{project.displayTitle}}
-          {{/link-to}}
-        </h3>
+      <li class="flex justify-between pv2">
+        <div class="flex items-center grow-1">
+          {{#if project.isPlaying}}
+            <IconButton @icon="fi-stop" @label="stop" {{action "stop" project}} />
+          {{else}}
+            <IconButton @icon="fi-play" @label="play" {{action "play" project}} />
+          {{/if}}
+          <h3 class="mv0">
+            {{#link-to "user.creator.project" project.creator project.slug class="blue"}}
+              {{project.displayTitle}}
+            {{/link-to}}
+          </h3>
+        </div>
+        <DropdownMenu
+          class="h-100 flex-grow dark-fill"
+          @offsetY={{15}}
+          @items={{array
+            (hash label="delete" select=(action "deleteProject" project)) 
+          }}
+        />
       </li>
     {{/each}}
   </ul>

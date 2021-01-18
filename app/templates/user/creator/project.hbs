@@ -2,10 +2,10 @@
   <div class="flex justify-between w-100 items-center">    
     <h1 class="ma0 f3">{{this.model.displayTitle}}</h1>
       <div class="flex">
-        <IconButton @icon="fi-play" @label="play" {{action "play"}} />
-        <IconButton @icon="fi-stop" @label="stop" {{action "stop"}} />
-        <IconButton @icon="fi-previous" @label="reset" {{action "reset"}} />
-        <div class="flex items-center ba b--dark-gray bw1">
+        <IconButton class="mh1" @icon="fi-play" @label="play" {{action "play"}} />
+        <IconButton class="mh1" @icon="fi-stop" @label="stop" {{action "stop"}} />
+        <IconButton class="mh1" @icon="fi-previous" @label="reset" {{action "reset"}} />
+        <div class="flex items-center ba b--dark-gray bw1 ml2">
           <NexusNumber
             @value={{this.model.bpm}} 
             @onChangeNumber={{fn this.updateProject "bpm"}}
@@ -68,11 +68,12 @@
       @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id "right"}}
     >
       <div class="mh3 yellow relative flex flex-column">
-        <h3 class="mv3">Scripts Editor</h3>
-        <InfoBox class="absolute right-2 top-1">
+        <h3 class="mv3">Edit Track {{this.activeTrack.order}} Scripts</h3>
+        <InfoBox class="absolute right-2 top-0">
           <p class="f6 mv1">Scripts are where you define the audio signal chain for each track.</p>
           <p class="f6 mv1">Setup Script runs once to create your audio signal chain.</p>
-          <p class="f6 mv1">Automate Script runs on every step of the sequencer. This is where you trigger sound and modulate parameters.</p>
+          <p class="f6 mv1">Modulate Script runs on every step of the sequencer. This is where you trigger sound and modulate parameters.</p>
+          <p><a class="yellow" href="https://billorcutt.github.io/i_dropped_my_phone_the_screen_cracked/cracked.html">Cracked docs</a></p>
         </InfoBox>
       </div>
       <ScriptWrapper @track={{this.activeTrack}} @presets={{this.presets}}/>

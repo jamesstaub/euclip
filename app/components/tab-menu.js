@@ -4,7 +4,7 @@ import { tracked } from '@glimmer/tracking';
 import { isPresent } from '@ember/utils';
 
 export default class TabMenuComponent extends Component {
-  @tracked selectedValue
+  @tracked selectedValue;
 
   get val() {
     if (isPresent(this.selectedValue)) {

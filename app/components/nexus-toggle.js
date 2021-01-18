@@ -17,5 +17,4 @@ export default NexusBase.extend({
     this.toggle.colorize('accent', '#333');
     this.toggle.colorize('fill', '#eee');
   },
-
 });

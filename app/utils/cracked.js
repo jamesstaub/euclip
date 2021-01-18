@@ -6,11 +6,9 @@
  * 
  */
 
-
 export function getCrackedNode(uuid) {
   return __._getNode(uuid);
 }
-
 
 /**
  * create the custom `channelStrip` cracked macro, which is relied upon by the Track UI
@@ -73,6 +71,8 @@ export function paramsForNode(nodeType) {
       return ['frequency', 'bits'];
     case 'comb':
       return ['delay', 'damping', 'cutoff', 'feedback'];
+    case 'compressor':
+      return ['threshold', 'knee', 'ratio', 'attack', 'release'];
     case 'delay':
       return ['delay', 'damping', 'feedback', 'cutoff', 'frequency'];
     case 'gain':

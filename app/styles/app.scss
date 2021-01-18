@@ -1,3 +1,9 @@
+$app-header-height: 4.2rem;
+$project-header-height: 4rem;
+$project-tracks-height: calc(100% - #{$app-header-height} - #{$project-header-height});
+$sidebar-width: 36rem;
+$footer-height: 20rem;
+
 @import 'colors';
 @import 'type';
 @import 'custom-properties';
@@ -18,16 +24,9 @@ a {
   @extend .pointer;
 }
 
-
 ::placeholder {
   color: $gray;
 }
-
-$app-header-height: 4.2rem;
-$project-header-height: 4rem;
-$project-tracks-height: calc(100% - #{$app-header-height} - #{$project-header-height});
-$sidebar-width: 36rem;
-$footer-height: 20rem;
 
 .app-header-height {
   height: $app-header-height;

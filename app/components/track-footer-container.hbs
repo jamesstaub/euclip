@@ -1,6 +1,6 @@
 <div class="w-100 bt bw1" {{did-update this.setTabs @track.id}}>
   {{#unless @track.isDeleted}}
-    <div class="flex bg-yellow justify-between footer-height">
+    <div class="flex bg-yellow justify-between footer-height relative">
       <div class="flex h-100 w-100">
         {{#if (and this.channelStripGainControl this.channelStripPannerControl)}}
           {{!-- TODO: (maybe)
@@ -30,17 +30,17 @@
             (hash label="controls" value="controls" icon="automation" iconWidth="40px" iconHeight="40px")
           )}}
         />
-
         {{#if (eq this.controlUi "sequence")}}
-          <SequenceContainer 
+          <SequenceContainer
             @sequence={{@track.currentSequence}} 
             @updateTrackSequence={{@track.updateTrackSequence}}
             @maxSteps={{this.maxSteps}}
           >
-            <ScriptVariablesList
-              @keys={{array "data" "index" "array"}}
-              @description={{"The sequence variables are most useful in the Modulate Script"}}
-            />
+            {{#if @rightSidebarOpen}}
+              <ScriptVariablesList
+                @variables={{array "data" "index" "array"}}
+              />
+            {{/if}}
           </SequenceContainer>
         {{/if}}
         {{#if (eq this.controlUi "source")}}
@@ -59,10 +59,14 @@
               <p class="ma3">Coming soon: sample waveform editor and custom sound libraries</p>
             </div>
             
-            <ScriptVariablesList
-              @keys={{array "filepath" "start" "end" "loop"}}
-              @description={{"The sequence variables are most useful in the Modulate Script"}}
-            />
+            {{#if @rightSidebarOpen}}
+              <ScriptVariablesList
+                @nodeDocs={{true}}
+                @variables={{array "filepath" "filestart" "fileend" "loop"}}
+                @validTrackNodes={{this.validTrackNodes}}
+                @useSourceNode={{true}}
+              />
+            {{/if}}
           </div>
         {{/if}}
         {{#if (eq this.controlUi "controls")}}
@@ -71,7 +75,13 @@
               <div class="flex justify-between">
                 <h3 class="ma3">Audio Node Controls</h3>
                 {{#unless @rightSidebarOpen}}
-                  <p {{on "click" @onToggleScripts}} class="pointer fw5 f5 tr mr3">Edit Audio Nodes</p>
+                  <ButtonPrimary
+                    class="truncate ma2 f7 flex items-center yellow-fill {{if @track.isMaster "mr3"}}"
+                    {{on "click" @onToggleScripts}}
+                    @label="Edit"
+                  >
+                    {{svg-jar "fi-code" width="40px" height="20px"}}
+                  </ButtonPrimary>
                 {{/unless}}
               </div>
               <div class="h-100 flex flex-column grow-1 shrink-1 w-100">
@@ -83,17 +93,20 @@
                 />
                 <TrackControls
                   @track={{@track}}
-                  @trackNodesForControls={{this.trackNodesForControls}} 
+                  @trackNodesForControls={{this.trackNodesForControls}}
                   @visibleNodeIdx={{this.visibleNodeIdx}}
                   @updateControl={{fn this.updateControl}}
                 />
               </div>
             </div>
-            <ScriptVariablesList
-              class="before-scroll-overlay"
-              @keys={{array "data" "index" "array"}}
-              @description={{"The sequence variables are most useful in the Modulate Script"}}
-            />
+            {{#if @rightSidebarOpen}}
+              <ScriptVariablesList
+                @nodeDocs={{true}}
+                @variables={{array "controls"}}
+                @visibleNodeIdx={{this.visibleNodeIdx}}
+                @validTrackNodes={{this.validTrackNodes}}
+              />
+            {{/if}}
           </div>
         {{/if}}
       </div>

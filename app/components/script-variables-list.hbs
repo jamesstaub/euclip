@@ -1,12 +1,47 @@
-<div class="bl b--dark-gray ph3 mw5" {{did-insert (fn this.showVars)}} ...attributes>
-  <h4 class="mv3">Script Keywords</h4>
-  <p>{{@description}}</p>
-  <ul class="list pa0">
-    {{#each this.scriptVars as |scriptVar|}}
-      <li class="flex flex-column">
-        <span class="code">{{scriptVar.name}}</span>
-        <span>{{scriptVar.description}}</span>
-      </li>
-    {{/each}}
-  </ul>
+<div class="variables-overlay b--dark-gray ph3 absolute right-0 z-2 yellow overflow-scroll h-100 bw2 bt bl b--yellow"
+  {{did-insert this.setDefaultUi}} 
+  ...attributes
+>
+  <div class="flex justify-between">
+    {{!-- 
+    {{compact (array
+        (if this.scriptVars (hash label="variables" value="variables"))
+        (if this.selectorsForNode (hash label="selectors" value="selectors"))
+        (if (or @sequencerDocs @nodeDocs) (hash label="attributes" value="docs"))
+      )}}
+     --}}
+    <TabMenu
+      class="mv3"
+      @onSelect={{fn this.setUi "visibleNodeIdx"}}
+      @selectedValue={{this.defaultTab}}
+      @items={{this.tabItems}}
+      @selectedValue={{this.visibleNodeIdx}}
+    />
+    <button class="bg-transparent pa0 bn absolute right-1 top-0 mt2 overflow-hidden" {{on "click" this.toggleCollapsed}}>
+      {{svg-jar "fi-play" class=(concat "light-fill " (if this.isCollapsed "rotate-270"  "rotate-90"))  width="16px" height="20px"}}
+    </button>
+  </div>
+
+  {{#unless isCollapsed}}
+    {{#if (and @validTrackNodes (eq this.ui "selectors"))}}
+      <SelectorsList @selectorsForNode={{this.selectorsForNode}} />
+    {{/if}}
+
+    {{#if (eq this.ui "variables")}}
+      <ul class="list pa0">
+        {{#each this.scriptVars key="name" as |scriptVar|}}
+          <li class="flex flex-column mb2">
+            <span class="code mv1">{{scriptVar.name}}</span>
+            <p class="f6 mv0">{{scriptVar.description}}</p>
+          </li>
+        {{/each}}
+      </ul>
+    {{/if}}
+
+    {{#if (eq this.ui "docs")}}
+      {{#if (and @nodeDocs this.currentNode.nodeType)}}
+        <CrackedNodeDocs @nodeName={{this.currentNode.nodeType}}/>
+      {{/if}}
+    {{/if}}
+  {{/unless}}
 </div>

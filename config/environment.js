@@ -32,6 +32,7 @@ module.exports = function(environment) {
         'bandpass', 
         'bitcrusher', 
         'comb',
+        'compressor',
         'delay', 
         'gain', 
         'highpass', 

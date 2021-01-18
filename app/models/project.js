@@ -1,7 +1,10 @@
 import ProjectAudioModel from '../audio-models/project';
 import { attr, hasMany, belongsTo } from '@ember-data/model';
+import { tracked } from '@glimmer/tracking';
 
 export default class ProjectModel extends ProjectAudioModel {
+  @tracked isPlaying;
+
   @attr('string') title;
   @attr('string') slug;
   @attr('number') bpm;

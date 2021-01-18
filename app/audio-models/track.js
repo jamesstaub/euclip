@@ -10,7 +10,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
   // getters to expose data to the init and onstep script scopes for user
   get samplerSelector() {
-    return `sampler .track-${this.id}`;
+    return `sampler .track-${this.order}`;
   }
 
   // serialize 2d array of track control values to use in scripts
@@ -37,7 +37,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     __.onCreateNode = (node, type, creationParams, userSettings) => {
       // add a track-id class to every node created so it can be properly cleaned up
       let existingClass = creationParams.settings.class;
-      creationParams.settings.class = `${existingClass ? existingClass + ',' : ''}track-${this.id}`
+      creationParams.settings.class = `${existingClass ? existingClass + ',' : ''}track-${this.order}`
       
       // FIXME not sure why node.isMacroComponent() is false for channelStrip 
       if (type === 'channelStrip') {
@@ -238,7 +238,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
   unbindAndRemoveCrackedNodes() {
     unbindFromSequencer(this.samplerSelector);
-    __(`.track-${this.id}`).remove();
+    __(`.track-${this.order}`).remove();
   }
   
   onStepCallback(index, data, array) {
