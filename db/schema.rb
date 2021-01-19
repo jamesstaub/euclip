@@ -122,7 +122,7 @@ ActiveRecord::Schema.define(version: 2021_01_08_171921) do
     t.string "first_name"
     t.string "last_name"
     t.string "username", null: false
-    t.string "email", null: false
+    t.string "email"
     t.jsonb "settings", default: {"roles"=>["user"]}, null: false
     t.string "encrypted_password", null: false
     t.string "password_salt", null: false
