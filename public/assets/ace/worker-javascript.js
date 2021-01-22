@@ -1031,4 +1031,4 @@ var A=new RegExp("^"+_+_+"*"),M=new RegExp(_+_+"*$")
 String.prototype.trim=function(){return String(this).replace(A,"").replace(M,"")}}function O(e){return(e=+e)!=e?e=0:0!==e&&e!==1/0&&e!==-1/0&&(e=(e>0||-1)*Math.floor(Math.abs(e))),e}var T=function(e){if(null==e)throw new TypeError("can't convert "+e+" to object")
 return Object(e)}}))
 
-//# sourceMappingURL=worker-javascript-210b09fb73dde8601c7691c968c36536.map
+//# sourceMappingURL=worker-javascript.map
