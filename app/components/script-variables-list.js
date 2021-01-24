@@ -16,9 +16,9 @@ export default class ScriptVariablesComponent extends Component {
     data: 'Number value of the current step in the sequence (0 or 1)',
     index: 'Number of Which step the sequence is on.',
     array: 'The array representing the entire sequence',
-    filepath: 'The URL of the audio file select from the file picker for this track. This must get passed to the sampler node to play a sound.',
-    filestart: '',
-    fileend: '',
+    'this.filepath': 'The URL of the audio file select from the file picker for this track. This must get passed to the sampler node to play a sound.',
+    // filestart: '',
+    // fileend: '',
   }
 
 
@@ -50,10 +50,8 @@ export default class ScriptVariablesComponent extends Component {
     }
   }
 
-
   get tabItems() {
     const showDocs = this.args.sequencerDocs || this.args.nodeDocs;
-
     return [{
       label: 'variables',
       value: 'variables',
@@ -87,6 +85,7 @@ export default class ScriptVariablesComponent extends Component {
   @action
   toggleCollapsed() {
     this.isCollapsed = !this.isCollapsed;
+    this.defaultTab = null;
   }
 
   @action

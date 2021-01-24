@@ -1,9 +1,9 @@
 <button
-  class="pa2 f5 ttu w-2 h-2 bg-transparent flex items-center pa3"
+  class="bn pa3 f5 ttu w-2 h-2 bg-transparent flex items-center pa3"
   title={{@label}}
   ...attributes
 >
-  {{svg-jar @icon width="20px" height="20px"}}
+  {{svg-jar @icon class=@iconClass width="20px" height="20px"}}
   {{yield}}
 </button>
 

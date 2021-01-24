@@ -9,6 +9,7 @@ import {
 export default class TrackFooterContainerComponent extends Component {
   @tracked controlUi;
   @tracked visibleNodeIdx;
+  @tracked showReference;
   
   @controller('user.creator.project') project;
 
@@ -16,6 +17,7 @@ export default class TrackFooterContainerComponent extends Component {
     super(...arguments);
     this.maxSteps = 64;
     this.setTabs();
+    this.showReference = true;
   }
 
   get validTrackNodes() {
@@ -56,6 +58,12 @@ export default class TrackFooterContainerComponent extends Component {
   @action
   setUi(key, val) {
     this[key] = val;
+  }
+
+  @action
+  toggleReference(key, val) {
+    this.showReference = true;
+    this.args.onToggleScripts();
   }
 
   @action

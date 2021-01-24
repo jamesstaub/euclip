@@ -1,11 +1,16 @@
-{{ember-ace
-  class="grow-1"
-  lines=@editorLineCount
-  editorClass="ace-editor"
-  mode="ace/mode/javascript"
-  value=this.editorContent
-  update=(fn this.onUpdateEditor)
-}}
+<div class="relative">
+  {{ember-ace
+    class="grow-1"
+    lines=@editorLineCount
+    editorClass="ace-editor"
+    mode="ace/mode/javascript"
+    value=this.editorContent
+    update=(fn this.onUpdateEditor)
+  }}
+  {{#if @scriptModel.alert}}
+    <p class="bg-dark-red pa3 mv2 white w-100" data-track={{@scriptModel.track.order}}>{{@scriptModel.alert}}</p>
+  {{/if}}
+</div>
 {{yield}}
 
 <div class="flex justify-between items-center">
@@ -41,9 +46,6 @@
       </ButtonPrimary>
     {{/if}}
   </div>
-  {{#if @scriptModel.alert}}
-    <p class="bg-dark-red pa3 ma0 white" data-track={{@scriptModel.track.order}}>{{@scriptModel.alert}}</p>
-  {{/if}}
 
   <div class="flex">
     {{#if (not functionIsLoaded)}}

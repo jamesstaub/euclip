@@ -5,9 +5,12 @@
 >
   <div class="flex relative justify-between items-center">
     <span class="f3 code {{unless @isActive "yellow"}}">{{@track.order}}</span>
-    <div class="grow-0 shrink-0">
+    <div class="flex grow-0 shrink-0 items-center justify-between">
       {{#if @track.isMaster}}
         <p class="tc pv2 ph3 ml2 f6 ttu bg-dark-gray yellow ba bw1 b--yellow w4 truncate f7">Main Output</p>
+        {{#if @track.nodeToVisualize}}
+          <Oscilloscope class="ml3 pl1" @id={{"master-scope"}} @isActive={{@isActive}} @node={{@track.nodeToVisualize}}/>
+        {{/if}}
       {{/if}}
       {{#if @track.showFilePicker}}
         <SourceSelectButton

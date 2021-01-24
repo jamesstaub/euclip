@@ -1,8 +1,9 @@
-<div class="variables-overlay b--dark-gray ph3 z-2 yellow overflow-scroll h-100 bw2 bt bl b--yellow absolute right-0 {{if this.isCollapsed "bottom-0"}}"
+<div class="variables-overlay bg-dark-gray ph3 z-5 yellow overflow-scroll bw2 bt bl b--yellow absolute right-0 {{if this.isCollapsed "bottom-0" "h-100"}}"
   {{did-insert this.setDefaultUi}} 
   ...attributes
->
-  <div class="flex justify-between">
+>  
+  <h4 class="yellow mt3 mb0">{{@title}} reference</h4>
+  <div>
     <TabMenu
       class="mv3"
       @onSelect={{fn this.setUi "visibleNodeIdx"}}
@@ -10,9 +11,12 @@
       @items={{this.tabItems}}
       @selectedValue={{this.visibleNodeIdx}}
     />
-    {{!-- <button class="bg-transparent pa0 bn absolute right-1 top-0 mt2 overflow-hidden" {{on "click" this.toggleCollapsed}}>
-      {{svg-jar "fi-play" class=(concat "light-fill " (if this.isCollapsed "rotate-270"  "rotate-90"))  width="16px" height="20px"}}
-    </button> --}}
+    <IconButton 
+      class="absolute right-0 top-0 overflow-hidden"
+      @icon="fi-play"
+      @iconClass={{concat "light-fill " (if this.isCollapsed "rotate-270"  "rotate-90")}}
+      {{on "click" this.toggleCollapsed}}
+    />
   </div>
 
   {{#unless this.isCollapsed}}
@@ -21,14 +25,14 @@
     {{/if}}
 
     {{#if (eq this.ui "variables")}}
-      <ul class="list pa0">
+      <table>
         {{#each this.scriptVars key="name" as |scriptVar|}}
-          <li class="flex flex-column mb2">
-            <span class="code mv1">{{scriptVar.name}}</span>
-            <p class="f6 mv0">{{scriptVar.description}}</p>
-          </li>
+          <tr>
+            <td class="code mv1">{{scriptVar.name}}</td>
+            <td class="f6 mv0">{{scriptVar.description}}</td>
+          </tr>
         {{/each}}
-      </ul>
+      </table>
     {{/if}}
 
     {{#if (eq this.ui "docs")}}

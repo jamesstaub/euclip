@@ -4,7 +4,7 @@ const EmberApp = require('ember-cli/lib/broccoli/ember-app');
 
 module.exports = function(defaults) {
   let app = new EmberApp(defaults, {
-    // Add options here
+    sourcemaps: {enabled: true},
     babel: {
       plugins: [
         "@babel/plugin-proposal-optional-chaining"
@@ -21,6 +21,9 @@ module.exports = function(defaults) {
       modes: ['javascript'],
       workers: ['javascript'],
       exts: ['language_tools']
+    },
+    fingerprint: {
+      enabled: false
     }
   });
 
@@ -36,7 +39,6 @@ module.exports = function(defaults) {
   // modules that you would like to import into your application
   // please specify an object with the list of modules as keys
   // along with the exports of each module as its value.
-  app.import('vendor/i_dropped_my_phone_the_screen_cracked/dist/cracked.js');
 
   return app.toTree();
 };

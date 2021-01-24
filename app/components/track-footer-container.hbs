@@ -36,9 +36,10 @@
             @updateTrackSequence={{@track.updateTrackSequence}}
             @maxSteps={{this.maxSteps}}
           >
-            {{#if @rightSidebarOpen}}
+            {{#if this.showReference}}
               <ScriptVariablesList
                 @variables={{array "data" "index" "array"}}
+                @title={{"sequence"}}
               />
             {{/if}}
           </SequenceContainer>
@@ -47,25 +48,29 @@
           <div class="flex justify-between grow-1">
             <div class="flex flex-column">
               <h3 class="ma3">{{@track.samplerFilepathControl.filename}}</h3>
-              <ul class="pa0 list flex">
+              <ul class="pa0 list flex items-center">
                 {{#each @track.samplerFilepathControl.pathSegments as |directory|}}
-                  <li class="directory-btns">
-                    <button class="textbutton">
-                      {{directory}}
-                    </button>
-                  </li>
+                  {{#if directory.length}}
+                    <li class="directory-btns">
+                      <button class="textbutton pa2">
+                        {{directory}}
+                      </button>
+                    </li>
+                  {{/if}}
                 {{/each}}
               </ul>
               <p class="ma3">Coming soon: sample waveform editor and custom sound libraries</p>
             </div>
             
-            {{#if @rightSidebarOpen}}
+            {{#if this.showReference}}
               <ScriptVariablesList
                 @nodeDocs={{true}}
-                @variables={{array "filepath" "filestart" "fileend" "loop"}}
+                @variables={{array "this.filepath"}}
                 @validTrackNodes={{this.validTrackNodes}}
                 @useSourceNode={{true}}
-              />
+                @title={{"source"}}
+              >
+              </ScriptVariablesList>
             {{/if}}
           </div>
         {{/if}}
@@ -77,10 +82,10 @@
                 {{#unless @rightSidebarOpen}}
                   <ButtonPrimary
                     class="truncate ma2 f7 flex items-center yellow-fill {{if @track.isMaster "mr3"}}"
-                    {{on "click" @onToggleScripts}}
+                    {{on "click" this.toggleReference}}
                     @label="Edit"
                   >
-                    {{svg-jar "fi-code" width="40px" height="20px"}}
+                    reference
                   </ButtonPrimary>
                 {{/unless}}
               </div>
@@ -99,13 +104,15 @@
                 />
               </div>
             </div>
-            {{#if @rightSidebarOpen}}
+            {{#if this.showReference}}
               <ScriptVariablesList
                 @nodeDocs={{true}}
                 @variables={{array "controls"}}
                 @visibleNodeIdx={{this.visibleNodeIdx}}
                 @validTrackNodes={{this.validTrackNodes}}
-              />
+                @title={{"controls"}}
+              >
+              </ScriptVariablesList>
             {{/if}}
           </div>
         {{/if}}

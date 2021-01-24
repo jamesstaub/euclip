@@ -9,7 +9,7 @@
           {{else}}
             <IconButton @icon="fi-play" @label="play" {{action "play" project}} />
           {{/if}}
-          <h3 class="mv0">
+          <h3 class="mv0 ml3">
             {{#link-to "user.creator.project" project.creator project.slug class="blue"}}
               {{project.displayTitle}}
             {{/link-to}}

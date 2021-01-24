@@ -5,9 +5,9 @@ import ENV from '../config/environment';
 import { difference } from '../utils/arrays-equal';
 import { bindSourcenodeToLoopStep, getCrackedNode, unbindFromSequencer } from '../utils/cracked';
 import filterNumericAttrs from '../utils/filter-numeric-attrs';
-
+import { tracked } from '@glimmer/tracking';
 export default class TrackAudioModel extends Model.extend(Evented) {  
-
+  @tracked nodeToVisualize;
   // getters to expose data to the init and onstep script scopes for user
   get samplerSelector() {
     if (this.samplerNode) {
@@ -25,6 +25,18 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       }
       return trackControl.get('controlValue');
     });
+  }
+
+  /**
+   * 
+   */
+  setNodeToVisualize() {
+    const firstVisualizableNode = this.trackAudioNodes.find((audioNode) => {
+      const type = audioNode[audioNode.uuid];
+      return type === 'compressor' || type === 'gain';
+    });
+    const node = __._getNode(firstVisualizableNode.uuid)?.getNativeNode();
+    this.nodeToVisualize = node;
   }
 
   setupAudioFromScripts() {
@@ -73,6 +85,10 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
     if (this.currentSequence) {
       this.bindToSequencer();
+    }
+
+    if (this.isMaster) {
+      this.setNodeToVisualize();
     }
   }
 

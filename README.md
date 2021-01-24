@@ -4,11 +4,22 @@ local development against api server using a self signed certificate
 `ember s --proxy https://localhost:3000  --secure-proxy=false`
 `rails server -b 'ssl://127.0.0.1:3000?key=/Users/admin/.ssh/server.key&cert=/Users/admin/.ssh/server.crt'`
 
-## TODO:
 
-Tracks 
+### Scripts
+#### scope + variables
+- implement variables in script scope to access TrackControl values
+  - - This could use existing selectors to access track nodes for controls eg.
+      controls['.sampler-1']['speed']
+  - -  you could do speed: `controls('.sampler') + __.rand()`
 
-### features
+- finish refactor of track-based selectors, probably remove this.samplerSelector
+
+#### helpers
+- add helper function to set speed as a factor of the sequencer length (for loops)
+- - access to slider value in functions would effectively allow non-linear sliders
+- add examples of __.ms2freq using the track tempo to control LFO speeds
+- the `playSample()` helper should be responsible for calling `applyTrackControls` internally, but can take an options argument to override/mutate them.
+
 - new track dropdown menu options (different script presets)
   - build preset models in rails
   - a preset can have one of each script type
@@ -16,36 +27,33 @@ Tracks
   - a toggle should default to "replace existing script"
   - users can save their own scripts to their "collections"
 
-- implement "undo delete" 
-- - use ember-concurrency to wait before calling save on the deleted record, show a "toast" with restore button
 
-Track Footer
+### Track Footer
   - each section (source, sequencer, controls) should display "Script Variables" in a list
   styled in the same color as the syntax highlight in the actual script editor
   - the Script Wrapper gets a collapsable menu with all available variables and their values
 
-Track Nodes
-  - Track NodeTab UI
-  - hover over node tabs to show cracked uui and selectors
-  - 
-Track Controls
-  - Move Sampler filepath to track control (with source node attribute)
-  - When a sampler is present, add a new footer menu button for Sample Editor (start, end, slice manager)
-  - Oscillators also get Track Controls to control their type. (if the script contains a generic oscillator macro)
-  - implement "functions" [buttons to apply prest shapes like triangle, sine or randomize]
-  - copy/paste single control
-  - hover over track control label and show excerpt of documentation for node
+  - Source editor for dealing with sample start/end and loop settings. 
+  - - create an array structure for segmenting an audio sample
+  - - implement an onset detection + sample chopper
 
-Presets:
-  - finish implementing, include all node attributes in presets 
+### Track Nodes
+  - hover over node tabs to show cracked uuid and selectors
+  - info menu should show example of how to mutate track controls
+
+### Track Controls
+  - Oscillators also get Track Controls to control their type. (if the script contains a generic oscillator macro)
+
+### Presets:
+  - finish implementing, include all node attributes in presets
     (at least for one section of them to learn the nodes)
 
-Project
+### Project
   - Save "Snapshots" (need to plan this out to work with concurrent editing, permissions)
   - Arrange mode: chain multiple projects together
   - Rails Action Cables for live editing
 
-Sequences
+### Sequences
   - implement a "Matrix View", which replaces the standard track list with an intanace of 
   nexus sequencer with rows for each track. inherit the Nexus matrix model to allow use of 
   nexus matrix mutation functions.
@@ -54,12 +62,12 @@ Sequences
   the computed value of this matrix model which ultimately gets saved on the track can
   get trimmed to a given duration
 
+- implement "undo delete" 
+- - use ember-concurrency to wait before calling save on the deleted record, show a "toast" with restore button
 
-### bugs
+### Other ideas
+- create a  "mixer view" for mixing all tracks that have a `channelStrip` macro
 
-After recent refacors, various initialization bugs exist. try adding and removing nodes. 
-
-do LFO track controls work? does it need to re-bind somewhere
 
 - element/nodes to implement
   - Envelope node : breakpoint nexus element or group of sliders
@@ -75,31 +83,12 @@ do LFO track controls work? does it need to re-bind somewhere
     - - implement a Sequence model that belongs to Track. move existing seq properties there.
   - - in addition to Euclidean tab, add some sorta generative/evolving/automated UI
 
-Scripts
-  ### features
-  -  create a  "mixer view" for mixing all tracks that have a `channelStrip` macro
-  - rebuild collection of example scripts
-  - add helper function to set speed as a factor of the sequencer length (for loops)
-  - add helper to access UI value in script, so you could do speed: `slider val + __.rand()`
-    - - Math.sin(sliderValue)
-  - - access to slider value in functions would effectively allow non-linear sliders
-  - add examples of __.ms2freq using the track tempo to control LFO speeds
 
- - User testing question:
-  - what is the best way to manage an onstep script that is mutating a particular parameter at certain times,
-    and the UI is mutating the same parameter at other times?
-    - should track controls have a `disable` feature?
-    - or should the script explicitly call `applyTrackControl` so it is extra clear?
-    - - and if so, perhaps the trackControl should have some UI indicating if applyTrackControl is beging called (subtle indicator light)
-
-
-  ### bugs
-  - duplicate a track, set channelstrip gain to 0, restart sequencer, gain sounds back at 1
-
+### bugs
+- After recent refacors, various initialization bugs exist. try adding and removing nodes.
+- Channel strip Gain not working (likely conflicting with other gain nodes)
   - use the LFO example, then add an additional gain node
   - - result is the channelStrip gain not working anymore
-
-  - - finish refactor of track-based selectors, probably remove this.samplerSelector
   - - this.samplerSelector is confusing bc. maybe instead a `uniqueSelector()` helper
       which reads `this.id` internally, allowing you to duplicate tracks an preserve their unique inner-references
   - when a node is initialized with attributes eg.
@@ -112,8 +101,6 @@ Scripts
   ```
   then the track-controls should also be initialized with those as the default values
 
-
-
 Files
   - drag and drop UI for local sounds
   - set filepath local for library 
@@ -125,30 +112,14 @@ Misc featurs:
   - contributor chat box
   - assistant in chat window suggesting next steps with actions
 
-## Documentation:
+## Deploying
+`deploy-to-rails.sh` is a helper scipt that assumes the euclip-api repo exists in the same directory as this repo. This script will run build a production version of this app
+and copy it to the `/public` directory in the rails repo. 
 
-Cracked scripts globally
-  - script contents tied to lifecycle of track 
-  - but otherwise are all part of same global object
+From there, the rails app will need to be committed and pushed to heroku. Note the local server should not be running when this command is run.
 
-scripts and sliders order of effect on nodes
-
-
-
-### writing scripts
-init:
-  - custom ui options
-
-onstep:
-  - index, data, array args
-
-
-
-## Globals
-`cracked` and `__` are globally available as the single instance of the cracked audio context
 
 ## Prerequisites
-
 You will need the following things properly installed on your computer.
 
 * [Git](https://git-scm.com/)

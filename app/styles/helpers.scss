@@ -25,6 +25,11 @@
 .basis-auto { flex-basis: auto; }
 .row-reverse { flex-direction: row-reverse; }
 
+/* Position */
+.z-5 {
+  z-index: 5;
+}
+
 /* Sizing*/
 .w6 {
   width: $width-6;

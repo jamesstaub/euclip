@@ -9,8 +9,6 @@ export default class LoginController extends Controller {
   
   constructor(){
     super(...arguments);
-    this.username = 'euclip';
-    this.password = '3uCl1p#';
     this.loginView = true;
   }
 

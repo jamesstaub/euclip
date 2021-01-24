@@ -17,6 +17,11 @@ input {
   font-family: 'Poppins', sans-serif;
 }
 
+h1, h2, h3, h4, span, label {
+  cursor: default;
+  user-select: none;
+}
+
 h1 {
   font-weight: 900;
 }

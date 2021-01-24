@@ -23,8 +23,15 @@
 }
 
 .directory-btns {
+  display: flex;
+  align-items: center;
+  &:hover {
+    background-color: $dark-yellow;
+  }
   &:not(:first-of-type):before {
-    content: ' / '
+    content: ' / ';
+    background-color: $yellow;
+    padding: .6rem 0;
   }
 }
 
