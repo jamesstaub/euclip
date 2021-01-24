@@ -1,4 +1,4 @@
-<div class="flex flex-column grow-1 mh3 relative" {{did-insert this.calculateHeight}}>
+<div class="flex flex-column grow-1 mh3 relative script-wrapper-height">
   <div class="flex justify-between">
     <TabMenu
       @onSelect={{fn this.setUi}}
@@ -17,13 +17,19 @@
     </select>
   </div>
 
-  <div>
-    {{#if (and @track.initScript (eq this.scriptUi "init"))}}
-      <ScriptEditor @scriptModel={{@track.initScript}} @editorLineCount={{this.editorLineCount}}/>
-    {{/if}}
+  {{#if (and @track.initScript (eq this.scriptUi "init"))}}
+    <ScriptEditor 
+      class={{if @shrinkForFooter "shrink-for-footer"}}
+      @scriptModel={{@track.initScript}} 
+      @editorLineCount={{this.editorLineCount}}
+    />
+  {{/if}}
 
-    {{#if (and @track.onstepScript (eq this.scriptUi "onstep"))}}
-      <ScriptEditor @scriptModel={{@track.onstepScript}} @editorLineCount={{this.editorLineCount}}/>
-    {{/if}}
-  </div>
+  {{#if (and @track.onstepScript (eq this.scriptUi "onstep"))}}
+    <ScriptEditor 
+      class={{if @shrinkForFooter "shrink-for-footer"}}
+      @scriptModel={{@track.onstepScript}} 
+      @editorLineCount={{this.editorLineCount}}
+    />
+  {{/if}}
 </div>

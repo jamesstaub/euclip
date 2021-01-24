@@ -1,7 +1,7 @@
 <div 
   class="pointer {{if @track.isMaster "ph4" "ph3"}} bb b--silver {{if @isActive "bg-yellow" "bg-dark-gray hover-bg-near-black"}}" 
   {{on "mousedown" @selectActiveTrack}}
-  ...attributes 
+  ...attributes
 >
   <div class="flex relative justify-between items-center">
     <span class="f3 code {{unless @isActive "yellow"}}">{{@track.order}}</span>

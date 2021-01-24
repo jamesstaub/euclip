@@ -6,7 +6,13 @@ export default class UserCreatorProjectController extends Controller {
   @tracked activeTrack;
   @tracked leftSidebarOpen;
   @tracked rightSidebarOpen;
+  @tracked showScriptFooter;
   @tracked _sortedTracks;
+
+  constructor() {
+    super(...arguments);
+    this.showScriptFooter = true;
+  }
 
   // see note below if weirdness occurs
   get sortedTracks() {

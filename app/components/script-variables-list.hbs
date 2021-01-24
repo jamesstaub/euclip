@@ -2,15 +2,17 @@
   {{did-insert this.setDefaultUi}} 
   ...attributes
 >  
-  <h4 class="yellow mt3 mb0">{{@title}} reference</h4>
+  <h4 class="yellow mt3 mb0 {{if isCollapsed "pb3 cursor"}}" {{on "click" this.toggleCollapsed}}>{{@title}} reference</h4>
   <div>
-    <TabMenu
-      class="mv3"
-      @onSelect={{fn this.setUi "visibleNodeIdx"}}
-      @selectedValue={{this.defaultTab}}
-      @items={{this.tabItems}}
-      @selectedValue={{this.visibleNodeIdx}}
-    />
+    {{#unless this.isCollapsed}}
+      <TabMenu
+        class="mv3"
+        @onSelect={{fn this.setUi "visibleNodeIdx"}}
+        @selectedValue={{this.defaultTab}}
+        @items={{this.tabItems}}
+        @selectedValue={{this.visibleNodeIdx}}
+      />
+    {{/unless}}
     <IconButton 
       class="absolute right-0 top-0 overflow-hidden"
       @icon="fi-play"

@@ -35,8 +35,6 @@ export default class TrackFooterContainerComponent extends Component {
     return this.validTrackNodes.filterBy('parentMacro');
   }
 
-  // FIXME using firstObject here seems to cause a bug where, when a gain multislider node is deleted, the channelStrips gain 
-  // flashes into a multislider for a second. investigate 
   get channelStripGainControl() {
     return TrackNodeModel.channelStripNode(this.args.track, 'gain')?.trackControls?.firstObject;
   }

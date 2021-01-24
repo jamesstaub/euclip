@@ -25,15 +25,6 @@ export default class ScriptWrapperComponent extends Component {
   }
 
   @action
-  calculateHeight(element) {
-    const { height } = element.parentElement.getBoundingClientRect();
-    const heightOfNonEditorElements = 470;
-    const editorLineCountMultiplier = 0.057;
-    // This is a sketch approximation to dynamically set the ace-editor height based on the parent component height
-    this.editorLineCount = Math.ceil((height - heightOfNonEditorElements) * editorLineCountMultiplier)
-  }
-
-  @action
   setUi(val) {
     this.scriptUi = val;
   }

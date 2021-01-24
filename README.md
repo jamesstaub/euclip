@@ -85,8 +85,10 @@ local development against api server using a self signed certificate
 
 
 ### bugs
-- After recent refacors, various initialization bugs exist. try adding and removing nodes.
 - Channel strip Gain not working (likely conflicting with other gain nodes)
+- second to last track halts when adding new track.
+- - need more solid sequencer-awareness when adding/removing tracks (use generators to start on a particular beat)
+
   - use the LFO example, then add an additional gain node
   - - result is the channelStrip gain not working anymore
   - - this.samplerSelector is confusing bc. maybe instead a `uniqueSelector()` helper

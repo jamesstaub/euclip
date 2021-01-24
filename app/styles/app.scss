@@ -28,6 +28,23 @@ a {
   color: $gray;
 }
 
+.script-wrapper-height {
+  height: calc(100% - 4rem);
+}
+
+.ace-editor-wrapper {
+  height: calc(100% - 1.7rem);
+}
+
+.script-editor-height {
+  height: calc(100% - 12rem);
+  // scale with references footer
+  &.shrink-for-footer {
+    height: calc(100% - #{$footer-height + 6rem});
+  }
+}
+
+
 .app-header-height {
   height: $app-header-height;
 }

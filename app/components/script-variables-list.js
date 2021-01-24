@@ -5,12 +5,16 @@ import { getCrackedNode } from '../utils/cracked';
 import { A } from '@ember/array';
 import { selectorType } from '../utils/selectors-util';
 import { isPresent } from '@ember/utils';
+import {
+  inject as controller
+} from '@ember/controller';
 
 export default class ScriptVariablesComponent extends Component {
   @tracked ui;
-  @tracked isCollapsed;
   @tracked selectedTab;
   @tracked defaultTab;
+
+  @controller('user.creator.project') project;
 
   vars = {
     data: 'Number value of the current step in the sequence (0 or 1)',
@@ -21,6 +25,9 @@ export default class ScriptVariablesComponent extends Component {
     // fileend: '',
   }
 
+  get isCollapsed() {
+    return !this.project.showScriptFooter;
+  }
 
   get scriptVars() {
     return  A(this.args.variables?.map((key) => { 
@@ -84,7 +91,7 @@ export default class ScriptVariablesComponent extends Component {
 
   @action
   toggleCollapsed() {
-    this.isCollapsed = !this.isCollapsed;
+    this.project.showScriptFooter = !this.project.showScriptFooter;
     this.defaultTab = null;
   }
 
