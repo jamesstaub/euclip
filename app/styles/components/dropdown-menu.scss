@@ -1,3 +1,17 @@
 .dropdown-menu {
   z-index: 3;
 }
+
+.dropdown-menu-btn {
+  span {
+    cursor: pointer;
+  }
+  background-color: transparent;
+  &:focus {
+    background-color: $light-gray;
+    color: $dark-gray;
+    span {
+      color: $dark-gray;
+    }
+  }
+}

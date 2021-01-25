@@ -8,8 +8,8 @@ export default class DropdownMenuComponent extends Component {
   @tracked menuX;
   @tracked menuY;
 
-  offsetX = -80;
-  offsetY = 35;
+  offsetX = -65;
+  offsetY = 20;
   
   @action
   addPositionClass(list) {

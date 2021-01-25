@@ -8,7 +8,7 @@ import filterNumericAttrs from '../utils/filter-numeric-attrs';
 import { tracked } from '@glimmer/tracking';
 export default class TrackAudioModel extends Model.extend(Evented) {  
   @tracked nodeToVisualize;
-  // getters to expose data to the init and onstep script scopes for user
+  
   get samplerSelector() {
     if (this.samplerNode) {
       return `sampler .track-${this.order}`;
@@ -39,7 +39,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     this.nodeToVisualize = node;
   }
 
-  setupAudioFromScripts() {
+  setupAudioFromScripts(unbindBeforeCreate = true) {
     // array to store audio node uuids created in this track's script
     // not to be confused with trackNode models, 
     // { uuid: type, atts: { filename: '...', speed: 1} } 
@@ -71,7 +71,10 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         }
       }
     }
-    this.unbindAndRemoveCrackedNodes();
+
+    if (unbindBeforeCreate) {
+      this.unbindAndRemoveCrackedNodes();
+    }
 
      // run script to create audio nodes
     this.get('initScript').content.invokeFunctionRef();
@@ -261,12 +264,13 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   
   onStepCallback(index, data, array) {
     this.set('stepIndex', index);
+
     this.trackControls.forEach((trackControl) => {
       trackControl.attrOnTrackStep(index);
     })
-
     // FIXME: ideally this would not be a proxy, so .content not used
     this.get('onstepScript').content.invokeFunctionRef(index, data, array);
+
   }
 
   get scriptScope() {

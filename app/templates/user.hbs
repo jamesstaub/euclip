@@ -1,8 +1,9 @@
 <NavBar @logoWidth="180px">
   {{#if this.session.isAuthenticated}}
     <DropdownMenu
-        @offsetX={{-10}}
-        @offsetY={{20}}
+      class="pv2"
+        @offsetX={{0}}
+        @offsetY={{16}}
         @items={{array 
           (hash label="logout" select=(action "invalidateSession")) 
         }}

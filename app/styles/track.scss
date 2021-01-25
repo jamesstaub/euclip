@@ -6,6 +6,16 @@
   margin-bottom: 2.6rem;
 }
 
+.track-sequencer-width {
+  /** 
+    TODO pageSize variable common with sequence-pagination component 
+    number of steps (32 * 16) + padding to prevent clipping
+  **/
+  $pageSize: 545px;
+  width: $pageSize;
+  overflow: visible;
+}
+
 .variables-overlay {
   transform: translateX(100%);
   width: $sidebar-width;

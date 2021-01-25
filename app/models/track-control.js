@@ -93,8 +93,11 @@ export default class TrackControlModel extends Model {
       return;
     }
 
-    // this might get called by the sequencer while we're trying to delete the node or control
+    // this might get called by the sequencer while we're trying to delete the track, track-node or track-control
     if (!this.isDestroyed ) {
+      if (!this.controlArrayComputed) {
+        debugger
+      }
       if (this.nodeAttr && this.interfaceName === 'multislider') {
         const stepValue = this.controlArrayComputed[index];
         // FIXME: should setAttrs always happen in user's code editor?
