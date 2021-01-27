@@ -16,6 +16,7 @@ export default class ProjectModel extends ProjectAudioModel {
     // Optimize. dont wait to save, instead save async and unbind if save fails
     await track.save(saveOptions);
     track.setupAudioFromScripts(false);
+    this.tracks.pushObject(track);
     
     if (this.isPlaying) {
       this.startLoop();

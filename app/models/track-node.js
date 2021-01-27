@@ -135,7 +135,7 @@ export default class TrackNodeModel extends Model {
   createTrackControls() {
     const controlAttrs = paramsForNode(this.nodeType);
     return controlAttrs.map((controlAttr) => {
-      const defaults = TrackControlModel.defaultForAttr(controlAttr, this.nodeType);
+      const defaults = TrackControlModel.defaultForAttr(controlAttr, this.nodeType, this.parentMacro);
       
       // set the defaultValue as the trackControl's value
       defaults.controlValue = defaults.defaultValue;

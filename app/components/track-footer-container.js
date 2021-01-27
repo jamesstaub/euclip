@@ -35,7 +35,10 @@ export default class TrackFooterContainerComponent extends Component {
     return this.validTrackNodes.filterBy('parentMacro');
   }
 
-  /** Optimize: these getters get called on every step of sequence */
+  /** 
+   * Optimize: these getters get called on every step of sequence 
+   * In all likelyhood they only need to be re-fetched when the script is updated
+   * */
   get channelStripGainControl() {
     return TrackNodeModel.channelStripNode(this.args.track, 'gain')?.trackControls?.firstObject;
   }

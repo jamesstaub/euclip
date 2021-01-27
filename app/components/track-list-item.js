@@ -1,9 +1,14 @@
 import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { inject as service } from '@ember/service';
+import {
+  inject as controller
+} from '@ember/controller';
+
 
 export default class TrackListItemComponent extends Component {
   @service router
+  @controller('user.creator.project') project;
 
   @action
   deleteTrack() {
@@ -11,8 +16,8 @@ export default class TrackListItemComponent extends Component {
   }
 
   @action
-  duplicateTrack() {
-    this.args.track.duplicate();
+  async duplicateTrack() {
+    await this.args.track.duplicate();
   }
 
   @action

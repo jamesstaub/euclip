@@ -192,7 +192,7 @@ export default class TrackControlModel extends Model {
  * @param {String} nodeType 
  * TrackControl default value for each attribute
  */
-  static defaultForAttr(attr, nodeType) {
+  static defaultForAttr(attr, nodeType, parentMacro) {
     const paramDefaults = {};
     switch (attr) {
       case 'attack':
@@ -284,7 +284,7 @@ export default class TrackControlModel extends Model {
         paramDefaults.min = 0;
         paramDefaults.max = 1;
         paramDefaults.defaultValue = .9;
-        paramDefaults.interfaceName = 'multislider';
+        paramDefaults.interfaceName = parentMacro ? 'slider' : 'multislider';
         break;
       case 'knee':
         paramDefaults.min = 0;
