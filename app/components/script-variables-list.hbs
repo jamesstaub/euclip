@@ -2,7 +2,7 @@
   {{did-insert this.setDefaultUi}} 
   ...attributes
 >  
-  <h4 class="yellow mt3 mb0 {{if isCollapsed "pb3 cursor"}}" {{on "click" this.toggleCollapsed}}>{{@title}} reference</h4>
+  <h4 class="yellow mt3 mb0 cursor {{if isCollapsed "pb3"}}" {{on "click" this.toggleCollapsed}}>{{this.currentNode.nodeType}} {{@title}} reference</h4>
   <div>
     {{#unless this.isCollapsed}}
       <TabMenu
@@ -30,7 +30,7 @@
       <table>
         {{#each this.scriptVars key="name" as |scriptVar|}}
           <tr>
-            <td class="code mv1">{{scriptVar.name}}</td>
+            <td class="mv1"><code>{{scriptVar.name}}</code></td>
             <td class="f6 mv0">{{scriptVar.description}}</td>
           </tr>
         {{/each}}

@@ -5,10 +5,10 @@ $sidebar-width: 36rem;
 $footer-height: 20rem;
 
 @import 'colors';
-@import 'type';
 @import 'custom-properties';
 @import 'tachyons-variable-overrides';
 @import 'ember-cli-tachyons-sass';
+@import 'type';
 @import 'buttons';
 @import 'helpers.scss';
 @import 'nexus.scss';

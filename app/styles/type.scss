@@ -17,10 +17,13 @@ input {
   font-family: 'Poppins', sans-serif;
 }
 
+h1, h2, h3, h4 {
+  margin: .5rem 0;
+}
+
 h1, h2, h3, h4, span, label, input, td {
   cursor: default;
   user-select: none;
-  margin: .5rem 0;
 }
 
 h1 {

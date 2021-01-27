@@ -43,6 +43,9 @@ local development against api server using a self signed certificate
 
 ### Track Controls
   - Oscillators also get Track Controls to control their type. (if the script contains a generic oscillator macro)
+  - control menu should contain a text input for the target selector of a track control. By default this should populate with the related TrackNode's unique selector
+    but could be a dropdown of all selectors (filtered by those that are controllable by this control type
+  - with track control selectors implemented, the track attrOnStep can use the selector method
 
 ### Presets:
   - finish implementing, include all node attributes in presets

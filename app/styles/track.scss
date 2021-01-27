@@ -20,6 +20,40 @@
   transform: translateX(100%);
   width: $sidebar-width;
   max-width: 100%;
+
+  table {
+    border-collapse: separate;
+    border-spacing: 0 .5rem;
+
+    tr:nth-child(odd) {
+      background-color: $gray;
+    }
+
+    code, .code {
+      background-color: $near-black;
+      padding: .25rem .5rem;
+    }
+  
+    td, th {
+      padding: .25rem .5rem;
+      text-align: left;
+    }
+
+  }
+
+  .node-docs table {
+    td {
+      padding-right: 2rem;
+    }
+    td.attributes {
+      display: none;
+    }
+    thead {
+      th:nth-of-type(3) {
+        display: none;
+      }
+    }
+  }
 }
 
 .channel-strip-w {
@@ -42,37 +76,5 @@
     content: ' / ';
     background-color: $yellow;
     padding: .6rem 0;
-  }
-}
-
-.node-docs table, .selector-docs table {
-
-  border-collapse: separate;
-  border-spacing: 0 .5rem;
-
-  td {
-    padding-right: 1rem;
-    padding-bottom: .5rem;
-  }
-  thead {
-    text-align: left;
-  }
-}
-
-.node-docs table {
-  td {
-    padding-right: 2rem;
-    code {
-      background-color: $near-black;
-      padding: .25rem;
-    }
-  }
-  td.attributes {
-    display: none;
-  }
-  thead {
-    th:nth-of-type(3) {
-      display: none;
-    }
   }
 }

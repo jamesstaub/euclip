@@ -59,15 +59,16 @@ export default class ScriptVariablesComponent extends Component {
 
   get tabItems() {
     const showDocs = this.args.sequencerDocs || this.args.nodeDocs;
-    return [{
+    return [
+      {
+        label: 'selectors',
+        value: 'selectors',
+        condition: this.selectorsForNode.length
+      },
+      {
       label: 'variables',
       value: 'variables',
       condition: this.scriptVars
-    },
-    {
-      label: 'selectors',
-      value: 'selectors',
-      condition: this.selectorsForNode.length
     },
     {
       label: 'attributes',
