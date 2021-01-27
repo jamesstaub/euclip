@@ -1,6 +1,6 @@
 import Model from '@ember-data/model';
 import { attr, belongsTo, hasMany } from '@ember-data/model';
-import { paramsForNode } from '../utils/cracked';
+import { noiseNodes, paramsForNode, synthNodes } from '../utils/cracked';
 import TrackControlModel from './track-control';
 
 export default class TrackNodeModel extends Model {
@@ -20,8 +20,8 @@ export default class TrackNodeModel extends Model {
   @attr() parentMacro; // AudioNode of macro this node belongs to (not serialized)
   @attr('boolean') isChannelStripChild; // flag saved if the parentMacro is set on this node
 
-  synthNodes = ['triangle', 'sine', 'square', 'saw'];
-  noiseNodes = ['noise', 'pink', 'white', 'brown'];
+  
+  
 
   // TODO: if this is a user-defined macro, check that 
   // it contains source nodes
@@ -29,8 +29,8 @@ export default class TrackNodeModel extends Model {
     return [
     'buffer', 
     'sampler', 
-    ...this.synthNodes,
-    ...this.noiseNodes,
+    ...synthNodes,
+    ...noiseNodes,
     ].includes(this.nodeType);
   }
 

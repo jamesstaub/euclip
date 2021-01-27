@@ -44,6 +44,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // not to be confused with trackNode models, 
     // { uuid: type, atts: { filename: '...', speed: 1} } 
     this.set('trackAudioNodes', []); 
+    this.channelStripAudioNode = null;
 
     // cracked.onCreateNode was added to the Cracked library to give access to the AudioNode object upon creation
     // this callback gets called when a user creates cracked audio nodes in the script editor ui
@@ -53,10 +54,13 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       let existingClass = creationParams.settings.class;
       creationParams.settings.class = `${existingClass ? existingClass + ',' : ''}track-${this.order}`
       
-      // FIXME not sure why node.isMacroComponent() is false for channelStrip 
+      // FIXME not sure why node.isMacroComponent() is false for channelStrip
       if (type === 'channelStrip') {
+        // store channelStripAudioNode
         this.channelStripAudioNode = node;
-      } else if (!node.isMacroComponent() && ENV.APP.supportedAudioNodes.indexOf(type) > -1) {        
+      }
+      
+      if (!node.isMacroComponent() && ENV.APP.supportedAudioNodes.indexOf(type) > -1) {        
         const trackNode = {};
         const uuid = node.getUUID();
         trackNode[uuid] = type;
@@ -258,6 +262,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   }
 
   unbindAndRemoveCrackedNodes() {
+    // FIXME: replace with "source selector" to account for oscillators etc
     unbindFromSequencer(this.samplerSelector);
     __(`.track-${this.order}`).remove();
   }

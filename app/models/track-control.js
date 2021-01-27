@@ -100,7 +100,7 @@ export default class TrackControlModel extends Model {
       }
       if (this.nodeAttr && this.interfaceName === 'multislider') {
         const stepValue = this.controlArrayComputed[index];
-        // FIXME: should setAttrs always happen in user's code editor?
+        // IDEA: should setAttrs always happen in user's code editor?
         this.setAttrs(stepValue);
         return stepValue;
       } else {

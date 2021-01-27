@@ -6,9 +6,6 @@
     value=this.editorContent
     update=(fn this.onUpdateEditor)
   }}
-  {{#if @scriptModel.alert}}
-    <p class="bg-dark-red pa3 mv2 white w-100" data-track={{@scriptModel.track.order}}>{{@scriptModel.alert}}</p>
-  {{/if}}
 </div>
 {{yield}}
 
@@ -47,6 +44,9 @@
   </div>
 
   <div class="flex">
+    {{#if @scriptModel.alert}}
+      <p class="bg-dark-red pa3 mv2 white w-100" data-track={{@scriptModel.track.order}}>{{@scriptModel.alert}}</p>
+    {{/if}}
     {{#if (not functionIsLoaded)}}
       <p class="yellow dark-gray flex f7 mv0">
         Script not loaded.
