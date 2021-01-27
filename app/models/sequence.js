@@ -24,12 +24,6 @@ export default class SequenceModel extends Model {
 
   @attr() customSequence
 
-  didUpdate(){
-    if (this.hits > this.steps) {
-      this.steps = this.hits;
-    }
-  }
-
   get sequence() {
     if (this.customSequence?.length) {
       return this.customSequence;

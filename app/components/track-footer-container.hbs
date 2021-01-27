@@ -25,8 +25,8 @@
           @onSelect={{fn this.setUi "controlUi"}}
           @selectedValue={{this.controlUi}}
           @items={{compact (array 
-            (if @track.sequences.length (hash label="sequence" value="sequence" icon="fi-squares" iconWidth="20px" iconHeight="40px"))
-            (if @track.sourceNodeRecords.length (hash label="source" value="source" icon="fi-sound" iconWidth="20px" iconHeight="40px"))
+            (if @track.sequences.length (hash label="sequence" value="sequence" icon="fi-squares" iconWidth="24px" iconHeight="48px"))
+            (if @track.sourceNodeRecords.length (hash label="source" value="source" icon="fi-sound" iconWidth="24px" iconHeight="48px"))
             (hash label="controls" value="controls" icon="automation" iconWidth="40px" iconHeight="40px")
           )}}
         />

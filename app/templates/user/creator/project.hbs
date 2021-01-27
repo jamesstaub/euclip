@@ -20,7 +20,7 @@
   </div>
 </nav>
 
-<div class="flex project-tracks-height">
+<div class="flex project-tracks-height overflow-hidden">
   {{#if (and this.leftSidebarOpen this.activeTrack (not this.activeTrack.isDeleted))}}
     <SidebarWrapper 
       class="left-sidebar-width h-100 bw2 br b--yellow"
@@ -69,10 +69,10 @@
       <div class="mh3 yellow relative flex flex-column">
         <h3 class="mv3">Edit Track {{this.activeTrack.order}} Scripts</h3>
         <InfoBox>
-          <p class="f6 mv2">Scripts are where you define the audio signal chain for each track.</p>
-          <p class="f6 mv2"><b>Setup Script</b> runs once to create your audio signal chain. Audio Nodes can be defined with a <code>class</code> or <code>ID</code>, which are used to select and modify their parameters.</p>
-          <p class="f6 mv2"><b>Modulate Script</b> runs on every step of the sequencer. This is where you trigger sound and modulate parameters.<br> Select node IDs with: <code>__('#someID')</code> <br>Select node classes with: <code>__('.someClass')</code> </p>
-          <p><a class="yellow" href="https://billorcutt.github.io/i_dropped_my_phone_the_screen_cracked/cracked.html">Cracked docs</a></p>
+          <p class="f6 mb3 mt0">Scripts are where you define the audio signal chain for each track.</p>
+          <p class="f6 mb3 mt0"><b>Setup Script</b> runs once to create your audio signal chain. Audio Nodes can be defined with a <code>class</code> or <code>ID</code>, which are used to select and modify their parameters.</p>
+          <p class="f6 mb3 mt0"><b>Modulate Script</b> runs on every step of the sequencer. This is where you trigger sound and modulate parameters.<br> Select node IDs with: <code>__('#someID')</code> <br>Select node classes with: <code>__('.someClass')</code> </p>
+          <p class="mv0"><a class="yellow" href="https://billorcutt.github.io/i_dropped_my_phone_the_screen_cracked/cracked.html">Cracked docs</a></p>
         </InfoBox>
       </div>
       <ScriptWrapper
