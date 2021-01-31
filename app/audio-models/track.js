@@ -6,6 +6,8 @@ import { difference } from '../utils/arrays-equal';
 import { bindSourcenodeToLoopStep, getCrackedNode, unbindFromSequencer } from '../utils/cracked';
 import filterNumericAttrs from '../utils/filter-numeric-attrs';
 import { tracked } from '@glimmer/tracking';
+import TrackControlModel from '../models/track-control';
+
 export default class TrackAudioModel extends Model.extend(Evented) {  
   @tracked nodeToVisualize;
   
@@ -270,9 +272,13 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   onStepCallback(index, data, array) {
     this.set('stepIndex', index);
 
+    // before calling the user's onstepScript, pass the current values of all track-controls
+    // to the their respective track-nodes. Sampler nodes are a special case, since they get
+    // rebuilt on each play, so they need to be passed their params in the .start() call (see below).
     this.trackControls.forEach((trackControl) => {
-      trackControl.attrOnTrackStep(index);
-    })
+      trackControl.setAttrOnTrackStep(index);
+    });
+  
     // FIXME: ideally this would not be a proxy, so .content not used
     this.get('onstepScript').content.invokeFunctionRef(index, data, array);
 
@@ -284,19 +290,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // this is not an issue for non sampler nodes.
     // If an LFO is modulating the sampler speed, the speed controls will be ignored
     // TODO: It may be possible to multiply the values of the LFO and trackcontrols
-
-    // TODO: same fix for sampler start, end
-
-    const speedControl = this.trackControls
-      .filterBy('nodeType', 'sampler')
-      .findBy('nodeAttr', 'speed');
-    const startControl = this.trackControls
-      .filterBy('nodeType', 'sampler')
-      .findBy('nodeAttr', 'start');
-    const endControl = this.trackControls
-      .filterBy('nodeType', 'sampler')
-      .findBy('nodeAttr', 'end');
-
     
     const lfoForSamplerSpeed = this.trackNodes.filterBy('nodeType', 'lfo')
       .map((trackNode) => getCrackedNode(trackNode.nodeUUID))
@@ -304,39 +297,37 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       
     // const samplerNode = getCrackedNode(this.trackNodes.findBy('nodeType', 'sampler')?.nodeUUID);
     const samplerNode = this.samplerNode;
+    const controls = TrackControlModel.serializeForScript(this.trackNodes, this.stepIndex);
+
+    // there will probably always be a speed control if there's a sampler
+    // samplerAttrs.speed = speedControl.setAttrOnTrackStep(this.stepIndex);
+    // samplerAttrs.start = startControl.setAttrOnTrackStep(this.stepIndex);
+    // samplerAttrs.end = endControl.setAttrOnTrackStep(this.stepIndex);
 
     return {
       filepath: this.filepathUrl,
       id: this.id,
       samplerSelector: this.samplerSelector,
-      
-      // // TODO remove attrOnTrackStep() above and instead
-      // // implemenet it to be called in a mungeable way in user's script
-      // // so that the 
+      controls: controls,
 
       // trackControls: this.trackControls.map((trackControl) => {
       //   return {
       //     nodeSelector: trackControl.nodeType,
       //     control: trackControl.nodeAttr,
       //     value(index) {
-      //       return trackControl.attrOnTrackStep(index);
+      //       return trackControl.setAttrOnTrackStep(index);
       //     }
       //   }
       // }),
       
       // TODO Generalize playSample this to try to play anything the user may want on step
       // (ADSR, LFO, ramp)
-      playSample(index, options) {
+      playSample() {
         if (samplerNode) {
-          // there will probably always be a speed control if there's a sampler
-          const speed = speedControl.attrOnTrackStep(index);
-          const start = startControl.attrOnTrackStep(index);
-          const end = endControl.attrOnTrackStep(index);
           __(this.samplerSelector).stop().attr({
-            speed: speed, 
-            start: start, 
-            end: end,
-            ...options
+            speed: this.controls[0].speed, 
+            start: this.controls[0].start, 
+            end: this.controls[0].end,
           }).start();
         } else {
           throw "You tried to use playSample() but do not have a sampler defined."

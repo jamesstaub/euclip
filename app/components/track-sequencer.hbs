@@ -1,11 +1,11 @@
-<div class="track-sequencer-width flex pa3 flex-wrap justify-between"> 
+<div class="flex pa3 justify-between"> 
   <SequencePagination 
     @sequence={{@sequence}} 
     @stepIndex={{@stepIndex}}
     @isCurrentTrack={{@isCurrentTrack}}
     as |sequencePaginated page currentPageStartIdx|
   >
-    <div class="sequencer-width flex justify-start">
+    <div class="sequencer-width flex justify-start shrink-0 mr3">
       {{#each sequencePaginated as |step idx|}}
         <SequencerStep 
           {{on "click" (fn @onClickStep idx)}}

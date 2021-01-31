@@ -28,14 +28,14 @@ export default class SequencePaginationComponent extends Component {
   get totalPages() {
     return Math.ceil((this.args.sequence?.length || 0) / this.pageSize);
   }
-
+  
   get paginationButtons() {
     const pages = [...Array(this.totalPages).keys()];
     const pageSpacers = [...Array(this.totalPossiblePages - this.totalPages)];
     return [...pages, ...pageSpacers];
   }
 
-  get pageForStepIndex() {    
+  get pageForStepIndex() {
     const idx = this.args.stepIndex || 0;
     return Math.floor(idx / this.pageSize);
   }
@@ -59,15 +59,17 @@ export default class SequencePaginationComponent extends Component {
     if (!isCurrentTrack) {
       this.autopageEnabled = true;
     }
+
+    if ((this.page + 1) > this.totalPages) {
+      this.page = 0;
+      this.autopageEnabled = true;
+    }
+
     if (this.autopageEnabled) { //re-enable when exiting a track route
       const targetPage = this.pageForStepIndex;
       if (targetPage != this.page) {
         return this.page = targetPage;
       }
-    }
-
-    if (this.page < this.totalPages) {
-      // this.page = 0;
     }
   }
 }

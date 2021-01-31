@@ -12,7 +12,7 @@
 <div class="flex justify-between items-center">
   <div class="flex">
     <ButtonPrimary
-      class="mr3  {{if functionIsLoaded "bg-dark-gray light-blue bn" "b--light-blue bg-light-blue dark-gray"}}"
+      class="mr3  {{if functionIsLoaded "bg-dark-gray light-blue bn" "b--light-blue bg-light-blue dark-gray fw6"}}"
       @restyle={{true}}
       {{on "click" (perform @scriptModel.runCode)}}
       disabled={{functionIsLoaded}}
@@ -27,7 +27,7 @@
     {{#if functionIsLoaded}}
       <ButtonPrimary 
         {{on "click" this.disableScript}}
-        class="dark-red b--dark-red bg-dark-gray"
+        class="dark-red b--dark-red bg-dark-gray fw6"
         @restyle={{true}}
         title="Disable this script. Nodes will be removed and disconnected from the sequencer."
       >disable</ButtonPrimary>
@@ -49,13 +49,13 @@
     {{/if}}
     {{#if (not functionIsLoaded)}}
       <p class="yellow dark-gray flex f7 mv0">
-        Script not loaded.
+        Script changes not loaded.
       </p>
     {{/if}}
 
     {{#if illegalTokens}}
       <p class="mv0 flex items-center yellow">
-        remove unsupported keywords: {{illegalTokens}}
+        Remove unsupported keywords: {{illegalTokens}}
       </p>
     {{/if}}
   </div>

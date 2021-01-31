@@ -1,3 +1,6 @@
+$seq-width: calc(32.2px * 16); 
+$step-width: 32.2px;
+
 .nexus-slider {
   display: inline;
 }
@@ -7,7 +10,11 @@
 }
 
 .sequencer-width {
-  $multislider-width: 32.2px;
-  max-width: calc(32.2px * 16);
+  $step-width: 32.2px;
+  width: $seq-width;
+}
+
+.multislider-width {
+  max-width: $seq-width;
   overflow: scroll;
 }

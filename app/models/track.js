@@ -84,13 +84,16 @@ export default class TrackModel extends TrackAudioModel {
   // TODO: dedupe from similar method on track-list-item
   @keepLatestTask
   *updateTrackSequence(sequenceRecord, key, value) {
-    sequenceRecord.set('customSequence', []);
+    // switching from custom back to euclidean
+    if (key === 'hits') {
+      sequenceRecord.set('customSequence', []);
+    }
+    // don't allow more hits than steps
     if (key === 'steps' && value < sequenceRecord.hits) {
       sequenceRecord.set('hits', value);  
     }
+
     sequenceRecord.set(key, value);
-    // TODO replace samplerSelector with "sourceNodeSelector"
-    yield timeout(50);
     unbindFromSequencer(this.samplerSelector);
     this.bindToSequencer();
     yield timeout(300);

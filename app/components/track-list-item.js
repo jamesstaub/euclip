@@ -25,9 +25,9 @@ export default class TrackListItemComponent extends Component {
     //if sequence is different than euclidean output 
     // manually override sequence
     const seq = [...this.args.track.currentSequence.sequence];
+    // user toggle on or off a step in the sequence
     seq[idx] = Number(!seq[idx]);
-    this.args.track.currentSequence.set('customSequence', seq);
-    this.args.track.currentSequence.save();
-    this.args.track.setupAudioFromScripts();
+    // which means this is now  a custom sequence (not euclidean algorithm)
+    this.args.track.updateTrackSequence.perform(this.args.track.currentSequence, 'customSequence', seq);
   }
 }

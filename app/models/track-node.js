@@ -21,8 +21,6 @@ export default class TrackNodeModel extends Model {
   @attr('boolean') isChannelStripChild; // flag saved if the parentMacro is set on this node
 
   
-  
-
   // TODO: if this is a user-defined macro, check that 
   // it contains source nodes
   get isSourceNode() {
@@ -34,6 +32,9 @@ export default class TrackNodeModel extends Model {
     ].includes(this.nodeType);
   }
 
+  get isSampler() {
+    return this.nodeType === 'sampler';
+  }
 
   /**
    * Convenience getter to find the TrackControl record for a sampler node's path attribute

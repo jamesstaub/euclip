@@ -3,6 +3,7 @@ import { isArray } from '@ember/array';
 import { timeout, waitForProperty } from 'ember-concurrency';
 import { keepLatestTask, task } from "ember-concurrency-decorators";
 import { getCrackedNode } from '../utils/cracked';
+import { isPresent } from '@ember/utils';
 
 export default class TrackControlModel extends Model {
   @belongsTo('track') track;
@@ -53,15 +54,22 @@ export default class TrackControlModel extends Model {
     return this.interfaceName === 'slider';
   }
 
+  /**
+   * REFACTOR: it may be necessary to decouple the fact that the control uses a multislider interface
+   * from the fact that the control is an array type, which means it looks up it's value
+   * depending on the current stepIndex of the sequence
+   */
   get isMultislider() {
     // hack to prevent bug when a gain node is deleted, channel strip gain inherits it's defaultInterace property
     // see error in audio-models/track cleanupNodeRecords
     if (this.get('trackNode.isChannelStripChild')) {
       return false;
     }
+    if (!isPresent(this.controlArrayComputed)) {
+      return false;
+    }
     return this.interfaceName === 'multislider';
   }
-  
   
   // TODO these getters could maybe be on a subclass since everything is mostly built for float and float array controls
   // strings are a special case for sampler file paths only
@@ -82,10 +90,20 @@ export default class TrackControlModel extends Model {
     }
   }
 
-  @belongsTo('track-node') trackNode;
-  @belongsTo('track') track;
+  /**
+   * Helper for setting a track-control's value on it's respective audio node at
+   * a given time, 
+   */
+  attrValueForType(index) {
+    if (this.isMultislider) {
+      const stepValue = this.controlArrayComputed[index];
+      return stepValue;
+    } else {
+      return this.controlValue;
+    }
+  }
 
-  attrOnTrackStep(index) {
+  setAttrOnTrackStep(index) {
     if (this.nodeType !== this.trackNode.get('nodeType')) {
       // if this case happens, it is hopefully just because trackControls are in the process of deleting in a non-blocking way,
       //  so we cant wait for the request to finish.
@@ -94,19 +112,14 @@ export default class TrackControlModel extends Model {
     }
 
     // this might get called by the sequencer while we're trying to delete the track, track-node or track-control
-    if (!this.isDestroyed ) {
+    if (!this.isDestroyed && this.nodeAttr) {
       if (!this.controlArrayComputed) {
-        debugger
+        console.error('FIXME: this should never happen');
       }
-      if (this.nodeAttr && this.interfaceName === 'multislider') {
-        const stepValue = this.controlArrayComputed[index];
-        // IDEA: should setAttrs always happen in user's code editor?
-        this.setAttrs(stepValue);
-        return stepValue;
-      } else {
-        this.setAttrs(this.controlValue);
-        return this.controlValue;
-      }
+      
+      const currentValue = this.attrValueForType(index);
+      this.setAttrsOnNode(currentValue);
+      return currentValue;
     }
   }
 
@@ -117,7 +130,7 @@ export default class TrackControlModel extends Model {
     this is fired immediately for sliders
     and triggered on each step for multisliders
   */
-  setAttrs(val) {
+  setAttrsOnNode(val) {
     const attrs = {};
     attrs[this.nodeAttr] = val;
 
@@ -141,6 +154,13 @@ export default class TrackControlModel extends Model {
   }
 
   // TODO create an @unlessDeleted decorator!
+  /**
+   * 
+   * @param {*} value
+   * Update a TrackControl instance's controlValue or controlArrayValue 
+   * immediately, depending on the type of object passed in for value
+   * 
+   */
   setValue(value) {
     if (!this.isDestroyed ) {
       if (isArray(value)) {
@@ -148,11 +168,18 @@ export default class TrackControlModel extends Model {
         this.notifyPropertyChange('controlArrayValue')
       } else {
         this.set('controlValue', value);
-        this.setAttrs(value);
+        this.setAttrsOnNode(value);
       }
+      this.saveTrackControl.perform();
     }
   }
 
+  /**
+   * Every track-control is created with a default value,
+   * which can be modified by the user. setDefault applies that value to the track-controls's
+   * controlValue and controlArrayValue, and also updates the min, max values to make sure
+   * the control's current value is not out of bounds
+   */
   setDefault() {
     if (this.defaultValue > this.max) {
       this.set('max', this.defaultValue);
@@ -188,9 +215,31 @@ export default class TrackControlModel extends Model {
 
 /**
  * 
+ * @param {hasMany array} trackNodes
+ * 
+ * create a nested object of track controls for a track's track-node relation.
+ * this object is exposed in the Scripts scope as `this.controls` and allows the user
+ * to munge the values of track-controls before they get set on the audio nodes
+ */
+
+static serializeForScript(trackNodes, stepIndex) {
+  // TODO: add in here a property for the track `scriptScope` to determine
+  // the sampler source node since that is a special case
+  return trackNodes.map((trackNode) => {
+    const attrs = {};
+    trackNode.trackControls.map((trackControl) => {
+      attrs[trackControl.nodeAttr] = trackControl.attrValueForType(stepIndex);
+    });
+    return attrs;
+  });
+}
+
+/**
+ * 
  * @param {String} attr
  * @param {String} nodeType 
  * TrackControl default value for each attribute
+ *  TODO refactor this out and use the cracked config util instead
  */
   static defaultForAttr(attr, nodeType, parentMacro) {
     const paramDefaults = {};

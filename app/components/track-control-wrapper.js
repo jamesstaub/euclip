@@ -34,7 +34,6 @@ export default class TrackControlWrapperComponent extends Component {
   @action
   setValue(value) {
     this.args.trackControl.setValue(value);
-    this.args.trackControl.saveTrackControl.perform();
   }
 
   @action

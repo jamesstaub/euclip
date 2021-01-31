@@ -81,6 +81,5 @@ export default class TrackFooterContainerComponent extends Component {
   @action
   updateControl(trackControl, value) {
     trackControl.setValue(value);
-    trackControl.saveTrackControl.perform();
   }
 }
