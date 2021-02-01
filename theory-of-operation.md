@@ -90,7 +90,6 @@ You can use the `ui` attribute when creating an audio node to specify what kind 
 ...
 
 
-
 ## Euclip additions to cracked library
 - `ui:` attribute
 - `playSample()`

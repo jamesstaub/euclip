@@ -6,20 +6,20 @@
   <ul class="list ph0 mt0 mr3 h-100">
     {{#each @directory.choices as |choice|}}
 
-      <li class="{{if (eq choice this.selected) "bg-yellow dark-gray" "bg-dark-gray yellow"}} {{if this.shouldScrollTo "scroll-to"}}"  {{!-- FIXME this.shouldScrollTo is added as a class to trigger re-run of method  --}}
+      {{!-- FIXME this.shouldScrollTo is added as a class to trigger re-run of method  --}}
+      <ListItem 
+        @selected={{eq choice this.selected}}
+        @shouldScrollTo={{this.shouldScrollTo}}
         {{did-update (fn this.scrollIntoView (eq choice this.shouldScrollTo)) @directory}}
       >
-        <a class="pl3 w-100 tl db ph1 pv2 truncate" 
-          {{on "click" (fn this.selectItem @directory choice)}} 
-          role="button"
-        >
+        <DirectoryItemLink {{on "click" (fn this.selectItem @directory choice)}} >
           {{#if (eq @directory.type "audio")}}
             {{filename-ui choice}}
           {{else}}
             {{choice}}
           {{/if}}
-        </a>
-      </li>
+        </DirectoryItemLink>
+      </ListItem>
     {{/each}}
   </ul>
 </div>

@@ -66,6 +66,9 @@ a {
 
 /* drum file picker*/
 .drum-file-picker {
+  a {
+    color: $yellow;
+  }
   input::placeholder {
     color: $moon-gray;
   }

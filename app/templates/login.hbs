@@ -1,10 +1,12 @@
 <NavBar @logoWidth="220px" />
 <div class="mt4 center">
   {{#if session.isAuthenticated}}
-    <p>Logged in as {{session.currentUser.username}}</p>
-    <button {{on "click" this.invalidateSession}}>
-      Logout
-    </button>
+    <div class="mw5 center">
+      <p>Logged in as {{currentUser.user.username}}</p>
+      <ButtonPrimary {{on "click" this.invalidateSession}}>
+        Logout
+      </ButtonPrimary>
+    </div>
   {{else}}
     <form class="mw5 center" {{action "authenticate" on="submit"}}>
       {{#if this.loginView}}

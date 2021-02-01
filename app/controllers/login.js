@@ -6,6 +6,7 @@ import { tracked } from '@glimmer/tracking';
 export default class LoginController extends Controller {
   @tracked loginView
   @service session
+  @service currentUser
   
   constructor(){
     super(...arguments);
