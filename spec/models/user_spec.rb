@@ -138,13 +138,6 @@ RSpec.describe User, type: :model do
     end
 
     describe 'email' do
-      it 'should have error if NOT present' do
-        user = build(:user, email: '')
-        user.save
-
-        expect(user.errors.full_messages).to include("Email can't be blank")
-      end
-
       it 'should have error if NOT valid' do
         user = build(:user, email: 'user@.yahoo.com')
         user.save

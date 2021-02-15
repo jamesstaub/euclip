@@ -22,8 +22,10 @@ class User < ApplicationRecord
 
   validates :email,
     uniqueness: { case_sensitive: false },
+    allow_nil: true,
+    allow_blank: true,
     format: { with: URI::MailTo::EMAIL_REGEXP, message: FORMAT_INVALID },
-    presence: true
+    presence: false
 
   validates :username,
     uniqueness: { case_sensitive: false },
@@ -31,7 +33,7 @@ class User < ApplicationRecord
 
   validate :username_is_not_an_existing_email, if: lambda { |u| u.username =~ /@/ }
 
-  PASSWORD_FORMAT = /\A.*(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).*\z/
+  PASSWORD_FORMAT = /\A.*(?=.*[a-z])(?=.*[A-Z]).*\z/
   PW_MESSAGE = 'must include 1 CAP char, 1 low char'
 
   validates :password,
@@ -74,6 +76,11 @@ class User < ApplicationRecord
 
   def list_name
     "#{last_name}, #{first_name}"
+  end
+
+  # see lib/devise/models/validatable.rb#L29 for optional email
+  def email_required?
+    false
   end
 
   private
