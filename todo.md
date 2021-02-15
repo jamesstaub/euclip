@@ -1,6 +1,9 @@
 # TODO
 
 go live list:
+- do a pass at auto-selectors
+  - attempt to automatically use sampler filepath if not supplied
+  - 
 - finish node config refactor (add ADSR, fix compressor threshold)
 - ember-responsive fixes for small + touch screen
   - script sidebar default opens

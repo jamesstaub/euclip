@@ -2,7 +2,7 @@
   {{#if this.session.isAuthenticated}}
     <DropdownMenu
       class="pv2"
-        @offsetX={{0}}
+        @offsetX={{-18}}
         @offsetY={{16}}
         @items={{array 
           (hash label="logout" select=(action "invalidateSession")) 
