@@ -27,8 +27,10 @@ Rails.application.routes.draw do
       resources :projects, only: %i[index]
     end
     
+    resources :preset_collections, only: %i[index], :path => '/preset-collections'
+    resources :presets, only: %i[show]
+
     resources :projects, param: :id, only: %i[destroy]
-    
     resources :projects, param: :slug do
       resources :tracks, only: %i[show create]
     end
@@ -40,8 +42,7 @@ Rails.application.routes.draw do
     resources :onstep_scripts, :controller => 'scripts', :path => '/onstep-scripts'
     
     resources :sequences, only: %i[create update destroy]
-
-    resources :presets
   end
-  get '*ember_path', to: 'ember#index'
+
+  get '/*ember_path', to: 'ember#index', constraints: -> (req) { !(req.fullpath =~ /^\/v1\/.*/) }
 end

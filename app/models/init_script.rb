@@ -1,7 +1,7 @@
 class InitScript < Script
   def set_default
     self.type = "InitScript"
-    if self.track.is_master
+    if self.track&.is_master
       master_track_default_init
     else
       track_default_init

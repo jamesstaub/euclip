@@ -48,12 +48,21 @@ ActiveRecord::Schema.define(version: 2021_01_08_171921) do
     t.index ["user_id"], name: "index_allowlisted_jwts_on_user_id"
   end
 
-  create_table "presets", force: :cascade do |t|
-    t.uuid "creator_id", null: false
-    t.bigint "script_id"
+  create_table "preset_collections", force: :cascade do |t|
+    t.string "title"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
-    t.index ["creator_id"], name: "index_presets_on_creator_id"
+    t.uuid "creator_id", null: false
+    t.index ["creator_id"], name: "index_preset_collections_on_creator_id"
+  end
+
+  create_table "presets", force: :cascade do |t|
+    t.text "title"
+    t.bigint "script_id"
+    t.bigint "preset_collection_id"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["preset_collection_id"], name: "index_presets_on_preset_collection_id"
     t.index ["script_id"], name: "index_presets_on_script_id"
   end
 
@@ -151,7 +160,7 @@ ActiveRecord::Schema.define(version: 2021_01_08_171921) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "allowlisted_jwts", "users", on_delete: :cascade
-  add_foreign_key "presets", "users", column: "creator_id", on_delete: :cascade
+  add_foreign_key "preset_collections", "users", column: "creator_id", on_delete: :cascade
   add_foreign_key "projects", "users", column: "creator_id", on_delete: :cascade
   add_foreign_key "scripts", "presets"
   add_foreign_key "scripts", "tracks"

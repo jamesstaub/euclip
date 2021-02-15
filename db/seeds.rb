@@ -20,3 +20,35 @@ project = Project.create_with_relations!({
   slug: 'euclip-intro',
   creator: admin,
 })
+
+
+pc = PresetCollection.create!(title: "Sample", creator: admin)
+
+[
+  {
+    title: "looping with ADSR envelope",
+    init_script: InitScript.create!(safe_code: <<-EOS
+__()
+  .sampler({
+    id: this.id,
+    path: this.filepath,
+    speed: 4, // play at 4x speed
+    loop: true, //infinitely repeat
+  })
+  .adsr('fast') // create an ADSR envelope
+  .channelStrip() // connect to output
+  .connect('#mixer');
+
+__('#'+this.id).start();
+EOS
+),
+    onstep_script: OnstepScript.create!(safe_code: <<-EOS
+if (data) {
+  __('adsr').adsr('trigger');
+}
+EOS
+),
+  }
+].each do |preset|
+  Preset.create!(preset_collection: pc, **preset)
+end

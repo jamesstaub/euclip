@@ -15,7 +15,7 @@ class Track < ApplicationRecord
 
   amoeba do
     enable
-    exclude_field :project
+    exclude_association :project
   end
 
   def self.create_with_relations!(params)
