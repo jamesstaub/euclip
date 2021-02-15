@@ -1,5 +1,14 @@
 # TODO
 
+go live list:
+- finish node config refactor (add ADSR, fix compressor threshold)
+- ember-responsive fixes for small + touch screen
+  - script sidebar default opens
+  - sidebar service to auto open-close when small
+  - collapse track list items
+- track controls sidescroll fixes
+
+
 ### Scripts
 #### scope + variables
 - implement variables in script scope to access TrackControl values
@@ -41,6 +50,11 @@
   - control menu should contain a text input for the target selector of a track control. By default this should populate with the related TrackNode's unique selector
     but could be a dropdown of all selectors (filtered by those that are controllable by this control type
   - with track control selectors implemented, the track attrOnStep can use the selector method
+  - element/nodes to implement
+    - Envelope node : breakpoint nexus element or group of sliders
+    - multidimensional controls (XY slider, breakpoint)
+    - use for filters, LFOs, 
+
 
 ### Presets:
   - finish implementing, include all node attributes in presets
@@ -63,16 +77,20 @@
 - implement "undo delete" 
 - - use ember-concurrency to wait before calling save on the deleted record, show a "toast" with restore button
 
+### Files
+  - drag and drop UI for local sounds
+  - set filepath local for library 
+  - waveform UI control for slicing (array of start times)
+  - support a dropbox URL or local folder
+
+### Misc featurs:
+  - multiplayer websocket editing
+  - contributor chat box
+  - "assistant" in chat window suggesting next steps with actions
+
+
 ### Other ideas
 - create a  "mixer view" for mixing all tracks that have a `channelStrip` macro
-
-
-- element/nodes to implement
-  - Envelope node : breakpoint nexus element or group of sliders
-  - LFOs as controls
-  - panner node : dial
-  - multidimensional controls (XY slider, breakpoint)
-  - use for filters, LFOs, 
 
 - Sequence
   - - add a sequence BPM divider
@@ -101,13 +119,12 @@
   ```
   then the track-controls should also be initialized with those as the default values
 
-Files
-  - drag and drop UI for local sounds
-  - set filepath local for library 
-  - waveform UI control for slicing (array of start times)
-  - support a dropbox URL or local folder
 
-Misc featurs:
-  - multiplayer websocket editing
-  - contributor chat box
-  - assistant in chat window suggesting next steps with actions
+## Platform improvements
+
+implement a Forum with Threaded
+
+register as a BAT publisher for brave browser
+
+also look at Kofi https://ko-fi.com/gold?ref=home
+

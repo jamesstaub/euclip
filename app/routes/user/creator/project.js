@@ -20,9 +20,8 @@ export default class UserCreatorProjectRoute extends Route {
   }
 
   async getPresets(controller) {
-    const response = await fetch('/v1/presets');
-    const presets = await response.json();
-    controller.set('presets', presets);
+    const presetCollections = await this.store.findAll('preset-collection', { include: 'presets' });
+    controller.set('presetCollections', presetCollections);
   }
 
   @action

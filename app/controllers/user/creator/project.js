@@ -45,7 +45,7 @@ export default class UserCreatorProjectController extends Controller {
     let track = this.model.tracks.createRecord({ hits: 1 });
     // NOTE this is potentially a bad idea but the cached value in the getter above 
     // prevents a flicker when adding tracks
-
+    this._sortedTracks.push(track);
     try {
       track = await this.model.setupAndSaveNewTrack(track);
     } catch (error) {
@@ -53,6 +53,7 @@ export default class UserCreatorProjectController extends Controller {
       // indicate with a global "saved" state to allow local changes
       // useful for mutliperson editing scenarios + modifying other users' projects
       track.deleteRecord();
+      console.error(error);
     }
   }
 
@@ -86,5 +87,4 @@ export default class UserCreatorProjectController extends Controller {
       this[sidebarProps[direction]] = !this[sidebarProps[direction]];
     }
   }
-
 }

@@ -3,7 +3,6 @@ import TrackAudioModel from '../audio-models/track';
 import { keepLatestTask } from "ember-concurrency-decorators";
 import { timeout } from 'ember-concurrency';
 import { unbindFromSequencer } from '../utils/cracked';
-import { filterBy } from '@ember/object/computed';
 import ENV from 'euclip/config/environment';
 
 export default class TrackModel extends TrackAudioModel {

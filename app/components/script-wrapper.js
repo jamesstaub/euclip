@@ -1,25 +1,31 @@
 import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
+import { inject as service } from '@ember/service';
+
 export default class ScriptWrapperComponent extends Component {
   @tracked scriptUi;
   @tracked editorLineCount;
   
+  @service store;
+
   constructor() {
     super(...arguments);
     this.scriptUi = 'init';
   }
   
   loadPreset(preset) {
-    const {initScript, onstepScript} = preset;
-    if (initScript) {
+    const initScriptCode = preset.get('initScript');
+
+    if (initScriptCode) {
       let script = this.args.track.get('initScript');
-      script.set('editorContent', initScript);
+      script.set('editorContent', initScriptCode);
       script.get('runCode').perform();
     }
-    if (onstepScript) {
+    const onstepScriptCode = preset.get('onstepScript');
+    if (onstepScriptCode) {
       let script = this.args.track.get('onstepScript');
-      script.set('editorContent', onstepScript);
+      script.set('editorContent', onstepScriptCode);
       script.get('runCode').perform();
     }
   }
@@ -30,9 +36,11 @@ export default class ScriptWrapperComponent extends Component {
   }
 
   @action
-  selectPreset({target}) {
-    const selectionIdx = target.value;
-    this.loadPreset(this.args.presets[selectionIdx]);
+  async selectPreset({target}) {
+    const presetId = target.value;
+    // fetch the full preset record (with related script models)
+    const preset = await this.store.findRecord('preset', presetId);
+    this.loadPreset(preset);
 
   }
 }

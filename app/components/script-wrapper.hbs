@@ -10,9 +10,11 @@
     />
 
     <select class="f6 mh2" {{on "change" this.selectPreset}}>
-      <option>PRESETS</option>
-      {{#each @presets as |preset idx|}}
-        <option value={{idx}}>{{preset.title}}</option>
+      <option selected disabled hidden>PRESETS</option>
+      {{#each @presetCollections as |coll|}}
+        {{#each coll.presets as |preset|}}
+          <option value={{preset.id}}>{{coll.title}}: {{preset.title}}</option>
+        {{/each}}
       {{/each}}
     </select>
   </div>
