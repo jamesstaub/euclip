@@ -1,0 +1,4 @@
+This is a Brave Rewards publisher verification file.
+
+Domain: euclip.app
+Token: 27d8277bc99713aa0f647c374c191a44b412ad3787da1ea5a46c91288c957375
