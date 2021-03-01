@@ -27,7 +27,14 @@
       @direction="left"
       @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id "left"}}
     >
-      <h3 class="mt3 yellow ma3 ">Drum Machines</h3>
+      <div class="mh3 yellow relative flex flex-column">
+        <h3 class="mv3">Drum Machines</h3>
+        <InfoBox>
+          <p class="f6 mb3 mt0">Selecting a sound from this menu will set the file's url to a variable in the track's script <code>this.filepath</code>.</p>
+          <p class="f6 mb3 mt0">The sampler node can then be assigned this sound file in the setup script like so:</p>
+          <p class="f6 mb3 mt0"><code>__().sampler(path: this.filepath)</code></p>
+        </InfoBox>
+      </div>
       <DrumFilePicker
         @track={{this.activeTrack}}
       />

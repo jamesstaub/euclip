@@ -1,0 +1,8 @@
+<select class="f6 mh2" ...attributes>
+  <option value={{0}} selected disabled hidden>PRESETS</option>
+  {{#each @presetCollections as |coll|}}
+    {{#each coll.presets as |preset|}}
+      <option value={{preset.id}}>{{coll.title}}: {{preset.title}}</option>
+    {{/each}}
+  {{/each}}
+</select>

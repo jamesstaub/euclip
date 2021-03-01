@@ -10,6 +10,15 @@ and copy it to the `/public` directory in the rails repo.
 From there, the rails app will need to be committed and pushed to heroku. Note the local server should not be running when this command is run.
 
 
+## Audio Cloud Storage
+files are stored in gcloud. To get this running you may need to setup CORS on the cloud storage bucket for the domain you're serving from.
+
+1. Authorize gcloud `gcloud auth login --no-launch-browser`
+1. Set CORS setting from `/config/gcloud-cors-config.json`
+    - `cd config`
+    - `gsutil cors set gcloud-cors-config.json gs://euclidean-cracked.appspot.com`
+1. Confirm `gsutil cors get gs://euclidean-cracked.appspot.com`
+
 ## Prerequisites
 You will need the following things properly installed on your computer.
 

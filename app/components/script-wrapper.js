@@ -13,22 +13,6 @@ export default class ScriptWrapperComponent extends Component {
     super(...arguments);
     this.scriptUi = 'init';
   }
-  
-  loadPreset(preset) {
-    const initScriptCode = preset.get('initScript');
-
-    if (initScriptCode) {
-      let script = this.args.track.get('initScript');
-      script.set('editorContent', initScriptCode);
-      script.get('runCode').perform();
-    }
-    const onstepScriptCode = preset.get('onstepScript');
-    if (onstepScriptCode) {
-      let script = this.args.track.get('onstepScript');
-      script.set('editorContent', onstepScriptCode);
-      script.get('runCode').perform();
-    }
-  }
 
   @action
   setUi(val) {
@@ -38,9 +22,11 @@ export default class ScriptWrapperComponent extends Component {
   @action
   async selectPreset({target}) {
     const presetId = target.value;
+    
+    // save the selection on the track model so the dropdown updates when changing tracks\
+    this.args.track.selectedPreset = presetId;
     // fetch the full preset record (with related script models)
     const preset = await this.store.findRecord('preset', presetId);
-    this.loadPreset(preset);
-
+    preset.applyToTrack.perform(this.args.track);
   }
 }

@@ -100,13 +100,6 @@ You can use the `ui` attribute when creating an audio node to specify what kind 
 ## Selectors
 ### overview
 
-### sampler is a special case
-this.samplerSelector
-<!-- discussion of selectors
-    TODO: should there be a universal strategy for auto-selectors ?
-    or only support samplerSelector etc
- -->
-
 
 ## Code-driven User Interface
 In Euclip, almost everything that controls sound is created with code. The code associated with each track creates the UI controls that you see.

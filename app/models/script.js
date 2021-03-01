@@ -7,6 +7,7 @@ export default class ScriptModel extends Model {
   @tracked safeCode
   @tracked alert
   @tracked scriptScope
+  @tracked editorContent
 
   // the code written by the user which has been submitted 
   @attr('string') code;  
@@ -59,20 +60,22 @@ export default class ScriptModel extends Model {
    * API will return a paylaod with a `safeCode` property, which is ultimately what gets used
    * to create audio nodes
    */
- @task
- *runCode() {
-   this.alert = null;
-   yield this.saveScriptTask.perform('code', this.get('editorContent'));
-   if (this.name === 'init-script') {
-     const track = yield this.get('track');
-     track.setupAudioFromScripts();
-   }
- }
+ 
+  @keepLatestTask
+  *runCode() {
+  this.alert = null;
+  this.set('code', this.get('editorContent'));
+  yield this.updateScriptTask.perform('safeCode', this.get('editorContent'));
+  if (this.name === 'init-script') {
+    const track = yield this.get('track');
+    track.setupAudioFromScripts();
+  }
+  yield timeout(1000);
+}
 
- @keepLatestTask
- *saveScriptTask(property, value) {
+  @task
+  *updateScriptTask(property, value) {
    this.set(property, value);
-   yield timeout(1000);
-   yield this.save();
+   this.save();
  }
 }

@@ -12,6 +12,7 @@ export default class UserCreatorProjectController extends Controller {
   constructor() {
     super(...arguments);
     this.showScriptFooter = true;
+    this.rightSidebarOpen = true;
   }
 
   // see note below if weirdness occurs

@@ -19,7 +19,6 @@ go live list:
       controls['.sampler-1']['speed']
   - -  you could do speed: `controls('.sampler') + __.rand()`
 
-- finish refactor of track-based selectors, probably remove this.samplerSelector
 
 #### helpers
 - add helper function to set speed as a factor of the sequencer length (for loops)
@@ -110,7 +109,6 @@ go live list:
 
   - use the LFO example, then add an additional gain node
   - - result is the channelStrip gain not working anymore
-  - - this.samplerSelector is confusing bc. maybe instead a `uniqueSelector()` helper
       which reads `this.id` internally, allowing you to duplicate tracks an preserve their unique inner-references
   - when a node is initialized with attributes eg.
   - verify if `.remove()` is needed in init scripts (or do they all get torn down)

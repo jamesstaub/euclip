@@ -26,6 +26,22 @@ export function defineChannelStripMacro() {
 }
 
 /**
+ * 
+ * @param {AudioNode} node 
+ * @param {string} selector 
+ * 
+ * Euclip's stategy for creating ids + classess on cracked nodes behind the scenes. 
+ * relies on customized version of Cracked, which adds the _setNodeLookup
+ * 
+ * for selectors to work properly in Cracked, they need to live on the audio node's selector array 
+ * and need to be a key in the _nodeLookup
+ */
+export function addCustomSelector(node, selector) {
+  __._setNodeLookup(selector, node.getUUID());
+  node.selector_array.push(selector);
+}
+
+/**
  * start the cracked `loop` at a certain interval (ms)
  */
 export function startLoop(loopInterval) {

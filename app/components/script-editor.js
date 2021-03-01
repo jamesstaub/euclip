@@ -1,11 +1,11 @@
 import Component from '@glimmer/component';
 import { action } from '@ember/object';
-import { tracked } from '@glimmer/tracking';
 import { inject as service } from '@ember/service';
 
-
+import { timeout } from 'ember-concurrency';
+import { restartableTask } from 'ember-concurrency-decorators';
 export default class ScriptEditorComponent extends Component {
-  @tracked editorContent
+
   @service router;
 
   get functionIsLoaded() {
@@ -13,28 +13,17 @@ export default class ScriptEditorComponent extends Component {
     return (safeCode === editorContent) && functionRef;
   }
 
-  constructor() {
-    super(...arguments);
-    this.initializeEditorValue();
-    
-    // make sure editor content doesn't get stuck when changing tracks
-    this.router.on('routeDidChange', this.initializeEditorValue.bind(this));
+  get editorContent() {
+    return this.args.editorContent;
   }
-    
-  /**
-   * chaching editorContent property instead of passing the scriptMode.editorContent directly 
-   * to ACE editor prevents a strange rendering bug
-   */
-  initializeEditorValue() {
-    if (this.args.scriptModel) {
-      this.editorContent = this.args.scriptModel.get('editorContent');
-    }
-  }
-  
-  @action
-  async onUpdateEditor(content) {
-    const scriptModel = await this.args.scriptModel;
-    scriptModel.saveScriptTask.perform('editorContent', content);
+
+  @restartableTask
+  *onUpdateEditor(content) {
+    // hack to avoid a double-submit error when hitting enter
+    // which causes cursor to jump
+    yield timeout(100);
+    const scriptModel = yield this.args.scriptModel;
+    scriptModel.updateScriptTask.perform('editorContent', content);
   }
 
   @action
@@ -48,14 +37,14 @@ export default class ScriptEditorComponent extends Component {
   async discardChanges() {
     // await proxy to model record
     const scriptModel = await this.args.scriptModel;
-    scriptModel.saveScriptTask.perform('editorContent', this.args.scriptModel.get('safeCode'));
+    scriptModel.updateScriptTask.perform('editorContent', this.args.scriptModel.get('safeCode'));
   }
 
   @action
   async disableScript() {
     // await proxy to model record
     const scriptModel = await this.args.scriptModel;
-    scriptModel.saveScriptTask.perform('code', '');
+    scriptModel.updateScriptTask.perform('code', '');
   }
 
 }

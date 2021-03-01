@@ -1,10 +1,13 @@
-<div class="relative script-editor-height" ...attributes>
+<div  
+  class="relative script-editor-height" 
+  ...attributes
+>
   {{ember-ace
     class="grow-1 h-100 ace-editor-wrapper"
     editorClass="ace-editor h-100"
     mode="ace/mode/javascript"
     value=this.editorContent
-    update=(fn this.onUpdateEditor)
+    update=(perform this.onUpdateEditor)
   }}
 </div>
 {{yield}}

@@ -1,6 +1,6 @@
 {{yield this.sequencePaginated page currentPageStartIdx}}
 <div {{did-update (fn this.autoPageOnUpdate @sequence @stepIndex @isCurrentTrack)}}>
-  <div class="flex w4 mv1">
+  <div class="flex w-auto mv1">
     {{#if this.showPages}}
       {{#each this.paginationButtons as |pageIdx|}}
         {{#if (add pageIdx 1)}}

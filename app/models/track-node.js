@@ -1,7 +1,9 @@
 import Model from '@ember-data/model';
 import { attr, belongsTo, hasMany } from '@ember-data/model';
-import { noiseNodes, paramsForNode, synthNodes } from '../utils/cracked';
+import { AudioNodeConfig } from '../utils/audio-node-config';
+import { noiseNodes, synthNodes } from '../utils/cracked';
 import TrackControlModel from './track-control';
+import { computed } from '@ember/object';
 
 export default class TrackNodeModel extends Model {
   @belongsTo('track') track;
@@ -30,6 +32,13 @@ export default class TrackNodeModel extends Model {
     ...synthNodes,
     ...noiseNodes,
     ].includes(this.nodeType);
+  }
+
+  @computed('track.order')
+  get uniqueSelector() {
+    // FIXME: using `order` for track selectors is super brittle because duplicating + deleting tracks changes the order of others!
+    // need an immutable "createdOrder property " to solve this. could be alphabetical to avoid confusion with order
+    return `${this.nodeType} .track-${this.get('track.order')}`;
   }
 
   get isSampler() {
@@ -134,7 +143,7 @@ export default class TrackNodeModel extends Model {
    * 
    */
   createTrackControls() {
-    const controlAttrs = paramsForNode(this.nodeType);
+    const controlAttrs = AudioNodeConfig[this.nodeType].attributeNames
     return controlAttrs.map((controlAttr) => {
       const defaults = TrackControlModel.defaultForAttr(controlAttr, this.nodeType, this.parentMacro);
       

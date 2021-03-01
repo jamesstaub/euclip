@@ -8,21 +8,19 @@
         (if @track.onstepScript (hash label="modulate" value="onstep" beacon=@track.onstepScript.alert))
       )}}
     />
-
-    <select class="f6 mh2" {{on "change" this.selectPreset}}>
-      <option selected disabled hidden>PRESETS</option>
-      {{#each @presetCollections as |coll|}}
-        {{#each coll.presets as |preset|}}
-          <option value={{preset.id}}>{{coll.title}}: {{preset.title}}</option>
-        {{/each}}
-      {{/each}}
-    </select>
+   <PresetMenu 
+      {{on "change" this.selectPreset}} 
+      value={{@track.selectedPreset}} 
+      @track={{@track}}
+      @presetCollections={{@presetCollections}}
+    />
   </div>
 
   {{#if (and @track.initScript (eq this.scriptUi "init"))}}
     <ScriptEditor 
       class={{if @shrinkForFooter "shrink-for-footer"}}
       @scriptModel={{@track.initScript}} 
+      @editorContent={{@track.initScript.editorContent}} {{!-- << update UI when content changed in model --}}
       @editorLineCount={{this.editorLineCount}}
     />
   {{/if}}
@@ -31,6 +29,7 @@
     <ScriptEditor 
       class={{if @shrinkForFooter "shrink-for-footer"}}
       @scriptModel={{@track.onstepScript}} 
+      @editorContent={{@track.onstepScript.editorContent}} {{!-- << update UI when content changed in model --}}
       @editorLineCount={{this.editorLineCount}}
     />
   {{/if}}

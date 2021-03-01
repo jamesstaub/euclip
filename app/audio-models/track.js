@@ -3,19 +3,13 @@ import Evented from '@ember/object/evented';
 
 import ENV from '../config/environment';
 import { difference } from '../utils/arrays-equal';
-import { bindSourcenodeToLoopStep, getCrackedNode, unbindFromSequencer } from '../utils/cracked';
+import { addCustomSelector, bindSourcenodeToLoopStep, getCrackedNode, unbindFromSequencer } from '../utils/cracked';
 import filterNumericAttrs from '../utils/filter-numeric-attrs';
 import { tracked } from '@glimmer/tracking';
 import TrackControlModel from '../models/track-control';
 
 export default class TrackAudioModel extends Model.extend(Evented) {  
   @tracked nodeToVisualize;
-  
-  get samplerSelector() {
-    if (this.samplerNode) {
-      return `sampler .track-${this.order}`;
-    }
-  }
 
   // serialize 2d array of track control values to use in scripts
   get trackControlData() {
@@ -37,32 +31,32 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       const type = audioNode[audioNode.uuid];
       return type === 'compressor' || type === 'gain';
     });
-    const node = __._getNode(firstVisualizableNode.uuid)?.getNativeNode();
+    const node = __._getNode(firstVisualizableNode?.uuid)?.getNativeNode();
     this.nodeToVisualize = node;
   }
 
   setupAudioFromScripts(unbindBeforeCreate = true) {
     // array to store audio node uuids created in this track's script
     // not to be confused with trackNode models, 
-    // { uuid: type, atts: { filename: '...', speed: 1} } 
+    // { uuid: type, atts: { filename: '...', speed: 1} }
     this.set('trackAudioNodes', []); 
     this.channelStripAudioNode = null;
 
     // cracked.onCreateNode was added to the Cracked library to give access to the AudioNode object upon creation
     // this callback gets called when a user creates cracked audio nodes in the script editor ui
     // macro components should not get individual ui controls
-    __.onCreateNode = (node, type, creationParams, userSettings) => {
-      // add a track-id class to every node created so it can be properly cleaned up
-      let existingClass = creationParams.settings.class;
-      creationParams.settings.class = `${existingClass ? existingClass + ',' : ''}track-${this.order}`
-      
+    __.onCreateNode = (node, type, creationParams, userSettings) => {      
       // FIXME not sure why node.isMacroComponent() is false for channelStrip
       if (type === 'channelStrip') {
         // store channelStripAudioNode
         this.channelStripAudioNode = node;
       }
       
-      if (!node.isMacroComponent() && ENV.APP.supportedAudioNodes.indexOf(type) > -1) {        
+      if (!node.isMacroComponent() && ENV.APP.supportedAudioNodes.indexOf(type) > -1) {
+        // add a `track-id` class to every node created so it can be properly cleaned up
+        addCustomSelector(node, `.track-${this.order}`);
+        addCustomSelector(node, `${type} .track-${this.order}`);
+      
         const trackNode = {};
         const uuid = node.getUUID();
         trackNode[uuid] = type;
@@ -93,7 +87,11 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     this.setupTrackControls();
 
     if (this.currentSequence) {
-      this.bindToSequencer();
+      if(this.trackNodes.length) {
+        this.bindToSequencer();
+      } else {
+        console.error('no track nodes to bind to sequencer')
+      }
     }
 
     if (this.isMaster) {
@@ -260,12 +258,14 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   bindToSequencer() {
     let onStepCallback = this.onStepCallback.bind(this);
     // TODO: create a generalized "source node" selector to support oscillators, sampler or custom source macros
-    bindSourcenodeToLoopStep(this.samplerSelector, onStepCallback, this.currentSequence.sequence);
+    bindSourcenodeToLoopStep(this.samplerNode.uniqueSelector, onStepCallback, this.currentSequence.sequence);
   }
 
   unbindAndRemoveCrackedNodes() {
-    // FIXME: replace with "source selector" to account for oscillators etc
-    unbindFromSequencer(this.samplerSelector);
+    // FIXME: replace with "samplerNode" to account for oscillators etc
+    if (this.samplerNode?.uniqueSelector) {
+      unbindFromSequencer(this.samplerNode.uniqueSelector);
+    }
     __(`.track-${this.order}`).remove();
   }
   
@@ -307,7 +307,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     return {
       filepath: this.filepathUrl,
       id: this.id,
-      samplerSelector: this.samplerSelector,
       controls: controls,
 
       // trackControls: this.trackControls.map((trackControl) => {
@@ -324,7 +323,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       // (ADSR, LFO, ramp)
       playSample() {
         if (samplerNode) {
-          __(this.samplerSelector).stop().attr({
+          __(samplerNode.uniqueSelector).stop().attr({
             speed: this.controls[0].speed, 
             start: this.controls[0].start, 
             end: this.controls[0].end,

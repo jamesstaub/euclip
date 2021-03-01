@@ -13,14 +13,11 @@ export default class ProjectModel extends ProjectAudioModel {
 
   // maybe move this to track?
   async setupAndSaveNewTrack(track, saveOptions) {
-    // Optimize. dont wait to save, instead save async and unbind if save fails
+    // need to wait to for save because orders may change
     await track.save(saveOptions);
     track.setupAudioFromScripts(false);
     this.tracks.pushObject(track);
     
-    if (this.isPlaying) {
-      this.startLoop();
-    }
     return track;
   }
 
