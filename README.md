@@ -1,3 +1,7 @@
+[euclip.app](https://euclip.app)
+
+See [Theory of Operation](theory-of-operation.md) to get a better idea of how Euclip works. 
+
 # euclip
 local development against api server using a self signed certificate
 `ember s --proxy https://localhost:3000  --secure-proxy=false`
