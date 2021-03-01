@@ -9,8 +9,7 @@ class Track < ApplicationRecord
 
   attribute :is_master, :boolean
   attribute :order, :integer
-  
-  scope :ordered_tracks, -> { where(:is_master => false)}
+
   scope :master_track, -> { where(:is_master => true)}
 
   amoeba do
@@ -38,12 +37,13 @@ class Track < ApplicationRecord
     new_track.project_id = params[:project_id]
     
     # increment the track order number for this track and all above it
-    self.increment_orders!(new_track) 
+    self.increment_orders!(target_track, new_track) 
     new_track
   end
 
-  def self.increment_orders!(track)
-    tracks_to_increment = track.project.tracks.where("tracks.order >= ?", track.order)
+  def self.increment_orders!(old_track, new_track)
+    new_track.update!(order: old_track.order + 1)
+    tracks_to_increment = old_track.project.tracks.where.not(id: new_track.id).where("tracks.order >= ?", new_track.order)
     tracks_to_increment.each { |t|
       t.order = t.order + 1
       t.save
@@ -51,7 +51,7 @@ class Track < ApplicationRecord
   end
 
   def set_new_track_order
-    self.order = self.project.tracks.ordered_tracks.count + 1 unless self.order.present? || self.is_master
+    self.order = self.project.ordered_tracks.count + 1 unless self.order.present? || self.is_master
     self.order = nil if self.is_master
   end
 end

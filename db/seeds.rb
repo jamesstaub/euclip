@@ -26,11 +26,31 @@ pc = PresetCollection.create!(title: "Sample", creator: admin)
 
 [
   {
+    title: "basic oneshot",
+    init_script: InitScript.create!(safe_code: <<-EOS
+__()
+  .sampler({
+    path: this.filepath,
+  })
+  .adsr('fast') // create an ADSR envelope
+  .channelStrip() // connect to output
+  .connect('#mixer');
+
+__('#'+this.id).start();
+EOS
+),
+    onstep_script: OnstepScript.create!(safe_code: <<-EOS
+if (data) {
+  __('adsr').adsr('trigger');
+}
+EOS
+),
+  },
+  {
     title: "looping with ADSR envelope",
     init_script: InitScript.create!(safe_code: <<-EOS
 __()
   .sampler({
-    id: this.id,
     path: this.filepath,
     speed: 4, // play at 4x speed
     loop: true, //infinitely repeat
@@ -48,7 +68,7 @@ if (data) {
 }
 EOS
 ),
-  }
+  },
 ].each do |preset|
   Preset.create!(preset_collection: pc, **preset)
 end

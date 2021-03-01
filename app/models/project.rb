@@ -6,8 +6,12 @@ class Project < ApplicationRecord
   attribute :bpm, :integer, default: 120
   validates :creator, presence: true
 
+  def ordered_tracks
+    tracks.where(:is_master => false).order(:id)
+  end
+
   def reorder_tracks!
-    self.tracks.ordered_tracks.each_with_index {|track, idx|
+    self.ordered_tracks.each_with_index {|track, idx|
       track.update!(order: idx + 1)
     }
   end
