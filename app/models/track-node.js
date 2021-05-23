@@ -142,9 +142,14 @@ export default class TrackNodeModel extends Model {
    * and then save to db non-blocking
    * 
    */
+  
   createTrackControls() {
-    const controlAttrs = AudioNodeConfig[this.nodeType].attributeNames
-    return controlAttrs.map((controlAttr) => {
+    const controlAttrs = Object.keys(AudioNodeConfig[this.nodeType]);
+    if (!controlAttrs.map) {
+      console.error("Node type not supported");
+      return
+    }
+     return controlAttrs.map((controlAttr) => {
       const defaults = TrackControlModel.defaultForAttr(controlAttr, this.nodeType, this.parentMacro);
       
       // set the defaultValue as the trackControl's value

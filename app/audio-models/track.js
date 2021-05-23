@@ -88,7 +88,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
     if (this.currentSequence) {
       if(this.trackNodes.length) {
-        this.bindToSequencer();
+        this.sourceNodeRecords.forEach((source) => {
+          this.bindToSequencer(source);
+        });
       } else {
         console.error('no track nodes to bind to sequencer')
       }
@@ -255,10 +257,11 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     });
   }
 
-  bindToSequencer() {
+  bindToSequencer(trackNode) {
+    console.log(trackNode.uniqueSelector);
     let onStepCallback = this.onStepCallback.bind(this);
     // TODO: create a generalized "source node" selector to support oscillators, sampler or custom source macros
-    bindSourcenodeToLoopStep(this.samplerNode.uniqueSelector, onStepCallback, this.currentSequence.sequence);
+    bindSourcenodeToLoopStep(trackNode.uniqueSelector, onStepCallback, this.currentSequence.sequence);
   }
 
   unbindAndRemoveCrackedNodes() {
@@ -308,6 +311,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       filepath: this.filepathUrl,
       id: this.id,
       controls: controls,
+      trackSelector: `.track-${this.order}`,
 
       // trackControls: this.trackControls.map((trackControl) => {
       //   return {
@@ -319,7 +323,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       //   }
       // }),
       
-      // TODO Generalize playSample this to try to play anything the user may want on step
+      // TODO (maybe) Generalize playSample this to try to play anything the user may want on step
       // (ADSR, LFO, ramp)
       playSample() {
         if (samplerNode) {

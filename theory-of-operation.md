@@ -14,8 +14,8 @@ Every project has a **Main** track where the audio output is defined. All other 
 
 The Cracked audio library provides a simple syntax for defining and connecting [https://developer.mozilla.org/en-US/docs/Web/API/AudioNode](Audio Nodes).
 
-### The `Modulate` script
-Once you have defined an audio signal chain in the Setup Script, use the Modulate script to map your audio nodes to the track's **Sequencer**
+### The `Play` script
+Once you have defined an audio signal chain in the Setup Script, use the Play script to map your audio nodes to the track's **Sequencer**
 
 Define how your audio nodes behave with 
 
@@ -33,7 +33,7 @@ Each Track control has an options menu where you can configure and customize it'
 Unlike standard sliders, or number boxes, the `multislider` Track Control type allows you to program different values for each step of the given Track's step sequencer. `multislider` Track Controls are the easiest way to modulate and warp audio parameters without writing any code.
 
 #### Track Controls and Scripts
-The **Modulate** Script is responsible for applying the value of your Track Controls to your Audio Nodes. You can take advantage of this to write code to maipulate the Track Control values before they get applied. For example, say you have a `lowpass` filter on your track and the `frequency` Track Control is a `slider`. You can write a bit of code in your **modulate** script to slightly randomize the slider value on each step of the sequencer. 
+The **Play** Script is responsible for applying the value of your Track Controls to your Audio Nodes. You can take advantage of this to write code to maipulate the Track Control values before they get applied. For example, say you have a `lowpass` filter on your track and the `frequency` Track Control is a `slider`. You can write a bit of code in your **play** script to slightly randomize the slider value on each step of the sequencer. 
 
 ```
 // TODO: verify +update this example once fully implemented
@@ -58,10 +58,13 @@ Each track is a wrapper for an audio signal chain. The step sequencers of each t
 ...
 
 ## Audio Nodes
-Audio nodes are the objects that make up your signal chain. The code written in the each track should **setup** a signal chain use *selectors* to **modulate**
+Audio nodes are the objects that make up your signal chain. The code written in the each track should setup a signal chain and use *selectors* to play and modulate on each step.
 
 ## Scripts
-`cracked` and `__` are globally available as the single instance of the cracked audio context. While Scripts are meant to be self-contained within a given track, your Cracked scripts can actually define audio nodes that connect and modulate between tracks. For example you might have a 
+`cracked` and `__` are globally available variables which are the single instance of the cracked audio context. While Scripts are meant to be self-contained within a given track, your Cracked scripts can actually define audio nodes that connect to and modulate any other track in the project.
+
+
+See the **Selectors** section for more.
 
 
 ### The Main Track
@@ -98,7 +101,85 @@ You can use the `ui` attribute when creating an audio node to specify what kind 
 - `this.slider`
 
 ## Selectors
-### overview
+Selectors are used to set play or set attributes of various audio nodes. To "Select" one or more nodes means to tell the app which audio nodes to play or set parameters.
+
+There are 3 types of selectors
+
+### ID
+`ID` selectors should be uniquely assigned to a single audio node and are useful for manipulating a single node at a time.
+
+an ID selector always has a `#` at the beginning of the name.
+
+**example**
+setup a sinewave playing into an ADSR envelope node
+```
+__()
+  .sine(440)
+  .adsr({ id: 'my-first-envelope' })
+
+__()
+  .sine(550)
+  .adsr({ id: 'my-second-envelope' })
+
+```
+
+`id` selector used to trigger one or the other ADSR envelopes depending on the `data` variable
+```
+if (data === 1) {
+__('#my-first-envelope')
+}
+if (data == 2) {
+__('#my-second-envelope')
+}
+```
+
+### class
+`class` selectors can be assigned to one or more nodes and can be used to update parameters on multiple nodes at once.
+
+a class selector always has a `.` at the beginning of the name.  
+
+**example** 
+setup 2 different samplers with filters
+```
+__()
+  .sampler()
+  .lowpass({ class: 'my-filter' })
+
+
+__()
+  .sampler()
+  .bandpass({ class: 'my-filter'})
+
+```
+
+`class` selectors used to set frequency of 2 different filters
+```
+__('.my-filter').attr({
+  frequency: 440,
+  q: 4,
+})
+```
+
+### node name
+`node name` selectors will select every instance of a given node. The selector is a string of the node name without any special character.
+
+**example**
+setup a bunch of sine waves in a loop
+```
+  __()
+    .sampler()
+    .lowpass()
+
+__()
+    .sampler()
+    .lowpass()
+
+```
+
+Set all lowpass filters to the same frequency. 
+```
+__('lowpass').attr({ frequency: 440})
+```
 
 
 ## Code-driven User Interface

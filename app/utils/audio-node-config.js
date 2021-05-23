@@ -1,24 +1,40 @@
+// groups of interfaces for different params
+const bool = ['toggle']
+const oneD = ['slider', 'dial', 'multislider'];
+const twoD = ['position']; // control 2 attributes
+const tonal = ['piano'];
+const array = ['envelope']
+const filepath = ['filepath']
+
+
+// attr: min, max, defaultValue, interfaceOptions 
 const filterAttrs = {
-  attributeNames: {
-    frequency: [20, 10000, 10000, 'slider'],
-    q: [0, 20, 0, 'slider']
-  }
+  frequency: [20, 10000, 10000, oneD],
+  q: [0, 20, 0, oneD]
 }
 
 const gainableFilterAttrs = {
-  attributeNames: {
-    ...filterAttrs.attributeNames,
-    gain: [0, 16, 0, 'slider']
-  }
+  ...filterAttrs,
+  gain: [0, 16, 0, oneD]
+}
+
+const envelopeAttrs = {
+  attack: [0.003, 1, .0125, oneD],
+  decay: [0, 4, 0, oneD],
+  release: [0, 1, .25, oneD],
 }
 
 const oscillatorAttrs = {
   attributeNames: ['frequency', 'detune'],
 };
 
+// TODO: abstract the values of defaultParams (below)
+// and populate the min/max/defaultValue/defaultInterface of AudioNodeConfig 
+// and this should be the source of truth for all nodes + control configs
 export const AudioNodeConfig = {
   adsr: {
-    attributeNames: ['attack', 'decay', 'sustain', 'release'],
+    ...envelopeAttrs,
+    sustain: [], // todo is sustain level gain or db?
   },
   allpasss: {
     ...filterAttrs,
@@ -27,22 +43,36 @@ export const AudioNodeConfig = {
     ...filterAttrs,
   },
   bitcrusher: {
-    attributeNames: ['frequency', 'bits'],
+    frequency: [],
+    bits: [],
   },
   comb: {
-    attributeNames: ['delay', 'damping', 'cutoff', 'feedback'],
+    delay: [],
+    damping: [], 
+    cutoff: [], 
+    feedback: [],
   },
   compressor: {
-    attributeNames: ['threshold', 'knee', 'ratio', 'attack', 'release'],
+    threshold: [],
+    knee: [], 
+    ratio: [], 
+    attack: [], 
+    release: [],
   },
   channelStrip: {
-    attributeNames: ['gain', 'pan']
+    gain: [],
+    pan: [],
   },
   delay: {
-    attributeNames: ['delay', 'damping', 'feedback', 'cutoff', 'frequency'],
+    delay: [],
+    damping: [], 
+    feedback: [], 
+    cutoff: [], 
+    frequency: [],
   },
   gain: {
-    attributeNames: ['gain'],
+    gain: [],
+
   },
   highpass: {
     ...filterAttrs,
@@ -63,22 +93,31 @@ export const AudioNodeConfig = {
     ...filterAttrs,
   },
   lfo: {
-    attributeNames: ['frequency', 'gain'],
+    frequency: [],
+    gain: [],
   },
   overdrive: {
-    attributeNames: ['drive', 'color', 'postCut'],
+    drive: [],
+    color: [],
+    postCut: [],
   },
   panner: {
-    attributeNames: ['pan'],
+    pan: [],
   },
   reverb: {
-    attributeNames: ['seconds', 'decay', 'reverse'],
+    seconds: [],
+    decay: [],
+    reverse:[],
   },
   ring: {
-    attributeNames: ['distortion', 'frequency'],
+    distortion: [],
+    frequency: [],
   },
   sampler: {
-    attributeNames: ['speed', 'start', 'end', 'path'],
+    speed: [],
+    start: [], 
+    end: [], 
+    path: [],
   },
   sawtooth: {
     ...oscillatorAttrs,
@@ -86,26 +125,17 @@ export const AudioNodeConfig = {
   sine: {
     ...oscillatorAttrs,
   },
-  square: {},
+  square: {
+    ...oscillatorAttrs,
+  },
   triangle: {
     ...oscillatorAttrs,
   },
 };
 
-const bool = ['toggle']
-const oneD = ['slider', 'dial', 'multislider'];
-const twoD = ['position']; // control 2 attributes
-const tonal = ['piano'];
-const array = ['envelope']
-const filepath = ['filepath']
 
-export const NodeAttrControlConfig = {
-  'attack': {
-    min: 0.003,
-    max: 1,
-    defaultValue: 6,
-    interfaceOptions: oneD,
-  },
+export const defaultParams = {
+
   'bits': {
     min: 1,
     max: 16,
@@ -131,12 +161,6 @@ export const NodeAttrControlConfig = {
     min: 0,
     max: 1,
     defaultValue: 0.84,
-    interfaceOptions: oneD,
-  },
-  'decay': {
-    min: 0,
-    max: 4,
-    defaultValue: 0,
     interfaceOptions: oneD,
   },
   'delay': {
@@ -223,12 +247,6 @@ export const NodeAttrControlConfig = {
     min: 1,
     max: 20,
     defaultValue: 12,
-    interfaceOptions: oneD,
-  },
-  'release': {
-    min: 0,
-    max: 1,
-    defaultValue: .25,
     interfaceOptions: oneD,
   },
   'reverse': {

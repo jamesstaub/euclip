@@ -1,12 +1,12 @@
 <div  
-  class="relative script-editor-height" 
+  class="relative script-editor-height"
   ...attributes
 >
   {{ember-ace
-    class="grow-1 h-100 ace-editor-wrapper"
+    class="grow-1 ace-editor-wrapper"
     editorClass="ace-editor h-100"
     mode="ace/mode/javascript"
-    value=this.editorContent
+    value=@scriptModel.editorContent
     update=(perform this.onUpdateEditor)
   }}
 </div>

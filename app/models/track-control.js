@@ -114,6 +114,9 @@ export default class TrackControlModel extends Model {
     // this might get called by the sequencer while we're trying to delete the track, track-node or track-control
     if (!this.isDestroyed && this.nodeAttr) {
       if (!this.controlArrayComputed) {
+        // TO reproduce
+        // create a sine wave track, then duplicate it, change properties
+        // then delete the duplicated track
         console.error('FIXME: this should never happen');
       }
       

@@ -14,6 +14,13 @@ export default class ScriptWrapperComponent extends Component {
     this.scriptUi = 'init';
   }
 
+  // since the script wrapper is only rendered once on the project level
+  // dynamically update the preset menu to a value saved on the track 
+  // when the track changes
+  setDefaultPreset(presetMenu, [selectedOptionIdx]) {
+    presetMenu.selectedIndex=selectedOptionIdx;
+  }
+
   @action
   setUi(val) {
     this.scriptUi = val;

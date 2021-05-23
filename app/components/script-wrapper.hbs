@@ -5,12 +5,12 @@
       @selectedValue={{"init"}}
       @items={{compact (array 
         (hash label="setup" value="init" beacon=@track.initScript.alert)
-        (if @track.onstepScript (hash label="modulate" value="onstep" beacon=@track.onstepScript.alert))
+        (if @track.onstepScript (hash label="play" value="onstep" beacon=@track.onstepScript.alert))
       )}}
     />
    <PresetMenu 
       {{on "change" this.selectPreset}} 
-      value={{@track.selectedPreset}} 
+      {{did-update this.setDefaultPreset @track.selectedPreset}}
       @track={{@track}}
       @presetCollections={{@presetCollections}}
     />
