@@ -18,7 +18,7 @@ go live list:
   - - This could use existing selectors to access track nodes for controls eg.
       controls['.sampler-1']['speed']
   - -  you could do speed: `controls('.sampler') + __.rand()`
-
+- Fix brittle use of order for track selectors:s  See not note on `uniqueSelector` in models/track-node.js
 
 #### helpers
 - add helper function to set speed as a factor of the sequencer length (for loops)
@@ -56,6 +56,7 @@ go live list:
     - Envelope node : breakpoint nexus element or group of sliders
     - multidimensional controls (XY slider, breakpoint)
     - use for filters, LFOs, 
+  - in addition to default attributes, some Track Controls might update their defaults depending on their context: such as an LFO's default gain ranges when connected to an oscillator vs a sampler. In such case the LFO node could read the defaults from the modulating node
 
 
 ### Presets:
@@ -103,8 +104,7 @@ go live list:
 
 
 ### bugs
-- Channel strip Gain not working (likely conflicting with other gain nodes)
-- second to last track halts when adding new track.
+
 - - need more solid sequencer-awareness when adding/removing tracks (use generators to start on a particular beat)
 
   - use the LFO example, then add an additional gain node
@@ -124,8 +124,6 @@ go live list:
 ## Platform improvements
 
 implement a Forum with Threaded
-
-register as a BAT publisher for brave browser
 
 also look at Kofi https://ko-fi.com/gold?ref=home
 

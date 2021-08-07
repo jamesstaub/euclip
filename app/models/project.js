@@ -15,8 +15,8 @@ export default class ProjectModel extends ProjectAudioModel {
   async setupAndSaveNewTrack(track, saveOptions) {
     // need to wait to for save because orders may change
     await track.save(saveOptions);
-    track.setupAudioFromScripts(false);
     this.tracks.pushObject(track);
+    track.setupAudioFromScripts(false);
     
     return track;
   }

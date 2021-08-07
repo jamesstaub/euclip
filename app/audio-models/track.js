@@ -150,7 +150,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   findOrCreateTrackNodeRecords() {
     // trackNode records already created for this track
     let existingtrackNodes = this.trackNodes.sortBy('order');
-    
+
     // map over audio node objects created in this track's script
     // to find or create corresponding trackNode model records 
     this.trackAudioNodes.forEach((node, idx) => {
@@ -257,22 +257,27 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     });
   }
 
-  bindToSequencer(trackNode) {
-    console.log(trackNode.uniqueSelector);
+  bindToSequencer(sourceNode) {
+    console.log(sourceNode.uniqueSelector);
     let onStepCallback = this.onStepCallback.bind(this);
-    // TODO: create a generalized "source node" selector to support oscillators, sampler or custom source macros
-    bindSourcenodeToLoopStep(trackNode.uniqueSelector, onStepCallback, this.currentSequence.sequence);
+    bindSourcenodeToLoopStep(sourceNode.uniqueSelector, onStepCallback, this.currentSequence.sequence);
   }
 
   unbindAndRemoveCrackedNodes() {
-    // FIXME: replace with "samplerNode" to account for oscillators etc
-    if (this.samplerNode?.uniqueSelector) {
-      unbindFromSequencer(this.samplerNode.uniqueSelector);
-    }
-    __(`.track-${this.order}`).remove();
+    this.sourceNodeRecords.forEach((sourceNode) => {
+      console.log('unbind', sourceNode.uniqueSelector);
+      unbindFromSequencer(sourceNode.uniqueSelector);
+    })
+    // FIXME: create a getter on track for this selector
+    // with `createdOrder` instead of order 
+    __( `.track-${this.order}`).remove();
   }
   
   onStepCallback(index, data, array) {
+    if (this.isDeleted) {
+      console.log('tried to run call back on deleted track, must reset loop');
+      return;
+    }
     this.set('stepIndex', index);
 
     // before calling the user's onstepScript, pass the current values of all track-controls
@@ -284,7 +289,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   
     // FIXME: ideally this would not be a proxy, so .content not used
     this.get('onstepScript').content.invokeFunctionRef(index, data, array);
-
   }
 
   get scriptScope() {

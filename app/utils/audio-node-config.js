@@ -25,8 +25,8 @@ const envelopeAttrs = {
 }
 
 const oscillatorAttrs = {
-  attributeNames: ['frequency', 'detune'],
-};
+   frequency: [0, 20000, 440, oneD]
+}
 
 // TODO: abstract the values of defaultParams (below)
 // and populate the min/max/defaultValue/defaultInterface of AudioNodeConfig 
@@ -47,32 +47,31 @@ export const AudioNodeConfig = {
     bits: [],
   },
   comb: {
-    delay: [],
-    damping: [], 
+    delay: [0, 6, 1, oneD],
+    damping: [0, 1, 0.84, oneD],
     cutoff: [], 
-    feedback: [],
+    feedback: [0, 1, 0.25, oneD],
   },
   compressor: {
     threshold: [],
-    knee: [], 
-    ratio: [], 
-    attack: [], 
-    release: [],
+    knee: [0, 40, 30, oneD], 
+    ratio: [1, 20, 12, oneD], 
+    attack: envelopeAttrs.attack, 
+    release: envelopeAttrs.release, 
   },
   channelStrip: {
     gain: [],
     pan: [],
   },
   delay: {
-    delay: [],
-    damping: [], 
-    feedback: [], 
-    cutoff: [], 
+    delay: [0, 6, 1, oneD],
+    damping: [0, 1, 0.84, oneD],
+    feedback: [0, 1, 0.25, oneD], 
+    cutoff: [40, 10000, 10000, oneD], 
     frequency: [],
   },
   gain: {
-    gain: [],
-
+    gain: [0, 1, 1, oneD],
   },
   highpass: {
     ...filterAttrs,
@@ -93,31 +92,31 @@ export const AudioNodeConfig = {
     ...filterAttrs,
   },
   lfo: {
-    frequency: [],
-    gain: [],
+    frequency: [0, 20, 5, oneD],
+    gain: [0, 100, 10, oneD], // TODO: do we need LFO presets to be dynamic per their modulator?
   },
   overdrive: {
-    drive: [],
-    color: [],
-    postCut: [],
+    drive: [0, 2, 0.5, oneD],
+    color: [0, 1000, 800, oneD],
+    postCut: [0, 20000, 10000, oneD],
   },
   panner: {
-    pan: [],
+    pan: [-1, 1, 0, oneD],
   },
   reverb: {
-    seconds: [],
-    decay: [],
-    reverse:[],
+    // seconds: [],
+    // decay: [],
+    reverse:[null, null, null, bool],
   },
   ring: {
     distortion: [],
     frequency: [],
   },
   sampler: {
-    speed: [],
-    start: [], 
-    end: [], 
-    path: [],
+    speed: [-2, 2, 1, oneD],
+    start: [0, 1, 0, oneD], 
+    end: [0, 1, 1, oneD], 
+    path: [null, null, null, filepath],
   },
   sawtooth: {
     ...oscillatorAttrs,
@@ -133,9 +132,7 @@ export const AudioNodeConfig = {
   },
 };
 
-
 export const defaultParams = {
-
   'bits': {
     min: 1,
     max: 16,

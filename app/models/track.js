@@ -19,8 +19,16 @@ export default class TrackModel extends TrackAudioModel {
   
   @attr('number') order
   
-  destroyAndCleanup() {
+  @attr('number') stepIndex
+  
+  async destroyAndCleanup() {
     this.unbindAndRemoveCrackedNodes();
+    if (this.project.get('isPlaying')) {
+      // clean reset on delete to prevent the _loopListeners array gets cleared out in cracked
+      this.project.content.stopLoop();
+      this.project.content.initSignalChain();
+      this.project.content.startLoop();
+    }
     // this.store.unloadRecord(this.initScript);
     // this.store.unloadRecord(this.onstepScript);
     this.trackNodes.forEach((trackNode) => {

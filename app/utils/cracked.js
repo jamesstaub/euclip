@@ -5,7 +5,6 @@
  * 
  * 
  */
-
 export function getCrackedNode(uuid) {
   return __._getNode(uuid);
 }

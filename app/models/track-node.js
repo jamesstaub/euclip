@@ -128,8 +128,7 @@ export default class TrackNodeModel extends Model {
       const userDefault = userSettingsForControl[trackControl.nodeAttr]
       if (trackControl._defaultValue !== userDefault) {
         trackControl.set('defaultValue', userDefault);
-        trackControl.setDefault()
-        trackControl.save();
+        trackControl.setDefault(); // setDefault also saves
       }
       trackControl.set('_defaultValue', userDefault);
     });
@@ -150,10 +149,10 @@ export default class TrackNodeModel extends Model {
       return
     }
      return controlAttrs.map((controlAttr) => {
-      const defaults = TrackControlModel.defaultForAttr(controlAttr, this.nodeType, this.parentMacro);
-      
+      // const defaults = TrackControlModel.defaultForAttr(controlAttr, this.nodeType, this.parentMacro);
       // set the defaultValue as the trackControl's value
-      defaults.controlValue = defaults.defaultValue;
+      // defaults.controlValue = defaults.defaultValue;
+      const [min, max, defaultValue, interfaceOptions] = AudioNodeConfig[this.nodeType][controlAttr];
 
       const trackControl  = this.store.createRecord('track-control', {
         nodeAttr: controlAttr,
@@ -162,7 +161,11 @@ export default class TrackNodeModel extends Model {
         trackNode: this,
         nodeType: this.nodeType,
         nodeOrder: this.order, 
-        ...defaults,
+        interfaceName: interfaceOptions[0],
+        controlValue: defaultValue,
+        defaultValue,
+        min,
+        max,
       });
       
       if (this.userDefinedInterfaceName) {

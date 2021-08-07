@@ -204,8 +204,10 @@ export default class TrackControlModel extends Model {
     // FIXME: need a better strategy to prevent the last save response from coming in 
     // out of sync with current UI state. (occurs when lots of rapid changes are made to nexus-multislider)
     yield timeout(5000);
-    // http://ember-concurrency.com/docs/examples/autocomplete/
-    yield this.save();
+    // dont save if project was deleted during task timeout
+    if (this.project) {
+      yield this.save();
+    }
   }
 
   @task

@@ -48,6 +48,9 @@ export default class ScriptModel extends Model {
 
   async onScriptError(e, type) {
     const project = await this.get('track.project');
+    if (!project) {
+      debugger
+    }
     project.stopLoop().resetLoop();
 
     await timeout(100); // hack to avoid double render
@@ -76,6 +79,6 @@ export default class ScriptModel extends Model {
   @task
   *updateScriptTask(property, value) {
    this.set(property, value);
-   this.save();
+   yield this.save();
  }
 }
