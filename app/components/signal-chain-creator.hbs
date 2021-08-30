@@ -1,0 +1,70 @@
+{{!-- <div class="flex flex-wrap">
+  {{#each this.selectedNodes as |node|}}
+    <div class="w2 h1 bg-gray yellow fw4 ma1 grow-1">
+      <span class="pa1">{{node}}</span>
+    </div>
+  {{/each}}
+</div>
+<div class="flex justify-between">
+  <div class="grow-1">
+    <h4 class="white">source node</h4>
+    <ul class="list pl1 h-4 overflow-scroll h5 bw2">
+      {{#each this.sourceGroups as |group|}}
+        {{#if group.type}}
+          <li class="pv2 fw7 bb light-yellow">{{group.type}}</li>
+        {{/if}}
+        {{#each group.nodes as |node|}}
+          <li>
+            <button {{on "click" (fn this.addSourceNodeToSignalChain node)}} class="yellow bn bg-transparent">{{node}}</button>
+          </li>
+        {{/each}}
+      {{/each}}
+    </ul>
+  </div>
+  <div class="grow-1">
+    <h4 class="white">effects</h4>
+    <ul class="list pl1 h-4 overflow-scroll h5 bw2">
+      {{#each this.effectsGroups as |group|}}
+        {{#if group.type}}
+          <li class="pv2 fw7 bb light-yellow">{{group.type}}</li>
+        {{/if}}
+        {{#each group.nodes as |node|}}
+          <li>
+            <button {{on "click" (fn this.addEffectNodeToSignalChain node)}} class="yellow bn bg-transparent">{{node}}</button>
+          </li>
+        {{/each}}
+      {{/each}}
+    </ul>
+  </div>
+  <button {{on "click" this.clear}}>clear</button>
+</div> --}}
+
+<div class="w-100 bt bw1 pa3">
+  <h3 class="yellow">Create A Signal Chain</h3>
+  <div class="flex flex-column overflow-scroll mr5 pb5">
+    <SignalChainNode
+      @node={{this.selectedNodes.firstObject}}
+      @nodeOptionGroups={{this.sourceGroups}}
+      @onAddNode={{this.addSourceNodeToSignalChain}}
+    />
+
+    {{#each this.selectedNodes as |node idx|}}
+      {{!-- exclude the source node --}}
+      {{#unless (eq idx 0)}}
+        <SignalChainNode
+          @node={{node}}
+          @nodeOptionGroups={{this.effectsGroups}} 
+          @onAddNode={{this.addEffectNodeToSignalChain}}
+          @onRemoveNode={{fn this.removeNodeFromArray idx}}
+        />
+      {{/unless}}
+    {{/each}}
+    
+    {{#unless (eq this.selectedNodes.length 0)}}
+      <SignalChainNode 
+        @nodeOptionGroups={{this.effectsGroups}} 
+        @onAddNode={{this.addEffectNodeToSignalChain}}
+      />
+    {{/unless}}
+  </div>
+</div>

@@ -77,44 +77,5 @@ export function unbindFromSequencer(samplerSelector) {
   __(samplerSelector).unbind('step');
 }
 
-/**
- * Configuration for createing TrackControl records assigned to TrackNodes 
- * based on the supported node types in the cracked library.
- */
-export function paramsForNode(nodeType) {
-  switch (nodeType) {
-    case 'bitcrusher':
-      return ['frequency', 'bits'];
-    case 'comb':
-      return ['delay', 'damping', 'cutoff', 'feedback'];
-    case 'compressor':
-      return ['threshold', 'knee', 'ratio', 'attack', 'release'];
-    case 'delay':
-      return ['delay', 'damping', 'feedback', 'cutoff', 'frequency'];
-    case 'gain':
-      return ['gain'];
-    case 'lowpass' || 'highpass' || 'bandpass' || 'allpasss' || 'notch':
-      return ['frequency', 'q'];
-    case 'lowshelf' || 'highshelf' || 'peaking':
-      return ['frequency', 'q', 'gain'];
-    case 'lfo':
-      return ['frequency', 'gain'];
-    case 'overdrive':
-      return ['drive', 'color', 'postCut'];
-    case 'panner':
-      return ['pan'];
-    case 'reverb':
-      return ['seconds','decay', 'reverse'];
-    case 'ring':
-      return ['distortion', 'frequency'];
-    case 'sampler':
-      return ['speed', 'start', 'end', 'path'];
-    case 'sine' || 'square' || 'triangle' || 'sawtooth':
-      return ['frequency', 'detune'];
-    default:
-      return [];
-  }
-}
-
 export const synthNodes = ['triangle', 'sine', 'square', 'saw'];
 export const noiseNodes = ['noise', 'pink', 'white', 'brown'];

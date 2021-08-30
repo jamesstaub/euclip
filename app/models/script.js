@@ -66,15 +66,15 @@ export default class ScriptModel extends Model {
  
   @keepLatestTask
   *runCode() {
-  this.alert = null;
-  this.set('code', this.get('editorContent'));
-  yield this.updateScriptTask.perform('safeCode', this.get('editorContent'));
-  if (this.name === 'init-script') {
-    const track = yield this.get('track');
-    track.setupAudioFromScripts();
+    this.alert = null;
+    this.set('code', this.get('editorContent'));
+    yield this.updateScriptTask.perform('safeCode', this.get('editorContent'));
+    if (this.name === 'init-script') {
+      const track = yield this.get('track');
+      track.setupAudioFromScripts();
+    }
+    yield timeout(1000);
   }
-  yield timeout(1000);
-}
 
   @task
   *updateScriptTask(property, value) {

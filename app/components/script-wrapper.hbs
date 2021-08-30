@@ -17,20 +17,27 @@
   </div>
 
   {{#if (and @track.initScript (eq this.scriptUi "init"))}}
-    <ScriptEditor 
+    <SignalChainCreator 
+      @trackNodes={{@model.trackNodes}} 
+      @onGenerateScript={{fn this.updateEditorContent @track.initScript}}
+    />
+    {{!-- <ScriptEditor 
       class={{if @shrinkForFooter "shrink-for-footer"}}
       @scriptModel={{@track.initScript}} 
-      @editorContent={{@track.initScript.editorContent}} {{!-- << update UI when content changed in model --}}
+      @editorContent={{@track.initScript.editorContent}} 
       @editorLineCount={{this.editorLineCount}}
-    />
+    /> --}}
   {{/if}}
 
   {{#if (and @track.onstepScript (eq this.scriptUi "onstep"))}}
     <ScriptEditor 
       class={{if @shrinkForFooter "shrink-for-footer"}}
       @scriptModel={{@track.onstepScript}} 
-      @editorContent={{@track.onstepScript.editorContent}} {{!-- << update UI when content changed in model --}}
+      @editorContent={{@track.onstepScript.editorContent}} 
       @editorLineCount={{this.editorLineCount}}
-    />
+    > 
+    </ScriptEditor>
   {{/if}}
+
 </div>
+

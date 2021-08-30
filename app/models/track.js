@@ -20,7 +20,7 @@ export default class TrackModel extends TrackAudioModel {
   @attr('number') order
   
   @attr('number') stepIndex
-  
+
   async destroyAndCleanup() {
     this.unbindAndRemoveCrackedNodes();
     if (this.project.get('isPlaying')) {

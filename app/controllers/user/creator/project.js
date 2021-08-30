@@ -44,7 +44,7 @@ export default class UserCreatorProjectController extends Controller {
   @action
   async addTrack() {
     let track = this.model.tracks.createRecord({ hits: 1 });
-    // NOTE this is potentially a bad idea but the cached value in the getter above 
+    // NOTE this is potentially a bad idea but the cached value in the sortedTracks getter above 
     // prevents a flicker when adding tracks
     this._sortedTracks.push(track);
     try {

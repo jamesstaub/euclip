@@ -4,46 +4,48 @@
 >
   {{ember-ace
     class="grow-1 ace-editor-wrapper"
-    editorClass="ace-editor h-100"
+    editorClass="ace-editor h-100 mv0"
     mode="ace/mode/javascript"
     value=@scriptModel.editorContent
     update=(perform this.onUpdateEditor)
   }}
 </div>
-{{yield}}
 
 <div class="flex justify-between items-center">
-  <div class="flex">
-    <ButtonPrimary
-      class="mr3  {{if functionIsLoaded "bg-dark-gray light-blue bn" "b--light-blue bg-light-blue dark-gray fw6"}}"
-      @restyle={{true}}
-      {{on "click" (perform @scriptModel.runCode)}}
-      disabled={{functionIsLoaded}}
-      title={{if functionIsLoaded "This script is loaded and running" "Click to load this script"}}
-    >
-      {{#if functionIsLoaded}}
-        Loaded
-      {{else}}
-        Load
-      {{/if}}
-    </ButtonPrimary>
-    {{#if functionIsLoaded}}
-      <ButtonPrimary 
-        {{on "click" this.disableScript}}
-        class="dark-red b--dark-red bg-dark-gray fw6"
-        @restyle={{true}}
-        title="Disable this script. Nodes will be removed and disconnected from the sequencer."
-      >disable</ButtonPrimary>
-    {{else}}
+  <div class="flex justify-between grow-1">
+    <div>
       <ButtonPrimary
-        class="orange b--orange bg-dark-gray"
+        class="mr3  {{if functionIsLoaded "bg-dark-gray light-blue bn" "b--light-blue bg-light-blue dark-gray fw6"}}"
         @restyle={{true}}
-        {{on "click" this.discardChanges}}
-        title="Revert editor to currently running code"
+        {{on "click" (perform @scriptModel.runCode)}}
+        disabled={{functionIsLoaded}}
+        title={{if functionIsLoaded "This script is loaded and running" "Click to load this script"}}
       >
-        discard changes
+        {{#if functionIsLoaded}}
+          Loaded
+        {{else}}
+          Load
+        {{/if}}
       </ButtonPrimary>
-    {{/if}}
+      {{#if functionIsLoaded}}
+        <ButtonPrimary 
+          {{on "click" this.disableScript}}
+          class="dark-red b--dark-red bg-dark-gray fw6"
+          @restyle={{true}}
+          title="Disable this script. Nodes will be removed and disconnected from the sequencer."
+        >disable</ButtonPrimary>
+      {{else}}
+        <ButtonPrimary
+          class="orange b--orange bg-dark-gray"
+          @restyle={{true}}
+          {{on "click" this.discardChanges}}
+          title="Revert editor to currently running code"
+        >
+          discard changes
+        </ButtonPrimary>
+      {{/if}}  
+    </div>
+      {{yield}}
   </div>
 
   <div class="flex">

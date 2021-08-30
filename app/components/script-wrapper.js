@@ -26,6 +26,13 @@ export default class ScriptWrapperComponent extends Component {
     this.scriptUi = val;
   }
 
+  // TODO: replace this with a global helper/util
+  // for setting a property on a model record?
+  @action
+  updateEditorContent(scriptModel, content) {
+    scriptModel.set('editorContent', content);
+  }
+
   @action
   async selectPreset({target}) {
     const presetId = target.value;

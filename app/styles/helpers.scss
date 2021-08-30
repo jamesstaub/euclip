@@ -30,8 +30,21 @@
 
 
 /* Position */
+.top-neg-100 {
+  top: -100%;
+}
+
+.right-neg-100 {
+  right: -100%;
+}
+
 .z-5 {
   z-index: 5;
+}
+
+.small-icon-btn {
+  transform: scale(.5);
+  transform-origin: top right;
 }
 
 /* Sizing*/

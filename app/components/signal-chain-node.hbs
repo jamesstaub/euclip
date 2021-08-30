@@ -1,0 +1,29 @@
+<div class="relative mr3 mb3 w4">
+  {{#if (and @node @onRemoveNode)}}
+    <IconButton class="light-fill small-icon-btn bn absolute right-0 top-0 z-2" @icon="fi-cancel" {{on "click" (fn @onRemoveNode)}} />
+  {{/if}}
+  <button {{on "click" this.toggleChoices}} class="w4 h3 ba b--yellow yellow bg-transparent">
+    {{#if @node}}
+      {{@node}}
+    {{else}}
+      +
+    {{/if}}
+  </button>
+
+  {{#if this.isShowingChoices}}
+    <div class="w4 h4 overflow-scroll mt5 absolute top-neg-100 right-neg-100 bg-dark-gray ba b--yellow z-2">
+      <ul class="list pl1 h-4 overflow-scroll h5 bw2">
+        {{#each @nodeOptionGroups as |group|}}
+          {{#if group.type}}
+            <li class="ph2 pb2 f6 bb light-gray w-100 tc mt1">{{group.type}}</li>
+          {{/if}}
+          {{#each group.nodes as |node|}}
+            <li>
+              <button {{on "click" (fn this.addNode node)}} class="yellow pa2 bn bg-transparent tl w-100">{{node}}</button>
+            </li>
+          {{/each}}
+        {{/each}}
+      </ul>
+    </div>
+  {{/if}}
+</div>

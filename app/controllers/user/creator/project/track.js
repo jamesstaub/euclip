@@ -10,4 +10,9 @@ export default class UserCreatorProjectTrackController extends Controller {
   toggleSidebar(trackId, direction) {
     this.project.toggleSidebar(trackId, direction);
   }
+
+  @action
+  updateInitScript(generatedScript) {
+    this.model.initScript.set('editorContent', generatedScript);
+  }
 }

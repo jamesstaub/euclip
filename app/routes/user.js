@@ -7,6 +7,7 @@ export default class UserRoute extends Route {
   @service currentUser;
 
   beforeModel() {
+    // FIME this request is blocking if there is no network connection
     fetch(ENV.APP.DRUMSERVER_HOST); // fire a ping to wakeup free heroku server
     return this._loadCurrentUser();
   }

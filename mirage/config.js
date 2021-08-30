@@ -23,9 +23,13 @@ export default function() {
     return user;
   });
 
-  this.get('/login', (schema) => {
+  this.post('/login', (schema) => {
     const user = schema.users.first();
     return user;
+  });
+  
+  this.delete('/logout', () => {
+    return {}
   });
 
   this.get('/v1/users/:id/projects', (schema) => {

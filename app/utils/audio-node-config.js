@@ -1,3 +1,8 @@
+export const FILTER = 'filter';
+export const DISTORTION = 'distortion';
+export const DYNAMICS = 'dynamics';
+export const TIME = 'time';
+
 // groups of interfaces for different params
 const bool = ['toggle']
 const oneD = ['slider', 'dial', 'multislider'];
@@ -33,102 +38,170 @@ const oscillatorAttrs = {
 // and this should be the source of truth for all nodes + control configs
 export const AudioNodeConfig = {
   adsr: {
-    ...envelopeAttrs,
-    sustain: [], // todo is sustain level gain or db?
+    type: DYNAMICS,
+    attrs:{
+      ...envelopeAttrs,
+      sustain: [], // todo is sustain level gain or db?
+    }
   },
   allpasss: {
-    ...filterAttrs,
+    type: FILTER,
+    attrs:{
+      ...filterAttrs,
+    },
   },
   bandpass: {
-    ...filterAttrs,
+    type: FILTER,
+    attrs:{
+      ...filterAttrs,
+    }
   },
   bitcrusher: {
-    frequency: [],
-    bits: [],
+    type: DISTORTION,
+    attrs:{
+      frequency: [],
+      bits: [],
+    }
   },
   comb: {
-    delay: [0, 6, 1, oneD],
-    damping: [0, 1, 0.84, oneD],
-    cutoff: [], 
-    feedback: [0, 1, 0.25, oneD],
+    type: FILTER,
+    attrs:{
+      delay: [0, 6, 1, oneD],
+      damping: [0, 1, 0.84, oneD],
+      cutoff: [], 
+      feedback: [0, 1, 0.25, oneD],
+    }
   },
   compressor: {
-    threshold: [],
-    knee: [0, 40, 30, oneD], 
-    ratio: [1, 20, 12, oneD], 
-    attack: envelopeAttrs.attack, 
-    release: envelopeAttrs.release, 
+    type: DYNAMICS,
+    attrs: {
+      threshold: [-60, 0, -12, oneD],
+      knee: [0, 40, 30, oneD], 
+      ratio: [1, 20, 12, oneD], 
+      attack: envelopeAttrs.attack, 
+      release: envelopeAttrs.release, 
+    }
   },
   channelStrip: {
-    gain: [],
-    pan: [],
+    attrs:{
+      gain: [],
+      pan: [],
+    }
   },
   delay: {
-    delay: [0, 6, 1, oneD],
-    damping: [0, 1, 0.84, oneD],
-    feedback: [0, 1, 0.25, oneD], 
-    cutoff: [40, 10000, 10000, oneD], 
-    frequency: [],
+    type: TIME,
+    attrs:{
+      delay: [0, 6, 1, oneD],
+      damping: [0, 1, 0.84, oneD],
+      feedback: [0, 1, 0.25, oneD], 
+      cutoff: [40, 10000, 10000, oneD], 
+      frequency: [],
+    }
   },
   gain: {
-    gain: [0, 1, 1, oneD],
+    type: DYNAMICS,
+    attrs:{
+      gain: [0, 1, 1, oneD],
+    }
   },
   highpass: {
-    ...filterAttrs,
+    type: FILTER,
+    attrs:{
+      ...filterAttrs,
+    }
   },
   lowpass: {
-    ...filterAttrs,
+    type: FILTER,
+    attrs:{
+      ...filterAttrs,
+    }
   },
   lowshelf: {
-    ...gainableFilterAttrs,
+    type: FILTER,
+    attrs:{
+      ...gainableFilterAttrs,
+    }
   },
   highshelf: {
-    ...gainableFilterAttrs,
+    type: FILTER,
+    attrs:{
+      ...gainableFilterAttrs,
+    }
   },
   peaking: {
-    ...gainableFilterAttrs,
+    type: FILTER,
+    attrs:{
+      ...gainableFilterAttrs,
+    }
   },
   notch: {
-    ...filterAttrs,
+    type: FILTER,
+    attrs:{
+      ...filterAttrs,
+    }
   },
   lfo: {
-    frequency: [0, 20, 5, oneD],
-    gain: [0, 100, 10, oneD], // TODO: do we need LFO presets to be dynamic per their modulator?
+    attrs:{
+      frequency: [0, 20, 5, oneD],
+      gain: [0, 100, 10, oneD], // TODO: do we need LFO presets to be dynamic per their modulator?
+    }
   },
   overdrive: {
-    drive: [0, 2, 0.5, oneD],
-    color: [0, 1000, 800, oneD],
-    postCut: [0, 20000, 10000, oneD],
+    type: DISTORTION,
+    attrs:{
+      drive: [0, 2, 0.5, oneD],
+      color: [0, 1000, 800, oneD],
+      postCut: [0, 20000, 10000, oneD],
+    }
   },
   panner: {
-    pan: [-1, 1, 0, oneD],
+    type: DYNAMICS,
+    attrs:{
+      pan: [-1, 1, 0, oneD],
+    }
   },
   reverb: {
+    type: TIME,
+    attrs:{
+      reverse:[null, null, null, bool],
+    }
     // seconds: [],
     // decay: [],
-    reverse:[null, null, null, bool],
   },
   ring: {
-    distortion: [],
-    frequency: [],
+    type: DISTORTION,
+    attrs:{
+      distortion: [],
+      frequency: [],
+    }
   },
   sampler: {
-    speed: [-2, 2, 1, oneD],
-    start: [0, 1, 0, oneD], 
-    end: [0, 1, 1, oneD], 
-    path: [null, null, null, filepath],
+    attrs:{
+      speed: [-2, 2, 1, oneD],
+      start: [0, 1, 0, oneD], 
+      end: [0, 1, 1, oneD], 
+      path: [null, null, null, filepath],
+    }
   },
   sawtooth: {
-    ...oscillatorAttrs,
+    attrs:{
+      ...oscillatorAttrs,
+    }
   },
   sine: {
-    ...oscillatorAttrs,
+    attrs:{
+      ...oscillatorAttrs,
+    }
   },
   square: {
-    ...oscillatorAttrs,
+    attrs:{
+      ...oscillatorAttrs,
+    }
   },
   triangle: {
-    ...oscillatorAttrs,
+    attrs:{
+      ...oscillatorAttrs,
+    }
   },
 };
 

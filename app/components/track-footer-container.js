@@ -17,7 +17,7 @@ export default class TrackFooterContainerComponent extends Component {
     super(...arguments);
     this.maxSteps = 64;
     this.setTabs();
-    this.showReference = true;
+    this.showReference = false;
   }
 
   get validTrackNodes() {
