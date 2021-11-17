@@ -2,28 +2,65 @@ import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import { inject as service } from '@ember/service';
+import { use } from 'ember-usable';
+import { useMachine, matchesState } from 'ember-statecharts';
+import scriptWrapperMachine from '../machines/script-wrapper-machine';
+import { isPresent } from '@ember/utils';
 
 export default class ScriptWrapperComponent extends Component {
-  @tracked scriptUi;
-  @tracked editorLineCount;
-  
   @service store;
+  @tracked editorLineCount;
 
-  constructor() {
-    super(...arguments);
-    this.scriptUi = 'init';
-  }
+  @use statechart = useMachine(scriptWrapperMachine).withConfig({
+    guards: {
+      canShowInit: this._initModelPresent.bind(this),
+      canShowOnstep: this._onstepModelPresent.bind(this),
+    },
+  });
 
-  // since the script wrapper is only rendered once on the project level
-  // dynamically update the preset menu to a value saved on the track 
-  // when the track changes
-  setDefaultPreset(presetMenu, [selectedOptionIdx]) {
-    presetMenu.selectedIndex=selectedOptionIdx;
+  @matchesState('presets')
+  showPresets;
+
+  @matchesState('signalGui')
+  showSignalGui;
+
+  @matchesState({ script: 'init' })
+  showInitScript;
+
+  @matchesState({ script: 'onstep' })
+  showOnstepScript;
+
+  /*
+    state machine actions
+  */
+  @action
+  toggleInputType() {
+    this.statechart.send('TOGGLE_INPUT_UI');
   }
 
   @action
-  setUi(val) {
-    this.scriptUi = val;
+  setScriptTypeTab(selectedTab) {
+    this.statechart.send(`SET_TAB_${(selectedTab.toUpperCase())}`);
+  }
+
+  /*
+    state machine guards
+  */
+  _initModelPresent() {
+    return isPresent(this.args.track.initScript);
+  }
+
+  _onstepModelPresent() {
+    return isPresent(this.args.track.onstepScript);
+  }
+
+  
+
+  // since the script wrapper is only rendered once on the project level
+  // dynamically update the preset menu to a value saved on the track
+  // when the track changes
+  setDefaultPreset(presetMenu, [selectedOptionIdx]) {
+    presetMenu.selectedIndex = selectedOptionIdx;
   }
 
   // TODO: replace this with a global helper/util
@@ -34,9 +71,9 @@ export default class ScriptWrapperComponent extends Component {
   }
 
   @action
-  async selectPreset({target}) {
+  async selectPreset({ target }) {
     const presetId = target.value;
-    
+
     // save the selection on the track model so the dropdown updates when changing tracks\
     this.args.track.selectedPreset = presetId;
     // fetch the full preset record (with related script models)

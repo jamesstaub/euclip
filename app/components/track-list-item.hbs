@@ -52,7 +52,7 @@
 
       {{#unless @track.isMaster}}
         <DropdownMenu 
-          class="h-100 grow-1 {{if @isActive "dark-fill" "light-fill"}}"
+          class="h-100 grow-1 {{if @isActive "dark-fill" "yellow-fill"}} bn bg-transparent"
           @items={{array 
             (hash label="delete" select=(fn this.deleteTrack)) 
             (hash label="duplicate" select=(fn this.duplicateTrack)) 

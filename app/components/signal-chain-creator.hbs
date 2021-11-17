@@ -30,7 +30,7 @@
         {{/if}}
         {{#each group.nodes as |node|}}
           <li>
-            <button {{on "click" (fn this.addEffectNodeToSignalChain node)}} class="yellow bn bg-transparent">{{node}}</button>
+            <button {{on "click" (fn this.insertEffectNodeAtIdx idx node)}} class="yellow bn bg-transparent">{{node}}</button>
           </li>
         {{/each}}
       {{/each}}
@@ -39,31 +39,39 @@
   <button {{on "click" this.clear}}>clear</button>
 </div> --}}
 
-<div class="w-100 bt bw1 pa3">
-  <h3 class="yellow">Create A Signal Chain</h3>
-  <div class="flex flex-column overflow-scroll mr5 pb5">
+<div class="w-100 h-100 mt3" {{on "click" this.deselectActiveNode}}>
+  <h4 class="yellow">Create A Signal Chain</h4>
+  <div class="h-100 flex flex-column overflow-scroll mr5 pb5" >
     <SignalChainNode
+      @activeNodeIdx={{this.activeNodeIdx}}
       @node={{this.selectedNodes.firstObject}}
       @nodeOptionGroups={{this.sourceGroups}}
-      @onAddNode={{this.addSourceNodeToSignalChain}}
+      @onToggleMenu={{this.setActiveNode}}
+      @onSelectNode={{this.addSourceNodeToSignalChain}}
     />
 
     {{#each this.selectedNodes as |node idx|}}
       {{!-- exclude the source node --}}
       {{#unless (eq idx 0)}}
         <SignalChainNode
+          @activeNodeIdx={{this.activeNodeIdx}}
           @node={{node}}
+          @idx={{idx}}
           @nodeOptionGroups={{this.effectsGroups}} 
-          @onAddNode={{this.addEffectNodeToSignalChain}}
+          @onToggleMenu={{this.setActiveNode}}
+          @onSelectNode={{fn this.insertEffectNodeAtIdx idx}}
           @onRemoveNode={{fn this.removeNodeFromArray idx}}
         />
       {{/unless}}
     {{/each}}
     
     {{#unless (eq this.selectedNodes.length 0)}}
-      <SignalChainNode 
+      <SignalChainNode
+        @idx={{-1}}
+        @activeNodeIdx={{this.activeNodeIdx}}
         @nodeOptionGroups={{this.effectsGroups}} 
-        @onAddNode={{this.addEffectNodeToSignalChain}}
+        @onToggleMenu={{this.setActiveNode}}
+        @onSelectNode={{fn this.insertEffectNodeAtIdx 1}}
       />
     {{/unless}}
   </div>

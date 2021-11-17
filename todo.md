@@ -104,7 +104,7 @@ go live list:
 
 
 ### bugs
-
+-- master track doesn't update when new nodes are added (until playback is restarted)
 - - need more solid sequencer-awareness when adding/removing tracks (use generators to start on a particular beat)
 
   - use the LFO example, then add an additional gain node

@@ -16,7 +16,21 @@
           <span class="pr3">bpm</span>
         </div>
       </div>
-    <ButtonPrimary class="ml3" @label={{"Add New Track"}} {{on "click" this.addTrack}}/>
+    <div class="flex ml3">
+      <ButtonPrimary @label={{"Add New Track"}} {{on "click" this.addTrack}}/>
+      <DropdownMenu 
+        class="h-100 grow-1 bg-dark-gray ba bl-0 bw1 b--yellow"
+        @icon={{"fi-play"}}
+        @iconClass={{"yellow-fill rotate-90"}}
+        @items={{array 
+          (hash label="Sampler" select=(fn this.addTrack "samplerPreset")) 
+          (hash label="Synth" select=(fn this.addTrack "synthPreset")) 
+          (hash label="New From Preset")
+          (hash label="Drum Machine")
+          (hash label="Blank Track" select=(fn this.addTrack "signalChainGui")) 
+        }}
+      />
+    </div>
   </div>
 </nav>
 
@@ -40,11 +54,11 @@
       />
     </SidebarWrapper>
   {{/if}}
-  <TrackListWrapper 
+  <TrackListWrapper
     @rightSidebarOpen={{this.rightSidebarOpen}} 
     @leftSidebarOpen={{this.leftSidebarOpen}}
   >
-    <div class="overflow-scroll">
+    <div>
       {{#each this.sortedTracks key="order" as |track|}}
         {{#unless track.isMaster}}
           <TrackListItem

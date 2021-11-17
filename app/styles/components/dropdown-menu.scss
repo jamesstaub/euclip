@@ -6,11 +6,9 @@
   span {
     cursor: pointer;
   }
-  background-color: transparent;
   
   &:focus {
     outline: none;
-    background-color: $light-gray;
     color: $dark-gray;
     span {
       color: $dark-gray;

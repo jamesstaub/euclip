@@ -9,6 +9,9 @@ button {
 
 input:focus, button:focus {
   outline-color: $yellow;
+  &.bg-dark-gray {
+    background-color: darken($dark-gray, 10);
+  }
 }
 
 .light-yellow-button {
@@ -20,7 +23,7 @@ button[disabled] {
   cursor: default;
 }
 
-button:not([disabled]):hover {
+button:not([disabled]):hover, button:not([disabled]):focus  {
   &.bg-dark-gray {
     background-color: darken($dark-gray, 10);
   }

@@ -1,42 +1,52 @@
 <div class="flex flex-column grow-1 mh3 relative script-wrapper-height">
   <div class="flex justify-between flex-wrap">
     <TabMenu
-      @onSelect={{fn this.setUi}}
+      @onSelect={{fn this.setScriptTypeTab}}
       @selectedValue={{"init"}}
       @items={{compact (array 
         (hash label="setup" value="init" beacon=@track.initScript.alert)
         (if @track.onstepScript (hash label="play" value="onstep" beacon=@track.onstepScript.alert))
       )}}
     />
-   <PresetMenu 
-      {{on "change" this.selectPreset}} 
-      {{did-update this.setDefaultPreset @track.selectedPreset}}
-      @track={{@track}}
-      @presetCollections={{@presetCollections}}
+    {{#if this.showPresets}}
+      <PresetMenu 
+        {{on "change" this.selectPreset}} 
+        {{did-update this.setDefaultPreset @track.selectedPreset}}
+        @track={{@track}}
+        @presetCollections={{@presetCollections}}
+      />
+    {{/if}}
+
+    <IconButton class="mh1" 
+      @icon="fi-stop" 
+      @label="toggle script editor/GUI view" 
+      {{action "toggleInputType"}}
     />
   </div>
 
-  {{#if (and @track.initScript (eq this.scriptUi "init"))}}
+  {{#if this.showSignalGui}}
     <SignalChainCreator 
       @trackNodes={{@model.trackNodes}} 
       @onGenerateScript={{fn this.updateEditorContent @track.initScript}}
     />
-    {{!-- <ScriptEditor 
+  {{/if}}
+
+  {{#if this.showInitScript}}
+    <ScriptEditor 
       class={{if @shrinkForFooter "shrink-for-footer"}}
       @scriptModel={{@track.initScript}} 
       @editorContent={{@track.initScript.editorContent}} 
       @editorLineCount={{this.editorLineCount}}
-    /> --}}
+    />
   {{/if}}
 
-  {{#if (and @track.onstepScript (eq this.scriptUi "onstep"))}}
+  {{#if this.showOnstepScript}}
     <ScriptEditor 
       class={{if @shrinkForFooter "shrink-for-footer"}}
       @scriptModel={{@track.onstepScript}} 
       @editorContent={{@track.onstepScript.editorContent}} 
       @editorLineCount={{this.editorLineCount}}
-    > 
-    </ScriptEditor>
+    />
   {{/if}}
 
 </div>

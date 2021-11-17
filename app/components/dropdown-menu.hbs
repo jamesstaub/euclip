@@ -1,13 +1,11 @@
 <button 
-  class="dropdown-menu-btn bn" 
-  {{on "click" this.toggleOpen}}
+  class="dropdown-menu-btn" ...attributes type="button" {{on "click" this.toggleOpen}}
   {{did-insert (fn this.setPosition)}}
-  ...attributes
 >
   {{#if (has-block)}}
     {{yield}}
   {{else}}
-    {{svg-jar "fi-dots" class="light-fill" width="16px" height="40px"}}
+    {{svg-jar (or @icon "fi-dots") class=(or @iconClass "light-fill") width="16px" height="40px"}}
   {{/if}}
 </button>
 {{#if this.open}}
@@ -18,12 +16,16 @@
     >
       {{#each @items as |item|}}
         <li>
-          <button class="bg-light-gray bn w-100 ph2 pv1" title={{item.label}} {{on "click" (fn this.onSelectItem item.select)}}>
+          <button class="bg-light-gray bn w-100 ph2 pv1" type="button" title={{item.label}} {{on "click" (fn this.onSelectItem item.select)}}>
             {{item.label}}
           </button>
         </li>
       {{/each}}
     </ul>
-    <div class="scrim absolute bg-transparent" {{on "click" (fn this.toggleOpen)}}></div>
+    {{!-- template-lint-disable no-invalid-interactive --}}
+    <div class="scrim absolute bg-transparent" 
+      {{on "click" (fn this.toggleOpen)}}
+      {{on-key "Escape" this.close event="keydown"}}
+    ></div>
   {{/ember-wormhole}}
 {{/if}}

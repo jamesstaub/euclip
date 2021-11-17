@@ -32,6 +32,11 @@ export default class DropdownMenuComponent extends Component {
   }
 
   @action
+  close() {   
+    this.open = false;
+  }
+
+  @action
   onSelectItem(itemAction) {
     this.open = false;
     itemAction();

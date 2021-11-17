@@ -29,14 +29,6 @@
 
 
 
-/* Position */
-.top-neg-100 {
-  top: -100%;
-}
-
-.right-neg-100 {
-  right: -100%;
-}
 
 .z-5 {
   z-index: 5;
@@ -65,6 +57,10 @@
 
 .rotate-90 {
   transform: rotate(90deg);
+}
+
+.rotate-180 {
+  transform: rotate(180deg);
 }
 
 .rotate-270 {

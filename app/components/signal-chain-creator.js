@@ -10,6 +10,7 @@ export default class SignalChainCreatorComponent extends Component {
   @tracked selectedNodes;
   @tracked selectedSourceNode;
   @tracked effectsDefinition;
+  @tracked activeNodeIdx;
 
   selectedNodes = A([]);
   selectedEffects = A([]);
@@ -40,7 +41,9 @@ export default class SignalChainCreatorComponent extends Component {
         nodes: Object.keys(AudioNodeConfig).filter((key) => AudioNodeConfig[key].type === type),
         type,
       }
-    })
+    });
+
+    this.activeNodeIdx = 0;
   }
   
   setEffectsDefinition() {
@@ -51,7 +54,9 @@ export default class SignalChainCreatorComponent extends Component {
   }
 
   get generatedScript() {
-    let sourceNodeParams = 'id: this.id';
+    let sourceNodeParams = `id: this.id,
+    path: this.filepath
+`;
     return `__()
   .${this.selectedSourceNode}({
     ${sourceNodeParams}
@@ -79,13 +84,20 @@ ${this.effectsDefinition}
   addSourceNodeToSignalChain(node) {
     this.selectedSourceNode = node;
     this.computeNodesArray();
+    this.activeNodeIdx = null;
   }
 
   @action
-  addEffectNodeToSignalChain(node) {
-    // this.selectedEffects.push(node);
-    this.selectedEffects.pushObject(node);
+  insertEffectNodeAtIdx(idx, node) {
+    if (idx > this.selectedEffects.length - 1) {
+      this.selectedEffects.pushObject(node);
+    } else {
+      // this.selectedNodes.insertAt(idx, node);
+      this.selectedEffects.removeAt(idx - 1);
+      this.selectedEffects.insertAt(idx - 1, node);
+    }
     this.computeNodesArray();
+    this.activeNodeIdx = null;
   }
 
   @action
@@ -93,6 +105,25 @@ ${this.effectsDefinition}
     this.selectedNodes.removeAt(idx);
     this.selectedEffects.removeAt(idx - 1);
     this.computeNodesArray();
+  }
+
+  // open the menu on one node at a time
+  @action
+  setActiveNode(idx) {
+    if (this.activeNodeIdx === idx) {
+      this.activeNodeIdx = null;
+    } else {
+      this.activeNodeIdx = idx;
+    }
+  }
+
+  @action
+  deselectActiveNode({ target }) {
+    // only catch clicks on the background div
+    if (target.tagName === 'BUTTON') {
+      return;
+    }
+    this.activeNodeIdx = null;
   }
 
   @action

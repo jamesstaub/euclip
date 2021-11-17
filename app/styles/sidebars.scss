@@ -1,34 +1,43 @@
 
 .right-sidebar-width,
 .left-sidebar-width {
-  width: 100%;
-  max-width: 100%;
+  width: $sidebar-width;
+  max-width: 50%;
   position: absolute;
   z-index: 2;
 }
-@media #{$breakpoint-not-small} {
-  .right-sidebar-width {
-    width: 40%;
-    max-width: $sidebar-width;
-    position: relative;
+
+.right-sidebar-width {
+  right: 0;
+}
+
+.track-list-wrapper {
+  width: 100%; 
+  &.left-sidebar-open, &.right-sidebar-open {
+    width: 50%;
   }
-  .left-sidebar-width {
+} 
+
+@media #{$breakpoint-not-small} {
+  .right-sidebar-width, .left-sidebar-width {
     width: 40%;
-    max-width: $sidebar-width;
     position: relative;
   }
 
   .track-list-wrapper {
-    max-width: 100%;
+    width: 100%;
+    &.left-sidebar-open, &.right-sidebar-open {
+      width: 60%;
+    }
+    &.left-sidebar-open.right-sidebar-open {
+      width: 30%;
+    }
   } 
 }
 
 @media #{$breakpoint-medium} {
-  .left-sidebar-width, .right-sidebar-width {
-    width: 33%;
-    max-width: 33%;
-  }
-  .track-list-wrapper {
-    max-width: 66%;
-  }  
+  // .left-sidebar-width, .right-sidebar-width {
+  //   width: 33%;
+  //   max-width: 33%;
+  // }
 }
