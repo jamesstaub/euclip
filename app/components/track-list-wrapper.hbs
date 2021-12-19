@@ -1,3 +1,7 @@
-<div class="track-list-wrapper bg-dark-gray h-100 flex flex-column justify-between shrink-1 grow-1 {{if @rightSidebarOpen "right-sidebar-open"}} {{if @leftSidebarOpen "left-sidebar-open"}}">
+<div
+  class="track-list-wrapper bg-dark-gray h-100 flex flex-column justify-between shrink-1 grow-1
+    {{if @rightSidebarOpen "right-sidebar-open"}}
+    {{if @leftSidebarOpen "left-sidebar-open"}}"
+>
   {{yield}}
 </div>

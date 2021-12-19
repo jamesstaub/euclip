@@ -2,7 +2,7 @@
   {{#if (and @node @onRemoveNode)}}
     <IconButton class="light-fill small-icon-btn bn absolute right-0 top-0 z-2" @icon="fi-cancel" @iconClass="ph2 pv3" {{on "click" (fn @onRemoveNode)}} />
   {{/if}}
-  <button {{on "click" this.toggleMenu}} class="w4 h3 ba b--yellow yellow bg-transparent">
+  <button class="w4 h3 ba b--yellow yellow bg-transparent" type="button" {{on "click" this.toggleMenu}}>
     {{#if @node}}
       {{@node}}
     {{else}}
@@ -10,6 +10,7 @@
     {{/if}}
   </button>
 
+  {{!-- TODO: refactor this style into Dropdown menu --}}
   {{#if this.isShowingChoices}}
     <div class="node-choice-menu h4 mt5 absolute bg-dark-gray z-2 flex">
       {{svg-jar "fi-play" class="yellow-fill rotate-180 mt2"  width="16px" height="20px"}}
@@ -21,7 +22,7 @@
           {{/if}}
           {{#each group.nodes as |node|}}
             <li>
-              <button {{on "click" (fn this.selectNode node)}} class="yellow ph3 pv2 bn bg-transparent tl w-100">{{node}}</button>
+              <button class="yellow ph3 pv2 bn bg-transparent tl w-100" type="button" {{on "click" (fn this.selectNode node)}}>{{node}}</button>
             </li>
           {{/each}}
         {{/each}}

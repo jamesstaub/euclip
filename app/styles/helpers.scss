@@ -92,6 +92,13 @@
   }
 }
 
+.light-stroke {
+  stroke: $light-gray;
+  svg, g, path {
+    stroke: $light-gray;
+  }
+}
+
 .dark-fill {
   fill: $dark-gray;
   svg {

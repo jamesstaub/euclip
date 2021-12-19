@@ -39,8 +39,15 @@
   <button {{on "click" this.clear}}>clear</button>
 </div> --}}
 
-<div class="w-100 h-100 mt3" {{on "click" this.deselectActiveNode}}>
+{{!-- template-lint-disable no-invalid-interactive --}}
+<div class="w-100 h-100 flex flex-column" {{on "click" this.deselectActiveNode}}>
   <h4 class="yellow">Create A Signal Chain</h4>
+  
+  <div class="pv3">
+    {{#each this.signalChainPresets as |presetBtn|}}
+      <ButtonPrimary class="br4" {{on "click" (fn this.selectPreset presetBtn.data)}} @label={{presetBtn.label}} />
+    {{/each}}
+  </div>
   <div class="h-100 flex flex-column overflow-scroll mr5 pb5" >
     <SignalChainNode
       @activeNodeIdx={{this.activeNodeIdx}}
@@ -74,5 +81,23 @@
         @onSelectNode={{fn this.insertEffectNodeAtIdx 1}}
       />
     {{/unless}}
+  </div>
+  <div class="pv3">
+    <ButtonPrimary
+      class="b--light-blue bg-light-blue dark-gray fw6 w5"
+      @restyle={{true}}
+      {{on "click" @onSubmit}}
+      title="Generate Init Code"
+    >
+      Generate Code
+    </ButtonPrimary>
+    <ButtonPrimary
+      class="light-gray b--light-gray bg-dark-gray"
+      @restyle={{true}}
+      {{on "click" @onCancel}}
+      title="Generate Init Code"
+    >
+      Cancel
+    </ButtonPrimary>
   </div>
 </div>

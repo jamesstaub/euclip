@@ -27,12 +27,12 @@ export default class DropdownMenuComponent extends Component {
   }
 
   @action
-  toggleOpen() {   
+  toggleOpen() {
     this.open = !this.open;
   }
 
   @action
-  close() {   
+  close() {
     this.open = false;
   }
 

@@ -6,6 +6,7 @@
   {{#each @items key="order" as |item|}}
     {{#if @verticle}}
       <button
+        type="button"
         class="flex flex-column items-center ba b--dark-gray br0 h-auto grow-1 {{if (eq this.val item.value) "bg-light-blue black" "bg-yellow black"}}" 
         {{on "click" (fn this.select item.value)}}
         title={{item.label}}
@@ -16,7 +17,8 @@
         </div>
       </button>
     {{else}}
-      <button 
+      <button
+        type="button" 
         class="w4 pa2 f6 ttu ba bw1 b--dark-gray {{if (eq this.val item.value) "selected bg-light-yellow dark-gray fw6" "bg-yellow dark-gray"}}"
         title={{item.label}}
         {{on "click" (fn this.select item.value)}}

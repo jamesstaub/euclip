@@ -12,8 +12,7 @@ import {
 export default class ScriptVariablesComponent extends Component {
   @tracked ui;
   @tracked selectedTab;
-  @tracked defaultTab;
-
+  
   @controller('user.creator.project') project;
 
   vars = {
@@ -25,8 +24,9 @@ export default class ScriptVariablesComponent extends Component {
     // fileend: '',
   }
 
-  get isCollapsed() {
-    return !this.project.showScriptFooter;
+  constructor() {
+    super(...arguments);
+    this.ui = this.tabItems[0].value;
   }
 
   get scriptVars() {
@@ -44,6 +44,7 @@ export default class ScriptVariablesComponent extends Component {
     } else if (isPresent(this.args.visibleNodeIdx)) {
       return this.args.validTrackNodes[this.args.visibleNodeIdx];
     }
+    return null;
   }
 
   get selectorsForNode() {
@@ -90,21 +91,11 @@ export default class ScriptVariablesComponent extends Component {
       })
   }
 
-  @action
-  toggleCollapsed() {
-    this.project.showScriptFooter = !this.project.showScriptFooter;
-    this.defaultTab = null;
-  }
 
   @action
   setUi(key, value) {
     this.ui = value;
   }
 
-  @action
-  setDefaultUi() {
-    this.ui = this.tabItems[0]?.value;
-    this.defaultTab = this.ui;
-  }
 
 }

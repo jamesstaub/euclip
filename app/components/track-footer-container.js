@@ -7,7 +7,7 @@ import {
 } from '@ember/controller';
 
 export default class TrackFooterContainerComponent extends Component {
-  @tracked controlUi;
+  @tracked controlUiState;
   @tracked visibleNodeIdx;
   @tracked showReference;
   
@@ -18,6 +18,18 @@ export default class TrackFooterContainerComponent extends Component {
     this.maxSteps = 64;
     this.setTabs();
     this.showReference = false;
+  }
+
+  get showSequence() {
+    return this.controlUiState === "sequence";
+  }
+  
+  get showSource() {
+    return this.controlUiState === "source";
+  }
+  
+  get showControls() {
+    return this.controlUiState === "controls";
   }
 
   get validTrackNodes() {
@@ -64,16 +76,16 @@ export default class TrackFooterContainerComponent extends Component {
 
   @action
   toggleReference(key, val) {
-    this.showReference = true;
+    this.showReference = !this.showReference;
     this.args.onToggleScripts();
   }
 
   @action
   setTabs() {
     if (this.project.leftSidebarOpen) {
-      this.controlUi = 'source'
-    } else if (!this.controlUi) {
-      this.controlUi = 'controls'
+      this.controlUiState = 'source'
+    } else if (!this.controlUiState) {
+      this.controlUiState = 'controls'
     }
     this.visibleNodeIdx = 0;
   }

@@ -1,46 +1,63 @@
-<div class="variables-overlay bg-dark-gray ph3 z-5 yellow overflow-scroll bw2 bt bl b--yellow absolute right-0 {{if this.isCollapsed "bottom-0" "h-100"}}"
-  {{did-insert this.setDefaultUi}} 
+<div
+  class="variables-overlay bg-dark-gray ph3 z-5 yellow bw2 bt bl b--yellow"
   ...attributes
->  
-  <h4 class="yellow mt3 mb0 cursor {{if isCollapsed "pb3"}}" {{on "click" this.toggleCollapsed}}>{{this.currentNode.nodeType}} {{@title}} reference</h4>
-  <div>
-    {{#unless this.isCollapsed}}
+>
+  <div class="flex justify-between">
+    <h4 class="yellow mt3 mb0 pointer pb3">
+      {{this.currentNode.nodeType}}
+      {{@title}}
+      reference
+    </h4>
+    <div>
       <TabMenu
         class="mv3"
         @onSelect={{fn this.setUi "visibleNodeIdx"}}
-        @selectedValue={{this.defaultTab}}
         @items={{this.tabItems}}
         @selectedValue={{this.visibleNodeIdx}}
       />
-    {{/unless}}
-    <IconButton 
-      class="absolute right-0 top-0 overflow-hidden"
-      @icon="fi-play"
-      @iconClass={{concat "light-fill " (if this.isCollapsed "rotate-270"  "rotate-90")}}
-      {{on "click" this.toggleCollapsed}}
-    />
+    </div>
   </div>
 
-  {{#unless this.isCollapsed}}
-    {{#if (and @validTrackNodes (eq this.ui "selectors"))}}
-      <SelectorsList @selectorsForNode={{this.selectorsForNode}} />
-    {{/if}}
+  <div class="relative">
+    <InfoBox>
+      {{#if (and @validTrackNodes (eq this.ui "selectors"))}}
+        <p class="fw6">Selectors are strings that lookup audio nodes so you
+          change their parameters or connections.</p>
+        <p>ID selectors begin with a<code>#</code>
+          and only select a single audio node
+          <code>__('#some-unique-id')</code></p>
+        <p>Class selectors begin with a
+          <code>.</code>
+          and select all nodes with a given class.
+          <code>__('.some-class-name')</code>
+        </p>
+        <p>Node type selectors are exact lowecase names and select all instances
+          of a given node (globally).
+          <code>__('compressor')</code></p>
+      {{/if}}
 
-    {{#if (eq this.ui "variables")}}
-      <table>
+    </InfoBox>
+  </div>
+  {{#if (and @validTrackNodes (eq this.ui "selectors"))}}
+    <SelectorsList @selectorsForNode={{this.selectorsForNode}} />
+  {{/if}}
+
+  {{#if (eq this.ui "variables")}}
+    <table>
+      <tbody>
         {{#each this.scriptVars key="name" as |scriptVar|}}
           <tr>
             <td class="mv1"><code>{{scriptVar.name}}</code></td>
             <td class="f6 mv0">{{scriptVar.description}}</td>
           </tr>
         {{/each}}
-      </table>
-    {{/if}}
+      </tbody>
+    </table>
+  {{/if}}
 
-    {{#if (eq this.ui "docs")}}
-      {{#if (and @nodeDocs this.currentNode.nodeType)}}
-        <CrackedNodeDocs @nodeName={{this.currentNode.nodeType}}/>
-      {{/if}}
+  {{#if (eq this.ui "docs")}}
+    {{#if (and @nodeDocs this.currentNode.nodeType)}}
+      <CrackedNodeDocs @nodeName={{this.currentNode.nodeType}} />
     {{/if}}
-  {{/unless}}
+  {{/if}}
 </div>

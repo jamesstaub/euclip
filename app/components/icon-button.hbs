@@ -1,9 +1,10 @@
 <button
   class="bn f5 ttu bg-transparent flex items-center"
+  type="button"
   title={{@label}}
   ...attributes
 >
-  {{svg-jar @icon class=@iconClass width="20px" height="20px"}}
+  {{svg-jar @icon class=@iconClass width=(or @iconWidth "20px") height=(or @iconHeight "20px")}}
   {{yield}}
 </button>
 

@@ -4,6 +4,7 @@ $project-tracks-height: calc(100% - #{$app-header-height} - #{$project-header-he
 $sidebar-width: 36rem;
 $footer-height: 20rem;
 
+
 @import 'colors';
 @import 'custom-properties';
 @import 'tachyons-variable-overrides';
@@ -38,22 +39,15 @@ a {
   height: calc(100% - 1.7rem);
 }
 
-.script-editor-height {
-  height: calc(100% - 12rem);
-  // scale with references footer
-  &.shrink-for-footer {
-    height: calc(100% - #{$footer-height + 6rem});
-  }
-}
-
-
 .app-header-height {
   height: $app-header-height;
 }
 
 .project-header-height { height: $project-header-height; }
 .project-tracks-height { height: $project-tracks-height; }
-.footer-height { height: $footer-height; }
+.footer-height { 
+  height: $footer-height;
+}
 
 /* drum file picker*/
 .drum-file-picker {

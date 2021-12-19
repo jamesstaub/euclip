@@ -1,15 +1,24 @@
 import { Machine } from "xstate";
 
+const guiCanCreate = (context, event) => {
+  console.log(context, event);
+  return true;
+};
+
 export default Machine({
-  initial: "signalGui",
+  initial: "script",
   context: {
     selectedTab: '',
   },
   states: {
     signalGui: {
       on: {
-        TOGGLE_INPUT_UI: "script.init",
-        CREATE: "script.init",
+        CREATE_FROM_GUI: {
+          target: "script.init",
+          cond: guiCanCreate
+        },
+        CANCEL_GUI: "script",
+
       },
       states: {
         
@@ -18,7 +27,7 @@ export default Machine({
     script: {
       initial: "init",
       on: {
-        TOGGLE_INPUT_UI: "signalGui",
+        OPEN_GUI: "signalGui",
         SET_TAB_INIT: 'script.init',
         SET_TAB_ONSTEP: 'script.onstep',
       },

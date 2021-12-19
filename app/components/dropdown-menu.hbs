@@ -1,5 +1,6 @@
 <button 
   class="dropdown-menu-btn" ...attributes type="button" {{on "click" this.toggleOpen}}
+  {{on-key 'Escape' this.close event="keydown"}}
   {{did-insert (fn this.setPosition)}}
 >
   {{#if (has-block)}}
@@ -25,7 +26,6 @@
     {{!-- template-lint-disable no-invalid-interactive --}}
     <div class="scrim absolute bg-transparent" 
       {{on "click" (fn this.toggleOpen)}}
-      {{on-key "Escape" this.close event="keydown"}}
     ></div>
   {{/ember-wormhole}}
 {{/if}}

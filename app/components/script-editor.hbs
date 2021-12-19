@@ -1,5 +1,5 @@
 <div  
-  class="relative script-editor-height"
+  class="relative h-100"
   ...attributes
 >
   {{ember-ace
@@ -10,24 +10,23 @@
     update=(perform this.onUpdateEditor)
   }}
 </div>
-
 <div class="flex justify-between items-center">
   <div class="flex justify-between grow-1">
-    <div>
+    <div class="pv3">
       <ButtonPrimary
-        class="mr3  {{if functionIsLoaded "bg-dark-gray light-blue bn" "b--light-blue bg-light-blue dark-gray fw6"}}"
+        class="mr3 w5 ba {{if this.functionIsLoaded "b--gray bg-dark-gray light-blue" "b--light-blue bg-light-blue dark-gray fw6"}}"
         @restyle={{true}}
         {{on "click" (perform @scriptModel.runCode)}}
-        disabled={{functionIsLoaded}}
-        title={{if functionIsLoaded "This script is loaded and running" "Click to load this script"}}
+        disabled={{this.functionIsLoaded}}
+        title={{if this.functionIsLoaded "This script is loaded and running" "Click to load this script"}}
       >
-        {{#if functionIsLoaded}}
+        {{#if this.functionIsLoaded}}
           Loaded
         {{else}}
           Load
         {{/if}}
       </ButtonPrimary>
-      {{#if functionIsLoaded}}
+      {{#if this.functionIsLoaded}}
         <ButtonPrimary 
           {{on "click" this.disableScript}}
           class="dark-red b--dark-red bg-dark-gray fw6"
@@ -36,12 +35,12 @@
         >disable</ButtonPrimary>
       {{else}}
         <ButtonPrimary
-          class="orange b--orange bg-dark-gray"
+          class="light-gray b--light-gray bg-dark-gray"
           @restyle={{true}}
           {{on "click" this.discardChanges}}
           title="Revert editor to currently running code"
         >
-          discard changes
+          revert
         </ButtonPrimary>
       {{/if}}  
     </div>
@@ -52,15 +51,10 @@
     {{#if @scriptModel.alert}}
       <p class="bg-dark-red pa3 mv2 white w-100" data-track={{@scriptModel.track.order}}>{{@scriptModel.alert}}</p>
     {{/if}}
-    {{#if (not functionIsLoaded)}}
-      <p class="yellow dark-gray flex f7 mv0">
-        Script changes not loaded.
-      </p>
-    {{/if}}
 
-    {{#if illegalTokens}}
+    {{#if this.illegalTokens}}
       <p class="mv0 flex items-center yellow">
-        Remove unsupported keywords: {{illegalTokens}}
+        Remove unsupported keywords: {{this.illegalTokens}}
       </p>
     {{/if}}
   </div>

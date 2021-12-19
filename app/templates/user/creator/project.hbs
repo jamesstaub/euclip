@@ -58,7 +58,7 @@
     @rightSidebarOpen={{this.rightSidebarOpen}} 
     @leftSidebarOpen={{this.leftSidebarOpen}}
   >
-    <div>
+    <div class="overflow-scroll">
       {{#each this.sortedTracks key="order" as |track|}}
         {{#unless track.isMaster}}
           <TrackListItem
@@ -100,7 +100,6 @@
         </InfoBox>
       </div>
       <ScriptWrapper
-        @shrinkForFooter={{this.showScriptFooter}}
         @track={{this.activeTrack}}
         @presetCollections={{this.presetCollections}}
       />

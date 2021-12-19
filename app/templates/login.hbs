@@ -1,8 +1,8 @@
 <NavBar @logoWidth="220px" />
 <div class="mt4 center">
-  {{#if session.isAuthenticated}}
+  {{#if this.session.isAuthenticated}}
     <div class="mw5 center">
-      <p>Logged in as {{currentUser.user.username}}</p>
+      <p>Logged in as {{this.currentUser.user.username}}</p>
       <ButtonPrimary {{on "click" this.invalidateSession}}>
         Logout
       </ButtonPrimary>
@@ -35,7 +35,7 @@
               Login
             </ButtonPrimary>
             <span class="mh2">or</span>
-            <p class="pointer" {{on "click" this.toggleView}}>{{this.toggleViewTxt}}</p>
+            <button class="pointer" type="button" {{on "click" this.toggleView}}>{{this.toggleViewTxt}}</button>
           </div>
           {{#if this.errorMessage}}
           <p>
@@ -54,7 +54,7 @@
           </div>
           <div class="mb3">
             <label class="db" for="email">
-              Email <small>(optional)</small>
+              Email
             </label>
             {{input class="w-100" id="email" autocomplete="email" placeholder="Enter Email Address" value=this.email}}
           </div>

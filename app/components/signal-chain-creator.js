@@ -9,11 +9,16 @@ import { A } from '@ember/array';
 export default class SignalChainCreatorComponent extends Component {
   @tracked selectedNodes;
   @tracked selectedSourceNode;
-  @tracked effectsDefinition;
+  @tracked effectsDefinition; //
   @tracked activeNodeIdx;
 
   selectedNodes = A([]);
   selectedEffects = A([]);
+
+  signalChainPresets = [
+    {label: 'Sampler', data: ['sampler', 'gain', 'channelStrip']},
+    {label: 'Synth', data: ['triangle', 'adsr', 'lowpass', 'channelStrip']}
+  ];
 
   constructor() {
     super(...arguments);
@@ -57,6 +62,7 @@ export default class SignalChainCreatorComponent extends Component {
     let sourceNodeParams = `id: this.id,
     path: this.filepath
 `;
+
     return `__()
   .${this.selectedSourceNode}({
     ${sourceNodeParams}
@@ -76,8 +82,11 @@ ${this.effectsDefinition}
   }
 
   @action
-  writeToScript() {
-    this.args.scriptModel.updateScriptTask.perform('editorContent', this.generatedScript)
+  selectPreset(presetData) {
+    let data = [...presetData];
+    this.selectedSourceNode = data.shift();
+    this.selectedEffects = data;
+    this.computeNodesArray();
   }
 
   @action
