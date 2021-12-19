@@ -275,7 +275,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   
   onStepCallback(index, data, array) {
     if (this.isDeleted) {
-      console.log('tried to run call back on deleted track, must reset loop');
+      console.warn('tried to run call back on deleted track, must reset loop');
       return;
     }
     this.set('stepIndex', index);

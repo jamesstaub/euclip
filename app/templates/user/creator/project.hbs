@@ -44,8 +44,9 @@
       <div class="mh3 yellow relative flex flex-column">
         <h3 class="mv3">Drum Machines</h3>
         <InfoBox class="absolute right-2 top-0">
-          <p class="f6 mb3 mt0">Selecting a sound from this menu will set the file's url to a variable in the track's script <code>this.filepath</code>.</p>
-          <p class="f6 mb3 mt0">The sampler node can then be assigned this sound file in the setup script like so:</p>
+          <p class="f6 mb3 mt0">When you select a sound file from this menu the sound's URL is available in the code as <code>this.filepath</code>.
+          </p>
+          <p class="f6 mb3 mt0">You pass the sound's URL to a <code>sampler</code> node in the setup script like so:</p>
           <p class="f6 mb3 mt0"><code>__().sampler(path: this.filepath)</code></p>
         </InfoBox>
       </div>

@@ -1,5 +1,5 @@
 <div
-  class="variables-overlay h6 bg-dark-gray ph3 z-5 yellow bw2 bt bl b--yellow"
+  class="variables-overlay bg-dark-gray ph3 z-5 yellow bw2 bt bl b--yellow"
   ...attributes
 >
   <div class="flex justify-between">
@@ -14,10 +14,10 @@
       class="mv3"
       @onSelect={{fn this.setUi "visibleNodeIdx"}}
       @items={{this.tabItems}}
-      @selectedValue={{this.visibleNodeIdx}}
+      @selectedValue={{this.tabItems.firstObject.value}}
     />
   </div>
-  <div class="h-100 overflow-scroll">
+  <div class="overflow-scroll h5 pb3">
     {{#if (and @validTrackNodes (eq this.ui "selectors"))}}
       <SelectorsList @selectorsForNode={{this.selectorsForNode}} />
     {{/if}}
@@ -42,21 +42,22 @@
     {{/if}}
     
     {{#if (and @validTrackNodes (eq this.ui "selectors"))}}
-      <InfoBox>
-        <p class="fw6">Selectors are strings that lookup audio nodes so you
-          change their parameters or connections.</p>
-        <p>ID selectors begin with a<code>#</code>
-          and only select a single audio node
-          <code>__('#some-unique-id')</code></p>
-        <p>Class selectors begin with a
-          <code>.</code>
-          and select all nodes with a given class.
-          <code>__('.some-class-name')</code>
-        </p>
-        <p>Node type selectors are exact lowecase names and select all instances
-          of a given node (globally).
-          <code>__('compressor')</code></p>
-      </InfoBox>
+      <div class="dark-gray bg-light-gray pa3">
+          <p class="fw6">Selectors are strings that lookup audio nodes so you
+            change their parameters or connections.</p>
+          <p>ID selectors begin with a <code>#</code>
+            and only select a single audio node
+            <code>__('#some-unique-id')</code></p>
+          <p>Class selectors begin with a
+            <code>.</code>
+            and select all nodes with a given class.
+            <code>__('.some-class-name')</code>
+          </p>
+          <p>Node type selectors are exact lowecase names and select all instances
+            of a given node (globally).
+            <code>__('compressor')</code></p>
+      </div>
+
     {{/if}}
 
   </div>
