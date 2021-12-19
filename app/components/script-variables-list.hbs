@@ -1,26 +1,48 @@
 <div
-  class="variables-overlay bg-dark-gray ph3 z-5 yellow bw2 bt bl b--yellow"
+  class="variables-overlay h6 bg-dark-gray ph3 z-5 yellow bw2 bt bl b--yellow"
   ...attributes
 >
   <div class="flex justify-between">
-    <h4 class="yellow mt3 mb0 pointer pb3">
-      {{this.currentNode.nodeType}}
-      {{@title}}
-      reference
-    </h4>
-    <div>
-      <TabMenu
-        class="mv3"
-        @onSelect={{fn this.setUi "visibleNodeIdx"}}
-        @items={{this.tabItems}}
-        @selectedValue={{this.visibleNodeIdx}}
-      />
+    <div class="flex">
+      <h4 class="yellow mt3 mb0 pointer pb3">
+        {{this.currentNode.nodeType}}
+        {{@title}}
+        reference
+      </h4>
     </div>
+    <TabMenu
+      class="mv3"
+      @onSelect={{fn this.setUi "visibleNodeIdx"}}
+      @items={{this.tabItems}}
+      @selectedValue={{this.visibleNodeIdx}}
+    />
   </div>
+  <div class="h-100 overflow-scroll">
+    {{#if (and @validTrackNodes (eq this.ui "selectors"))}}
+      <SelectorsList @selectorsForNode={{this.selectorsForNode}} />
+    {{/if}}
 
-  <div class="relative">
-    <InfoBox>
-      {{#if (and @validTrackNodes (eq this.ui "selectors"))}}
+    {{#if (eq this.ui "variables")}}
+      <table>
+        <tbody>
+          {{#each this.scriptVars key="name" as |scriptVar|}}
+            <tr>
+              <td class="mv1"><code>{{scriptVar.name}}</code></td>
+              <td class="f6 mv0">{{scriptVar.description}}</td>
+            </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    {{/if}}
+
+    {{#if (eq this.ui "docs")}}
+      {{#if (and @nodeDocs this.currentNode.nodeType)}}
+        <CrackedNodeDocs @nodeName={{this.currentNode.nodeType}} />
+      {{/if}}
+    {{/if}}
+    
+    {{#if (and @validTrackNodes (eq this.ui "selectors"))}}
+      <InfoBox>
         <p class="fw6">Selectors are strings that lookup audio nodes so you
           change their parameters or connections.</p>
         <p>ID selectors begin with a<code>#</code>
@@ -34,30 +56,8 @@
         <p>Node type selectors are exact lowecase names and select all instances
           of a given node (globally).
           <code>__('compressor')</code></p>
-      {{/if}}
-
-    </InfoBox>
-  </div>
-  {{#if (and @validTrackNodes (eq this.ui "selectors"))}}
-    <SelectorsList @selectorsForNode={{this.selectorsForNode}} />
-  {{/if}}
-
-  {{#if (eq this.ui "variables")}}
-    <table>
-      <tbody>
-        {{#each this.scriptVars key="name" as |scriptVar|}}
-          <tr>
-            <td class="mv1"><code>{{scriptVar.name}}</code></td>
-            <td class="f6 mv0">{{scriptVar.description}}</td>
-          </tr>
-        {{/each}}
-      </tbody>
-    </table>
-  {{/if}}
-
-  {{#if (eq this.ui "docs")}}
-    {{#if (and @nodeDocs this.currentNode.nodeType)}}
-      <CrackedNodeDocs @nodeName={{this.currentNode.nodeType}} />
+      </InfoBox>
     {{/if}}
-  {{/if}}
+
+  </div>
 </div>

@@ -75,7 +75,7 @@ export default class TrackFooterContainerComponent extends Component {
   }
 
   @action
-  toggleReference(key, val) {
+  toggleReference() {
     this.showReference = !this.showReference;
     this.args.onToggleScripts();
   }
