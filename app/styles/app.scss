@@ -23,6 +23,19 @@ html, body {
   height: 100%;
 }
 
+div {
+  ::-webkit-scrollbar {
+    -webkit-appearance: none;
+    width: .5rem;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    border-radius: 4px;
+    background-color: $moon-gray;
+    box-shadow: 0 0 1px rgba(255, 255, 255, .5);
+  }
+}
+
 a {
   @extend .pointer;
 }
@@ -31,13 +44,6 @@ a {
   color: $gray;
 }
 
-.script-wrapper-height {
-  height: calc(100% - 4rem);
-}
-
-.ace-editor-wrapper {
-  height: calc(100% - 1.7rem);
-}
 
 .app-header-height {
   height: $app-header-height;
@@ -62,8 +68,22 @@ a {
   }
 }
 
+/* script sidebar*/
+
 .scrim {
   width: 100vw;
   height: 100vh;
   z-index: 2;
+}
+@media #{$breakpoint-not-small} {
+  .script-wrapper-height {
+    height: calc(100% - 4rem);
+  }
+}
+.script-wrapper-height {
+  height: calc(100% - 12rem);
+}
+
+.ace-editor-wrapper {
+  height: calc(100% - 1.7rem);
 }

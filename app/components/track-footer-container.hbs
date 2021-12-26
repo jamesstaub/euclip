@@ -94,12 +94,12 @@
           </div>
         {{/if}}
         {{#if this.showControls}}
-          <div class="flex justify-between grow-1 shrink-1 bt">
+          <div class="flex justify-between grow-1 shrink-1 bt overflow-hidden">
             <div
-              class="overflow-hidden flex flex-column flex-grow-1 shrink-1 bl"
+              class="flex flex-column flex-grow-1 shrink-1 bl overflow-scroll"
             >
               <h3 class="ma3">Audio Node Controls</h3>
-              <div class="h-100 flex flex-column grow-1 shrink-1 w-100">
+              <div class="h-100 flex flex-column grow-1 shrink-1">
                 <TabMenu
                   class="ph3 mb3"
                   @onSelect={{fn this.setUi "visibleNodeIdx"}}

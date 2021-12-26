@@ -1,10 +1,9 @@
 {{#each @trackNodesForControls as |trackNode idx|}}
   {{#if (eq @visibleNodeIdx idx)}}
-    <div class="flex justify-start h-100 overflow-y-scroll mw-100">
+    <div class="flex justify-start h-100 overflow-scroll mw-100">
       <div class="h-auto flex flex-column tc track-controls-container-pb overflow-y">
         {{#each trackNode.multisliderControls as |trackControl|}}
           <TrackControlWrapper
-            class="track-control-wrapper-mb"
             @sequence={{@track.currentSequence.sequence}}
             @trackControl={{trackControl}}
             @wrapperStyleClass="mr2"
