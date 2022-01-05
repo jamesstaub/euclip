@@ -1,0 +1,13 @@
+<ButtonPrimary
+  class="mr3 w5 ba
+    {{if
+      @disabled
+      "b--gray bg-dark-gray light-blue"
+      "b--light-blue bg-light-blue dark-gray fw6"
+    }}"
+  @restyle={{true}}
+  disabled={{@disable}}
+  ...attributes
+>
+  {{yield}}
+</ButtonPrimary>

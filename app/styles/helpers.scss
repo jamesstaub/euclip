@@ -8,6 +8,10 @@
   @extend .bg-near-black;
 }
 
+.hover-bg-dark-yellow:hover {
+  @extend .bg-dark-yellow;
+}
+
 /* Fonts */
 .f8 {
   font-size: 0.065rem;

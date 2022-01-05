@@ -1,8 +1,40 @@
-<select class="f6 mh0 mv2" ...attributes>
-  <option value={{0}} selected disabled hidden>PRESETS</option>
+<ul class="list ph0 mt0 mr3 h-100">
   {{#each @presetCollections as |coll|}}
-    {{#each coll.presets as |preset|}}
-      <option value={{preset.id}}>{{coll.title}}: {{preset.title}}</option>
-    {{/each}}
+    <ListItem class="pv2">
+      {{coll.title}}
+    </ListItem>
+    <ul class="pl0 list">
+      {{#each coll.presets as |preset|}}
+        <ListItem
+          class="pl3"
+          @selected={{eq preset.id this.selectedPreset.id}}
+        >
+          <ListItemLink {{on "click" (fn this.selectItem preset)}} >
+            {{preset.title}}
+          </ListItemLink>
+        </ListItem>
+      {{/each}}
+    </ul>
   {{/each}}
-</select>
+</ul>
+
+{{!-- TODO: dedupe these buttons from signal chain creator footer buttons --}}
+<div class="pv3">
+
+  <SidebarSubmitButton
+    title="Select preset and apply to track"
+    @disabled={{not this.canSubmit}}
+    {{on "click" this.applyPreset}}
+  >
+    Select Preset
+  </SidebarSubmitButton>
+  
+  <ButtonPrimary
+    class="light-gray b--light-gray bg-dark-gray"
+    @restyle={{true}}
+    {{on "click" @closeMenu}}
+    title="Generate Init Code"
+  >
+    Cancel
+  </ButtonPrimary>
+</div>

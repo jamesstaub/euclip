@@ -13,19 +13,17 @@
 <div class="flex justify-between items-center">
   <div class="flex justify-between grow-1">
     <div class="pv3">
-      <ButtonPrimary
-        class="mr3 w5 ba {{if this.functionIsLoaded "b--gray bg-dark-gray light-blue" "b--light-blue bg-light-blue dark-gray fw6"}}"
-        @restyle={{true}}
-        {{on "click" (perform @scriptModel.runCode)}}
-        disabled={{this.functionIsLoaded}}
+      <SidebarSubmitButton
         title={{if this.functionIsLoaded "This script is loaded and running" "Click to load this script"}}
+        @disabled={{this.functionIsLoaded}}
+        {{on "click" (perform @scriptModel.runCode)}}
       >
         {{#if this.functionIsLoaded}}
           Loaded
         {{else}}
           Load
         {{/if}}
-      </ButtonPrimary>
+      </SidebarSubmitButton>
       {{#if this.functionIsLoaded}}
         <ButtonPrimary 
           {{on "click" this.disableScript}}

@@ -1,11 +1,11 @@
-import { Machine } from "xstate";
+import { createMachine } from "xstate";
 
 const guiCanCreate = (context, event) => {
-  console.log(context, event);
+  console.log('can create GUI', context, event);
   return true;
 };
 
-export default Machine({
+export default createMachine({
   initial: "script",
   context: {
     selectedTab: '',
@@ -17,17 +17,16 @@ export default Machine({
           target: "script.init",
           cond: guiCanCreate
         },
-        CANCEL_GUI: "script",
+        BACK_TO_SCRIPT: "script",
 
       },
-      states: {
-        
-      }
+      states: {}
     },
     script: {
       initial: "init",
       on: {
         OPEN_GUI: "signalGui",
+        OPEN_PRESETS: "presets",
         SET_TAB_INIT: 'script.init',
         SET_TAB_ONSTEP: 'script.onstep',
       },
@@ -38,5 +37,18 @@ export default Machine({
         },
       },
     },
+    presets: {
+      initial: "beforeSelection",
+      on: {
+        BACK_TO_SCRIPT: "script",
+        SUBMIT: "presets.submitting",
+      },
+      states: {
+        beforeSelection: {},
+        hasSelection: {},
+        submitting: {},
+        error: {},
+      }
+    }
   },
 });

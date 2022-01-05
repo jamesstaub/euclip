@@ -12,13 +12,13 @@
         @shouldScrollTo={{this.shouldScrollTo}}
         {{did-update (fn this.scrollIntoView (eq choice this.shouldScrollTo)) @directory}}
       >
-        <DirectoryItemLink {{on "click" (fn this.selectItem @directory choice)}} >
+        <ListItemLink {{on "click" (fn this.selectItem @directory choice)}} >
           {{#if (eq @directory.type "audio")}}
             {{filename-ui choice}}
           {{else}}
             {{choice}}
           {{/if}}
-        </DirectoryItemLink>
+        </ListItemLink>
       </ListItem>
     {{/each}}
   </ul>

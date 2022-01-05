@@ -75,13 +75,14 @@ a {
   height: 100vh;
   z-index: 2;
 }
+.script-wrapper-height {
+  height: calc(100% - 12rem);
+}
+
 @media #{$breakpoint-not-small} {
   .script-wrapper-height {
     height: calc(100% - 4rem);
   }
-}
-.script-wrapper-height {
-  height: calc(100% - 12rem);
 }
 
 .ace-editor-wrapper {

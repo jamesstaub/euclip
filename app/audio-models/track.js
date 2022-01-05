@@ -329,12 +329,16 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       
       // TODO (maybe) Generalize playSample this to try to play anything the user may want on step
       // (ADSR, LFO, ramp)
-      playSample() {
+      
+      // TODO refactor use of playSample() to also accept .attr({}), 
+      // better matching cracked api
+      playSample(attrs) {
         if (samplerNode) {
           __(samplerNode.uniqueSelector).stop().attr({
-            speed: this.controls[0].speed, 
+            speed: this.controls[0].speed, // FIXME: brittle b/c sampler might not be first node
             start: this.controls[0].start, 
             end: this.controls[0].end,
+            ...attrs
           }).start();
         } else {
           throw "You tried to use playSample() but do not have a sampler defined."

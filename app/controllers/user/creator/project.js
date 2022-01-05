@@ -46,6 +46,7 @@ export default class UserCreatorProjectController extends Controller {
     // open the signal chain ui
     // open the drum machine UI in multi-track mode to select an entire machine
     console.log('TODO: implement preset UI ');
+    console.log(presetKey);
     let track = this.model.tracks.createRecord({ hits: 1, presetKey });
     // NOTE this is potentially a bad idea but the cached value in the sortedTracks getter above 
     // prevents a flicker when adding tracks

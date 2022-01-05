@@ -59,8 +59,8 @@ export const AudioNodeConfig = {
   bitcrusher: {
     type: DISTORTION,
     attrs:{
-      frequency: [],
-      bits: [],
+      frequency: [0, 1, 0.1, oneD],
+      bits: [1, 16, 1, oneD],
     }
   },
   comb: {
@@ -84,8 +84,8 @@ export const AudioNodeConfig = {
   },
   channelStrip: {
     attrs:{
-      gain: [],
-      pan: [],
+      gain: [0, 1, 1, oneD],
+      pan: [-1, 1, 0, oneD],
     }
   },
   delay: {

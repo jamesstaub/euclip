@@ -136,7 +136,7 @@ export default class TrackNodeModel extends Model {
   
 
   /**
-   * Create TrackControls for the ephemeral TrackNodes
+   * Create TrackControls for the ephemeral TrackNodes.
    * locally-created records will be available syncronously,
    * and then save to db non-blocking
    * 

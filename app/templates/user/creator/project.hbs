@@ -17,7 +17,7 @@
         </div>
       </div>
     <div class="flex ml3">
-      <ButtonPrimary @label={{"Add New Track"}} {{on "click" this.addTrack}}/>
+      <ButtonPrimary @label={{"New Track"}} {{on "click" this.addTrack}}/>
       <DropdownMenu 
         class="h-100 grow-1 bg-dark-gray ba bl-0 bw1 b--yellow"
         @icon={{"fi-play"}}
@@ -92,7 +92,7 @@
       @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id "right"}}
     >
       <div class="mh3 yellow relative flex flex-column">
-        <h3 class="mv3">Edit Track {{this.activeTrack.order}} Scripts</h3>
+        <h3 class="mv3">Track {{this.activeTrack.order}} Scripts</h3>
         <InfoBox class="absolute right-2 top-0">
           <p class="f6 mb3 mt0">Scripts are where you define the audio signal chain for each track.</p>
           <p class="f6 mb3 mt0"><b>Setup Script</b> runs once to create your audio signal chain. Audio Nodes can be defined with a <code>class</code> or <code>ID</code>, which are used to select and modify their parameters.</p>

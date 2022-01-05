@@ -14,32 +14,42 @@
           )
         }}
       />
-      <button
-        class="textbutton light-gray f6"
-        type="button"
-        {{on "click" this.openGUI}}
-      >
-        Code Generator
-      </button>
+      <div class="flex flex-column">
+        <button
+          class="textbutton tl light-gray f6"
+          type="button"
+          {{on "click" this.openPresets}}
+        >
+          Presets
+        </button>
 
-      {{#if this.showPresets}}
-      {{!-- TODO: replace this with a list component to takeup full sidebar --}}
-        <PresetMenu
-          {{on "change" this.selectPreset}}
-          {{did-update this.setDefaultPreset @track.selectedPreset}}
-          @track={{@track}}
-          @presetCollections={{@presetCollections}}
-        />
-      {{/if}}
+        <button
+          class="textbutton tl light-gray f6"
+          type="button"
+          {{on "click" this.openGUI}}
+        >
+          Code Generator
+        </button>
+      </div>
     </div>
   {{/if}}
 
+  {{#if this.showPresets}}
+    <PresetMenu
+      {{did-update this.setDefaultPreset @track.selectedPreset.id}}
+      @track={{@track}}
+      @presetCollections={{@presetCollections}}
+      @onSubmit={{this.applyPreset}}
+      @closeMenu={{fn this.backToScript}}
+    />
+  {{/if}}
+  
   {{#if this.showSignalGui}}
     <SignalChainCreator
       @trackNodes={{@model.trackNodes}}
       @onGenerateScript={{fn this.updateSignalChain @track.initScript}}
       @onSubmit={{fn this.createScriptFromGUI @track.initScript}}
-      @onCancel={{fn this.cancelGUI}}
+      @onCancel={{fn this.backToScript}}
     />
   {{/if}}
 

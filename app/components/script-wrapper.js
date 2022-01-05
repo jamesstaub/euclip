@@ -42,6 +42,11 @@ export default class ScriptWrapperComponent extends Component {
   }
 
   @action
+  openPresets() {
+    this.statechart.send('OPEN_PRESETS');
+  }
+
+  @action
   async createScriptFromGUI(scriptModel) {
     scriptModel = await scriptModel; // convert proxy to actual model
     if (scriptModel.get('signalChainGeneratedCode')) {
@@ -52,8 +57,8 @@ export default class ScriptWrapperComponent extends Component {
   }
 
   @action
-  cancelGUI() {
-    this.statechart.send('CANCEL_GUI');
+  backToScript() {
+    this.statechart.send('BACK_TO_SCRIPT');
   }
 
   @action
@@ -81,8 +86,8 @@ export default class ScriptWrapperComponent extends Component {
   // since the script wrapper is only rendered once on the project level
   // dynamically update the preset menu to a value saved on the track
   // when the track changes
-  setDefaultPreset(presetMenu, [selectedOptionIdx]) {
-    presetMenu.selectedIndex = selectedOptionIdx;
+  setDefaultPreset(presetMenu, [selectedPresetId]) {
+    presetMenu.selectedPresetId = selectedPresetId;
   }
 
   // TODO: replace this with a global helper/util
@@ -99,13 +104,11 @@ export default class ScriptWrapperComponent extends Component {
   }
 
   @action
-  async selectPreset({ target }) {
-    const presetId = target.value;
-
+  async applyPreset(presetId) {
     // save the selection on the track model so the dropdown updates when changing tracks\
     this.args.track.selectedPreset = presetId;
     // fetch the full preset record (with related script models)
     const preset = await this.store.findRecord('preset', presetId);
-    preset.applyToTrack.perform(this.args.track);
+    await preset.applyToTrack.perform(this.args.track);
   }
 }
