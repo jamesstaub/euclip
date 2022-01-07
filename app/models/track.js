@@ -58,12 +58,20 @@ export default class TrackModel extends TrackAudioModel {
     return this.get('initScript.alert') || this.get('onstepScript.alert');
   }
 
-  get samplerNode() {
-    return this.sourceNodeRecords.findBy('nodeType', 'sampler');
+  get sourceNodeRecords() {
+    return this.trackNodes.filterBy('isSourceNode', true);
+  }
+
+  get samplerNodes() {
+    return this.sourceNodeRecords.filterBy('nodeType', 'sampler');
+  }
+
+  get adsrNodes() {
+    return this.sourceNodeRecords.filterBy('nodeType', 'adsr');
   }
 
   get showFilePicker() {
-    return !!this.samplerNode;
+    return !!this.samplerNodes?.length;
   }
   
   // duplicate getter as on trackNodes for convenience
@@ -83,10 +91,6 @@ export default class TrackModel extends TrackAudioModel {
     // return `/assets/audio/Drum%20Machines%20mp3${this.samplerFilepathControl?.controlStringValue || defaultFile}`;
     return `${ENV.APP.AUDIO_PATH}${this.samplerFilepathControl?.controlStringValue || defaultFile}`;
   }
-
-  get sourceNodeRecords() {
-    return this.trackNodes.filterBy('isSourceNode', true);
-  } 
 
   // TODO: dedupe from similar method on track-list-item
   @keepLatestTask

@@ -36,7 +36,10 @@ export function defineChannelStripMacro() {
  * and need to be a key in the _nodeLookup
  */
 export function addCustomSelector(node, selector) {
-  __._setNodeLookup(selector, node.getUUID());
+  const existingSelectorNodes = __._getNodeLookup()[selector] || [];
+  existingSelectorNodes.push(node.getUUID());
+  
+  __._setNodeLookup(selector, existingSelectorNodes);
   node.selector_array.push(selector);
 }
 

@@ -53,9 +53,11 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       }
       
       if (!node.isMacroComponent() && ENV.APP.supportedAudioNodes.indexOf(type) > -1) {
-        // add a `track-id` class to every node created so it can be properly cleaned up
-        addCustomSelector(node, `.track-${this.order}`);
-        addCustomSelector(node, `${type} .track-${this.order}`);
+        // add a track-specific class to every node created so it can be
+        // easily selected and properly cleaned up.
+        const indicator = this.isMaster ? 'master' : this.order;
+        addCustomSelector(node, `.track-${indicator}`);
+        addCustomSelector(node, `${type} .track-${indicator}`);
       
         const trackNode = {};
         const uuid = node.getUUID();
@@ -89,6 +91,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     if (this.currentSequence) {
       if(this.trackNodes.length) {
         this.sourceNodeRecords.forEach((source) => {
+          // FIXME: 
+          // separate out onStepCallback.bind form bindSourcenodeToLoopStep
+          // in here so callback still works if there's no sourceNode
           this.bindToSequencer(source);
         });
       } else {
@@ -249,7 +254,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // if not create controls for node
     this.trackNodes.forEach((trackNode) => {
       // naively assume that if any trackControls exist, 
-      // all proper andnecessary trackControls exist for this node
+      // all proper and necessary trackControls exist for this node
       // TODO: better validation
       if (trackNode.trackControls.length === 0) {
         trackNode.createTrackControls();
@@ -258,7 +263,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   }
 
   bindToSequencer(sourceNode) {
-    console.log(sourceNode.uniqueSelector);
     let onStepCallback = this.onStepCallback.bind(this);
     bindSourcenodeToLoopStep(sourceNode.uniqueSelector, onStepCallback, this.currentSequence.sequence);
   }
@@ -291,6 +295,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     this.get('onstepScript').content.invokeFunctionRef(index, data, array);
   }
 
+
   get scriptScope() {
     // sampler speed is a special case because they rebuild on every play, 
     // so we need to ensure the attrs from the UI controls get applied after .start()
@@ -301,9 +306,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     const lfoForSamplerSpeed = this.trackNodes.filterBy('nodeType', 'lfo')
       .map((trackNode) => getCrackedNode(trackNode.nodeUUID))
       .find((crackedNode) => crackedNode?.isModulatorType() === 'speed');
-      
-    // const samplerNode = getCrackedNode(this.trackNodes.findBy('nodeType', 'sampler')?.nodeUUID);
-    const samplerNode = this.samplerNode;
+
+    const sourceNodes = this.sourceNodeRecords;
+    const adsrNodes = this.adsrNodes;
     const controls = TrackControlModel.serializeForScript(this.trackNodes, this.stepIndex);
 
     // there will probably always be a speed control if there's a sampler
@@ -311,40 +316,44 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // samplerAttrs.start = startControl.setAttrOnTrackStep(this.stepIndex);
     // samplerAttrs.end = endControl.setAttrOnTrackStep(this.stepIndex);
 
+    // ok the way this should work is as follows
+    // the methods exposed to the user in this scope should mimic the cracked API
+    // but where the use of `this.` confines the outcome to this track's nodes
+    // this allows selector names to be used more easily 
+
+    // for example
+    // __('sampler').stop().start()
+    // vs
+    // this.stop('sampler').start('sampler')
+    // or
+    // track('sampler').stop().attrs().start()
+    // track.
+
     return {
       filepath: this.filepathUrl,
       id: this.id,
-      controls: controls,
       trackSelector: `.track-${this.order}`,
-
-      // trackControls: this.trackControls.map((trackControl) => {
-      //   return {
-      //     nodeSelector: trackControl.nodeType,
-      //     control: trackControl.nodeAttr,
-      //     value(index) {
-      //       return trackControl.setAttrOnTrackStep(index);
-      //     }
-      //   }
-      // }),
-      
-      // TODO (maybe) Generalize playSample this to try to play anything the user may want on step
-      // (ADSR, LFO, ramp)
-      
-      // TODO refactor use of playSample() to also accept .attr({}), 
-      // better matching cracked api
-      playSample(attrs) {
-        if (samplerNode) {
-          __(samplerNode.uniqueSelector).stop().attr({
-            speed: this.controls[0].speed, // FIXME: brittle b/c sampler might not be first node
-            start: this.controls[0].start, 
-            end: this.controls[0].end,
-            ...attrs
-          }).start();
-        } else {
-          throw "You tried to use playSample() but do not have a sampler defined."
+      controls: controls, // the value of the controls at this current step
+      sliders: this.trackControlData,
+      playSourceNodes() {
+        if (sourceNodes) {
+          sourceNodes.forEach((sourceNode, idx) => {
+            __(sourceNode.uniqueSelector).stop().attr({
+              ...controls[idx]
+            }).start();
+          });
         }
       },
-      sliders: this.trackControlData
+      playADSRNodes() {
+        adsrNodes.forEach((adsrNode) => {
+          __(adsrNode.uniqueSelector).adsr('trigger');
+        });
+      },
+      playAll(attrs) {
+        this.playSample(attrs);
+        this.playADSRNodes();
+        // TODO: rampNodes, LFONodes
+      },
     };
   } 
 }

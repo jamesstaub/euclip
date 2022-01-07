@@ -6,10 +6,8 @@ go live list:
   - 
 - finish node config refactor (add ADSR, fix compressor threshold)
 - ember-responsive fixes for small + touch screen
-  - script sidebar default opens
   - sidebar service to auto open-close when small
   - collapse track list items
-- track controls sidescroll fixes
 
 
 ### Scripts
@@ -104,10 +102,15 @@ go live list:
 
 
 ### bugs
+-- Sequencer:
+  can't click individual steps when on pages 2-4 when sequence greater than 16 steps
+
 -- master track doesn't update when new nodes are added (until playback is restarted)
 - - need more solid sequencer-awareness when adding/removing tracks (use generators to start on a particular beat)
 
 -- when deleting a track, the script sidebar closes but property is not re-set so the button to re-open sidebar disappears
+
+-- channel strip gain doesn't save when page reloaded
 
   - use the LFO example, then add an additional gain node
   - - result is the channelStrip gain not working anymore
