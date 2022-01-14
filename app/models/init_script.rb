@@ -14,8 +14,7 @@ class InitScript < Script
     self.safe_code = %{__()
 .compressor({
   release: .1,
-  id: 'mixer',
-  class: 'project-#{self.track.project.id}',
+  id: 'main-output',
 })
 .channelStrip()
 .dac();
@@ -30,7 +29,7 @@ class InitScript < Script
 })
 .gain()
 .channelStrip()
-.connect('#mixer')
+.connect('#main-output')
         } if self.safe_code.nil?
   end
 end

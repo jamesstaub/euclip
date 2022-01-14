@@ -3,7 +3,7 @@ class OnstepScript < Script
     self.type = "OnstepScript"
 
       self.safe_code = %{if (data) {
-  this.playSample();
+  this.playSourceNodes();
 } 
     } if self.safe_code.nil?
 

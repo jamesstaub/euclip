@@ -18,7 +18,7 @@ class V1::PresetCollectionsController < V1::BaseController
   # euclip user
   def set_global_preset_creator
     unless @creator
-      @creator = User.find_by(username: "euclip")
+      @creator = User.ADMIN_PUBLISHER
     end
   end
 end
