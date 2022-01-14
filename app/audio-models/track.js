@@ -327,7 +327,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // this.stop('sampler').start('sampler')
     // or
     // track('sampler').stop().attrs().start()
-    // track.
+    
+    // `track`  variable can be exposed via the new Function() args and return an instance of cracked __() 
+    // but with selectors for this track + any user defined selector
 
     return {
       filepath: this.filepathUrl,
@@ -335,6 +337,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       trackSelector: `.track-${this.order}`,
       controls: controls, // the value of the controls at this current step
       sliders: this.trackControlData,
+      
+      // These methods may get replaced by the track('selector').play() style of API
       playSourceNodes() {
         if (sourceNodes) {
           sourceNodes.forEach((sourceNode, idx) => {

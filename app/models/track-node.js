@@ -166,7 +166,7 @@ export default class TrackNodeModel extends Model {
         min,
         max,
       });
-      
+
       if (this.userDefinedInterfaceName) {
         trackControl.set('interfaceName', this.userDefinedInterfaceName)
       }
