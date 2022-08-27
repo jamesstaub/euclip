@@ -6,6 +6,7 @@ default: &default
 development:
   <<: *default
   database: euclip_api_development
+  host: localhost
 
 test:
   <<: *default

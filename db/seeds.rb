@@ -21,22 +21,78 @@ project = Project.create_with_relations!({
   creator: admin,
 })
 
+sample_collection = PresetCollection.create!(title: "Sampler", creator: admin)
+sample_collection = PresetCollection.create!(title: "Filters", creator: admin)
+sample_collection = PresetCollection.create!(title: "Delay/Reverb", creator: admin)
+sample_collection = PresetCollection.create!(title: "Modulation", creator: admin)
+synth_collection = PresetCollection.create!(title: "Synthesis", creator: admin)
+macro_collection = PresetCollection.create!(title: "Macros", creator: admin)
 
-pc = PresetCollection.create!(title: "Sample", creator: admin)
+# effects 
+# all
+# ...individual
+
+
+# LFOs 
+# sampler playback speed
+# gain
+# modulate other LFOs
+# oscilators 
 
 [
   {
-    title: "basic oneshot",
+    title: "Basic Oneshot",
     init_script: InitScript.create!(safe_code: <<-EOS
+__().sampler({
+    path: this.filepath,
+  })
+  .channelStrip()
+  .connect('#main-output')
+    
+EOS
+),
+    onstep_script: OnstepScript.create!(safe_code: <<-EOS
+// the `data` variable is either true or false depending on which step of the sequence we're on
+// if there's a beat on this step of the sequence, play the sample
+if (data) {
+  this.playSourceNodes(); 
+}
+
+/** 
+* `this.playSourceNodes()` is equivalent to writing
+* `__(this.trackSelector).start()`
+* but with some euclip-specific behavior. 
+* if you've given your sampler an ID 
+* you can also trigger it like so:
+* `__('#my-sampler-id').start()`
+**/ 
+
+EOS
+),
+  },
+  {
+    title: "Looping with ADSR envelope",
+    init_script: InitScript.create!(safe_code: <<-EOS
+/** 
+start the sample with loop set to `true`
+the adsr can be triggered in the Play script
+**/ 
 __()
   .sampler({
     path: this.filepath,
+    speed: 4, // play at 4x speed
+    loop: true,
   })
   .adsr('fast') // create an ADSR envelope
   .channelStrip() // connect to output
-  .connect('#mixer');
+  .connect('#main-output')
+  .start();  
 
-__('#'+this.id).start();
+
+/** 
+ try using the controls to change the playback speed while looping.
+**/
+
 EOS
 ),
     onstep_script: OnstepScript.create!(safe_code: <<-EOS
@@ -47,28 +103,26 @@ EOS
 ),
   },
   {
-    title: "looping with ADSR envelope",
+    title: "Reverse",
     init_script: InitScript.create!(safe_code: <<-EOS
-__()
-  .sampler({
-    path: this.filepath,
-    speed: 4, // play at 4x speed
-    loop: true, //infinitely repeat
-  })
-  .adsr('fast') // create an ADSR envelope
-  .channelStrip() // connect to output
-  .connect('#mixer');
-
-__('#'+this.id).start();
+__().sampler({
+  path: this.filepath,
+  reverse: true
+})
+.channelStrip()
+.connect('#main-output')
+  
 EOS
 ),
     onstep_script: OnstepScript.create!(safe_code: <<-EOS
 if (data) {
-  __('adsr').adsr('trigger');
+  this.playSourceNodes(); 
 }
 EOS
 ),
   },
 ].each do |preset|
-  Preset.create!(preset_collection: pc, **preset)
+  Preset.create!(preset_collection: sample_collection, **preset)
 end
+
+
