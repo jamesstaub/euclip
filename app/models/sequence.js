@@ -11,24 +11,33 @@ export default class SequenceModel extends Model {
 
   // euclidean rhythm params (should eventually move to a Sequence model)
   @attr('number', {
-    defaultValue() { return 0 }
-  }) hits
+    defaultValue() {
+      return 0;
+    },
+  })
+  hits;
 
   @attr('number', {
-    defaultValue() { return 8 }
-  }) steps
+    defaultValue() {
+      return 8;
+    },
+  })
+  steps;
 
   @attr('number', {
-    defaultValue() { return 0 }
-  }) offset
+    defaultValue() {
+      return 0;
+    },
+  })
+  offset;
 
-  @attr() customSequence
+  @attr() customSequence;
 
   get sequence() {
     if (this.customSequence?.length) {
       return this.customSequence;
     } else {
-      return E(this.hits, this.steps, this.offset)
+      return E(this.hits, this.steps, this.offset);
     }
   }
 }

@@ -71,10 +71,10 @@ const getPattern = (pulses, steps) => {
 
   // Build the final array
   let pattern = [];
-  first.forEach(f => {
+  first.forEach((f) => {
     pattern = Array.prototype.concat.call(pattern, f);
   });
-  second.forEach(s => {
+  second.forEach((s) => {
     pattern = Array.prototype.concat.call(pattern, s);
   });
 

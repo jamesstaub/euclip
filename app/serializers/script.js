@@ -1,7 +1,7 @@
 import ApplicationSerializer from './application';
 
 export default class ScriptSerializer extends ApplicationSerializer {
-  attrs =  {
+  attrs = {
     safeCode: { serialize: false },
-  }
+  };
 }

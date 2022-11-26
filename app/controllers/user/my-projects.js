@@ -1,13 +1,15 @@
-import Controller from "@ember/controller";
+import Controller from '@ember/controller';
 import { action } from '@ember/object';
-
+import { inject as service } from '@ember/service';
 export default class UserMyProjectsController extends Controller {
   // TODO:
-  // De-dupe this from project controller play actions. 
-  // 
+  // De-dupe this from project controller play actions.
+  //
+  @service router;
+  
   @action
   play(project) {
-    this.model.forEach((project) => { 
+    this.model.forEach((project) => {
       project.stopLoop();
     });
     project.initSignalChain();
@@ -23,6 +25,6 @@ export default class UserMyProjectsController extends Controller {
   deleteProject(project) {
     project.stopLoop();
     project.destroyRecord();
-    this.transitionToRoute('user.my-projects');
+    this.router.transitionTo('user.my-projects');
   }
 }

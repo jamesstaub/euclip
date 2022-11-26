@@ -1,4 +1,4 @@
-import { createMachine } from "xstate";
+import { createMachine } from 'xstate';
 
 const guiCanCreate = (context, event) => {
   console.log('can create GUI', context, event);
@@ -6,7 +6,7 @@ const guiCanCreate = (context, event) => {
 };
 
 export default createMachine({
-  initial: "script",
+  initial: 'script',
   context: {
     selectedTab: '',
   },
@@ -14,41 +14,38 @@ export default createMachine({
     signalGui: {
       on: {
         CREATE_FROM_GUI: {
-          target: "script.init",
-          cond: guiCanCreate
+          target: 'script.init',
+          cond: guiCanCreate,
         },
-        BACK_TO_SCRIPT: "script",
-
+        BACK_TO_SCRIPT: 'script',
       },
-      states: {}
+      states: {},
     },
     script: {
-      initial: "init",
+      initial: 'init',
       on: {
-        OPEN_GUI: "signalGui",
-        OPEN_PRESETS: "presets",
+        OPEN_GUI: 'signalGui',
+        OPEN_PRESETS: 'presets',
         SET_TAB_INIT: 'script.init',
         SET_TAB_ONSTEP: 'script.onstep',
       },
       states: {
-        init: {
-        },
-        onstep: {
-        },
+        init: {},
+        onstep: {},
       },
     },
     presets: {
-      initial: "beforeSelection",
+      initial: 'beforeSelection',
       on: {
-        BACK_TO_SCRIPT: "script",
-        SUBMIT: "presets.submitting",
+        BACK_TO_SCRIPT: 'script',
+        SUBMIT: 'presets.submitting',
       },
       states: {
         beforeSelection: {},
         hasSelection: {},
         submitting: {},
         error: {},
-      }
-    }
+      },
+    },
   },
 });

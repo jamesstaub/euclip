@@ -1,4 +1,4 @@
-{{yield this.sequencePaginated page currentPageStartIdx}}
+{{yield this.sequencePaginated this.page this.currentPageStartIdx}}
 <div {{did-update (fn this.autoPageOnUpdate @sequence @stepIndex @isCurrentTrack)}}>
   <div class="flex w-auto mv1">
     {{#if this.showPages}}
@@ -7,7 +7,7 @@
           <PaginationButton 
             {{on "click" (fn this.setPage pageIdx)}} @label={{add pageIdx 1}}
             @selected={{eq pageIdx this.page}}
-            @highlight={{eq pageIdx pageForStepIndex}}
+            @highlight={{eq pageIdx this.pageForStepIndex}}
           />
         {{else}}
           <PaginationButton disabled={{true}}/>

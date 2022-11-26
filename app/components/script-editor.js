@@ -1,20 +1,15 @@
 import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { inject as service } from '@ember/service';
+import { timeout, restartableTask } from 'ember-concurrency';
+import { getProperties } from '@ember/object';
 
-import { timeout } from 'ember-concurrency';
-import { restartableTask } from 'ember-concurrency-decorators';
 export default class ScriptEditorComponent extends Component {
-
   @service router;
 
   get functionIsLoaded() {
-    const {
-      safeCode, 
-      editorContent, 
-      functionRef 
-    } = this.args.scriptModel.getProperties('safeCode', 'editorContent', 'functionRef');
-    return (safeCode === editorContent) && functionRef;
+    const { safeCode, editorContent, functionRef } = getProperties(this.args.scriptModel, 'safeCode', 'editorContent', 'functionRef')
+    return safeCode === editorContent && functionRef;
   }
 
   @restartableTask
@@ -37,7 +32,10 @@ export default class ScriptEditorComponent extends Component {
   async discardChanges() {
     // await proxy to model record
     const scriptModel = await this.args.scriptModel;
-    scriptModel.updateScriptTask.perform('editorContent', this.args.scriptModel.get('safeCode'));
+    scriptModel.updateScriptTask.perform(
+      'editorContent',
+      this.args.scriptModel.get('safeCode')
+    );
   }
 
   @action
@@ -46,5 +44,4 @@ export default class ScriptEditorComponent extends Component {
     const scriptModel = await this.args.scriptModel;
     scriptModel.updateScriptTask.perform('code', '');
   }
-
 }

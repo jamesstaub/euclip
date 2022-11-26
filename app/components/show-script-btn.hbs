@@ -1,14 +1,21 @@
 {{#unless @rightSidebarOpen}}
   <ButtonPrimary
-    class="relative truncate ma2 f7 flex items-center {{if @isActive "b--dark-gray"}} {{if (and @isActive @rightSidebarOpen) "light-yellow-button" "yellow-fill"}} {{if @track.isMaster "mr3"}}"
+    class='relative truncate ma2 f7 flex items-center
+      {{if @isActive "b--dark-gray"}}
+      {{if
+        (and @isActive @rightSidebarOpen)
+        "light-yellow-button"
+        "yellow-fill"
+      }}
+      {{if @track.isMaster "mr3"}}'
     ...attributes
-    {{on "click" @onToggleScripts}}
-    @label="scripts"
+    {{on 'click' @onToggleScripts}}
+    @label='scripts'
   >
-    {{svg-jar "fi-code" width="40px" height="20px"}}
+    {{svg-jar 'fi-code' width='40px' height='20px'}}
     {{#if @track.scriptAlert}}
-      <span class="beacon absolute left-1" title={{@track.scriptAlert}}>⬤</span>
+      <span class='absolute beacon left-1' title={{@track.scriptAlert}}>⬤</span>
     {{/if}}
-    <span class="f7">script</span>
+    <span class='f7'>script</span>
   </ButtonPrimary>
 {{/unless}}

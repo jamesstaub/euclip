@@ -1,10 +1,9 @@
 import JSONAPIAdapter from '@ember-data/adapter/json-api';
 import { inject as service } from '@ember/service';
 import { computed } from '@ember/object';
-import DataAdapterMixin from "ember-simple-auth/mixins/data-adapter-mixin";
 import ENV from 'euclip/config/environment';
 
-export default class ApplicationAdapter extends JSONAPIAdapter.extend(DataAdapterMixin) {
+export default class ApplicationAdapter extends JSONAPIAdapter.extend() {
   @service session;
 
   urlForQueryRecord() {
@@ -14,7 +13,7 @@ export default class ApplicationAdapter extends JSONAPIAdapter.extend(DataAdapte
   urlForFindRecord() {
     return `/v1${super.urlForFindRecord(...arguments)}`;
   }
-  
+
   urlForCreateRecord() {
     return ENV.APP.registrationEndpoint;
   }
@@ -24,7 +23,9 @@ export default class ApplicationAdapter extends JSONAPIAdapter.extend(DataAdapte
   get headers() {
     let headers = {};
     if (this.session.isAuthenticated) {
-      headers['Authorization'] = `Bearer ${this.session.data.authenticated.token}`;
+      headers[
+        'Authorization'
+      ] = `Bearer ${this.session.data.authenticated.token}`;
     }
     headers['Content-Type'] = 'application/vnd.api+json';
 

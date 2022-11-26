@@ -1,10 +1,10 @@
-<nav class="project-header-height flex justify-between items-center ph3">
-  <div class="flex justify-between w-100 items-center">    
+<nav class="flex items-center justify-between project-header-height ph3">
+  <div class="flex items-center justify-between w-100">    
     <h1 class="ma0 f3">{{this.model.displayTitle}}</h1>
       <div class="flex">
-        <IconButton class="mh1" @icon="fi-play" @label="play" {{action "play"}} />
-        <IconButton class="mh1" @icon="fi-stop" @label="stop" {{action "stop"}} />
-        <IconButton class="mh1" @icon="fi-previous" @label="reset" {{action "reset"}} />
+        <IconButton class="mh1" @icon="fi-play" @label="play" {{on "click" this.play}} />
+        <IconButton class="mh1" @icon="fi-stop" @label="stop" {{on "click" this.stop}} />
+        <IconButton class="mh1" @icon="fi-previous" @label="reset" {{on "click" this.reset}} />
         <div class="flex items-center ba b--dark-gray bw1 ml2">
           <NexusNumber
             @value={{this.model.bpm}} 
@@ -20,8 +20,8 @@
       <ButtonPrimary @label={{"New Track"}} {{on "click" this.addTrack}}/>
       <DropdownMenu 
         class="h-100 grow-1 bg-dark-gray ba bl-0 bw1 b--yellow"
-        @icon={{"fi-play"}}
-        @iconClass={{"yellow-fill rotate-90"}}
+        @icon="fi-play"
+        @iconClass="yellow-fill rotate-90"
         @items={{array 
           (hash label="Sampler" select=(fn this.addTrack "samplerPreset")) 
           (hash label="Synth" select=(fn this.addTrack "synthPreset")) 
@@ -34,25 +34,27 @@
   </div>
 </nav>
 
-<div class="flex project-tracks-height overflow-hidden">
+<div class="flex overflow-hidden project-tracks-height">
   {{#if (and this.leftSidebarOpen this.activeTrack (not this.activeTrack.isDeleted))}}
     <SidebarWrapper 
       class="left-sidebar-width h-100 bw2 br b--yellow"
       @direction="left"
       @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id "left"}}
     >
-      <div class="mh3 yellow relative flex flex-column">
+      <div class="relative flex mh3 yellow flex-column">
         <h3 class="mv3">Drum Machines</h3>
-        <InfoBox class="absolute right-2 top-0">
+        <InfoBox class="absolute top-0 right-2">
           <p class="f6 mb3 mt0">When you select a sound file from this menu the sound's URL is available in the code as <code>this.filepath</code>.
           </p>
           <p class="f6 mb3 mt0">You pass the sound's URL to a <code>sampler</code> node in the setup script like so:</p>
           <p class="f6 mb3 mt0"><code>__().sampler(path: this.filepath)</code></p>
         </InfoBox>
       </div>
-      <DrumFilePicker
-        @track={{this.activeTrack}}
-      />
+      {{#if this.activeTrack}}
+        <DrumFilePicker
+          @track={{this.activeTrack}}
+        />
+      {{/if}}
     </SidebarWrapper>
   {{/if}}
   <TrackListWrapper
@@ -91,9 +93,9 @@
       @direction="right"
       @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id "right"}}
     >
-      <div class="mh3 yellow relative flex flex-column">
+      <div class="relative flex mh3 yellow flex-column">
         <h3 class="mv3">Track {{this.activeTrack.order}} Scripts</h3>
-        <InfoBox class="absolute right-2 top-0">
+        <InfoBox class="absolute top-0 right-2">
           <p class="f6 mb3 mt0">Scripts are where you define the audio signal chain for each track.</p>
           <p class="f6 mb3 mt0"><b>Setup Script</b> runs once to create your audio signal chain. Audio Nodes can be defined with a <code>class</code> or <code>ID</code>, which are used to select and modify their parameters.</p>
           <p class="f6 mb3 mt0"><b>Play Script</b> runs on every step of the sequencer. This is where you trigger sound and modulate parameters.<br> Select node IDs with: <code>__('#someID')</code> <br>Select node classes with: <code>__('.someClass')</code> </p>

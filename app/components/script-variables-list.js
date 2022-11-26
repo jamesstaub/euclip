@@ -5,24 +5,23 @@ import { getCrackedNode } from '../utils/cracked';
 import { A } from '@ember/array';
 import { selectorType } from '../utils/selectors-util';
 import { isPresent } from '@ember/utils';
-import {
-  inject as controller
-} from '@ember/controller';
+import { inject as controller } from '@ember/controller';
 
 export default class ScriptVariablesComponent extends Component {
   @tracked ui;
   @tracked selectedTab;
-  
+
   @controller('user.creator.project') project;
 
   vars = {
     data: 'Number value of the current step in the sequence (0 or 1)',
     index: 'Number of Which step the sequence is on.',
     array: 'The array representing the entire sequence',
-    'this.filepath': 'The URL of the audio file select from the file picker for this track. This must get passed to the sampler node to play a sound.',
+    'this.filepath':
+      'The URL of the audio file select from the file picker for this track. This must get passed to the sampler node to play a sound.',
     // filestart: '',
     // fileend: '',
-  }
+  };
 
   constructor() {
     super(...arguments);
@@ -30,12 +29,14 @@ export default class ScriptVariablesComponent extends Component {
   }
 
   get scriptVars() {
-    return  A(this.args.variables?.map((key) => { 
-      return {
-        name: key,
-        description: this.vars[key]
-      }
-    }));
+    return A(
+      this.args.variables?.map((key) => {
+        return {
+          name: key,
+          description: this.vars[key],
+        };
+      })
+    );
   }
 
   get currentNode() {
@@ -54,7 +55,7 @@ export default class ScriptVariablesComponent extends Component {
     if (this.currentNode) {
       return this.getSelectorsArray(this.currentNode.nodeUUID);
     } else {
-      return []
+      return [];
     }
   }
 
@@ -64,38 +65,36 @@ export default class ScriptVariablesComponent extends Component {
       {
         label: 'selectors',
         value: 'selectors',
-        condition: this.selectorsForNode.length
+        condition: this.selectorsForNode.length,
       },
       {
-      label: 'variables',
-      value: 'variables',
-      condition: this.scriptVars
-    },
-    {
-      label: 'attributes',
-      value: 'docs',
-      condition: showDocs
-    }].filter((item) => { 
-      return item.condition
+        label: 'variables',
+        value: 'variables',
+        condition: this.scriptVars,
+      },
+      {
+        label: 'attributes',
+        value: 'docs',
+        condition: showDocs,
+      },
+    ].filter((item) => {
+      return item.condition;
     });
   }
 
   getSelectorsArray(uuid) {
-    return getCrackedNode(uuid)?.selector_array
-      .filter((selector) => selector !== '*')
+    return getCrackedNode(uuid)
+      ?.selector_array.filter((selector) => selector !== '*')
       .map((selector) => {
         return {
           name: selector,
-          type: selectorType(selector)
-        }
-      })
+          type: selectorType(selector),
+        };
+      });
   }
-
 
   @action
   setUi(key, value) {
     this.ui = value;
   }
-
-
 }

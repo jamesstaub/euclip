@@ -1,6 +1,6 @@
 <div class="flex shrink-0 basis-auto grow-1 h-100 {{if (media 'isMobile') "absolute w-100 z-2"}}" ...attributes>
-  <div class="bg-dark-gray w-100 relative">
-    <IconButton class="light-fill bn absolute right-0 top-0 z-2 pa3" @icon="fi-cancel" {{on "click" (fn @onCloseSidebar)}} />
+  <div class="relative bg-dark-gray w-100">
+    <IconButton class="absolute top-0 right-0 light-fill bn z-2 pa3" @icon="fi-cancel" {{on "click" @onCloseSidebar}} />
     {{yield}}
   </div>
 </div>

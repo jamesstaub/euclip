@@ -26,4 +26,3 @@ export default class TabMenuComponent extends Component {
     this.args.onSelect(value);
   }
 }
- 

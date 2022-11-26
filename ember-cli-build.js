@@ -2,13 +2,14 @@
 
 const EmberApp = require('ember-cli/lib/broccoli/ember-app');
 
-module.exports = function(defaults) {
+module.exports = function (defaults) {
   let app = new EmberApp(defaults, {
-    sourcemaps: {enabled: true},
-    babel: {
-      plugins: [
-        "@babel/plugin-proposal-optional-chaining"
-      ]
+    sourcemaps: { enabled: true },
+    ace: {
+      themes: ['ambiance', 'chaos'],
+      modes: ['javascript'],
+      workers: ['javascript'],
+      exts: ['language_tools'],
     },
     'ember-math-helpers': {
       only: ['add', 'gt'],
@@ -16,15 +17,6 @@ module.exports = function(defaults) {
     'ember-composable-helpers': {
       only: ['compact'],
     },
-    ace: {
-      themes: ['ambiance', 'chaos'],
-      modes: ['javascript'],
-      workers: ['javascript'],
-      exts: ['language_tools']
-    },
-    fingerprint: {
-      enabled: false
-    }
   });
 
   // Use `app.import` to add additional libraries to the generated
@@ -39,7 +31,6 @@ module.exports = function(defaults) {
   // modules that you would like to import into your application
   // please specify an object with the list of modules as keys
   // along with the exports of each module as its value.
-  
-  // app.import('../vendor/nexusui/dist/NexusUI.js');
+
   return app.toTree();
 };

@@ -1,1 +1,12 @@
-2020-01-22T06:06:38.641Z [warn] [app/components/drum-file-picker.js]: SKIPPED Could not find runtime data NO_RUNTIME_DATA
+2022-08-27T22:52:10.291Z [warn] WARNING: {{page-title}} was not converted as it has positional parameters which can't be automatically converted. Source: app/templates/application.hbs
+2022-08-27T22:52:10.344Z [warn] WARNING: {{fn}} was not converted as it has positional parameters which can't be automatically converted. Source: app/templates/user/creator/project.hbs
+2022-08-27T22:52:10.352Z [warn] WARNING: {{fn}} was not converted as it has positional parameters which can't be automatically converted. Source: app/templates/user/creator/project.hbs
+2022-08-27T22:52:10.352Z [warn] WARNING: {{eq}} was not converted as it has positional parameters which can't be automatically converted. Source: app/templates/user/creator/project.hbs
+2022-08-27T22:52:10.352Z [warn] WARNING: {{fn}} was not converted as it has positional parameters which can't be automatically converted. Source: app/templates/user/creator/project.hbs
+2022-08-27T22:52:10.352Z [warn] WARNING: {{fn}} was not converted as it has positional parameters which can't be automatically converted. Source: app/templates/user/creator/project.hbs
+2022-08-27T22:52:10.353Z [warn] WARNING: {{fn}} was not converted as it has positional parameters which can't be automatically converted. Source: app/templates/user/creator/project.hbs
+2022-08-27T22:52:10.353Z [warn] WARNING: {{eq}} was not converted as it has positional parameters which can't be automatically converted. Source: app/templates/user/creator/project.hbs
+2022-08-27T22:52:10.353Z [warn] WARNING: {{fn}} was not converted as it has positional parameters which can't be automatically converted. Source: app/templates/user/creator/project.hbs
+2022-08-27T22:52:10.353Z [warn] WARNING: {{fn}} was not converted as it has positional parameters which can't be automatically converted. Source: app/templates/user/creator/project.hbs
+2022-08-27T22:52:10.353Z [warn] WARNING: {{fn}} was not converted as it has positional parameters which can't be automatically converted. Source: app/templates/user/creator/project.hbs
+2022-08-27T22:52:10.496Z [warn] WARNING: {{fn}} was not converted as it has positional parameters which can't be automatically converted. Source: app/templates/user/creator/project/track.hbs

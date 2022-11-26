@@ -17,7 +17,7 @@ export default class ProjectModel extends ProjectAudioModel {
     await track.save(saveOptions);
     this.tracks.pushObject(track);
     track.setupAudioFromScripts(false);
-    
+
     return track;
   }
 

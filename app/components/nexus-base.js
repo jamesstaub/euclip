@@ -17,10 +17,12 @@ export default Component.extend({
   },
 
   didInsertElement() {
+    this._super(...arguments);
     this.nexusInit();
   },
 
   didReceiveAttrs() {
+    this._super();
     if (this.valueShouldUpdate()) {
       this.nexusInit();
     }
@@ -30,27 +32,30 @@ export default Component.extend({
     get() {
       // currently only multislider is implemented
       return ['Multislider', 'Envelope'].includes(this.elementName);
-    }
+    },
   }),
 
-  // logic for when the @value param should set the nexus element's value from above 
+  // logic for when the @value param should set the nexus element's value from above
   // (as opposed to when the user directly interacts with it)
   // this here is the default case for most nexus- components but some like multislider override this
   valueShouldUpdate() {
-    return this.nexusElement && this.options && (this.valueChanged() || this.optionsChanged());
+    return (
+      this.nexusElement &&
+      this.options &&
+      (this.valueChanged() || this.optionsChanged())
+    );
   },
-  
+
   // this here is the default case for most nexus- components but some like multislider override this
   valueChanged() {
     return this.value !== this.nexusElement.value;
   },
 
-  optionsChanged() {   
-    return [
-      'min', 
-      'max', 
-      'step',
-    ].filter((option) => isPresent(this[option]) && this[option] !== this.nexusElement[option]).length    
+  optionsChanged() {
+    return ['min', 'max', 'step'].filter(
+      (option) =>
+        isPresent(this[option]) && this[option] !== this.nexusElement[option]
+    ).length;
   },
 
   nexusInit() {
@@ -59,7 +64,10 @@ export default Component.extend({
       this.nexusElement.destroy();
     }
 
-    const nexusElement = new Nexus[this.elementName](`#${this.nexusId}`, this.options);
+    const nexusElement = new Nexus[this.elementName](
+      `#${this.nexusId}`,
+      this.options
+    );
     this.set('nexusElement', nexusElement);
     this.nexusElement.on('change', (v) => {
       const property = this.isArrayElement ? 'values' : 'value';
@@ -71,8 +79,9 @@ export default Component.extend({
   },
 
   willDestroyElement() {
+    this._super(...arguments);
     if (this.nexusElement) {
       this.nexusElement.destroy();
     }
-  }
+  },
 });

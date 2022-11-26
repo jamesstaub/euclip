@@ -15,14 +15,14 @@ export default NexusBase.extend({
   options: computed('max', 'min', 'step', 'value', 'size', {
     get() {
       return {
-        'size': this.size || [20, 120],
-        'mode': 'relative', // "absolute" or "relative"
-        'min': this.min || 0,
-        'max': this.max || 1,
-        'step': this.step || 0.0125,
-        'value': this.value
+        size: this.size || [20, 120],
+        mode: 'relative', // "absolute" or "relative"
+        min: this.min || 0,
+        max: this.max || 1,
+        step: this.step || 0.0125,
+        value: this.value,
       };
-    }
+    },
   }),
 
   nexusInit() {
@@ -34,5 +34,4 @@ export default NexusBase.extend({
     circle.setAttribute('stroke-width', '2px');
     this.slider.element.style.overflow = 'visible';
   },
-
 });

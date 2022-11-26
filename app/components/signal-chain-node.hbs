@@ -1,8 +1,8 @@
-<div class="signal-chain-node relative mb3 w4">
+<div class="relative signal-chain-node mb3 w4">
   {{#if (and @node @onRemoveNode)}}
-    <IconButton class="light-fill small-icon-btn bn absolute right-0 top-0 z-2" @icon="fi-cancel" @iconClass="ph2 pv3" {{on "click" (fn @onRemoveNode)}} />
+    <IconButton class="absolute top-0 right-0 light-fill small-icon-btn bn z-2" @icon="fi-cancel" @iconClass="ph2 pv3" {{on "click" @onRemoveNode}} />
   {{/if}}
-  <button class="w4 h3 ba b--yellow yellow bg-transparent" type="button" {{on "click" this.toggleMenu}}>
+  <button class="bg-transparent w4 h3 ba b--yellow yellow" type="button" {{on "click" this.toggleMenu}}>
     {{#if @node}}
       {{@node}}
     {{else}}
@@ -12,17 +12,17 @@
 
   {{!-- TODO: refactor this style into Dropdown menu --}}
   {{#if this.isShowingChoices}}
-    <div class="node-choice-menu h4 mt5 absolute bg-dark-gray z-2 flex">
-      {{svg-jar "fi-play" class="yellow-fill rotate-180 mt2"  width="16px" height="20px"}}
+    <div class="absolute flex node-choice-menu h4 mt5 bg-dark-gray z-2">
+      {{svg-jar "fi-play" class="rotate-180 yellow-fill mt2"  width="16px" height="20px"}}
 
-      <ul class="list pl1 mt0 h-4 w-100 overflow-scroll h5 bw1 ba b--yellow">
+      <ul class="h-4 overflow-scroll list pl1 mt0 w-100 h5 bw1 ba b--yellow">
         {{#each @nodeOptionGroups as |group|}}
           {{#if group.type}}
             <li class="pa2 f6 bb light-gray w-100 tc mt1">{{group.type}}</li>
           {{/if}}
           {{#each group.nodes as |node|}}
             <li>
-              <button class="yellow ph3 pv2 bn bg-transparent tl w-100" type="button" {{on "click" (fn this.selectNode node)}}>{{node}}</button>
+              <button class="bg-transparent yellow ph3 pv2 bn tl w-100" type="button" {{on "click" (fn this.selectNode node)}}>{{node}}</button>
             </li>
           {{/each}}
         {{/each}}

@@ -2,13 +2,13 @@ import Component from '@glimmer/component';
 
 export default class SequencerStepComponent extends Component {
   get fill() {
-    const {idx, stepIndex, step} = this.args;
+    const { idx, stepIndex, step } = this.args;
     if (idx === stepIndex) {
-      return '#d9534f'
+      return '#d9534f';
     } else if (step) {
-      return '#52ebff'
+      return '#52ebff';
     } else {
-      return '#fff'
+      return '#fff';
     }
   }
 }

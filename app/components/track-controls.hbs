@@ -1,7 +1,7 @@
 {{#each @trackNodesForControls as |trackNode idx|}}
   {{#if (eq @visibleNodeIdx idx)}}
-    <div class="flex justify-start h-100 overflow-scroll mw-100">
-      <div class="h-auto flex flex-column tc track-controls-container-pb overflow-y">
+    <div class="flex justify-start overflow-scroll h-100 mw-100">
+      <div class="flex h-auto flex-column tc track-controls-container-pb overflow-y">
         {{#each trackNode.multisliderControls as |trackControl|}}
           <TrackControlWrapper
             @sequence={{@track.currentSequence.sequence}}
@@ -13,7 +13,7 @@
               render the track control component eg nexus-multislider
               this is equivalent to <NexusMultislider> but can be set dynamically
             --}}
-            <SequencePagination 
+            <SequencePagination
               @sequence={{@track.currentSequence.sequence}} 
               @stepIndex={{@track.stepIndex}}
               as |sequencePaginated page|

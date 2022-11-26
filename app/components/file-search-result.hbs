@@ -3,13 +3,13 @@
   {{did-insert this.renderParts}} 
   ...attributes
 >
-  <ListItemLink {{on "click" (fn @onSelect)}}>
-    {{#each parentDirs as |dir|}}
+  <ListItemLink {{on "click" @onSelect}}>
+    {{#each this.parentDirs as |dir|}}
       {{dir}} /
     {{/each}}
 
-    {{#if file}}
-      {{filename-ui file}}
+    {{#if this.file}}
+      {{filename-ui this.file}}
     {{/if}}
   </ListItemLink>
 

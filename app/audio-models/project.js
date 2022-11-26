@@ -1,14 +1,17 @@
 import Model from '@ember-data/model';
-import { defineChannelStripMacro, startLoop, stopLoop } from '../utils/cracked';
+import {
+  defineChannelStripMacro,
+  startLoop,
+  stopLoop
+} from '../utils/cracked';
 
-/* 
+/*
  *  base class for the project model
  *  containing methods for project-level web audio state
  */
 export default class ProjectAudioModel extends Model.extend() {
-
   get loopInterval() {
-    return 1000 * 60 / (this.bpm * 2);
+    return (1000 * 60) / (this.bpm * 2);
   }
 
   initSignalChain() {
@@ -30,7 +33,7 @@ export default class ProjectAudioModel extends Model.extend() {
 
   stopLoop() {
     this.isPlaying = false;
-    stopLoop()
+    stopLoop();
     return this;
   }
 

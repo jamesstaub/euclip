@@ -15,15 +15,21 @@ export default NexusBase.extend({
       bgColor: '#075f68',
       sliderStrokeColor: '#333',
       sliderBgColor: '#f7f7f7',
-      red: 'rgb(217, 83, 79)'
+      red: 'rgb(217, 83, 79)',
     });
   },
-  
+
   nexusInit() {
     // hackish way to select the <rect> elements that need to be styled
-    this._super(...arguments)
-    this.set('sliderQuery', this.nexusElement.parent.querySelectorAll(`rect[height="120"]`));
-    this.set('sliderCapQuery', this.nexusElement.parent.querySelectorAll(`rect[height="5"]`));
+    this._super(...arguments);
+    this.set(
+      'sliderQuery',
+      this.nexusElement.parent.querySelectorAll(`rect[height="120"]`)
+    );
+    this.set(
+      'sliderCapQuery',
+      this.nexusElement.parent.querySelectorAll(`rect[height="5"]`)
+    );
     this.applyStyle();
     this.styleOnStep();
   },
@@ -34,12 +40,15 @@ export default NexusBase.extend({
     this.styleOnStep();
   },
 
-  applyStyle() {    
-    if(this.nexusElement && this.sequence && this.sliderQuery, this.sliderCapQuery) {
+  applyStyle() {
+    if (
+      (this.nexusElement && this.sequence && this.sliderQuery,
+      this.sliderCapQuery)
+    ) {
       this.nexusElement.element.style.backgroundColor = this.bgColor;
 
       this.sliderQuery.forEach(this.styleRectElement.bind(this));
-      this.sliderCapQuery.forEach(this.styleRectElement.bind(this))
+      this.sliderCapQuery.forEach(this.styleRectElement.bind(this));
     }
   },
 
@@ -77,8 +86,8 @@ export default NexusBase.extend({
         max: this.max,
         numberOfSliders: this.values.length,
         step: this.step,
-        values: this.values
+        values: this.values,
       };
-    }
+    },
   }),
 });

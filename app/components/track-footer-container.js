@@ -2,34 +2,32 @@ import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import TrackNodeModel from '../models/track-node';
 import { tracked } from '@glimmer/tracking';
-import {
-  inject as controller
-} from '@ember/controller';
+import { inject as controller } from '@ember/controller';
 
 export default class TrackFooterContainerComponent extends Component {
   @tracked controlUiState;
   @tracked visibleNodeIdx;
   @tracked showReference;
-  
+
   @controller('user.creator.project') project;
 
   constructor() {
     super(...arguments);
     this.maxSteps = 64;
-    this.setTabs();
+    // this.setTabs();
     this.showReference = false;
   }
 
   get showSequence() {
-    return this.controlUiState === "sequence";
+    return this.controlUiState === 'sequence';
   }
-  
+
   get showSource() {
-    return this.controlUiState === "source";
+    return this.controlUiState === 'source';
   }
-  
+
   get showControls() {
-    return this.controlUiState === "controls";
+    return this.controlUiState === 'controls';
   }
 
   get validTrackNodes() {
@@ -47,26 +45,30 @@ export default class TrackFooterContainerComponent extends Component {
     return this.validTrackNodes.filterBy('parentMacro');
   }
 
-  /** 
-   * Optimize: these getters get called on every step of sequence 
+  /**
+   * Optimize: these getters get called on every step of sequence
    * In all likelyhood they only need to be re-fetched when the script is updated
    * */
   get channelStripGainControl() {
-    return TrackNodeModel.channelStripNode(this.args.track, 'gain')?.trackControls?.firstObject;
+    return TrackNodeModel.channelStripNode(this.args.track, 'gain')
+      ?.trackControls?.firstObject;
   }
 
   get channelStripPannerControl() {
-    return TrackNodeModel.channelStripNode(this.args.track, 'panner')?.trackControls?.firstObject;
+    return TrackNodeModel.channelStripNode(this.args.track, 'panner')
+      ?.trackControls?.firstObject;
   }
 
-  get trackNodesTabs() {    
-    return this.trackNodesForControls.map((trackNode, idx) => {
-      return {
-        label: trackNode.nodeType,
-        order: trackNode.order,
-        value: idx, // the node index sets which tab is visible with template logic
-      }
-    }).sortBy('order')
+  get trackNodesTabs() {
+    return this.trackNodesForControls
+      .map((trackNode, idx) => {
+        return {
+          label: trackNode.nodeType,
+          order: trackNode.order,
+          value: idx, // the node index sets which tab is visible with template logic
+        };
+      })
+      .sortBy('order');
   }
 
   @action
@@ -83,9 +85,9 @@ export default class TrackFooterContainerComponent extends Component {
   @action
   setTabs() {
     if (this.project.leftSidebarOpen) {
-      this.controlUiState = 'source'
+      this.controlUiState = 'source';
     } else if (!this.controlUiState) {
-      this.controlUiState = 'controls'
+      this.controlUiState = 'controls';
     }
     this.visibleNodeIdx = 0;
   }

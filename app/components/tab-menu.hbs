@@ -11,9 +11,9 @@
         {{on "click" (fn this.select item.value)}}
         title={{item.label}}
       >
-        <div class="flex flex-column justify-center items-center h-100 mb3">
+        <div class="flex items-center justify-center flex-column h-100 mb3">
           {{svg-jar item.icon width=item.iconWidth height=item.iconHeight}}
-          <h4 class="f6 mv0">{{item.label}}</h4>
+          <p class="f6 mv0">{{item.label}}</p>
         </div>
       </button>
     {{else}}
@@ -25,7 +25,7 @@
       >
         {{item.label}}
         {{#if item.beacon}}
-          <span class="beacon absolute right-1" title={{item.beacon}}>⬤</span>
+          <span class="absolute beacon right-1" title={{item.beacon}}>⬤</span>
         {{/if}}
       </button>
     {{/if}}

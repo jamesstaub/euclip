@@ -21,7 +21,7 @@ export function arraysEqual(a, b) {
 
 // return the things in A that are not in B
 export function difference(a, b) {
-  const diff = []
+  const diff = [];
   if (naiveChecks(a, b)) {
     return diff;
   }
@@ -32,5 +32,5 @@ export function difference(a, b) {
       diff.push(a[i]);
     }
   }
-  return diff
+  return diff;
 }

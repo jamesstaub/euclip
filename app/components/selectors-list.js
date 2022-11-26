@@ -1,7 +1,6 @@
 import Component from '@glimmer/component';
 
 export default class SelectorsListComponent extends Component {
-  
   get idSelector() {
     return this.args.selectorsForNode.findBy('type', 'id');
   }

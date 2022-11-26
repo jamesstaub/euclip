@@ -1,10 +1,10 @@
-<div class="w-100 bt bw1 relative" {{did-update this.setTabs @track.id}}>
+<div class="relative w-100 bt bw1" {{did-update this.setTabs @track.id}}>
   {{#unless @track.isDeleted}}
     <div
-      class="flex flex-column bg-yellow justify-between footer-height relative"
+      class="relative flex justify-between flex-column bg-yellow footer-height"
     >
       <div
-        class="flex w-100 overflow-hidden h-100"
+        class="flex overflow-hidden w-100 h-100"
       >
         {{#if
           (and this.channelStripGainControl this.channelStripPannerControl)
@@ -17,7 +17,7 @@
             <ChannelStrip
               @channelStripGainControl={{this.channelStripGainControl}}
               @channelStripPannerControl={{this.channelStripPannerControl}}
-              @updateValue={{fn this.updateControl}}
+              @updateValue={{this.updateControl}}
             />
           {{/unless}}
         {{/if}}
@@ -73,7 +73,7 @@
           <div class="flex justify-between grow-1">
             <div class="flex flex-column">
               <h3 class="ma3">{{@track.samplerFilepathControl.filename}}</h3>
-              <ul class="pa0 list flex items-center">
+              <ul class="flex items-center pa0 list">
                 {{#each
                   @track.samplerFilepathControl.pathSegments
                   as |directory|
@@ -94,12 +94,12 @@
           </div>
         {{/if}}
         {{#if this.showControls}}
-          <div class="flex justify-between grow-1 shrink-1 bt overflow-hidden">
+          <div class="flex justify-between overflow-hidden grow-1 shrink-1 bt">
             <div
-              class="flex flex-column flex-grow-1 shrink-1 bl overflow-scroll"
+              class="flex overflow-scroll flex-column flex-grow-1 shrink-1 bl"
             >
               <h3 class="ma3">Audio Node Controls</h3>
-              <div class="h-100 flex flex-column grow-1 shrink-1">
+              <div class="flex h-100 flex-column grow-1 shrink-1">
                 <TabMenu
                   class="ph3 mb3"
                   @onSelect={{fn this.setUi "visibleNodeIdx"}}
@@ -110,7 +110,7 @@
                   @track={{@track}}
                   @trackNodesForControls={{this.trackNodesForControls}}
                   @visibleNodeIdx={{this.visibleNodeIdx}}
-                  @updateControl={{fn this.updateControl}}
+                  @updateControl={{this.updateControl}}
                 />
               </div>
             </div>
@@ -121,7 +121,7 @@
   {{/unless}}
   <div>
     <ButtonPrimary
-      class="f7 flex yellow-fill absolute bottom-0 right-0"
+      class="absolute bottom-0 right-0 flex f7 yellow-fill"
       {{on "click" this.toggleReference}}
       @label="Edit"
     >

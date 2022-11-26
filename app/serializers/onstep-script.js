@@ -1,3 +1,3 @@
-import ScriptSerializer from "./script";
+import ScriptSerializer from './script';
 
 export default class OnstepScriptSerializer extends ScriptSerializer {}

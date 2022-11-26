@@ -11,9 +11,9 @@
             <IconButton @icon="fi-play" @label="play" {{action "play" project}} />
           {{/if}}
           <h3 class="mv0 ml3">
-            {{#link-to "user.creator.project" project.creator project.slug class="blue"}}
+            <LinkTo @route="user.creator.project" @models={{array project.creator project.slug}} class="blue">
               {{project.displayTitle}}
-            {{/link-to}}
+            </LinkTo>
           </h3>
         </div>
         <DropdownMenu

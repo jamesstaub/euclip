@@ -1,17 +1,17 @@
 <div class="track-control-wrapper flex br bw1 {{if this.showConfig "pr2 b--dark-gray" "b--yellow"}}" ...attributes>
   <div class="relative ph3 pb3">
-    <div class="{{@wrapperStyleClass}} flex flex-column items-center" style={{if @trackControl.isMultislider multisliderWidthStyle}} data-node-uuid={{@trackControl.trackNode.nodeUUID}}>
+    <div class="{{@wrapperStyleClass}} flex flex-column items-center" style={{if @trackControl.isMultislider this.multisliderWidthStyle}} data-node-uuid={{@trackControl.trackNode.nodeUUID}}>
       <div class="flex justify-between">
         <label class="tc dib pv2">
           {{@trackControl.nodeAttr}}
         </label>
         {{#if this.isConfigurable}}
-          <button class="bg-transparent pa0 bn absolute right-1 top-0 mt2 overflow-hidden" {{on "click" this.toggleConfig}}>
+          <button class="absolute top-0 overflow-hidden bg-transparent pa0 bn right-1 mt2" type="button" {{on "click" this.toggleConfig}}>
             {{svg-jar "fi-play" class=(concat "dark-fill " (if this.showConfig "rotate-0" "rotate-90"))  width="16px" height="20px"}}
           </button>
         {{/if}}
       </div>
-      {{yield multisliderWidth}}
+      {{yield this.multisliderWidth}}
     </div>
   </div>
 
@@ -19,7 +19,7 @@
     {{#if this.showConfig}}
       <div class="ph1">
         <h5 class="ma1">Control Range</h5>
-        <div class="ml1 flex flex-column justify-between mb4">
+        <div class="flex justify-between ml1 flex-column mb4">
           <NexusNumber 
             @label="max"
             @value={{@trackControl.max}} 
@@ -44,21 +44,21 @@
             @max={{20000}}
             @step={{0.25}}
           />
-          <button class="f7 pa1 ba bw1 b--dark-gray bg-yellow" {{on "click" this.setDefault}}>set default</button>
+          <button class="f7 pa1 ba bw1 b--dark-gray bg-yellow" type="button" {{on "click" this.setDefault}}>set default</button>
         </div>
       </div>
     {{/if}}
   {{/if}}
 
   {{#unless @hideInterfaceMenu}}
-    {{#if showConfig}}
+    {{#if this.showConfig}}
       <div class="ph1 ml2">
         <h5 class="ma1">Type</h5>
         <div class="mv3">
           <NexusSelect
             @value={{@trackControl.interfaceName}}
             @selectOptions={{@trackControl.interfaceNamesForAttr}}
-            @onChangeValue={{fn this.changeInterfaceName}}
+            @onChangeValue={{this.changeInterfaceName}}
           />
         </div>
       </div>

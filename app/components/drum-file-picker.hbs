@@ -1,19 +1,17 @@
 
-  <div class="drum-file-picker ph3 mt3 flex flex-wrap justify-between">
+  <div class="flex flex-wrap justify-between drum-file-picker ph3 mt3">
     {{yield}}
-    
     <Input
       class="ba bw2 b--yellow grow-1 white bg-dark-gray f5 pa3" 
-      placeholder='Search for drums sounds'
-      @key-down={{fn this.search}} @value={{this.searchQuery}}
+      placeholder='Search for drums sounds' @value={{this.searchQuery}} {{on "keyup" this.search}}
     />
-    {{#if showSearchResults}}
-      <ButtonPrimary {{on "click" (fn this.backToBrowse)}} @label="← browse"/> 
+    {{#if this.showSearchResults}}
+      <ButtonPrimary {{on "click" this.backToBrowse}} @label="← browse" /> 
     {{/if}}
   </div>
-  {{#if showSearchResults}}
-    <div class="flex flex-column mv3 justify-between file-search-height">
-      <ul class="flex flex-column shrink-1 grow-1 list h-100 overflow-scroll ma0 ph3">
+  {{#if this.showSearchResults}}
+    <div class="flex justify-between flex-column mv3 file-search-height">
+      <ul class="flex overflow-scroll flex-column shrink-1 grow-1 list h-100 ma0 ph3">
         {{#each this.searchResults as |result|}}
           <FileSearchResult
             @selected={{eq @track.filepath result}}
@@ -30,7 +28,7 @@
       />
     </div>
   {{else}}
-    <div class="flex project-tracks-height overflow-x-scroll w-100 pa3">
+    <div class="flex overflow-x-scroll project-tracks-height w-100 pa3">
       {{#each this.directories as |directory idx|}}
         <div class="flex flex-column min-w-4 mr2">
           <h4 class="black w-100 mv3 mb0 pl1 yellow">
@@ -38,7 +36,7 @@
           </h4>
           <FileDirectory
             {{on "click" (fn this.selectDir idx)}}
-            class="h-100 overflow-scroll"
+            class="overflow-scroll h-100"
             @selected={{eq this.selectedDir idx}}
             @directory={{directory}}
             @filepath={{this.track.filepath}}

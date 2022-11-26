@@ -1,5 +1,7 @@
 # TODO
 
+investigate cracked's `ignoreGrid` property to investigate scheduling bugs
+
 go live list:
 - do a pass at auto-selectors
   - attempt to automatically use sampler filepath if not supplied

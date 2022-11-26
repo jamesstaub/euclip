@@ -1,7 +1,13 @@
 import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { noiseNodes, synthNodes } from '../utils/cracked';
-import { AudioNodeConfig, DISTORTION, DYNAMICS, FILTER, TIME } from '../utils/audio-node-config';
+import {
+  AudioNodeConfig,
+  DISTORTION,
+  DYNAMICS,
+  FILTER,
+  TIME,
+} from '../utils/audio-node-config';
 import { tracked } from '@glimmer/tracking';
 import { A } from '@ember/array';
 
@@ -16,8 +22,8 @@ export default class SignalChainCreatorComponent extends Component {
   selectedEffects = A([]);
 
   signalChainPresets = [
-    {label: 'Sampler', data: ['sampler', 'gain', 'channelStrip']},
-    {label: 'Synth', data: ['triangle', 'adsr', 'lowpass', 'channelStrip']}
+    { label: 'Sampler', data: ['sampler', 'gain', 'channelStrip'] },
+    { label: 'Synth', data: ['triangle', 'adsr', 'lowpass', 'channelStrip'] },
   ];
 
   constructor() {
@@ -25,37 +31,41 @@ export default class SignalChainCreatorComponent extends Component {
 
     // user created signal chain of nodes that will be displayed visually and
     // used to generate a cracked sript
-    
+
     this.sourceGroups = [
       {
         type: 'sound file',
-        nodes: ['sampler']
+        nodes: ['sampler'],
       },
       {
         type: 'oscillators',
-        nodes: synthNodes
+        nodes: synthNodes,
       },
       {
         type: 'noise',
-        nodes: noiseNodes
-      }
-    ]
+        nodes: noiseNodes,
+      },
+    ];
 
     this.effectsGroups = [DYNAMICS, DISTORTION, TIME, FILTER].map((type) => {
       return {
-        nodes: Object.keys(AudioNodeConfig).filter((key) => AudioNodeConfig[key].type === type),
+        nodes: Object.keys(AudioNodeConfig).filter(
+          (key) => AudioNodeConfig[key].type === type
+        ),
         type,
-      }
+      };
     });
 
     this.activeNodeIdx = 0;
   }
-  
+
   setEffectsDefinition() {
-    this.effectsDefinition = this.selectedEffects.map((effectNode) => {
-      // convert to cracked script
-      return `  .${effectNode}()`;
-    }).join('\n');
+    this.effectsDefinition = this.selectedEffects
+      .map((effectNode) => {
+        // convert to cracked script
+        return `  .${effectNode}()`;
+      })
+      .join('\n');
   }
 
   get generatedScript() {
@@ -70,7 +80,7 @@ export default class SignalChainCreatorComponent extends Component {
 ${this.effectsDefinition}
   .channelStrip()
   .connect('#mixer')
-`
+`;
   }
 
   computeNodesArray() {
@@ -141,22 +151,21 @@ ${this.effectsDefinition}
     this.selectedNodes = A([]);
     this.selectedEffects = A([]);
   }
-
 }
 
-  // WIP attempt at reading audio graph to build UI
-  //   const connectedNodes = [];
-  //   // this.trackNodes are ember-data models
-  //   this.args.trackNodes.map((nodeModel) => {
-  //     // audioNode is the actual webaudio object
-  //     const audioNode = __._getNode(nodeModel.nodeUUID);
-  //     connectedNodes.unshift(audioNode);
+// WIP attempt at reading audio graph to build UI
+//   const connectedNodes = [];
+//   // this.trackNodes are ember-data models
+//   this.args.trackNodes.map((nodeModel) => {
+//     // audioNode is the actual webaudio object
+//     const audioNode = __._getNode(nodeModel.nodeUUID);
+//     connectedNodes.unshift(audioNode);
 
-  //     let prevNode = audioNode.getPrevNode();
-  //     while (prevNode) {
-  //       connectedNodes.unshift(prevNode);
-  //       prevNode = prevNode?.getPrevNode();
-  //     }
-  //   });
-  //   return connectedNodes
-  // }
+//     let prevNode = audioNode.getPrevNode();
+//     while (prevNode) {
+//       connectedNodes.unshift(prevNode);
+//       prevNode = prevNode?.getPrevNode();
+//     }
+//   });
+//   return connectedNodes
+// }

@@ -1,19 +1,18 @@
 import Model, { attr, belongsTo } from '@ember-data/model';
-import { keepLatestTask, task } from 'ember-concurrency-decorators';
-import { timeout } from 'ember-concurrency';
+import { keepLatestTask, task, timeout } from 'ember-concurrency';
 import { tracked } from '@glimmer/tracking';
 
 export default class ScriptModel extends Model {
-  @tracked safeCode
-  @tracked alert
-  @tracked scriptScope
-  @tracked editorContent
+  @tracked safeCode;
+  @tracked alert;
+  @tracked scriptScope;
+  @tracked editorContent;
 
-  // the code written by the user which has been submitted 
-  @attr('string') code;  
+  // the code written by the user which has been submitted
+  @attr('string') code;
   // code after server runs security parser. READ ONLY. written by API only never writable by the client
   @attr('string') safeCode;
-  
+
   // the current state of the editor, regardless of it being submitted
   @attr('string') editorContent;
 
@@ -21,7 +20,7 @@ export default class ScriptModel extends Model {
 
   get functionRef() {
     // create the function referecne and bind it's scope
-    if (this.safeCode) {
+    if (this.get('safeCode')) {
       try {
         // newFunction defined in inherited script class
         return this.newFunction();
@@ -30,7 +29,7 @@ export default class ScriptModel extends Model {
       }
     }
     // expects a function to be returned
-    return ()=> {};
+    return () => {};
   }
 
   /**
@@ -49,7 +48,7 @@ export default class ScriptModel extends Model {
   async onScriptError(e, type) {
     const project = await this.get('track.project');
     if (!project) {
-      debugger
+      debugger;
     }
     project.stopLoop().resetLoop();
 
@@ -63,22 +62,26 @@ export default class ScriptModel extends Model {
    * API will return a paylaod with a `safeCode` property, which is ultimately what gets used
    * to create audio nodes
    */
- 
+
   @keepLatestTask
   *runCode() {
     this.alert = null;
-    this.set('code', this.get('editorContent'));
-    yield this.updateScriptTask.perform('safeCode', this.get('editorContent'));
+    this.set('code', this.editorContent);
+    yield this.updateScriptTask.perform('safeCode', this.editorContent);
     if (this.name === 'init-script') {
-      const track = yield this.get('track');
+      const track = yield this.track;
       track.setupAudioFromScripts();
     }
     yield timeout(1000);
   }
 
+  // REFACTOR: is it actually meaningful to use a task for this.promise?
+  // doesn't appear to be cancelable https://githubplus.com/machty/ember-concurrency/issues/463
   @task
   *updateScriptTask(property, value) {
-   this.set(property, value);
-   yield this.save();
- }
+    this.set(property, value);
+    yield new Promise((resolve) => {
+      this.save().then(resolve);
+    });
+  }
 }

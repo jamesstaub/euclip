@@ -1,37 +1,37 @@
-import { createMachine } from "xstate";
+import { createMachine } from 'xstate';
 
 export default createMachine({
-  initial: "idle",
+  initial: 'idle',
   states: {
     idle: {
       on: {
         SELECT: {
-          target: "selected",
+          target: 'selected',
         },
       },
     },
     selected: {
-      entry: ["handleSelectItem"],
+      entry: ['handleSelectItem'],
       on: {
-        SELECT: "selected",
-        SUBMIT: "submitted",
+        SELECT: 'selected',
+        SUBMIT: 'submitted',
       },
     },
     submitted: {
-      entry: ["handleSubmit"],
+      entry: ['handleSubmit'],
       on: {
-        LOADING: "loading",
+        LOADING: 'loading',
       },
     },
     loading: {
       on: {
-        SUCCESS: "success",
-        ERROR: "error",
+        SUCCESS: 'success',
+        ERROR: 'error',
       },
     },
     success: {
-      entry: ["handleSuccess"],
-      type: 'final'
+      entry: ['handleSuccess'],
+      type: 'final',
     },
     error: {},
   },

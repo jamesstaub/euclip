@@ -13,16 +13,16 @@ export default NexusBase.extend({
   },
 
   options: computed('max', 'min', 'step', 'value', 'size', {
-    get() {            
+    get() {
       return {
-        'min': this.min || 0,
-        'max': this.max || 1,
-        'step': this.step || 1,
-        'size': [60, 60],
-        'value': this.value,
-        'interaction': 'vertical'
+        min: this.min || 0,
+        max: this.max || 1,
+        step: this.step || 1,
+        size: [60, 60],
+        value: this.value,
+        interaction: 'vertical',
       };
-    }
+    },
   }),
 
   nexusInit() {
@@ -30,5 +30,4 @@ export default NexusBase.extend({
     this.dial.colorize('accent', '#000000');
     this.dial.colorize('fill', '#ffffff');
   },
-
 });

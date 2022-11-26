@@ -8,7 +8,7 @@ export default class SignalChainNodeComponent extends Component {
 
   @action
   toggleMenu() {
-    this.args.onToggleMenu(this.args.idx)
+    this.args.onToggleMenu(this.args.idx);
   }
 
   @action

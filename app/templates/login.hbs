@@ -8,7 +8,7 @@
       </ButtonPrimary>
     </div>
   {{else}}
-    <form class="mw5 center" {{action "authenticate" on="submit"}}>
+    <form class="mw5 center" {{on "submit" this.authenticate}}>
       {{#if this.loginView}}
         <fieldset class="mb4">
           <legend>Login</legend>
@@ -16,19 +16,13 @@
             <label class="db" for="username">
               Username
             </label>
-            {{input class="w-100" id="username" autocomplete="username" placeholder="Enter Username" value=this.username}}
+            <Input class="w-100" id="username" autocomplete="username" placeholder="Enter Username" @value={{this.username}} />
           </div>
           <div class="mb3">
             <label class="db" for="password">
               Password
             </label>
-            {{input class="w-100"
-                id="password"
-                placeholder="Enter Password"
-                type="password"
-                value=this.password
-                autocomplete="current-password"
-              }}
+            <Input class="w-100" id="password" placeholder="Enter Password" @type="password" @value={{this.password}} autocomplete="current-password" />
           </div>
           <div class="flex items-center">
             <ButtonPrimary type="submit">
@@ -50,25 +44,19 @@
             <label class="db" for="username">
               Username
             </label>
-            {{input class="w-100" id="username" placeholder="Enter Username" value=this.username}}
+            <Input class="w-100" id="username" placeholder="Enter Username" @value={{this.username}} />
           </div>
           <div class="mb3">
             <label class="db" for="email">
               Email
             </label>
-            {{input class="w-100" id="email" autocomplete="email" placeholder="Enter Email Address" value=this.email}}
+            <Input class="w-100" id="email" autocomplete="email" placeholder="Enter Email Address" @value={{this.email}} />
           </div>
           <div class="mb3">
             <label class="db" for="signup-password">
               Password
             </label>
-            {{input class="w-100"
-              id="signup-password"
-              placeholder="Enter Password"
-              type="password"
-              value=this.password
-              autocomplete="new-password"
-            }}
+            <Input class="w-100" id="signup-password" placeholder="Enter Password" @type="password" @value={{this.password}} autocomplete="new-password" />
           </div>
           <div class="flex items-center">
             <ButtonPrimary type="submit">

@@ -11,7 +11,7 @@ export default class SequencePaginationComponent extends Component {
   constructor() {
     super(...arguments);
     this.page = 0;
-    this.pageSize = 16;   // TODO: use a responsiveness addon and dynamically set pageSize for small screens
+    this.pageSize = 16; // TODO: use a responsiveness addon and dynamically set pageSize for small screens
     this.totalPossiblePages = this.pageSize / 4;
     this.autopageEnabled = true;
   }
@@ -21,14 +21,14 @@ export default class SequencePaginationComponent extends Component {
   }
 
   get sequencePaginated() {
-    const end = this.currentPageStartIdx + this.pageSize;    
-    return this.args.sequence.slice(this.currentPageStartIdx, end);   
+    const end = this.currentPageStartIdx + this.pageSize;
+    return this.args.sequence.slice(this.currentPageStartIdx, end);
   }
 
   get totalPages() {
     return Math.ceil((this.args.sequence?.length || 0) / this.pageSize);
   }
-  
+
   get paginationButtons() {
     const pages = [...Array(this.totalPages).keys()];
     const pageSpacers = [...Array(this.totalPossiblePages - this.totalPages)];
@@ -60,15 +60,16 @@ export default class SequencePaginationComponent extends Component {
       this.autopageEnabled = true;
     }
 
-    if ((this.page + 1) > this.totalPages) {
+    if (this.page + 1 > this.totalPages) {
       this.page = 0;
       this.autopageEnabled = true;
     }
 
-    if (this.autopageEnabled) { //re-enable when exiting a track route
+    if (this.autopageEnabled) {
+      //re-enable when exiting a track route
       const targetPage = this.pageForStepIndex;
       if (targetPage != this.page) {
-        return this.page = targetPage;
+        return (this.page = targetPage);
       }
     }
   }

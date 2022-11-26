@@ -1,4 +1,4 @@
-import Component from "@glimmer/component";
+import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import { htmlSafe } from '@ember/template';
@@ -6,19 +6,24 @@ import { htmlSafe } from '@ember/template';
 const MULTISLIDER_WIDTH = 32.2;
 
 export default class TrackControlWrapperComponent extends Component {
-  @tracked showConfig
+  @tracked showConfig;
 
   get isConfigurable() {
-    return !(this.args.hideConfig || this.args.trackControl?.interfaceName === 'number');
+    return !(
+      this.args.hideConfig || this.args.trackControl?.interfaceName === 'number'
+    );
   }
 
   get multisliderWidth() {
-    return MULTISLIDER_WIDTH * this.args.trackControl?.controlArrayComputed?.length || 0;
+    return (
+      MULTISLIDER_WIDTH *
+        this.args.trackControl?.controlArrayComputed?.length || 0
+    );
   }
 
   get multisliderWidthStyle() {
     if (this.args.trackControl?.isMultislider) {
-      // TODO make 16 a variable informed by responsive screensize for responsive screen changes in sliders per page 
+      // TODO make 16 a variable informed by responsive screensize for responsive screen changes in sliders per page
       const width = Math.min(this.multisliderWidth, MULTISLIDER_WIDTH * 16);
       return htmlSafe(`width: ${width}px`);
     } else {
@@ -28,7 +33,7 @@ export default class TrackControlWrapperComponent extends Component {
 
   @action
   toggleConfig() {
-    this.showConfig = !this.showConfig;    
+    this.showConfig = !this.showConfig;
   }
 
   @action
@@ -37,7 +42,7 @@ export default class TrackControlWrapperComponent extends Component {
   }
 
   @action
-  changeInterfaceName({value}) {
+  changeInterfaceName({ value }) {
     this.args.trackControl.set('interfaceName', value);
     this.args.trackControl.saveTrackControl.perform();
   }

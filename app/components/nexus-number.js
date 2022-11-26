@@ -11,19 +11,19 @@ export default NexusBase.extend({
     this.setProperties({
       min: -100000,
       max: 100000,
-      step: 0.1
+      step: 0.1,
     });
   },
 
   options: computed('max', 'min', 'step', 'value', {
     get() {
       return {
-        'min': this.min,
-        'max': this.max,
-        'step': this.step,
-        'value': this.value
+        min: this.min,
+        max: this.max,
+        step: this.step,
+        value: this.value,
       };
-    }
+    },
   }),
 
   onChangeValue(value) {
@@ -34,8 +34,8 @@ export default NexusBase.extend({
     this._super(...arguments);
     this.number.colorize('accent', '#52ebff');
     this.number.colorize('fill', 'transparent');
-  }
-  
+  },
+
   // TODO
   // number boxes dont support manually entering a value that is between a given step size
   // try to interrupt the setter and change the step value to match whatever a user might enter
@@ -60,5 +60,4 @@ export default NexusBase.extend({
   //   const quotient = a / b;
   //   return quotient === Math.floor(quotient);
   // }
-
 });

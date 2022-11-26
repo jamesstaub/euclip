@@ -9,7 +9,7 @@ export default class UserRoute extends Route {
   beforeModel() {
     // FIME this request is blocking if there is no network connection
     try {
-      fetch(ENV.APP.DRUMSERVER_HOST); // fire a ping to wakeup free heroku server
+      // fetch(ENV.APP.DRUMSERVER_HOST); // fire a ping to wakeup free heroku server
     } catch (error) {
       console.log(error);
     }
@@ -19,10 +19,9 @@ export default class UserRoute extends Route {
   async _loadCurrentUser() {
     try {
       await this.currentUser.load();
-    } catch(err) {
+    } catch (err) {
       this.session.invalidate();
       this.transitionTo('login');
     }
   }
 }
-

@@ -1,7 +1,7 @@
 <button 
   class="dropdown-menu-btn" ...attributes type="button" {{on "click" this.toggleOpen}}
   {{on-key 'Escape' this.close event="keydown"}}
-  {{did-insert (fn this.setPosition)}}
+  {{did-insert this.setPosition}}
 >
   {{#if (has-block)}}
     {{yield}}
@@ -10,7 +10,7 @@
   {{/if}}
 </button>
 {{#if this.open}}
-  {{#ember-wormhole to="dropdown-target"}}
+  <EmberWormhole @to="dropdown-target">
     <ul
       class="dropdown-menu absolute ma3 bg-white flex flex-column list pa0 mao {{if this.open "shadow-3"}}"
       {{did-insert this.addPositionClass}}
@@ -24,8 +24,8 @@
       {{/each}}
     </ul>
     {{!-- template-lint-disable no-invalid-interactive --}}
-    <div class="scrim absolute bg-transparent" 
-      {{on "click" (fn this.toggleOpen)}}
+    <div class="absolute bg-transparent scrim" 
+      {{on "click" this.toggleOpen}}
     ></div>
-  {{/ember-wormhole}}
+  </EmberWormhole>
 {{/if}}
