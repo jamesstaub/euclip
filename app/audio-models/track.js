@@ -96,7 +96,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     this.pushMacroNodes();
     this.findOrCreateTrackNodeRecords();
     this.cleanupNodeRecords();
-    this.setupTrackControls();
+    this.setupTrackControls(); // need to wait to make sure we have filepath
 
     if (this.currentSequence) {
       if (this.trackNodes.length) {

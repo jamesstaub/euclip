@@ -50,8 +50,9 @@
           <p class="f6 mb3 mt0"><code>__().sampler(path: this.filepath)</code></p>
         </InfoBox>
       </div>
-      {{#if this.activeTrack}}
+      {{#if (and this.activeTrack this.activeTrack.audioFileTreeModel)}}
         <DrumFilePicker
+          @audioFileTreeModel={{this.activeTrack.audioFileTreeModel}}
           @track={{this.activeTrack}}
         />
       {{/if}}

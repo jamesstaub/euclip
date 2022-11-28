@@ -8,7 +8,12 @@ export default class ScriptEditorComponent extends Component {
   @service router;
 
   get functionIsLoaded() {
-    const { safeCode, editorContent, functionRef } = getProperties(this.args.scriptModel, 'safeCode', 'editorContent', 'functionRef')
+    const { safeCode, editorContent, functionRef } = getProperties(
+      this.args.scriptModel,
+      'safeCode',
+      'editorContent',
+      'functionRef'
+    );
     return safeCode === editorContent && functionRef;
   }
 

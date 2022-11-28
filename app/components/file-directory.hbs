@@ -1,19 +1,9 @@
-<div class="relative"
-  {{did-insert this.setSelectedFromUrl @filepath}}
-  {{did-update this.setSelectedFromUrl @filepath}}
-  ...attributes
->
-  <ul class="list ph0 mt0 mr3 h-100">
-    {{#each @directory.choices as |choice|}}
-
-      {{!-- FIXME this.shouldScrollTo is added as a class to trigger re-run of method  --}}
-      <ListItem 
-        @selected={{eq choice this.selected}}
-        @shouldScrollTo={{this.shouldScrollTo}}
-        {{did-update (fn this.scrollIntoView (eq choice this.shouldScrollTo)) @directory}}
-      >
-        <ListItemLink {{on "click" (fn this.selectItem @directory choice)}} >
-          {{#if (eq @directory.type "audio")}}
+<div class='relative' ...attributes>
+  <ul class='list ph0 mt0 mr3 h-100'>
+    {{#each @directory.choices as |choice idx|}}
+      <ListItem @selected={{eq @directory.currentDirIdx idx}}>
+        <ListItemLink {{on 'click' (fn this.selectItem @directory choice)}}>
+          {{#if (eq @directory.type 'audio')}}
             {{filename-ui choice}}
           {{else}}
             {{choice}}

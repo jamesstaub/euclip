@@ -37,7 +37,6 @@ export default class LoginController extends Controller {
         this.username,
         this.password
       );
-
     } catch (error) {
       this.set(
         'errorMessage',
@@ -49,7 +48,7 @@ export default class LoginController extends Controller {
     }
 
     if (this.session.isAuthenticated) {
-      this.router.transitionTo('user.my-projects');
+      await this.router.transitionTo('user.my-projects');
     }
 
     // dont bubble

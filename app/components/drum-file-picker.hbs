@@ -2,6 +2,7 @@
   <div class="flex flex-wrap justify-between drum-file-picker ph3 mt3">
     {{yield}}
     <Input
+      aria-label="Search for Drum Sounds"
       class="ba bw2 b--yellow grow-1 white bg-dark-gray f5 pa3" 
       placeholder='Search for drums sounds' @value={{this.searchQuery}} {{on "keyup" this.search}}
     />
@@ -29,19 +30,18 @@
     </div>
   {{else}}
     <div class="flex overflow-x-scroll project-tracks-height w-100 pa3">
-      {{#each this.directories as |directory idx|}}
+      {{#each @audioFileTreeModel.directoryTree as |directory idx|}}
         <div class="flex flex-column min-w-4 mr2">
           <h4 class="black w-100 mv3 mb0 pl1 yellow">
             {{if (eq directory.type "audio") "Sounds" "Drum Machine"}}
           </h4>
           <FileDirectory
-            {{on "click" (fn this.selectDir idx)}}
             class="overflow-scroll h-100"
-            @selected={{eq this.selectedDir idx}}
+            @onSelectItem={{this.onSelectItem}}
             @directory={{directory}}
             @filepath={{this.track.filepath}}
             @idx={{idx}}
-            @onSelect={{this.onSelect}}
+
           />
         </div>
       {{/each}}
@@ -49,4 +49,4 @@
   {{/if}}
   {{#if (or @saveTrackTask.isRunning this.fetchDirectory.isRunning)}}
     <ProgressBar class="absolute bottom-0 right-0" />
-  {{/if}}
+  {{/if}} 

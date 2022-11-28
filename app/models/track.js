@@ -1,6 +1,6 @@
 import { attr, belongsTo, hasMany } from '@ember-data/model';
 import TrackAudioModel from '../audio-models/track';
-import { timeout, keepLatestTask } from 'ember-concurrency';
+import { keepLatestTask, task, waitForProperty } from 'ember-concurrency';
 import { unbindFromSequencer } from '../utils/cracked';
 import ENV from 'euclip/config/environment';
 import { inject as service } from '@ember/service';
@@ -12,6 +12,7 @@ export default class TrackModel extends TrackAudioModel {
 
   @belongsTo('init-script') initScript;
   @belongsTo('onstep-script') onstepScript;
+  @belongsTo('audio-file-tree') audioFileTreeModel;
 
   @hasMany('track-node') trackNodes;
   @hasMany('track-control') trackControls;
@@ -20,6 +21,14 @@ export default class TrackModel extends TrackAudioModel {
   @attr('number') order;
 
   @attr('number') stepIndex;
+
+  async createAudioFileTree() {
+    await this.trackControls; // audio-tree relies on the filepath track control
+    const audioFileTreeModel = this.store.createRecord('audioFileTree', {
+      track: this,
+    });
+    audioFileTreeModel.loadDirectories();
+  }
 
   async destroyAndCleanup() {
     this.unbindAndRemoveCrackedNodes();
@@ -74,9 +83,13 @@ export default class TrackModel extends TrackAudioModel {
     return !!this.samplerNodes?.length;
   }
 
-  // duplicate getter as on trackNodes for convenience
+  // trackControl for audio file path string
+  // (duplicate getter as on trackNodes for convenience)
+
   get samplerFilepathControl() {
-    return this.trackControls.find((trackControl) => trackControl.isFilepath);
+    return this.trackControls.find((trackControl) =>
+      trackControl.get('isFilepath')
+    );
   }
 
   get filepathUrl() {
@@ -86,6 +99,8 @@ export default class TrackModel extends TrackAudioModel {
     // which happens before TrackNode and subsequent TrackControl models
     // can be created, so without this default, we'll never be able to apply
     // the server-rendered default filepath
+
+    // TODO refactor loadin order so nodes + controls are ready before initializing audio tree
     let defaultFile =
       '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CR8KBASS.mp3';
 

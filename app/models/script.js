@@ -20,7 +20,7 @@ export default class ScriptModel extends Model {
 
   get functionRef() {
     // create the function referecne and bind it's scope
-    if (this.get('safeCode')) {
+    if (this.safeCode) {
       try {
         // newFunction defined in inherited script class
         return this.newFunction();

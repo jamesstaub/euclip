@@ -6,7 +6,7 @@ export default class UserMyProjectsController extends Controller {
   // De-dupe this from project controller play actions.
   //
   @service router;
-  
+
   @action
   play(project) {
     this.model.forEach((project) => {

@@ -1,3 +1,12 @@
-<li class="pl1 {{if @selected "bg-yellow dark-gray" "bg-dark-gray yellow hover-bg-near-black"}} {{if @shouldScrollTo "scroll-to"}}" ...attributes>
+<li
+  {{scroll-into-view @selected}}
+  class='pl1
+    {{if
+      @selected
+      "bg-yellow dark-gray"
+      "bg-dark-gray yellow hover-bg-near-black"
+    }}'
+  ...attributes
+>
   {{yield}}
 </li>

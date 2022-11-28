@@ -1,9 +1,5 @@
 import Model from '@ember-data/model';
-import {
-  defineChannelStripMacro,
-  startLoop,
-  stopLoop
-} from '../utils/cracked';
+import { defineChannelStripMacro, startLoop, stopLoop } from '../utils/cracked';
 
 /*
  *  base class for the project model

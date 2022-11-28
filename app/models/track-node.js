@@ -161,7 +161,7 @@ export default class TrackNodeModel extends Model {
       // set the defaultValue as the trackControl's value
       const [min, max, defaultValue, interfaceOptions] =
         AudioNodeConfig[this.nodeType].attrs[controlAttr];
-
+      console.log(interfaceOptions[0]);
       const trackControl = this.store.createRecord('track-control', {
         nodeAttr: controlAttr,
         controlArrayValue: [], // all controls for api must initialize this whenever a multislider is created
@@ -171,6 +171,9 @@ export default class TrackNodeModel extends Model {
         nodeOrder: this.order,
         interfaceName: interfaceOptions[0],
         controlValue: defaultValue,
+
+        // TROUBLESHOOTING: set default here since audio tree isn't awaitint the server response with audio default.
+        controlStringValue: interfaceOptions[0] == 'filepath' && "/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CRSNARE.mp3",
         defaultValue,
         min,
         max,
@@ -179,7 +182,11 @@ export default class TrackNodeModel extends Model {
       if (this.userDefinedInterfaceName) {
         trackControl.set('interfaceName', this.userDefinedInterfaceName);
       }
-
+      if (interfaceOptions[0] == 'filepath') {
+        console.log('post-create');
+        console.log(trackControl);
+        console.log(trackControl.controlStringValue);
+      }
       trackControl.save();
       return trackControl;
     });

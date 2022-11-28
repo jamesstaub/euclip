@@ -82,12 +82,14 @@ export default class TrackControlModel extends Model {
     if (this.isFilepath && this.controlStringValue) {
       return this.controlStringValue.replace(/%20/g, ' ').split('/');
     }
+    return [];
   }
 
   get filename() {
     if (this.pathSegments?.length) {
       return this.pathSegments[this.pathSegments.length - 1].split('.')[0];
     }
+    return '';
   }
 
   /**

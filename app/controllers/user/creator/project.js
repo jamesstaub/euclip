@@ -15,6 +15,12 @@ export default class UserCreatorProjectController extends Controller {
     this.rightSidebarOpen = true;
   }
 
+  async fetchAudioFileTrees(project) {
+    const tracks = await project.tracks;
+    // OPTIMIZE: bundle this in a single request and set to each track
+    tracks.forEach((track) => track.createAudioFileTree());
+  }
+
   // see note below if weirdness occurs
   get sortedTracks() {
     if (this.model.tracks.isFulfilled) {

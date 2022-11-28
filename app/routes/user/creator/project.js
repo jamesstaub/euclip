@@ -17,6 +17,7 @@ export default class UserCreatorProjectRoute extends Route {
   }
 
   setupController(controller, project) {
+    controller.fetchAudioFileTrees(project);
     controller.setProperties({
       activeTrack: project.get('tracks.firstObject'),
       model: project,

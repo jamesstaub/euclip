@@ -1,10 +1,10 @@
 import ApplicationAdapter from './application';
 
 export default class ProjectAdapter extends ApplicationAdapter {
-  urlForCreateRecord(modelName) {
-    return `${this._buildURL(modelName)}?include=track-controls`;
+  urlForCreateRecord() {
+    throw 'Attempted to save a TrackNodeModel which which does not persist to DB';
   }
-  urlForUpdateRecord(id, modelName) {
-    return `${this._buildURL(modelName, id)}?include=track-controls`;
+  urlForUpdateRecord() {
+    throw 'Attempted to save a TrackNodeModel which which does not persist to DB';
   }
 }
