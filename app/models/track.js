@@ -1,6 +1,6 @@
 import { attr, belongsTo, hasMany } from '@ember-data/model';
 import TrackAudioModel from '../audio-models/track';
-import { keepLatestTask, task, waitForProperty } from 'ember-concurrency';
+import { keepLatestTask } from 'ember-concurrency';
 import { unbindFromSequencer } from '../utils/cracked';
 import ENV from 'euclip/config/environment';
 import { inject as service } from '@ember/service';
@@ -27,7 +27,14 @@ export default class TrackModel extends TrackAudioModel {
     const audioFileTreeModel = this.store.createRecord('audioFileTree', {
       track: this,
     });
-    audioFileTreeModel.loadDirectories();
+    // load the file tree to show the audio file path saved on the sampler track control
+    // eslint-disable-next-line ember/no-get, ember/classic-decorator-no-classic-methods
+    let path = this.get('samplerFilepathControl.controlStringValue') || '';
+    if (path) {
+      path = path.split('/');
+      const item = path.pop();
+      audioFileTreeModel.appendDirectoriesData(path.join('/'), item);
+    }
   }
 
   async destroyAndCleanup() {

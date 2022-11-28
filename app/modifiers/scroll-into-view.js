@@ -5,7 +5,7 @@ export default modifier(
   // 'smooth' on click events and 'auto' on render
   (element, [isSelected]) => {
     if (isSelected) {
-      element.scrollIntoView({ behavior: 'smooth', inline: 'end' });
+      element.scrollIntoView({ behavior: 'auto', inline: 'end' });
     }
   },
   { eager: false }

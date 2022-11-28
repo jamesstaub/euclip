@@ -4,11 +4,9 @@ import { action } from '@ember/object';
 import { inject as service } from '@ember/service';
 
 import { typeOf } from '@ember/utils';
-import { tracked } from '@glimmer/tracking';
 
 export default class DrumFilePicker extends Component {
   @service store;
-  @tracked selectedPath;
 
   get showSearchResults() {
     return this['searchResults.length'];
@@ -32,22 +30,21 @@ export default class DrumFilePicker extends Component {
   }
 
   async saveFilepathControl(filepath) {
-    console.log('saveFilepathControl');
     const track = await this.args.track;
+    console.log('save audio??', filepath);
     track.get('samplerFilepathControl').set('controlStringValue', filepath);
-
     track.get('samplerFilepathControl').save();
-    track.get('setupAudioFromScripts')();
+    track.setupAudioFromScripts();
   }
 
   @action
-  onSelectItem(directory, item) {
+  async onSelectItem(directory, item) {
+    const fileTree = await this.args.audioFileTreeModel;
+    const selection = `${directory.path}${item}`;
     if (directory.type === 'dir') {
-      this.selectedPath = this.path;
-      // re-build tree
-      // this.onSelectDir(this.selectedPath);
+      fileTree.appendDirectoriesData(selection);
     } else if (directory.type === 'audio') {
-      this.saveFilepathControl(directory.path);
+      this.saveFilepathControl(selection);
     }
   }
 

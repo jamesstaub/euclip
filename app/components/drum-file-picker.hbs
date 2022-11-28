@@ -30,8 +30,9 @@
     </div>
   {{else}}
     <div class="flex overflow-x-scroll project-tracks-height w-100 pa3">
+      {{log "template tree" @audioFileTreeModel.directoryTree}}
       {{#each @audioFileTreeModel.directoryTree as |directory idx|}}
-        <div class="flex flex-column min-w-4 mr2">
+        <div class="flex w-auto flex-column mr2">
           <h4 class="black w-100 mv3 mb0 pl1 yellow">
             {{if (eq directory.type "audio") "Sounds" "Drum Machine"}}
           </h4>

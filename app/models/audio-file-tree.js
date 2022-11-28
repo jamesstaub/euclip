@@ -25,10 +25,6 @@ class Directory {
     // will propegate down to the audio-file-tree
   }
 
-  get selectedPath() {
-    return `${this.path}${this.currentSelection}`.replace('//', '/'); // hack to deal with API parsing issue;
-  }
-
   get currentDirIdx() {
     return this.choices.indexOf(this.currentSelection) || 0;
   }
@@ -42,53 +38,38 @@ export default class AudioFileTreeModel extends Model {
   @belongsTo('track') track;
   @tracked directoryTree = [];
 
-  async loadDirectories() {
-    const path = this.filePathFromTrack.split('/');
-    path.pop();
-    this.directories = await this.fetchDirectoriesData(path.join('/'));
-  }
+  // TODO: 
+  // maybe separate methods for onSelectItem and track.createAudioFileTree
+  // latter needs to call pop() maybe to clear the Sounds list
 
-  get filePathFromTrack() {
-    // the track's source node contains the saved state of a selected audio file
-    // the directories UI parses it to load the relevant file tree for the track node
-    return this.track.get('samplerFilepathControl.controlStringValue') || '';
-  }
-
-  get pathToFetch() {
-    return this.selectedPath || this.filePathFromTrack;
-  }
-
-  async fetchDirectoriesData(path) {
-    this.directoryTree = [];
+  async appendDirectoriesData(path, item) {
     try {
       const response = await AudioFileTreeModel.fetchDirectory(path);
-      response.ancestor_tree?.forEach((tree) =>
-        this.directoryTree.push(new Directory(tree))
-      );
+      if (response.ancestor_tree?.length) {
+        response.ancestor_tree.pop(); // remove the current directory since it's added below
+        console.log('DO ANC', response.ancestor_tree);
+        this.directoryTree = [
+          ...response.ancestor_tree.map((tree) => new Directory(tree)),
+        ];
+      }
+
+      this.directoryTree = [
+        ...this.directoryTree,
+        new Directory({ currentSelection: item, ...response }),
+      ];
     } catch (error) {
-      console.error('Error fetching audio directories:', error);
+      console.error('Error fetching directories:', error);
     }
 
     // clear any child directories when clicking back higher up the tree
-    // if (_directories.value.path) {
-    //   const pathDepth = _directories.value.path.split('/').filter((s) => s.length).length;
-    //   while (_directories.value.length > pathDepth) {
-    //     _directories.value.pop();
-    //   }
-    //   _directories.value.pushObject(_directories);
+    // const pathDepth = this.pathToFetch
+    //   .split('/')
+    //   .filter((s) => s.length).length;
+    // while (this.directoryTree.length > pathDepth) {
+    //   this.directoryTree.pop();
     // }
+    // this.directoryTree.pushObject(this.directoryTree);
   }
-
-  // async updateDirectories(pathToFetch) {
-  //   let response = await AudioFileTreeModel.fetchDirectory.perform(pathToFetch);
-  //   let directory = this.parseResponse(response);
-  //   // clear any child directories when clicking back higher up the tree
-  //   const pathDepth = directory.path.split('/').filter((s) => s.length).length;
-  //   while (this.directories.length > pathDepth) {
-  //     this.directories.pop();
-  //   }
-  //   this.directories.pushObject(directory);
-  // }
 
   static async fetchDirectory(path) {
     const url = `${ENV.APP.DRUMSERVER_HOST}${path}`;

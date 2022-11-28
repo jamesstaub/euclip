@@ -1,9 +1,15 @@
 import Model, { attr, belongsTo, hasMany } from '@ember-data/model';
 import { AudioNodeConfig } from '../utils/audio-node-config';
 import { noiseNodes, synthNodes } from '../utils/cracked';
-import TrackControlModel from './track-control';
 import { computed } from '@ember/object';
 import { inject as service } from '@ember/service';
+const defaultKit = [
+  '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CR8KBASS.mp3',
+  '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CRSNARE.mp3',
+  '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CROHH.mp3',
+  '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CR8KCLAV.mp3',
+  '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CRLOWTOM.mp3',
+];
 export default class TrackNodeModel extends Model {
   @service store;
   @belongsTo('track') track;
@@ -171,9 +177,10 @@ export default class TrackNodeModel extends Model {
         nodeOrder: this.order,
         interfaceName: interfaceOptions[0],
         controlValue: defaultValue,
-
-        // TROUBLESHOOTING: set default here since audio tree isn't awaitint the server response with audio default.
-        controlStringValue: interfaceOptions[0] == 'filepath' && "/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CRSNARE.mp3",
+        // set default drum sample before so it's ready synchronously
+        controlStringValue:
+          interfaceOptions[0] == 'filepath' &&
+          defaultKit[this.track.get('order') % defaultKit.length],
         defaultValue,
         min,
         max,
@@ -182,11 +189,11 @@ export default class TrackNodeModel extends Model {
       if (this.userDefinedInterfaceName) {
         trackControl.set('interfaceName', this.userDefinedInterfaceName);
       }
-      if (interfaceOptions[0] == 'filepath') {
-        console.log('post-create');
-        console.log(trackControl);
-        console.log(trackControl.controlStringValue);
-      }
+      // if (interfaceOptions[0] == 'filepath') {
+      //   console.log('post-create');
+      //   console.log(trackControl);
+      //   console.log(trackControl.controlStringValue);
+      // }
       trackControl.save();
       return trackControl;
     });
