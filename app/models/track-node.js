@@ -143,7 +143,8 @@ export default class TrackNodeModel extends Model {
       const userDefault = userSettingsForControl[trackControl.nodeAttr];
       if (trackControl._defaultValue !== userDefault) {
         trackControl.set('defaultValue', userDefault);
-        trackControl.setDefault(); // setDefault also saves
+        // setDefault also saves and updates sliders if user hard coded a value into the script
+        trackControl.setDefault();
       }
       trackControl.set('_defaultValue', userDefault);
     });

@@ -2,7 +2,7 @@
   <ButtonPrimary
     class="w4 truncate ma2 {{if @trackNode.samplerFilepathControl.filename "f7" "f8 white-"}}"
     {{on "click"  @onToggleFilePicker}}
-    @label="Drum Machine: {{@trackNode.samplerFilepathControl}}"
+    @label="Drum Machine: {{@trackNode.samplerFilepathControl.filename}}"
     ...attributes
   >
     {{if @trackNode.samplerFilepathControl.filename @trackNode.samplerFilepathControl.filename "Pick a Sound"}}

@@ -1,11 +1,9 @@
 import { modifier } from 'ember-modifier';
 
 export default modifier(
-  // TODO if possible pass the event type:
-  // 'smooth' on click events and 'auto' on render
-  (element, [isSelected]) => {
+  (element, [isSelected, behavior]) => {
     if (isSelected) {
-      element.scrollIntoView({ behavior: 'auto', inline: 'end' });
+      element.scrollIntoView({ behavior, inline: 'end' });
     }
   },
   { eager: false }

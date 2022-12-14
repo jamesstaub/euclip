@@ -1,7 +1,11 @@
-<button 
-  class="small-square flex justify-center items-center f7 ba dark-gray {{if @selected "bg-light-blue" "bg-light-gray"}} {{if @highlight "b--dark-red bw2" "b--dark-gray" }} "
-  title={{concat "Page " @label}}
-  ...attributes type="button"
+<button
+  class='small-square flex justify-center items-center f7 ba dark-gray
+    {{if @selected "bg-light-blue" "bg-light-gray"}}
+    {{if @highlight "b--dark-red bw2" "b--dark-gray"}}
+    '
+  title={{concat 'Page ' @label}}
+  ...attributes
+  type='button'
 >
   {{@label}}
 </button>

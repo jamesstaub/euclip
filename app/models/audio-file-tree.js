@@ -38,16 +38,16 @@ export default class AudioFileTreeModel extends Model {
   @belongsTo('track') track;
   @tracked directoryTree = [];
 
-  // TODO: 
-  // maybe separate methods for onSelectItem and track.createAudioFileTree
+  // TODO:
+  // maybe implement as separate methods for onSelectItem and track.createAudioFileTree
   // latter needs to call pop() maybe to clear the Sounds list
 
   async appendDirectoriesData(path, item) {
+    this.directoryTree = this.directoryTree.filter((dir) => dir.type == 'dir');
     try {
       const response = await AudioFileTreeModel.fetchDirectory(path);
       if (response.ancestor_tree?.length) {
         response.ancestor_tree.pop(); // remove the current directory since it's added below
-        console.log('DO ANC', response.ancestor_tree);
         this.directoryTree = [
           ...response.ancestor_tree.map((tree) => new Directory(tree)),
         ];
@@ -60,15 +60,6 @@ export default class AudioFileTreeModel extends Model {
     } catch (error) {
       console.error('Error fetching directories:', error);
     }
-
-    // clear any child directories when clicking back higher up the tree
-    // const pathDepth = this.pathToFetch
-    //   .split('/')
-    //   .filter((s) => s.length).length;
-    // while (this.directoryTree.length > pathDepth) {
-    //   this.directoryTree.pop();
-    // }
-    // this.directoryTree.pushObject(this.directoryTree);
   }
 
   static async fetchDirectory(path) {

@@ -291,7 +291,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
   unbindAndRemoveCrackedNodes() {
     this.sourceNodeRecords.forEach((sourceNode) => {
-      console.log('unbind', sourceNode.uniqueSelector);
       unbindFromSequencer(sourceNode.uniqueSelector);
     });
     // FIXME: create a getter on track for this selector

@@ -30,7 +30,7 @@ export default class TrackModel extends TrackAudioModel {
     // load the file tree to show the audio file path saved on the sampler track control
     // eslint-disable-next-line ember/no-get, ember/classic-decorator-no-classic-methods
     let path = this.get('samplerFilepathControl.controlStringValue') || '';
-    if (path) {
+    if (path.length) {
       path = path.split('/');
       const item = path.pop();
       audioFileTreeModel.appendDirectoriesData(path.join('/'), item);
