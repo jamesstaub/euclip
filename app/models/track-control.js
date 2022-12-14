@@ -179,6 +179,15 @@ export default class TrackControlModel extends Model {
     }
   }
 
+  setMinMaxByDefault() {
+    if (this.defaultValue > this.max) {
+      this.set('max', this.defaultValue);
+    }
+    if (this.defaultValue < this.min) {
+      this.set('min', this.defaultValue);
+    }
+  }
+
   /**
    * Every track-control is created with a default value,
    * which can be modified by the user. setDefault applies that value to the track-controls's
@@ -186,13 +195,7 @@ export default class TrackControlModel extends Model {
    * the control's current value is not out of bounds
    */
   setDefault() {
-    if (this.defaultValue > this.max) {
-      this.set('max', this.defaultValue);
-    }
-    if (this.defaultValue < this.min) {
-      this.set('min', this.defaultValue);
-    }
-
+    this.setMinMaxByDefault();
     this.set('controlValue', this.defaultValue);
     this.set(
       'controlArrayValue',
