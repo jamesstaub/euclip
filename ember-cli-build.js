@@ -12,7 +12,7 @@ module.exports = function (defaults) {
       exts: ['language_tools'],
     },
     'ember-math-helpers': {
-      only: ['add', 'gt'],
+      only: ['add', 'gt', 'sub', 'mult'],
     },
     'ember-composable-helpers': {
       only: ['compact'],

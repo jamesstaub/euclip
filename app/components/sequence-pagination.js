@@ -16,6 +16,10 @@ export default class SequencePaginationComponent extends Component {
     this.autopageEnabled = true;
   }
 
+  get pageOffset() {
+    return this.pageSize * this.page;
+  }
+
   get currentPageStartIdx() {
     return this.pageSize * this.page;
   }

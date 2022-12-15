@@ -62,7 +62,7 @@
     @rightSidebarOpen={{this.rightSidebarOpen}} 
     @leftSidebarOpen={{this.leftSidebarOpen}}
   >
-    <div class="overflow-scroll">
+    <div class="overflow-scroll hide-scrollbar">
       {{#each this.sortedTracks key="order" as |track|}}
         {{#unless track.isMaster}}
           <TrackListItem

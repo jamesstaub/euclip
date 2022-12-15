@@ -20,7 +20,7 @@
             >
               <div 
                 class="multislider-width"
-                {{scroll-to-offset page}}
+                {{scroll-to-offset left=(sequence-scroll-left page) behavior="auto"}}
               >
                 <NexusMultislider
                   @stepIndex={{@track.stepIndex}}

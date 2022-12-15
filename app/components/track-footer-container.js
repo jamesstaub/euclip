@@ -14,8 +14,10 @@ export default class TrackFooterContainerComponent extends Component {
   constructor() {
     super(...arguments);
     this.maxSteps = 64;
+    this.visibleNodeIdx = 0;
     // this.setTabs();
     this.showReference = false;
+    this.controlUiState = 'sequence';
   }
 
   get showSequence() {

@@ -1,5 +1,8 @@
 # TODO
 
+
+- initial drum sound not loading correctly
+
 investigate cracked's `ignoreGrid` property to investigate scheduling bugs
 
 go live list:
@@ -10,6 +13,11 @@ go live list:
 - ember-responsive fixes for small + touch screen
   - sidebar service to auto open-close when small
   - collapse track list items
+
+- simplify interface control
+  - remove dial option. single or multislider options as icon selectsion
+
+
 
 
 ### Scripts
@@ -42,6 +50,9 @@ go live list:
   - Source editor for dealing with sample start/end and loop settings. 
   - - create an array structure for segmenting an audio sample
   - - implement an onset detection + sample chopper
+
+implement an ephemeral "uiState" object on track models which hold currentTabIdx values for various tabs
+to keep recent state in tact when returning to a track
 
 ### Track Nodes
   - hover over node tabs to show cracked uuid and selectors
@@ -104,9 +115,6 @@ go live list:
 
 
 ### bugs
--- Sequencer:
-  can't click individual steps when on pages 2-4 when sequence greater than 16 steps
-
 -- master track doesn't update when new nodes are added (until playback is restarted)
 - - need more solid sequencer-awareness when adding/removing tracks (use generators to start on a particular beat)
 

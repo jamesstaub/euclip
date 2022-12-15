@@ -143,6 +143,7 @@ export default class TrackNodeModel extends Model {
       const userDefault = userSettingsForControl[trackControl.nodeAttr];
       if (trackControl._defaultValue !== userDefault) {
         trackControl.set('defaultValue', userDefault);
+        // setDefault also saves and updates sliders if user hard coded a value into the script
         trackControl.setMinMaxByDefault();
       }
       trackControl.set('_defaultValue', userDefault);
@@ -167,7 +168,7 @@ export default class TrackNodeModel extends Model {
       // set the defaultValue as the trackControl's value
       const [min, max, defaultValue, interfaceOptions] =
         AudioNodeConfig[this.nodeType].attrs[controlAttr];
-      console.log(interfaceOptions[0]);
+
       const trackControl = this.store.createRecord('track-control', {
         nodeAttr: controlAttr,
         controlArrayValue: [], // all controls for api must initialize this whenever a multislider is created

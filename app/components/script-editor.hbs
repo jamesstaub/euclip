@@ -14,8 +14,9 @@
 </div>
 <div class="flex items-center justify-between">
   <div class="flex justify-between grow-1">
-    <div class="pv3">
+    <div>
       <SidebarSubmitButton
+        class="mt3"
         title={{if this.functionIsLoaded "This script is loaded and running" "Click to load this script"}}
         @disabled={{this.functionIsLoaded}}
         {{on "click" (perform @scriptModel.runCode)}}
@@ -29,13 +30,13 @@
       {{#if this.functionIsLoaded}}
         <ButtonPrimary 
           {{on "click" this.disableScript}}
-          class="dark-red b--dark-red bg-dark-gray fw6"
+          class="dark-red b--dark-red bg-dark-gray fw6 mt3"
           @restyle={{true}}
           title="Disable this script. Nodes will be removed and disconnected from the sequencer."
         >disable</ButtonPrimary>
       {{else}}
         <ButtonPrimary
-          class="light-gray b--light-gray bg-dark-gray"
+          class="light-gray b--light-gray bg-dark-gray mt3"
           @restyle={{true}}
           {{on "click" this.discardChanges}}
           title="Revert editor to currently running code"

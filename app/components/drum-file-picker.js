@@ -31,7 +31,6 @@ export default class DrumFilePicker extends Component {
 
   async saveFilepathControl(filepath) {
     const track = await this.args.track;
-    console.log('save audio??', filepath);
     track.get('samplerFilepathControl').set('controlStringValue', filepath);
     track.get('samplerFilepathControl').save();
     track.setupAudioFromScripts();

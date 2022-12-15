@@ -107,11 +107,10 @@ export default class TrackModel extends TrackAudioModel {
     // can be created, so without this default, we'll never be able to apply
     // the server-rendered default filepath
 
-    // TODO refactor loadin order so nodes + controls are ready before initializing audio tree
+    // TODO refactor loadin order so nodes + controls are ready before initializing audio nodes
     let defaultFile =
       '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CR8KBASS.mp3';
 
-    // return `/assets/audio/Drum%20Machines%20mp3${this.samplerFilepathControl?.controlStringValue || defaultFile}`;
     return `${ENV.APP.AUDIO_PATH}${
       this.samplerFilepathControl?.controlStringValue || defaultFile
     }`;

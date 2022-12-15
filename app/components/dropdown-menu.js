@@ -29,7 +29,8 @@ export default class DropdownMenuComponent extends Component {
   }
 
   @action
-  toggleOpen() {
+  toggleOpen(e) {
+    e.stopPropagation();
     this.open = !this.open;
   }
 

@@ -26,7 +26,12 @@ class Directory {
   }
 
   get currentDirIdx() {
-    return this.choices.indexOf(this.currentSelection) || 0;
+    let currentIdx = this.choices.indexOf(this.currentSelection);
+    // default to first item if not postion set yet
+    if (currentIdx === -1) {
+      currentIdx = 0;
+    }
+    return currentIdx;
   }
 }
 
