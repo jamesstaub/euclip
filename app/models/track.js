@@ -99,7 +99,7 @@ export default class TrackModel extends TrackAudioModel {
     );
   }
 
-  get filepathUrl() {
+  get filePathRelative() {
     // TOODO create and ENV var to set drum filepath location
 
     // in cracked, sampler nodes must be initialized with a filepath,
@@ -111,9 +111,11 @@ export default class TrackModel extends TrackAudioModel {
     let defaultFile =
       '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CR8KBASS.mp3';
 
-    return `${ENV.APP.AUDIO_PATH}${
-      this.samplerFilepathControl?.controlStringValue || defaultFile
-    }`;
+    return this.samplerFilepathControl?.controlStringValue || defaultFile
+  }
+
+  get filepathUrl() {
+    return `${ENV.APP.AUDIO_PATH}${this.filePathRelative}`;
   }
 
   // TODO: dedupe from similar method on track-list-item

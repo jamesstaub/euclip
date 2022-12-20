@@ -26,7 +26,8 @@ html, body {
 div {
   ::-webkit-scrollbar {
     -webkit-appearance: none;
-    width: .5rem;
+    width: 0rem;
+    height: 0rem;
   }
   
   ::-webkit-scrollbar-thumb {
@@ -63,9 +64,10 @@ a {
   input::placeholder {
     color: $moon-gray;
   }
-  .file-search-height {
-    height: calc(100% - 8rem);
-  }
+}
+
+.file-search-height {
+  height: calc(100% - 10rem);
 }
 
 /* script sidebar*/

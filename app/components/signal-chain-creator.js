@@ -79,7 +79,7 @@ export default class SignalChainCreatorComponent extends Component {
   })
 ${this.effectsDefinition}
   .channelStrip()
-  .connect('#mixer')
+  .connect('#main-output')
 `;
   }
 

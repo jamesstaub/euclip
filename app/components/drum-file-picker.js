@@ -4,29 +4,32 @@ import { action } from '@ember/object';
 import { inject as service } from '@ember/service';
 
 import { typeOf } from '@ember/utils';
+import AudioFileTreeModel from '../models/audio-file-tree';
+import { tracked } from '@glimmer/tracking';
+import { keepLatestTask, timeout } from 'ember-concurrency';
 
 export default class DrumFilePicker extends Component {
   @service store;
+  @tracked searchResults;
 
-  get showSearchResults() {
-    return this['searchResults.length'];
-  }
-
-  @action
-  async search() {
+  @keepLatestTask
+  *searchTask() {
     let pageToSearch = 0;
     // this sucks but when this method is called by the pagination buttons, second arg is the page
     // when called in search, second arg is the DOM event
     if (typeOf(arguments[1]) === 'number') {
       pageToSearch = arguments[1];
     }
+    yield timeout(300);
+    if (this.searchQuery.length > 2) {
+      const results = yield AudioFileTreeModel.fetchDirectory(
+        `/search/${this.searchQuery}?include_dir=${true}&page=${pageToSearch}`
+      );
 
-    const results = await this.fetchDirectory.perform(
-      `/search/${this.searchQuery}?include_dir=${true}&page=${pageToSearch}`
-    );
-    this.searchResults = results.results;
-    this.currentPage = results.page;
-    this.lastPage = results.last_page;
+      this.searchResults = results.results;
+      this.currentPage = results.page;
+      this.lastPage = results.last_page;
+    }
   }
 
   async saveFilepathControl(filepath) {
@@ -34,6 +37,11 @@ export default class DrumFilePicker extends Component {
     track.get('samplerFilepathControl').set('controlStringValue', filepath);
     track.get('samplerFilepathControl').save();
     track.setupAudioFromScripts();
+  }
+
+  @action
+  search() {
+    this.searchTask.perform();
   }
 
   @action
@@ -54,12 +62,12 @@ export default class DrumFilePicker extends Component {
   }
 
   @action
-  onSelectSearchResult(result) {
-    let directory = result.split('/');
-    directory.pop();
-    directory = `${directory.join('/')}/`;
-
-    this.fetchDirectoriesData(directory);
-    this.saveFilepathControl(result);
+  async onSelectSearchResult(searchResult) {
+    const directoryItems = searchResult.split('/');
+    const item = directoryItems.pop();
+    const ancestorPath = `${directoryItems.join('/')}/`;
+    const fileTree = await this.args.audioFileTreeModel;
+    fileTree.appendDirectoriesData(ancestorPath, item);
+    this.saveFilepathControl(searchResult);
   }
 }

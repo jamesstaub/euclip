@@ -1,16 +1,10 @@
 <ListItem 
+  @scrollBehavior="smooth"
   @selected={{@selected}} 
-  {{did-insert this.renderParts}} 
   ...attributes
 >
   <ListItemLink {{on "click" @onSelect}}>
-    {{#each this.parentDirs as |dir|}}
-      {{dir}} /
-    {{/each}}
-
-    {{#if this.file}}
-      {{filename-ui this.file}}
-    {{/if}}
+    {{@file.filename}}
   </ListItemLink>
 
 </ListItem>

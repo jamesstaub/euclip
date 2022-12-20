@@ -5,22 +5,25 @@
     class='ba bw2 b--yellow grow-1 white bg-dark-gray f5 pa3'
     placeholder='Search for drums sounds'
     @value={{this.searchQuery}}
-    {{on 'keyup' this.search}}
+     {{on 'keyup' this.search}} 
   />
-  {{#if this.showSearchResults}}
+  {{#if this.searchResults.length}}
     <ButtonPrimary {{on 'click' this.backToBrowse}} @label='← browse' />
   {{/if}}
 </div>
-{{#if this.showSearchResults}}
-  <div class='flex justify-between flex-column mv3 file-search-height'>
+
+{{#if this.searchResults.length}}
+  <div
+    class='flex justify-between flex-column mv3 file-search-height overflow-scroll'
+  >
     <ul
-      class='flex overflow-scroll flex-column shrink-1 grow-1 list h-100 ma0 ph3'
+      class='flex flex-column shrink-1 grow-1 list ma0 ph3'
     >
       {{#each this.searchResults as |result|}}
-        <FileSearchResult
-          @selected={{eq @track.filepath result}}
+        <FileSearchResultDirectory
+          @track={{@track}}
           @result={{result}}
-          @onSelect={{fn this.onSelectSearchResult result}}
+          @onSelect={{this.onSelectSearchResult}}
         />
       {{/each}}
     </ul>
@@ -32,7 +35,7 @@
     />
   </div>
 {{else}}
-  <div class='flex overflow-x-scroll project-tracks-height w-100 pa3'>
+  <div class='flex overflow-x-scroll w-100 pa3 file-search-height'>
     {{#each @audioFileTreeModel.directoryTree as |directory idx|}}
       <div class='flex w-auto flex-column mr2'>
         <h4 class='black w-100 mv3 mb0 pl1 yellow'>
@@ -42,13 +45,13 @@
           class='overflow-scroll h-100'
           @onSelectItem={{this.onSelectItem}}
           @directory={{directory}}
-          @filepath={{this.track.filepath}}
+          @filepath={{@track.filepath}}
           @idx={{idx}}
         />
       </div>
     {{/each}}
   </div>
 {{/if}}
-{{#if (or @saveTrackTask.isRunning this.fetchDirectory.isRunning)}}
+{{#if this.searchTask.isRunning}}
   <ProgressBar class='absolute bottom-0 right-0' />
 {{/if}}

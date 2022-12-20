@@ -34,7 +34,7 @@
   </div>
 </nav>
 
-<div class="flex overflow-hidden project-tracks-height">
+<div class="flex project-tracks-height">
   {{#if (and this.leftSidebarOpen this.activeTrack (not this.activeTrack.isDeleted))}}
     <SidebarWrapper 
       class="left-sidebar-width h-100 bw2 br b--yellow"
@@ -42,7 +42,7 @@
       @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id "left"}}
     >
       <div class="relative flex mh3 yellow flex-column">
-        <h3 class="mv3">Drum Machines</h3>
+        <h3 class="pv3">Drum Machines</h3>
         <InfoBox class="absolute top-0 right-2">
           <p class="f6 mb3 mt0">When you select a sound file from this menu the sound's URL is available in the code as <code>this.filepath</code>.
           </p>
@@ -62,7 +62,7 @@
     @rightSidebarOpen={{this.rightSidebarOpen}} 
     @leftSidebarOpen={{this.leftSidebarOpen}}
   >
-    <div class="overflow-scroll hide-scrollbar">
+    <div class="overflow-scroll">
       {{#each this.sortedTracks key="order" as |track|}}
         {{#unless track.isMaster}}
           <TrackListItem
