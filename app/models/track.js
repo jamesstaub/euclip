@@ -86,6 +86,14 @@ export default class TrackModel extends TrackAudioModel {
     return this.sourceNodeRecords.filterBy('nodeType', 'adsr');
   }
 
+  get samplerNativeBuffers() {
+    return this.samplerNodes.map((samplerNode) => {
+      if (samplerNode.sampleIsLoaded) {
+        return samplerNode.nativeNode.buffer;
+      }
+    });
+  }
+
   get showFilePicker() {
     return !!this.samplerNodes?.length;
   }
@@ -111,7 +119,7 @@ export default class TrackModel extends TrackAudioModel {
     let defaultFile =
       '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CR8KBASS.mp3';
 
-    return this.samplerFilepathControl?.controlStringValue || defaultFile
+    return this.samplerFilepathControl?.controlStringValue || defaultFile;
   }
 
   get filepathUrl() {

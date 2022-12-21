@@ -1,12 +1,12 @@
 <div class="track-control-wrapper flex br bw1 {{if this.showConfig "pr2 b--dark-gray" "b--yellow"}}" ...attributes>
-  <div class="relative ph3 pb3">
+  <div class="mh3 mb3">
     <div class="{{@wrapperStyleClass}} flex flex-column items-center" style={{if @trackControl.isMultislider this.multisliderWidthStyle}} data-node-uuid={{@trackControl.trackNode.nodeUUID}}>
       <div class="flex justify-between">
         <label class="tc dib pv2">
           {{@trackControl.nodeAttr}}
         </label>
         {{#if this.isConfigurable}}
-          <button class="absolute top-0 overflow-hidden bg-transparent pa0 bn right-1 mt2" type="button" {{on "click" this.toggleConfig}}>
+          <button class="overflow-hidden bg-transparent pa2 bn" type="button" {{on "click" this.toggleConfig}}>
             {{svg-jar "fi-play" class=(concat "dark-fill " (if this.showConfig "rotate-0" "rotate-90"))  width="16px" height="20px"}}
           </button>
         {{/if}}

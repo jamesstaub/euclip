@@ -1,7 +1,6 @@
 # TODO
-
-
-- initial drum sound not loading correctly
+- drum searching implementation
+- initial drum sound not loading correctly (batch track controls?)
 
 investigate cracked's `ignoreGrid` property to investigate scheduling bugs
 
@@ -110,8 +109,9 @@ to keep recent state in tact when returning to a track
   - - add a sequence BPM divider
   - - add reverse/pingpong mode for tracks
   - - ability for track to have many chainable sequences (perhaps with their own script editor for the chaining logic!?)
-    - - implement a Sequence model that belongs to Track. move existing seq properties there.
+
   - - in addition to Euclidean tab, add some sorta generative/evolving/automated UI
+  - - add a "Binary" sequence which converts 1-127 into a binary sequence
 
 
 ### bugs
@@ -119,8 +119,6 @@ to keep recent state in tact when returning to a track
 - - need more solid sequencer-awareness when adding/removing tracks (use generators to start on a particular beat)
 
 -- when deleting a track, the script sidebar closes but property is not re-set so the button to re-open sidebar disappears
-
--- channel strip gain doesn't save when page reloaded
 
   - use the LFO example, then add an additional gain node
   - - result is the channelStrip gain not working anymore

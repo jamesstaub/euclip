@@ -70,10 +70,10 @@
           />
         {{/if}}
         {{#if this.showSource}}
-          <div class="flex justify-between grow-1">
-            <div class="flex flex-column">
+          <div class="flex bl justify-between grow-1">
+            <div class="mh2 flex flex-column">
               <h3 class="ma3">{{@track.samplerFilepathControl.filename}}</h3>
-              <ul class="flex items-center pa0 list">
+              <ul class="flex items-center pa0 list f7">
                 {{#each
                   @track.samplerFilepathControl.pathSegments
                   as |directory|
@@ -87,8 +87,11 @@
                   {{/if}}
                 {{/each}}
               </ul>
-              <p class="ma3">Coming soon: sample waveform editor and custom
-                sound libraries</p>
+              {{#each @track.samplerNativeBuffers as |buffer|}}
+                {{#if buffer}}
+                  <canvas class="w-100 h-50" {{audio-waveform buffer}}></canvas>
+                {{/if}}
+              {{/each}}
             </div>
 
           </div>

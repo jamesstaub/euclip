@@ -1,8 +1,10 @@
 import Model, { attr, belongsTo, hasMany } from '@ember-data/model';
 import { AudioNodeConfig } from '../utils/audio-node-config';
-import { noiseNodes, synthNodes } from '../utils/cracked';
+import { getCrackedNode, noiseNodes, synthNodes } from '../utils/cracked';
 import { computed } from '@ember/object';
 import { inject as service } from '@ember/service';
+import { tracked } from '@glimmer/tracking';
+
 const defaultKit = [
   '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CR8KBASS.mp3',
   '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CRSNARE.mp3',
@@ -10,6 +12,14 @@ const defaultKit = [
   '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CR8KCLAV.mp3',
   '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CRLOWTOM.mp3',
 ];
+
+export const FILE_LOAD_STATES = {
+  EMPTY: 'empty',
+  LOADING: 'loading',
+  SUCCESS: 'success',
+  ERROR: 'error',
+};
+
 export default class TrackNodeModel extends Model {
   @service store;
   @belongsTo('track') track;
@@ -28,6 +38,8 @@ export default class TrackNodeModel extends Model {
   @attr() parentMacro; // AudioNode of macro this node belongs to (not serialized)
   @attr('boolean') isChannelStripChild; // flag saved if the parentMacro is set on this node
 
+  @tracked fileLoadState;
+
   // TODO: if this is a user-defined macro, check that
   // it contains source nodes
   get isSourceNode() {
@@ -45,6 +57,19 @@ export default class TrackNodeModel extends Model {
 
   get isSampler() {
     return this.nodeType === 'sampler';
+  }
+
+  get crackedNode() {
+    return getCrackedNode(this.nodeUUID);
+  }
+
+  get sampleIsLoaded() {
+    return this.fileLoadState == FILE_LOAD_STATES.SUCCESS;
+  }
+
+  get nativeNode() {
+    const [nativeNode] = this.crackedNode.getNativeNode();
+    return nativeNode;
   }
 
   /**

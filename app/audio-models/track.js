@@ -13,7 +13,8 @@ import filterNumericAttrs from '../utils/filter-numeric-attrs';
 import { tracked } from '@glimmer/tracking';
 import TrackControlModel from '../models/track-control';
 import { inject as service } from '@ember/service';
-
+import { FILE_LOAD_STATES } from '../models/track-node';
+import { set } from '@ember/object';
 export default class TrackAudioModel extends Model.extend(Evented) {
   @tracked nodeToVisualize;
   @service store;
@@ -34,7 +35,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
    *
    */
   setNodeToVisualize() {
-    const firstVisualizableNode = this.trackAudioNodes.find((audioNode) => {
+    const firstVisualizableNode = this.settingsForNodes.find((audioNode) => {
       const type = audioNode[audioNode.uuid];
       return type === 'compressor' || type === 'gain';
     });
@@ -43,10 +44,10 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   }
 
   setupAudioFromScripts(unbindBeforeCreate = true) {
-    // array to store audio node uuids created in this track's script
+    // settingsForNodes is an array to store audio node uuids created in this track's script
     // not to be confused with trackNode models,
     // { uuid: type, atts: { filename: '...', speed: 1} }
-    this.set('trackAudioNodes', []);
+    set(this, 'settingsForNodes', []);
     this.channelStripAudioNode = null;
 
     // cracked.onCreateNode was added to the Cracked library to give access to the AudioNode object upon creation
@@ -69,12 +70,28 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         addCustomSelector(node, `.track-${indicator}`);
         addCustomSelector(node, `${type} .track-${indicator}`);
 
-        const trackNode = {};
+        const nodeSettings = {};
         const uuid = node.getUUID();
-        trackNode[uuid] = type;
-        trackNode.uuid = uuid;
-        trackNode.userSettings = userSettings; // save the initialization attributes so they can be used to update TrackControl's min/max/default param values
-        this.trackAudioNodes.push(trackNode);
+        nodeSettings[uuid] = type;
+        nodeSettings.uuid = uuid;
+        nodeSettings.userSettings = userSettings; // save the initialization attributes so they can be used to update TrackControl's min/max/default param values
+        this.settingsForNodes.push(nodeSettings);
+
+        userSettings.onLoadBuffer = ({ buffer, error }) => {
+          if (buffer) {
+            if (this.trackNodes.isFulfilled) {
+              const trackNode = this.trackNodes.content.findBy('nodeUUID', node.getUUID());
+              console.log('set load state');
+              trackNode.fileLoadState = FILE_LOAD_STATES.SUCCESS;
+            } else {
+              console.error('onLoadBuffer error: TrackNodeModel not ready at time of callback');
+            }
+          }
+          if (error) {
+            // node.fileLoadState = FILE_LOAD_STATES.ERROR;
+          }
+        };
+
         // 'ui' is a custom attr that users can set in the script editor when defining a cracked audio node
         // new AudioNode objects won't get initialized with it by default so we hack it on here
         // see cracked.js line 330
@@ -133,16 +150,16 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         .forEach((node) => {
           // unlike in onCreateNode, here we're mapping raw web audio nodes, not cracked nodes,
           // so the properties are a little different, but we map them so they can be consumed by findOrCreate
-          const trackNode = {};
+          const nodeSettings = {};
           const type = {
             GainNode: 'gain',
             StereoPannerNode: 'panner',
           }[node.constructor.name];
 
-          trackNode[node.uuid] = type;
-          trackNode.parentMacro = this.channelStripAudioNode;
-          trackNode.uuid = node.uuid;
-          this.trackAudioNodes.push(trackNode);
+          nodeSettings[node.uuid] = type;
+          nodeSettings.parentMacro = this.channelStripAudioNode;
+          nodeSettings.uuid = node.uuid;
+          this.settingsForNodes.push(nodeSettings);
         });
     }
   }
@@ -166,7 +183,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
     // map over audio node objects created in this track's script
     // to find or create corresponding trackNode model records
-    this.trackAudioNodes.forEach((node, idx) => {
+    this.settingsForNodes.forEach((node, idx) => {
       const [uuid, type] = Object.entries(node)[0];
       if (getCrackedNode(uuid)) {
         // a `ui` attribute might have been defined in the cracked node definition
@@ -224,13 +241,13 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   }
 
   /**
-   * if a node was removed by user, the trackAudioNodes array will be without
+   * if a node was removed by user, the settingsForNodes array will be without
    * it at this point.
    * so make sure we delete it from the store
    */
   cleanupNodeRecords() {
     const existingNodeRecords = this.trackNodes.map((tn) => tn.get('nodeUUID'));
-    const existingAudioNodes = this.trackAudioNodes.map((tan) => tan.uuid);
+    const existingAudioNodes = this.settingsForNodes.map((tan) => tan.uuid);
     const nodeUUIDsToDelete = difference(
       existingNodeRecords,
       existingAudioNodes
