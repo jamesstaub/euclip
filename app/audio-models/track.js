@@ -77,19 +77,18 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         nodeSettings.userSettings = userSettings; // save the initialization attributes so they can be used to update TrackControl's min/max/default param values
         this.settingsForNodes.push(nodeSettings);
 
-        userSettings.onLoadBuffer = ({ buffer, error }) => {
-          if (buffer) {
-            if (this.trackNodes.isFulfilled) {
-              const trackNode = this.trackNodes.content.findBy('nodeUUID', node.getUUID());
-              console.log('set load state');
-              trackNode.fileLoadState = FILE_LOAD_STATES.SUCCESS;
-            } else {
-              console.error('onLoadBuffer error: TrackNodeModel not ready at time of callback');
+        userSettings.onLoadBuffer = async ({ buffer, error }) => {
+          this.trackNodes.then((_store) => {
+            const trackNode = _store.findBy('nodeUUID', node.getUUID());
+            if (this.trackNodes.isFulfilled && trackNode) {
+              if (buffer) {
+                trackNode.fileLoadState = FILE_LOAD_STATES.SUCCESS;
+              }
+              if (error) {
+                trackNode.fileLoadState = FILE_LOAD_STATES.ERROR;
+              }
             }
-          }
-          if (error) {
-            // node.fileLoadState = FILE_LOAD_STATES.ERROR;
-          }
+          });
         };
 
         // 'ui' is a custom attr that users can set in the script editor when defining a cracked audio node

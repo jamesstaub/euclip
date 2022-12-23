@@ -5,7 +5,8 @@ import { defineChannelStripMacro, startLoop, stopLoop } from '../utils/cracked';
  *  base class for the project model
  *  containing methods for project-level web audio state
  */
-export default class ProjectAudioModel extends Model.extend() {
+
+export default class ProjectAudioModel extends Model {
   get loopInterval() {
     return (1000 * 60) / (this.bpm * 2);
   }
