@@ -94,15 +94,13 @@ export default class TrackNodeModel extends Model {
   static validTrackNodes(track) {
     return track.get('trackNodes').filter((trackNode) => {
       // TODO delete trackNodes that have an orphaned uuid
-      return trackNode.nodeUUID && __._getNode(trackNode.nodeUUID);
+      return trackNode?.nodeUUID && __._getNode(trackNode.nodeUUID);
     });
   }
 
   static channelStripNodes(track) {
     return this.validTrackNodes(track).filter(
-      (trackNode) =>
-        trackNode.parentMacro &&
-        trackNode.parentMacro.getType() === 'channelStrip'
+      (trackNode) => trackNode?.parentMacro?.getType() === 'channelStrip'
     );
   }
 

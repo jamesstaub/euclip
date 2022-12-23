@@ -49,7 +49,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // { uuid: type, atts: { filename: '...', speed: 1} }
     set(this, 'settingsForNodes', []);
     this.channelStripAudioNode = null;
-
     // cracked.onCreateNode was added to the Cracked library to give access to the AudioNode object upon creation
     // this callback gets called when a user creates cracked audio nodes in the script editor ui
     // macro components should not get individual ui controls
@@ -90,7 +89,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
             }
           });
         };
-
         // 'ui' is a custom attr that users can set in the script editor when defining a cracked audio node
         // new AudioNode objects won't get initialized with it by default so we hack it on here
         // see cracked.js line 330
@@ -109,6 +107,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
     // nullify this callback after creating track nodes to prevent it from getting called outside of this track
     __.onCreateNode = null;
+
     this.pushMacroNodes();
     this.findOrCreateTrackNodeRecords();
     this.cleanupNodeRecords();
@@ -243,14 +242,20 @@ export default class TrackAudioModel extends Model.extend(Evented) {
    * if a node was removed by user, the settingsForNodes array will be without
    * it at this point.
    * so make sure we delete it from the store
+   *
+   * existingAudioNodes relies on the synchronous point at which this method is called,
+   * but since trackNodes might not be fulfilled yet, we need to await it,
+   * so it's crucial that existingAudioNodes get declared before awaiting anything
    */
-  cleanupNodeRecords() {
-    const existingNodeRecords = this.trackNodes.map((tn) => tn.get('nodeUUID'));
-    const existingAudioNodes = this.settingsForNodes.map((tan) => tan.uuid);
+  async cleanupNodeRecords() {
+    const existingAudioNodes = this.settingsForNodes.map((node) => node.uuid);
+    const trackNodes = await this.trackNodes;
+    const existingNodeRecords = trackNodes.map((tn) => tn.get('nodeUUID'));
     const nodeUUIDsToDelete = difference(
       existingNodeRecords,
       existingAudioNodes
     );
+
     nodeUUIDsToDelete.forEach((uuid) => {
       const trackNode = this.store
         .peekAll('track-node')
@@ -277,7 +282,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
           .filterBy('nodeType', trackControl.nodeType)
           .findBy('order', trackControl.nodeOrder);
 
-        // set the realtion on the control to keep ember-data happy
+        // set the relation on the control to keep ember-data happy
         trackControl.set('trackNode', nodeForControl);
 
         // then push the control to the node's relation array

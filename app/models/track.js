@@ -6,6 +6,7 @@ import { keepLatestTask } from 'ember-concurrency';
 import { unbindFromSequencer } from '../utils/cracked';
 import ENV from 'euclip/config/environment';
 import { inject as service } from '@ember/service';
+import { cached } from '@glimmer/tracking';
 
 export default class TrackModel extends TrackAudioModel {
   @service store;
@@ -76,8 +77,10 @@ export default class TrackModel extends TrackAudioModel {
     return this.get('initScript.alert') || this.get('onstepScript.alert');
   }
 
+  @cached // prevent this from re-computing on every beat of the sequencer
   get sourceNodeRecords() {
-    return this.trackNodes.filterBy('isSourceNode', true);
+    // remove possible `null` to avoid error before filterBy
+    return this.trackNodes.filter((tn) => tn).filterBy('isSourceNode', true);
   }
 
   get samplerNodes() {
