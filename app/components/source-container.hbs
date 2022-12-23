@@ -1,0 +1,40 @@
+<div class='flex bl justify-between grow-1'>
+  <div class='mh2 flex flex-column'>
+    <h3 class='mh3 mt3 mb0 ttc'>
+      {{#each @track.sourceNodeRecords as |source|}}
+        {{!-- TODO: better UI if there are multiple source on a track --}}
+        {{source.nodeType}}
+        {{#if @track.samplerFilepathControl.filename }}
+          - {{@track.samplerFilepathControl.filename}}
+        {{/if}}
+      {{/each}}
+    </h3>
+    {{#if @showReference}}
+      {{yield}}
+    {{else}}
+      <ul class='mv0 ml2 flex items-center pa0 list f7'>
+        {{#each @track.samplerFilepathControl.pathSegments as |directory|}}
+          {{#if directory.length}}
+            <li class='directory-btns'>
+              <button
+                class='textbutton pa2'
+                type='button'
+                {{on 'click' @showFilePath}}
+              >
+                {{directory}}
+              </button>
+            </li>
+          {{/if}}
+        {{/each}}
+      </ul>
+      {{#each @track.samplerNativeBuffers as |buffer|}}
+        {{#if buffer}}
+          <canvas
+            class='ba bw1 ml3 w-100 h-50'
+            {{audio-waveform buffer}}
+          ></canvas>
+        {{/if}}
+      {{/each}}
+    {{/if}}
+  </div>
+</div>

@@ -3,7 +3,7 @@
  --}} 
 <TrackFooterContainer
   @track={{@model}}
-  @onToggleScripts={{fn this.toggleSidebar @track.id "right"}}
+  @toggleSidebar={{fn this.toggleSidebar @track.id}}
   @rightSidebarOpen={{this.project.rightSidebarOpen}}
   @leftSidebarOpen={{this.project.leftSidebarOpen}}
 />

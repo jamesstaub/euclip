@@ -1,3 +1,5 @@
+/* eslint-disable ember/classic-decorator-no-classic-methods */
+/* eslint-disable ember/no-get */
 import { attr, belongsTo, hasMany } from '@ember-data/model';
 import TrackAudioModel from '../audio-models/track';
 import { keepLatestTask } from 'ember-concurrency';

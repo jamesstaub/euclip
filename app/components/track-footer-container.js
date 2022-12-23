@@ -81,7 +81,7 @@ export default class TrackFooterContainerComponent extends Component {
   @action
   toggleReference() {
     this.showReference = !this.showReference;
-    this.args.onToggleScripts();
+    this.args.toggleSidebar('right');
   }
 
   @action

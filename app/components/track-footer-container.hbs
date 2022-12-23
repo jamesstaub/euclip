@@ -1,25 +1,19 @@
-<div class="relative w-100 bt bw1" {{did-update this.setTabs @track.id}}>
+<div class='relative w-100 bt bw1' {{did-update this.setTabs @track.id}}>
   {{#unless @track.isDeleted}}
     <div
-      class="relative flex justify-between flex-column bg-yellow footer-height"
+      class='relative flex justify-between flex-column bg-yellow footer-height'
     >
-      <div
-        class="flex overflow-hidden w-100 h-100"
-      >
+      <div class='flex overflow-hidden w-100 h-100'>
         {{#if
           (and this.channelStripGainControl this.channelStripPannerControl)
         }}
-          {{! TODO: (maybe)
-            add a handle to re-open channel strip in case user wants while sidebar open,
-            or, only enforce this on smal screens
-          }}
-          {{#unless @leftSidebarOpen}}
-            <ChannelStrip
-              @channelStripGainControl={{this.channelStripGainControl}}
-              @channelStripPannerControl={{this.channelStripPannerControl}}
-              @updateValue={{this.updateControl}}
-            />
-          {{/unless}}
+
+          <ChannelStrip
+            @channelStripGainControl={{this.channelStripGainControl}}
+            @channelStripPannerControl={{this.channelStripPannerControl}}
+            @updateValue={{this.updateControl}}
+          />
+
         {{/if}}
         {{! TODO:
           when filepath sidebar opens, set this menu
@@ -28,93 +22,95 @@
          }}
         <TabMenu
           @verticle={{true}}
-          @onSelect={{fn this.setUi "controlUiState"}}
+          @onSelect={{fn this.setUi 'controlUiState'}}
           @selectedValue={{this.controlUiState}}
           @items={{compact
             (array
               (if
                 @track.sequences.length
                 (hash
-                  label="sequence"
-                  value="sequence"
-                  icon="fi-squares"
-                  iconWidth="24px"
-                  iconHeight="48px"
+                  label='sequence'
+                  value='sequence'
+                  icon='fi-squares'
+                  iconWidth='24px'
+                  iconHeight='48px'
                 )
               )
               (if
                 @track.sourceNodeRecords.length
                 (hash
-                  label="source"
-                  value="source"
-                  icon="fi-sound"
-                  iconWidth="24px"
-                  iconHeight="48px"
+                  label='source'
+                  value='source'
+                  icon='fi-sound'
+                  iconWidth='24px'
+                  iconHeight='48px'
                 )
               )
               (hash
-                label="controls"
-                value="controls"
-                icon="automation"
-                iconWidth="40px"
-                iconHeight="40px"
+                label='controls'
+                value='controls'
+                icon='automation'
+                iconWidth='40px'
+                iconHeight='40px'
               )
             )
           }}
         />
         {{#if this.showSequence}}
           <SequenceContainer
+            @showReference={{this.showReference}}
             @sequence={{@track.currentSequence}}
             @updateTrackSequence={{@track.updateTrackSequence}}
             @maxSteps={{this.maxSteps}}
-          />
+          >
+            <TrackReference
+              @track={{@track}}
+              @validTrackNodes={{this.validTrackNodes}}
+              @controlUiState={{'sequence'}}
+            />
+          </SequenceContainer>
         {{/if}}
         {{#if this.showSource}}
-          <div class="flex bl justify-between grow-1">
-            <div class="mh2 flex flex-column">
-              <h3 class="ma3">{{@track.samplerFilepathControl.filename}}</h3>
-              <ul class="flex items-center pa0 list f7">
-                {{#each
-                  @track.samplerFilepathControl.pathSegments
-                  as |directory|
-                }}
-                  {{#if directory.length}}
-                    <li class="directory-btns">
-                      <button class="textbutton pa2" type="button">
-                        {{directory}}
-                      </button>
-                    </li>
-                  {{/if}}
-                {{/each}}
-              </ul>
-              {{#each @track.samplerNativeBuffers as |buffer|}}
-                {{#if buffer}}
-                  <canvas class="w-100 h-50" {{audio-waveform buffer}}></canvas>
-                {{/if}}
-              {{/each}}
-            </div>
-
-          </div>
+          <SourceContainer
+            @track={{@track}}
+            @showReference={{this.showReference}}
+            @showFilePath={{fn @toggleSidebar 'left'}}
+          >
+            <TrackReference
+              @track={{@track}}
+              @validTrackNodes={{this.validTrackNodes}}
+              @controlUiState={{'source'}}
+            />
+          </SourceContainer>
         {{/if}}
         {{#if this.showControls}}
-          <div class="flex justify-between overflow-hidden grow-1 shrink-1 bt">
+          <div class='flex justify-between overflow-hidden grow-1 shrink-1 bt'>
             <div
-              class="flex overflow-scroll flex-column flex-grow-1 shrink-1 bl"
+              class='flex overflow-scroll flex-column flex-grow-1 shrink-1 bl'
             >
-              <h3 class="ma3">Audio Node Controls</h3>
-              <div class="flex h-100 flex-column grow-1 shrink-1">
+              <h3 class='ma3'>Audio Node Controls</h3>
+              <div class='flex h-100 flex-column grow-1 shrink-1'>
                 <TabMenu
-                  class="ph3 mb3"
-                  @onSelect={{fn this.setUi "visibleNodeIdx"}}
+                  class='ph3 mb3'
+                  @onSelect={{fn this.setUi 'visibleNodeIdx'}}
                   @items={{this.trackNodesTabs}}
                   @selectedValue={{this.visibleNodeIdx}}
                 />
-                <TrackControls
-                  @track={{@track}}
-                  @trackNodesForControls={{this.trackNodesForControls}}
-                  @visibleNodeIdx={{this.visibleNodeIdx}}
-                  @updateControl={{this.updateControl}}
-                />
+                {{#if this.showReference}}
+                  <TrackReference
+                    @track={{@track}}
+                    @controlUiState={{'controls'}}
+                    @validTrackNodes={{this.validTrackNodes}}
+                    @visibleNodeIdx={{this.visibleNodeIdx}}
+                  />
+                {{else}}
+                  <TrackControls
+                    @track={{@track}}
+                    @trackNodesForControls={{this.trackNodesForControls}}
+                    @visibleNodeIdx={{this.visibleNodeIdx}}
+                    @updateControl={{this.updateControl}}
+                  />
+                {{/if}}
               </div>
             </div>
           </div>
@@ -124,9 +120,9 @@
   {{/unless}}
   <div>
     <ButtonPrimary
-      class="absolute bottom-0 right-0 flex f7 yellow-fill"
-      {{on "click" this.toggleReference}}
-      @label="Edit"
+      class='absolute bottom-0 right-0 flex f7 yellow-fill'
+      {{on 'click' this.toggleReference}}
+      @label='Edit'
     >
       reference
     </ButtonPrimary>
@@ -136,35 +132,3 @@
       to demonstrate nodes getting added/removed
     }}
 </div>
-
-{{#if this.showReference}}
-  <div>
-    {{#if this.showSequence}}
-      <ScriptVariablesList
-        @variables={{array "data" "index" "array"}}
-        @title={{"sequence"}}
-        @description="In the Play script, data is a 1 or 0 representing the current step in the sequence. index is the current step in the sequence, array is an array of 1s and 0s representing the sequence. "
-      />
-    {{/if}}
-    {{#if this.showSource}}
-      <ScriptVariablesList
-        @nodeDocs={{true}}
-        @variables={{array "this.filepath"}}
-        @validTrackNodes={{this.validTrackNodes}}
-        @useSourceNode={{true}}
-        @title={{"source"}}
-        @description={{"this.filepath is a string with the url of an audio file selected from the left sidebar. "}}
-      />
-    {{/if}}
-    {{#if this.showControls}}
-      <ScriptVariablesList
-        @nodeDocs={{true}}
-        @variables={{array "controls"}}
-        @visibleNodeIdx={{this.visibleNodeIdx}}
-        @validTrackNodes={{this.validTrackNodes}}
-        @title={{"controls"}}
-        @description={{"TODO: control varialbes are the values of the sliders. You can modify these values before they get passed to the audio node. This is allows you to do math on slider values "}}
-      />
-    {{/if}}
-  </div>
-{{/if}}

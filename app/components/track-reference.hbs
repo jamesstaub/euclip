@@ -1,0 +1,29 @@
+  <div>
+    {{#if (eq @controlUiState "sequence")}}
+      <ScriptVariablesList
+        @variables={{array 'data' 'index' 'array'}}
+        @title={{'sequence'}}
+        @description='In the Play script, data is a 1 or 0 representing the current step in the sequence. index is the current step in the sequence, array is an array of 1s and 0s representing the sequence. '
+      />
+    {{/if}}
+    {{#if (eq @controlUiState "source")}}
+      <ScriptVariablesList
+        @nodeDocs={{true}}
+        @variables={{array 'this.filepath'}}
+        @validTrackNodes={{@validTrackNodes}}
+        @useSourceNode={{true}}
+        @title={{'source'}}
+        @description={{'this.filepath is a string with the url of an audio file selected from the left sidebar. '}}
+      />
+    {{/if}}
+    {{#if (eq @controlUiState "controls")}}
+      <ScriptVariablesList
+        @nodeDocs={{true}}
+        @variables={{array 'controls'}}
+        @visibleNodeIdx={{@visibleNodeIdx}}
+        @validTrackNodes={{@validTrackNodes}}
+        @title={{'controls'}}
+        @description={{'TODO: control varialbes are the values of the sliders. You can modify these values before they get passed to the audio node. This is allows you to do math on slider values '}}
+      />
+    {{/if}}
+  </div>
