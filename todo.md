@@ -27,6 +27,10 @@ go live list:
   - -  you could do speed: `controls('.sampler') + __.rand()`
 - Fix brittle use of order for track selectors:s  See not note on `uniqueSelector` in models/track-node.js
 
+- node `class`
+  either implement support for multiple classes per node (split classname by spaces)
+  or dont allow spaces in classnames (update on laod)
+
 #### helpers
 - add helper function to set speed as a factor of the sequencer length (for loops)
 - - access to slider value in functions would effectively allow non-linear sliders

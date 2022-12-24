@@ -244,7 +244,7 @@ export default class TrackControlModel extends Model {
     return trackNodes.map((trackNode) => {
       const attrs = {};
       trackNode.trackControls.map((trackControl) => {
-        (attrs.node = trackNode.name),
+        (attrs.node = trackNode.nodeType),
           (attrs[trackControl.nodeAttr] =
             trackControl.attrValueForType(stepIndex));
       });

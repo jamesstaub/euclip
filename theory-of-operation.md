@@ -183,9 +183,14 @@ __('lowpass').attr({ frequency: 440})
 
 
 ## Code-driven User Interface
-In Euclip, almost everything that controls sound is created with code. The code associated with each track creates the UI controls that you see.
+Euclip is a hybrid of a traditional UI and live-coding interface.
 
-# initializing signal chain
+Code written in each track's script editor construct and modulate the audio nodes. It'a formula for how the track behaves, and what parameters may exist.
+
+When the code is loaded on a track, Euclip creates UI controls (sliders, number boxes etc) making it easy to adjust parameters without changing the code. Track controls update automatically as you change a track's SETUP code. 
+
+
+# SETUP SCRIPT: initializing the track's signal chain
 - channelStrip() helper
 - - creates nodes
 
@@ -195,6 +200,48 @@ In Euclip, almost everything that controls sound is created with code. The code 
 
 - this.slider usage example
 
-# on step script
+# PLAY SCRIPT: automating parameters as the sequence plays
+The PLAY script is responsible for triggering the audio source on each step of the sequence. 
+Euclip provides the method `this.playSourceNodes()` which automatically selects any source nodes on the given track and starts them. 
 
-if there on step script is modifying an audio node's property it will override whatever state the slider is in. 
+Alternatively, you can use `cracked`'s API to manually trigger a source node. For example, if you had a sampler on track 3 you could add the following to your PLAY script:
+```
+  __('sampler .track-3').stop().start()
+```
+
+This uses cracked's `__()` method, passing in a selector for this track's sampler node, stops it if it was previously playing, then starts it again.
+
+You can also manually update the sampler attributes like so:
+```
+  let isLooping = index % 3;
+  __('sampler .track-3').stop().attr({ loop: isLooping}).start()
+```
+This will set the samplers `loop` attribute depending on which step of the sequence we're on.
+
+
+There are different ways to modify the parameters of audio nodes. 
+<!-- TODO: explain example with LFO, Multislider and onstep script. which gets precidence? -->
+
+if the PLAY script is modifying an audio node's property it will override whatever state the slider is in. 
+
+## Modify controls with code
+You can write code to modify the value of the UI controls. Say you had a setup script like this
+```
+  __()
+  .sine()
+  .adsr('fast')
+  .connect('#main-output')
+```
+
+And in the `controls` section of the track footer, you set the `frequency` control to the multislider interface with a min of `0` and a max of `127`
+
+You could write a PLAY script like this
+
+js```
+// start the oscillator and trigger the ADSR
+this.playAll();
+let pitch = this.controls.
+__('sine .track-1').attr({frequency: __.pitch2freq(this.controls[0].speed)})
+```
+In this example the value for `this.controls[0].speed` changes on each step of the sequence with the value of the given step in the multislider.
+Since the multislider is set to the range 0-127 and the value is being passed to the `__.pitch2freq` function, the resulting frequency will always be a note in the chromatic scale.

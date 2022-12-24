@@ -170,8 +170,8 @@ export const AudioNodeConfig = {
   ring: {
     type: DISTORTION,
     attrs: {
-      distortion: [],
-      frequency: [],
+      distortion: [0, 1, 0, oneD],
+      frequency: [0, 20, 5, oneD],
     },
   },
   sampler: {
