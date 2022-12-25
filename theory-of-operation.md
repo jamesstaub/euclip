@@ -239,7 +239,7 @@ You could write a PLAY script like this
 
 js```
 // start the oscillator and trigger the ADSR
-this.playAll();
+this.play();
 let pitch = this.controls.
 __('sine .track-1').attr({frequency: __.pitch2freq(this.controls[0].speed)})
 ```
