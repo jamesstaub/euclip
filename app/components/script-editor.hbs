@@ -1,25 +1,23 @@
-<div  
-  class="relative h-100"
-  ...attributes
->
-{{!-- TODO: look into codemirror --}}
-{{!-- https://blog.replit.com/code-editors --}}
-  <AceEditor
-    class="grow-1 ace-editor-wrapper"
-    @editorClass="ace-editor h-100 mv0"
-    @mode="ace/mode/javascript"
-    @value={{@scriptModel.editorContent}}
-    @update={{perform this.onUpdateEditor}}
-  />
+<div class='relative h-100' ...attributes>
+
+  <div
+    class='h-100'
+    {{codemirror @scriptModel.id @scriptModel.editorContent (perform this.onUpdateEditor)}}
+  ></div>
+
 </div>
-<div class="flex items-center justify-between">
-  <div class="flex justify-between grow-1">
+<div class='flex items-center justify-between'>
+  <div class='flex justify-between grow-1'>
     <div>
       <SidebarSubmitButton
-        class="mt3"
-        title={{if this.functionIsLoaded "This script is loaded and running" "Click to load this script"}}
+        class='mt3'
+        title={{if
+          this.functionIsLoaded
+          'This script is loaded and running'
+          'Click to load this script'
+        }}
         @disabled={{this.functionIsLoaded}}
-        {{on "click" (perform @scriptModel.runCode)}}
+        {{on 'click' (perform @scriptModel.runCode)}}
       >
         {{#if this.functionIsLoaded}}
           Loaded
@@ -28,34 +26,38 @@
         {{/if}}
       </SidebarSubmitButton>
       {{#if this.functionIsLoaded}}
-        <ButtonPrimary 
-          {{on "click" this.disableScript}}
-          class="dark-red b--dark-red bg-dark-gray fw6 mt3"
+        <ButtonPrimary
+          {{on 'click' this.disableScript}}
+          class='dark-red b--dark-red bg-dark-gray fw6 mt3'
           @restyle={{true}}
-          title="Disable this script. Nodes will be removed and disconnected from the sequencer."
+          title='Disable this script. Nodes will be removed and disconnected from the sequencer.'
         >disable</ButtonPrimary>
       {{else}}
         <ButtonPrimary
-          class="light-gray b--light-gray bg-dark-gray mt3"
+          class='light-gray b--light-gray bg-dark-gray mt3'
           @restyle={{true}}
-          {{on "click" this.discardChanges}}
-          title="Revert editor to currently running code"
+          {{on 'click' this.discardChanges}}
+          title='Revert editor to currently running code'
         >
           revert
         </ButtonPrimary>
-      {{/if}}  
+      {{/if}}
     </div>
-      {{yield}}
+    {{yield}}
   </div>
 
-  <div class="flex">
+  <div class='flex'>
     {{#if @scriptModel.alert}}
-      <p class="bg-dark-red pa3 mv2 white w-100" data-track={{@scriptModel.track.order}}>{{@scriptModel.alert}}</p>
+      <p
+        class='bg-dark-red pa3 mv2 white w-100'
+        data-track={{@scriptModel.track.order}}
+      >{{@scriptModel.alert}}</p>
     {{/if}}
 
     {{#if this.illegalTokens}}
-      <p class="flex items-center mv0 yellow">
-        Remove unsupported keywords: {{this.illegalTokens}}
+      <p class='flex items-center mv0 yellow'>
+        Remove unsupported keywords:
+        {{this.illegalTokens}}
       </p>
     {{/if}}
   </div>

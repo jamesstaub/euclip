@@ -49,6 +49,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // { uuid: type, atts: { filename: '...', speed: 1} }
     set(this, 'settingsForNodes', []);
     this.channelStripAudioNode = null;
+
     // cracked.onCreateNode was added to the Cracked library to give access to the AudioNode object upon creation
     // this callback gets called when a user creates cracked audio nodes in the script editor ui
     // macro components should not get individual ui controls
@@ -63,32 +64,37 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         !node.isMacroComponent() &&
         ENV.APP.supportedAudioNodes.indexOf(type) > -1
       ) {
-        // add a track-specific class to every node created so it can be
-        // easily selected and properly cleaned up.
         const indicator = this.isMaster ? 'master' : this.order;
+
+        // add a track-specific class to every node created so it can be
+        // easily selected and properly cleaned up. addCustomSelector sets these in
+        // the Cracked store
+
         addCustomSelector(node, `.track-${indicator}`);
         addCustomSelector(node, `${type} .track-${indicator}`);
 
         const nodeSettings = {};
+
         const uuid = node.getUUID();
         nodeSettings[uuid] = type;
         nodeSettings.uuid = uuid;
         nodeSettings.userSettings = userSettings; // save the initialization attributes so they can be used to update TrackControl's min/max/default param values
         this.settingsForNodes.push(nodeSettings);
-
-        userSettings.onLoadBuffer = async ({ buffer, error }) => {
-          this.trackNodes.then((_store) => {
-            const trackNode = _store.findBy('nodeUUID', node.getUUID());
-            if (this.trackNodes.isFulfilled && trackNode) {
-              if (buffer) {
-                trackNode.fileLoadState = FILE_LOAD_STATES.SUCCESS;
+        if (userSettings) {
+          userSettings.onLoadBuffer = async ({ buffer, error }) => {
+            this.trackNodes.then((_store) => {
+              const trackNode = _store.findBy('nodeUUID', node.getUUID());
+              if (this.trackNodes.isFulfilled && trackNode) {
+                if (buffer) {
+                  trackNode.fileLoadState = FILE_LOAD_STATES.SUCCESS;
+                }
+                if (error) {
+                  trackNode.fileLoadState = FILE_LOAD_STATES.ERROR;
+                }
               }
-              if (error) {
-                trackNode.fileLoadState = FILE_LOAD_STATES.ERROR;
-              }
-            }
-          });
-        };
+            });
+          };
+        }
         // 'ui' is a custom attr that users can set in the script editor when defining a cracked audio node
         // new AudioNode objects won't get initialized with it by default so we hack it on here
         // see cracked.js line 330
@@ -382,7 +388,13 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       trackSelector: `.track-${this.order}`,
       controls: controls, // the value of the controls at this current step
       sliders: this.trackControlData,
-
+      select() {
+        let selector = typeof arguments[0] === 'string' ? arguments[0] : null;
+        if (selector) {
+          return __(`${selector} ${this.trackSelector}`);
+        }
+        return __(this.trackSelector);
+      },
       // These methods may get replaced by the track('selector').play() style of API
       playSourceNodes() {
         if (sourceNodes) {
@@ -401,7 +413,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
           __(adsrNode.uniqueSelector).adsr('trigger');
         });
       },
-      playAll() {
+      play() {
         this.playSourceNodes();
         this.playADSRNodes();
         // TODO: rampNodes, LFONodes

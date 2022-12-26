@@ -21,7 +21,7 @@ export default class ScriptEditorComponent extends Component {
   *onUpdateEditor(content) {
     // hack to avoid a double-submit error when hitting enter
     // which causes cursor to jump
-    yield timeout(100);
+    yield timeout(500);
     const scriptModel = yield this.args.scriptModel;
     scriptModel.updateScriptTask.perform('editorContent', content);
   }
