@@ -2,7 +2,11 @@
 
   <div
     class='h-100'
-    {{codemirror @scriptModel.id @scriptModel.editorContent (perform this.onUpdateEditor)}}
+    {{codemirror
+      (add @scriptModel.id this.renderFlag)
+      @scriptModel.editorContent
+      (perform this.onUpdateEditor)
+    }}
   ></div>
 
 </div>

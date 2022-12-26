@@ -120,11 +120,11 @@
   {{/unless}}
   <div>
     <ButtonPrimary
-      class='absolute bottom-0 right-0 flex f7 yellow-fill'
+      class='absolute top-1 mr2 right-0 flex f7 yellow-fill'
       {{on 'click' this.toggleReference}}
       @label='Edit'
     >
-      reference
+      {{if this.showReference "hide" "show"}} reference
     </ButtonPrimary>
   </div>
   {{! 

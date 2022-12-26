@@ -192,7 +192,7 @@ export default class TrackNodeModel extends Model {
       // set the defaultValue as the trackControl's value
       const [min, max, defaultValue, interfaceOptions] =
         AudioNodeConfig[this.nodeType].attrs[controlAttr];
-      console.log(controlAttr, interfaceOptions);
+
       const trackControl = this.store.createRecord('track-control', {
         nodeAttr: controlAttr,
         controlArrayValue: [], // all controls for api must initialize this whenever a multislider is created

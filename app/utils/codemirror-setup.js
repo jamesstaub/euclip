@@ -13,12 +13,11 @@ import {
   defaultHighlightStyle,
   syntaxHighlighting,
   indentOnInput,
-  bracketMatching,
   foldGutter,
   foldKeymap,
 } from '@codemirror/language';
-import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
-import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
+import { defaultKeymap, history, historyKeymap, indentWithTab, } from '@codemirror/commands';
+import { highlightSelectionMatches } from '@codemirror/search';
 import {
   autocompletion,
   completionKeymap,
@@ -68,7 +67,6 @@ import { lintKeymap } from '@codemirror/lint';
 /// as desired.
 
 export const basicSetup = (() => [
-//   lineNumbers(),
   highlightActiveLineGutter(),
   highlightSpecialChars(),
   history(),
@@ -85,9 +83,9 @@ export const basicSetup = (() => [
   highlightActiveLine(),
   highlightSelectionMatches(),
   keymap.of([
+    indentWithTab,
     ...closeBracketsKeymap,
     ...defaultKeymap,
-    ...searchKeymap,
     ...historyKeymap,
     ...foldKeymap,
     ...completionKeymap,

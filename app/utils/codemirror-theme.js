@@ -63,7 +63,8 @@ export const theme = EditorView.theme(
       backgroundColor: highlightBackground,
     },
 
-    '.cm-activeLine': { backgroundColor: highlightBackground },
+    '.cm-activeLine': { backgroundColor: background },
+
     '.cm-selectionMatch': {
       backgroundColor: darkBackground,
       outline: `1px solid ${base_teal}`,
@@ -132,7 +133,7 @@ export const materialDarkHighlightStyle = HighlightStyle.define([
     tag: [t.color, t.constant(t.name), t.standard(t.name)],
     color: base_yellow,
   },
-  { tag: [t.definition(t.name), t.separator], color: base_pink },
+  { tag: [t.definition(t.name), t.separator], color: base04 },
   { tag: [t.brace], color: base_purple },
   {
     tag: [t.annotation],

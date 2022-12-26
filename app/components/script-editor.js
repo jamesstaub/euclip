@@ -3,9 +3,11 @@ import { action } from '@ember/object';
 import { inject as service } from '@ember/service';
 import { timeout, restartableTask } from 'ember-concurrency';
 import { getProperties } from '@ember/object';
+import { tracked } from '@glimmer/tracking';
 
 export default class ScriptEditorComponent extends Component {
   @service router;
+  @tracked renderFlag = 0; // integer passed to codemirror modifier to retrigger an upage to the editor's content
 
   get functionIsLoaded() {
     const { safeCode, editorContent, functionRef } = getProperties(
@@ -41,6 +43,7 @@ export default class ScriptEditorComponent extends Component {
       'editorContent',
       this.args.scriptModel.get('safeCode')
     );
+    this.renderFlag = ++this.renderFlag;
   }
 
   @action

@@ -1,15 +1,8 @@
 <div
-  class="variables-overlay bg-dark-gray ph3 z-5 yellow bw2 bt bl b--yellow"
+  class="variables-overlay bg-dark-gray ph3 z-5 yellow bw2 bt bl b--yellow w-100"
   ...attributes
 >
   <div class="flex justify-between">
-    <div class="flex">
-      <h4 class="yellow mt3 mb0 pointer pb3">
-        {{this.currentNode.nodeType}}
-        {{@title}}
-        reference
-      </h4>
-    </div>
     <TabMenu
       class="mv3"
       @onSelect={{fn this.setUi "visibleNodeIdx"}}
