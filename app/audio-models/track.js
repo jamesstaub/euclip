@@ -56,6 +56,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
   async setupAudioFromScripts(unbindBeforeCreate = true) {
     const initScript = await this.initScript;
+    await this.trackControls;
 
     // settingsForNodes is an array to store audio node uuids created in this track's script
     // not to be confused with trackNode models,
@@ -145,7 +146,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       this.setNodeToVisualize();
     }
   }
-
 
   /**
    * find-or-create TrackNode records for each audio node object
@@ -248,7 +248,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     });
   }
 
-
   /**
    *
    * Loop over trackNode records
@@ -283,7 +282,15 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     });
 
     // any trackControls that don't match to a node get destroyed
-    trackControls.forEach((trackControl) => trackControl.destroyRecord());
+    trackControls.forEach((trackControl) => {
+      // except we allow a filepath control to remain even if the node
+      // doesn't exist because it ensures that a path value can be provided
+      // immediately when a sampler gets created and not need to wait for trackControls
+      // to be created
+      if (!trackControl.interfaceName === 'filepath') {
+        trackControl.destroyRecord();
+      }
+    });
 
     nodesWithoutTrackControls.map((trackNode) =>
       trackNode.createTrackControls()

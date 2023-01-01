@@ -1,7 +1,7 @@
 # TODO
-- loading existing filepath not working
-- drum searching implementation
-- initial drum sound not loading correctly (batch track controls?)
+
+- initial drum sound not loading correctly 
+batch track controls?
 
 investigate cracked's `ignoreGrid` property to investigate scheduling bugs
 
@@ -64,7 +64,7 @@ to keep recent state in tact when returning to a track
   - info menu should show example of how to mutate track controls
 
 ### Track Controls
-  - FIXME: Track controls currently get re-created on every play. 
+
 
   - Oscillators also get Track Controls to control their type. (if the script contains a generic oscillator macro)
   - control menu should contain a text input for the target selector of a track control. By default this should populate with the related TrackNode's unique selector

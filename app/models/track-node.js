@@ -13,6 +13,7 @@ export const defaultKit = [
   '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CRLOWTOM.mp3',
 ];
 
+
 export const FILE_LOAD_STATES = {
   EMPTY: 'empty',
   LOADING: 'loading',
@@ -179,13 +180,6 @@ export default class TrackNodeModel extends Model {
    * and then save to db non-blocking
    *
    */
-
-  // FIXME: make sure a default filepath control gets created
-  // even if it doesn't have a source node. Would need to ensure
-  // any getters that call for filepath can find the track control
-  // whether it had a sampler node or not.
-  // The pre-script track control will have a default filepath
-
   createTrackControls() {
     // get default attributes for node
     const controlAttrs = Object.keys(AudioNodeConfig[this.nodeType]?.attrs);
@@ -194,12 +188,17 @@ export default class TrackNodeModel extends Model {
       return;
     }
 
+    // filepath control gets created with a default value
+    //  before the script runs because we want it to be ready to go
+    // so it gets special treatment here
+    const existingTrackControls = this.track.get('trackControls').toArray();
+
     return controlAttrs.map((controlAttr) => {
       // set the defaultValue as the trackControl's value
       const [min, max, defaultValue, interfaceOptions] =
         AudioNodeConfig[this.nodeType].attrs[controlAttr];
 
-      const trackControl = this.store.createRecord('track-control', {
+      const params = {
         nodeAttr: controlAttr,
         controlArrayValue: [], // all controls for api must initialize this whenever a multislider is created
         track: this.track,
@@ -215,7 +214,17 @@ export default class TrackNodeModel extends Model {
         defaultValue,
         min,
         max,
-      });
+      };
+
+      let trackControl = existingTrackControls.findBy(
+        'interfaceName',
+        interfaceOptions[0]
+      );
+      if (trackControl) {
+        trackControl.setProperties(params);
+      } else {
+        trackControl = this.store.createRecord('track-control', params);
+      }
 
       if (this.userDefinedInterfaceName) {
         trackControl.set('interfaceName', this.userDefinedInterfaceName);

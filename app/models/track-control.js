@@ -317,7 +317,7 @@ export default class TrackControlModel extends Model {
         return [];
     }
   }
-  static createDefaultFilepathControl(track) {
+  static async createDefaultFilepathControl(track) {
     const trackControl = track.store.createRecord('track-control', {
       nodeAttr: 'path',
       track: track,
@@ -326,9 +326,9 @@ export default class TrackControlModel extends Model {
       nodeOrder: -1,
       interfaceName: 'filepath',
       // set default drum sample before so it's ready synchronously
-      controlStringValue: defaultKit[1],
+      controlStringValue: defaultKit[track.get('order') % defaultKit.length],
     });
-    trackControl.save();
+    await trackControl.save();
     return trackControl;
   }
 }

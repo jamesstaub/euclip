@@ -1,6 +1,7 @@
 import ProjectAudioModel from '../audio-models/project';
 import { attr, hasMany, belongsTo } from '@ember-data/model';
 import { tracked } from '@glimmer/tracking';
+import TrackControlModel from './track-control';
 
 export default class ProjectModel extends ProjectAudioModel {
   @tracked isPlaying;
@@ -15,8 +16,13 @@ export default class ProjectModel extends ProjectAudioModel {
   async setupAndSaveNewTrack(track, saveOptions) {
     // need to wait to for save because orders may change
     await track.save(saveOptions);
+
+    if (!track.get('trackControls').findBy('interfaceName', 'filepath')) {
+      await TrackControlModel.createDefaultFilepathControl(track);
+    }
+
     this.tracks.pushObject(track);
-    track.setupAudioFromScripts(false);
+    await track.setupAudioFromScripts(false);
     track.createAudioFileTree(); // not required to start playing, just filetree UI
     return track;
   }

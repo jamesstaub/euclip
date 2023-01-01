@@ -79,6 +79,8 @@ export default class ScriptModel extends Model {
         project.stopLoop();
         project.initSignalChain();
         project.startLoop();
+      } else {
+        track.setupAudioFromScripts();
       }
     }
     yield timeout(1000);

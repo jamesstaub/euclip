@@ -63,6 +63,7 @@ export default class UserCreatorProjectController extends Controller {
       // indicate with a global "saved" state to allow local changes
       // useful for mutliperson editing scenarios + modifying other users' projects
       track.deleteRecord();
+      console.error('ERROR in addTrack:');
       console.error(error);
     }
   }
