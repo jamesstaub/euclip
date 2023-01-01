@@ -5,7 +5,7 @@ import { computed } from '@ember/object';
 import { inject as service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 
-const defaultKit = [
+export const defaultKit = [
   '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CR8KBASS.mp3',
   '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CRSNARE.mp3',
   '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CROHH.mp3',
@@ -180,14 +180,20 @@ export default class TrackNodeModel extends Model {
    *
    */
 
+  // FIXME: make sure a default filepath control gets created
+  // even if it doesn't have a source node. Would need to ensure
+  // any getters that call for filepath can find the track control
+  // whether it had a sampler node or not.
+  // The pre-script track control will have a default filepath
+
   createTrackControls() {
-    console.log('createTrackControls');
     // get default attributes for node
     const controlAttrs = Object.keys(AudioNodeConfig[this.nodeType]?.attrs);
     if (!controlAttrs.map) {
       console.error('Node type not supported');
       return;
     }
+
     return controlAttrs.map((controlAttr) => {
       // set the defaultValue as the trackControl's value
       const [min, max, defaultValue, interfaceOptions] =
@@ -214,11 +220,6 @@ export default class TrackNodeModel extends Model {
       if (this.userDefinedInterfaceName) {
         trackControl.set('interfaceName', this.userDefinedInterfaceName);
       }
-      // if (interfaceOptions[0] == 'filepath') {
-      //   console.log('post-create');
-      //   console.log(trackControl);
-      //   console.log(trackControl.controlStringValue);
-      // }
       trackControl.save();
       return trackControl;
     });

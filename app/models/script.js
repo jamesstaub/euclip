@@ -67,9 +67,12 @@ export default class ScriptModel extends Model {
   *runCode() {
     this.alert = null;
     this.set('code', this.editorContent);
-    yield this.updateScriptTask.perform('safeCode', this.editorContent);
+    yield this.updateScriptTask.perform('code', this.editorContent);
     if (this.name === 'init-script') {
       const track = yield this.track;
+      if (track.samplerNodes.length) {
+        yield track.downloadSample();
+      }
       track.setupAudioFromScripts();
     }
     yield timeout(1000);

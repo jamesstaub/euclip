@@ -65,7 +65,7 @@
           >
             <TrackReference
               @track={{@track}}
-              @validTrackNodes={{this.validTrackNodes}}
+              @validTrackNodes={{@track.validTrackNodes}}
               @controlUiState={{'sequence'}}
             />
           </SequenceContainer>
@@ -78,7 +78,7 @@
           >
             <TrackReference
               @track={{@track}}
-              @validTrackNodes={{this.validTrackNodes}}
+              @validTrackNodes={{@track.validTrackNodes}}
               @controlUiState={{'source'}}
             />
           </SourceContainer>
@@ -100,13 +100,13 @@
                   <TrackReference
                     @track={{@track}}
                     @controlUiState={{'controls'}}
-                    @validTrackNodes={{this.validTrackNodes}}
+                    @validTrackNodes={{@track.validTrackNodes}}
                     @visibleNodeIdx={{this.visibleNodeIdx}}
                   />
                 {{else}}
                   <TrackControls
                     @track={{@track}}
-                    @trackNodesForControls={{this.trackNodesForControls}}
+                    @trackNodesForControls={{@track.trackNodesForControls}}
                     @visibleNodeIdx={{this.visibleNodeIdx}}
                     @updateControl={{this.updateControl}}
                   />

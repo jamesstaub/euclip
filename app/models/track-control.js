@@ -8,6 +8,7 @@ import {
 } from 'ember-concurrency';
 import { getCrackedNode } from '../utils/cracked';
 import { isPresent } from '@ember/utils';
+import { defaultKit } from './track-node';
 
 export default class TrackControlModel extends Model {
   @belongsTo('track') track;
@@ -110,6 +111,7 @@ export default class TrackControlModel extends Model {
       // if this case happens, it is hopefully just because trackControls are in the process of deleting in a non-blocking way,
       //  so we cant wait for the request to finish.
       // in anycase its invalid and should not be used
+      console.warn('node type mismatch: setAttrOnTrackStep');
       return;
     }
 
@@ -142,7 +144,7 @@ export default class TrackControlModel extends Model {
     // NOTE:
     // users can (someday) declare a custom selector on a control (like a class)
     // so it can control multiple nodes at once
-    // till then this first condition is not met
+    // till then this first condition is nevermet
     if (this.trackNode.nodeSelector) {
       __(this.trackNode.nodeSelector).attr(attrs);
     } else {
@@ -168,6 +170,9 @@ export default class TrackControlModel extends Model {
    */
   setValue(value) {
     if (!this.isDestroyed) {
+      const uuid = this.trackNode.get('nodeUUID');
+      // const node = getCrackedNode(uuid);
+      console.log(uuid);
       if (isArray(value)) {
         this.set('controlArrayValue', value);
         this.notifyPropertyChange('controlArrayValue');
@@ -210,8 +215,9 @@ export default class TrackControlModel extends Model {
 
   @keepLatestTask
   *saveTrackControl() {
-    // FIXME: need a better strategy to prevent the last save response from coming in
-    // out of sync with current UI state. (occurs when lots of rapid changes are made to nexus-multislider)
+    // // FIXME: need a better strategy to prevent the last save response from coming in
+    // // out of sync with current UI state. (occurs when lots of rapid changes are made to nexus-multislider)
+    // See codemirror implementation, needs a modifier class that tracks attr updatate
     yield timeout(5000);
     const project = yield this.track.get('project');
     // dont save if project was deleted during task timeout
@@ -243,6 +249,7 @@ export default class TrackControlModel extends Model {
     // the sampler source node since that is a special case
     return trackNodes.map((trackNode) => {
       const attrs = {};
+      attrs.nodeUUID = trackNode.nodeUUID;
       trackNode.trackControls.map((trackControl) => {
         (attrs.node = trackNode.nodeType),
           (attrs[trackControl.nodeAttr] =
@@ -310,5 +317,19 @@ export default class TrackControlModel extends Model {
       default:
         return [];
     }
+  }
+  static createDefaultFilepathControl(track) {
+    const trackControl = track.store.createRecord('track-control', {
+      nodeAttr: 'path',
+      track: track,
+      trackNode: null,
+      nodeType: 'sampler',
+      nodeOrder: -1,
+      interfaceName: 'filepath',
+      // set default drum sample before so it's ready synchronously
+      controlStringValue: defaultKit[1],
+    });
+    trackControl.save();
+    return trackControl;
   }
 }

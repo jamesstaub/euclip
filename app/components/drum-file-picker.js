@@ -7,6 +7,7 @@ import { typeOf } from '@ember/utils';
 import AudioFileTreeModel from '../models/audio-file-tree';
 import { tracked } from '@glimmer/tracking';
 import { keepLatestTask, timeout } from 'ember-concurrency';
+import TrackControlModel from '../models/track-control';
 
 export default class DrumFilePicker extends Component {
   @service store;
@@ -34,8 +35,14 @@ export default class DrumFilePicker extends Component {
 
   async saveFilepathControl(filepath) {
     const track = await this.args.track;
-    track.get('samplerFilepathControl').set('controlStringValue', filepath);
-    track.get('samplerFilepathControl').save();
+    // TODO find a betterplace to createDefaultFilepathControl if it doersn' exist 
+    const filepathControl =
+      track.get('samplerFilepathControl') ||
+      (await TrackControlModel.createDefaultFilepathControl(track));
+
+    filepathControl.set('controlStringValue', filepath);
+    await filepathControl.save();
+    await track.downloadSample();
     track.setupAudioFromScripts();
   }
 

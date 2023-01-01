@@ -63,6 +63,7 @@
     @leftSidebarOpen={{this.leftSidebarOpen}}
   >
     <div class="overflow-scroll">
+      {{log "TRACKS" this.sortedTracks}}
       {{#each this.sortedTracks key="order" as |track|}}
         {{#unless track.isMaster}}
           <TrackListItem

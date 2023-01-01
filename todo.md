@@ -1,4 +1,5 @@
 # TODO
+- loading existing filepath not working
 - drum searching implementation
 - initial drum sound not loading correctly (batch track controls?)
 
@@ -18,8 +19,9 @@ go live list:
 
 
 
-
 ### Scripts
+BUG; if possible clear the "cmd-z"  undo state when changing tracks, since code mirror doesn't get re-initialized
+
 #### scope + variables
 - implement variables in script scope to access TrackControl values
   - - This could use existing selectors to access track nodes for controls eg.
@@ -62,6 +64,8 @@ to keep recent state in tact when returning to a track
   - info menu should show example of how to mutate track controls
 
 ### Track Controls
+  - FIXME: Track controls currently get re-created on every play. 
+
   - Oscillators also get Track Controls to control their type. (if the script contains a generic oscillator macro)
   - control menu should contain a text input for the target selector of a track control. By default this should populate with the related TrackNode's unique selector
     but could be a dropdown of all selectors (filtered by those that are controllable by this control type
@@ -83,6 +87,17 @@ to keep recent state in tact when returning to a track
   - Rails Action Cables for live editing
 
 ### Sequences
+- FIXME: when updating a sequence (clicking a square)
+  - dont make the UI wait for the API request. 
+
+- implement an `this.updateSequence()` method
+  - alias `data` variable to `step` for clarity in PLAY function
+  - right click sequence square to edit it's value 
+  - in sequence menu, dropdown for "default step value"
+    - 1
+    - true
+    - custom
+
   - implement a "Matrix View", which replaces the standard track list with an intanace of 
   nexus sequencer with rows for each track. inherit the Nexus matrix model to allow use of 
   nexus matrix mutation functions.
@@ -144,3 +159,9 @@ implement a Forum with Threaded
 
 also look at Kofi https://ko-fi.com/gold?ref=home
 
+Mobile UI:
+on phones, the verticle view should be simple play controls 
+and message to rotate phone to horizontal. there it should be a minimal track list and
+footer view
+
+Current Track selection could be a native dropdown menu

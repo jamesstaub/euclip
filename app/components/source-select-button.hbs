@@ -1,10 +1,10 @@
 {{#if @onToggleFilePicker}}
   <ButtonPrimary
-    class="w4 truncate ma2 {{if @trackNode.samplerFilepathControl.filename "f7" "f8 white-"}}"
+    class="w4 truncate ma2 {{if @samplerFilepathControl.filename "f7" "f8 white-"}}"
     {{on "click"  @onToggleFilePicker}}
-    @label="Drum Machine: {{@trackNode.samplerFilepathControl.filename}}"
+    @label="Drum Machine: {{@samplerFilepathControl.filename}}"
     ...attributes
   >
-    {{if @trackNode.samplerFilepathControl.filename @trackNode.samplerFilepathControl.filename "Pick a Sound"}}
+    {{if @samplerFilepathControl.filename @samplerFilepathControl.filename "Pick a Sound"}}
   </ButtonPrimary>
 {{/if}}

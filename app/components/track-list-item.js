@@ -7,6 +7,10 @@ export default class TrackListItemComponent extends Component {
   @service router;
   @controller('user.creator.project') project;
 
+  get showFilePicker() {
+    return !!this.args.track.samplerNodes?.length;
+  }
+
   @action
   deleteTrack() {
     this.args.track.destroyAndCleanup();

@@ -32,19 +32,9 @@ export default class TrackFooterContainerComponent extends Component {
     return this.controlUiState === 'controls';
   }
 
-  get validTrackNodes() {
-    //dont try to render if record has no corresponding AudioNode
-    return TrackNodeModel.validTrackNodes(this.args.track);
-  }
-
-  get trackNodesForControls() {
-    // all nodes except the children of channelStrip maco
-    return this.validTrackNodes.filterBy('parentMacro', undefined);
-  }
-
   get channelStripTrackNodes() {
     // the children of channelStrip maco
-    return this.validTrackNodes.filterBy('parentMacro');
+    return this.args.track.validTrackNodes.filterBy('parentMacro');
   }
 
   /**
@@ -62,7 +52,7 @@ export default class TrackFooterContainerComponent extends Component {
   }
 
   get trackNodesTabs() {
-    return this.trackNodesForControls
+    return this.args.track.trackNodesForControls
       .map((trackNode, idx) => {
         return {
           label: trackNode.nodeType,

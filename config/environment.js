@@ -31,6 +31,7 @@ module.exports = function (environment) {
         'allpasss',
         'bandpass',
         'bitcrusher',
+        'channelStrip',
         'comb',
         'compressor',
         'delay',

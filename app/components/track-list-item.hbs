@@ -17,9 +17,9 @@
           {{/if}}
         {{/if}}
         
-        {{#if @track.showFilePicker}}
+        {{#if this.showFilePicker}}
           <SourceSelectButton
-            @trackNode={{@track.sourceNodeRecords.firstObject}} 
+            @samplerFilepathControl={{@track.samplerFilepathControl}} 
             @onToggleFilePicker={{@onToggleFilePicker}} 
           />
         {{else}}

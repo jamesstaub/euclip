@@ -11,15 +11,23 @@ export default class ProjectAudioModel extends Model {
     return (1000 * 60) / (this.bpm * 2);
   }
 
-  initSignalChain() {
+  async initSignalChain() {
     this.disconnectAll();
     // const tracks = await this.tracks;
     // await track.initScript;
     // await track.onstepScript;
     defineChannelStripMacro();
     this.masterTrack.setupAudioFromScripts();
+    await this.downloadTrackSamples();
     this.orderedTracks.forEach((track) => track.setupAudioFromScripts());
     return this;
+  }
+
+  async downloadTrackSamples() {
+    console.log('DL all');
+    return await Promise.all(
+      this.orderedTracks.map((track) => track.downloadSample())
+    );
   }
 
   startLoop() {

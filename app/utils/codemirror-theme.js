@@ -13,7 +13,6 @@ const base00 = '#2e3235',
   base07 = '#fdf6e3',
   base_red = '#ff5f52',
   base_deeporange = '#ff6e40',
-  base_pink = '#fa5788',
   base_yellow = '#facf4e',
   base_orange = '#ffad42',
   base_cyan = '#56c8d8',
@@ -39,12 +38,18 @@ export const theme = EditorView.theme(
       backgroundColor: background,
     },
 
-    '.cm-content': {
-      caretColor: cursor,
-    },
+    // '.cm-content': {
+    //   caretColor: cursor,
+    // },
 
     '.cm-editor': {
       height: '100%',
+    },
+
+    '.cm-content, .cm-content span': {
+      fontSize: '16px',
+      fontFamily:
+        'Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace',
     },
 
     '.cm-cursor, .cm-dropCursor': { borderLeftColor: cursor },
@@ -59,21 +64,21 @@ export const theme = EditorView.theme(
       outline: `1px solid ${base_yellow}`,
       backgroundColor: 'transparent',
     },
-    '.cm-searchMatch.cm-searchMatch-selected': {
-      backgroundColor: highlightBackground,
-    },
+    // '.cm-searchMatch.cm-searchMatch-selected': {
+    //   backgroundColor: highlightBackground,
+    // },
 
-    '.cm-activeLine': { backgroundColor: background },
+    // '.cm-activeLine': { backgroundColor: highlightBackground },
 
-    '.cm-selectionMatch': {
-      backgroundColor: darkBackground,
-      outline: `1px solid ${base_teal}`,
-    },
+    // '.cm-selectionMatch': {
+    //   backgroundColor: darkBackground,
+    //   outline: `1px solid ${base_teal}`,
+    // },
 
-    '&.cm-focused .cm-matchingBracket': {
-      color: base06,
-      outline: `1px solid ${base_teal}`,
-    },
+    // '&.cm-focused .cm-matchingBracket': {
+    //   color: base06,
+    //   outline: `1px solid ${base_teal}`,
+    // },
 
     '&.cm-focused .cm-nonmatchingBracket': {
       color: base_red,
@@ -125,7 +130,6 @@ export const materialDarkHighlightStyle = HighlightStyle.define([
     tag: [t.name, t.deleted, t.character, t.macroName],
     color: base_cyan,
   },
-  { tag: [t.propertyName], color: base_yellow },
   { tag: [t.variableName], color: base05 },
   { tag: [t.function(t.variableName)], color: base_cyan },
   { tag: [t.labelName], color: base_purple },
@@ -140,7 +144,7 @@ export const materialDarkHighlightStyle = HighlightStyle.define([
     color: invalid,
   },
   {
-    tag: [t.number, t.changed, t.annotation, t.modifier, t.self, t.namespace],
+    tag: [t.number, t.changed, t.annotation, t.modifier, t.namespace],
     color: base_orange,
   },
   {

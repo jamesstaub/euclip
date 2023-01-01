@@ -16,7 +16,12 @@ import {
   foldGutter,
   foldKeymap,
 } from '@codemirror/language';
-import { defaultKeymap, history, historyKeymap, indentWithTab, } from '@codemirror/commands';
+import {
+  defaultKeymap,
+  history,
+  historyKeymap,
+  indentWithTab,
+} from '@codemirror/commands';
 import { highlightSelectionMatches } from '@codemirror/search';
 import {
   autocompletion,
@@ -25,7 +30,6 @@ import {
   closeBracketsKeymap,
 } from '@codemirror/autocomplete';
 import { lintKeymap } from '@codemirror/lint';
-
 
 // (The superfluous function calls around the list of extensions work
 // around current limitations in tree-shaking software.)
