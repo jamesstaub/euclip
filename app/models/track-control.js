@@ -172,7 +172,6 @@ export default class TrackControlModel extends Model {
     if (!this.isDestroyed) {
       const uuid = this.trackNode.get('nodeUUID');
       // const node = getCrackedNode(uuid);
-      console.log(uuid);
       if (isArray(value)) {
         this.set('controlArrayValue', value);
         this.notifyPropertyChange('controlArrayValue');

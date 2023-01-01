@@ -24,7 +24,6 @@ export default class ProjectAudioModel extends Model {
   }
 
   async downloadTrackSamples() {
-    console.log('DL all');
     return await Promise.all(
       this.orderedTracks.map((track) => track.downloadSample())
     );

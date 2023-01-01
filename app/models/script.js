@@ -73,7 +73,13 @@ export default class ScriptModel extends Model {
       if (track.samplerNodes.length) {
         yield track.downloadSample();
       }
-      track.setupAudioFromScripts();
+      const project = yield track.get('project');
+      if (project.get('isPlaying')) {
+        // clean reset on delete to prevent the _loopListeners array gets cleared out in cracked
+        project.stopLoop();
+        project.initSignalChain();
+        project.startLoop();
+      }
     }
     yield timeout(1000);
   }
