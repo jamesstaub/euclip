@@ -13,6 +13,7 @@ require "action_text/engine"
 require "action_view/railtie"
 require "action_cable/engine"
 require_relative "../app/middlewares/snake_case_parameters"
+require_relative "../lib/proxy"
 
 
 # require "sprockets/railtie"
@@ -43,5 +44,7 @@ module EuclipApi
     config.autoload_paths += Dir["#{config.root}/lib/**/"]
 
     config.middleware.use SnakeCaseParameters
+
+    config.middleware.use Proxy
   end
 end

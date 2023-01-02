@@ -7,8 +7,8 @@ admin = User.create!({
   last_name: "staub",
   username: "euclip",
   email: "jamesstaub@gmail.com",
-  password: "3uCl1p#",
-  password_confirmation: "3uCl1p#",
+  password: "",
+  password_confirmation: "",
 })
 
 james = User.create!({
