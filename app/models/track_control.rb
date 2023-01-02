@@ -13,6 +13,7 @@ class TrackControl < ApplicationRecord
     end
   end
 
+  # REFACTOR: this should be removed and happen on front end instead
   def get_sample_for_idx
    kit = ["/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CR8KBASS.mp3",
     "/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CRSNARE.mp3",

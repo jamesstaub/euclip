@@ -21,12 +21,9 @@ class Track < ApplicationRecord
     Track.transaction do
       track = self.create!(params)
       track.create_init_script!
+      track.sequences.create!
+      track.create_onstep_script!
       
-      unless track.is_master
-        track.sequences.create!
-        track.create_onstep_script!
-      end
-
       track
     end
   end

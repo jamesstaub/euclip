@@ -33,8 +33,10 @@ class User < ApplicationRecord
 
   validate :username_is_not_an_existing_email, if: lambda { |u| u.username =~ /@/ }
 
-  PASSWORD_FORMAT = /\A.*(?=.*[a-z])(?=.*[A-Z]).*\z/
-  PW_MESSAGE = 'must include 1 CAP char, 1 low char'
+  # PASSWORD_FORMAT = /\A.*(?=.*[a-z])(?=.*[A-Z]).*\z/
+  # PW_MESSAGE = 'must include 1 CAP char, 1 low char'
+  PASSWORD_FORMAT = /./
+  PW_MESSAGE = ''
 
   validates :password,
     format: { with: PASSWORD_FORMAT, message: PW_MESSAGE },

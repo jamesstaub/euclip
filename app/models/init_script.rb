@@ -12,24 +12,25 @@ class InitScript < Script
   
   def master_track_default_init
     self.safe_code = %{__()
-.compressor({
-  release: .1,
-  id: 'main-output',
-})
-.channelStrip()
-.dac();
+  .compressor({
+    release: .1,
+    id: 'main-output',
+  })
+  .channelStrip()
+  .dac();
   } if self.safe_code.nil?
   end
 
   def track_default_init
     self.safe_code = %{__()
-.sampler({
-  id: this.id,
-  path: this.filepath,
-})
-.gain()
-.channelStrip()
-.connect('#main-output')
+  .sampler({
+    id: this.id,
+    loop:false,
+    path: this.filepath,
+  })
+  .gain()
+  .channelStrip()
+  .connect('#main-output')
         } if self.safe_code.nil?
   end
 end
