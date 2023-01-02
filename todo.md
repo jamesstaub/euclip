@@ -17,7 +17,8 @@ go live list:
 - simplify interface control
   - remove dial option. single or multislider options as icon selectsion
 
-
+### PLANS
+given DB row limit, must enforce project and track limitations per user
 
 ### Scripts
 BUG; if possible clear the "cmd-z"  undo state when changing tracks, since code mirror doesn't get re-initialized

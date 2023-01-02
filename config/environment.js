@@ -66,7 +66,7 @@ module.exports = function (environment) {
     // ENV.APP.LOG_ACTIVE_GENERATION = true;
     // ENV.APP.LOG_TRANSITIONS = true;
     // ENV.APP.LOG_TRANSITIONS_INTERNAL = true;
-    ENV.APP.DRUMSERVER_HOST = 'http://127.0.0.1:8000';
+    ENV.APP.DRUMSERVER_HOST = 'https://127.0.0.1:8000'; // hit drumserver app directly because double proxy doesn't seem to work
     ENV.APP.AUDIO_PATH = '/assets/audio/Drum%20Machines%20mp3';
     // ENV.APP.DRUMSERVER_HOST = 'https://drumserver.herokuapp.com';
   }
@@ -84,7 +84,7 @@ module.exports = function (environment) {
   }
 
   if (environment === 'production') {
-    ENV.APP.DRUMSERVER_HOST = 'https://drumserver.herokuapp.com';
+    ENV.APP.DRUMSERVER_HOST = '/drumserver'; // Rails app has a proxy to the drumserver app
     ENV.APP.AUDIO_PATH =
       'https://storage.googleapis.com/euclidean-cracked.appspot.com/Drum%20Machines%20mp3';
   }

@@ -69,7 +69,11 @@ export default class AudioFileTreeModel extends Model {
 
   static async fetchDirectory(path) {
     const url = `${ENV.APP.DRUMSERVER_HOST}${path}`;
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
     const json = await response.json();
     return json;
   }

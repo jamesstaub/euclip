@@ -13,7 +13,6 @@ export const defaultKit = [
   '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CRLOWTOM.mp3',
 ];
 
-
 export const FILE_LOAD_STATES = {
   EMPTY: 'empty',
   LOADING: 'loading',
@@ -216,10 +215,17 @@ export default class TrackNodeModel extends Model {
         max,
       };
 
-      let trackControl = existingTrackControls.findBy(
-        'interfaceName',
-        interfaceOptions[0]
-      );
+      // As of now this should only ever match the filepath control on a sampler
+      // see notes elsewhere about default filepath control
+      let trackControl = existingTrackControls.find((tc) => {
+        return (
+          tc.nodeAttr == params.nodeAttr &&
+          tc.nodeType == params.nodeType &&
+          tc.nodeOrder == params.nodeOrder &&
+          tc.interfaceName == params.interfaceName
+        );
+      });
+
       if (trackControl) {
         trackControl.setProperties(params);
       } else {
