@@ -12,8 +12,8 @@ test:
   <<: *default
   database: euclip_api_test
 
-# production:
-#   <<: *default
-#   database: euclip_api_production
-#   username: euclip_api
-#   password: <%= ENV['EUCLIP_API_DATABASE_PASSWORD'] %>
+production:
+  <<: *default
+  database: <%= ENV['EUCLIP_API_DATABASE'] %>
+  username: <%= ENV['EUCLIP_API_DATABASE_USER'] %>
+  password: <%= ENV['EUCLIP_API_DATABASE_PASSWORD'] %>
