@@ -34,10 +34,10 @@
   </div>
 </nav>
 
-<div class="flex project-tracks-height">
+<div class="flex project-tracks-height flex-wrap flex-nowrap-ns">
   {{#if (and this.leftSidebarOpen this.activeTrack (not this.activeTrack.isDeleted))}}
     <SidebarWrapper 
-      class="left-sidebar-width h-100 bw2 br b--yellow"
+      class="h-100 bw2 br b--yellow"
       @direction="left"
       @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id "left"}}
     >
@@ -90,7 +90,7 @@
     {{outlet}}
   </TrackListWrapper>
   {{#if (and this.rightSidebarOpen this.activeTrack (not this.activeTrack.isDeleted))}}
-    <SidebarWrapper class="right-sidebar-width h-100 bw2 bl b--yellow"
+    <SidebarWrapper class="h-100 bw2 bl b--yellow"
       @direction="right"
       @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id "right"}}
     >
