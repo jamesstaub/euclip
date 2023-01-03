@@ -87,7 +87,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         addCustomSelector(node, `${type} .track-${indicator}`);
         this.settingsForNodes.push(nodeSettings);
         if (userSettings) {
-          userSettings.onLoadBuffer = async ({ buffer, error }) => {
+          // callback is a custom addition to cracked library that
+          // fires when audio file loads
+          userSettings.callback = async ({ buffer, error }) => {
             this.trackNodes.then((_store) => {
               const trackNode = _store.findBy('nodeUUID', node.getUUID());
               if (this.trackNodes.isFulfilled && trackNode) {
