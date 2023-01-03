@@ -94,7 +94,7 @@ export default class TrackModel extends TrackAudioModel {
   }
 
   get samplerNativeBuffers() {
-    // FIXME: should this be a filter/map
+    // FIXME: should this be a filter/map?
     return this.samplerNodes.map((samplerNode) => {
       if (samplerNode.sampleIsLoaded) {
         return samplerNode.nativeNode.buffer;
