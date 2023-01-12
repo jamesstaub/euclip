@@ -32,7 +32,12 @@ export default class CodemirrorModifier extends Modifier {
     });
     const state = EditorState.create({
       doc,
-      extensions: [basicSetup, javascript(), materialDark, updateListener],
+      extensions: [
+        basicSetup,
+        javascript(),
+        materialDark,
+        updateListener,
+      ],
     });
     const view = new EditorView({
       state,

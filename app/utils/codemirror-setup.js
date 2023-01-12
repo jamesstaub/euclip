@@ -70,7 +70,17 @@ import { lintKeymap } from '@codemirror/lint';
 /// and an array literal), copy it into your own code, and adjust it
 /// as desired.
 
+
+import { javascriptLanguage } from '@codemirror/lang-javascript';
+import completeCrackedNode from '../utils/codemirror-autocomplete';
+
+const crackedNodeCompletions = javascriptLanguage.data.of({
+  autocomplete: completeCrackedNode,
+});
+
+
 export const basicSetup = (() => [
+  crackedNodeCompletions,
   highlightActiveLineGutter(),
   highlightSpecialChars(),
   history(),

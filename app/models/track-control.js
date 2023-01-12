@@ -111,7 +111,7 @@ export default class TrackControlModel extends Model {
       // if this case happens, it is hopefully just because trackControls are in the process of deleting in a non-blocking way,
       //  so we cant wait for the request to finish.
       // in anycase its invalid and should not be used
-      console.warn('node type mismatch: setAttrOnTrackStep');
+      // it could also be a default filepath control on a track with no sampler node
       return;
     }
 
