@@ -3,7 +3,7 @@ import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import { inject as service } from '@ember/service';
 
-import { useMachine, matchesState } from 'ember-statecharts';
+import { useMachine } from 'ember-statecharts';
 import scriptWrapperMachine from '../machines/script-wrapper-machine';
 
 import { isPresent } from '@ember/utils';
@@ -23,20 +23,25 @@ export default class ScriptWrapperComponent extends Component {
     };
   });
 
-  @matchesState('presets')
-  showPresets;
+  get showPresets() {
+    return this.statechart.state.matches('presets');
+  }
 
-  @matchesState('signalGui')
-  showSignalGui;
+  get showSignalGui() {
+    return this.statechart.state.matches('signalGui');
+  }
 
-  @matchesState('script')
-  showScripts;
+  get showScripts() {
+    return this.statechart.state.matches('script');
+  }
 
-  @matchesState({ script: 'init' })
-  showInitScript;
+  get showInitScript() {
+    return this.statechart.state.matches({ script: 'init' });
+  }
 
-  @matchesState({ script: 'onstep' })
-  showOnstepScript;
+  get showOnstepScript() {
+    return this.statechart.state.matches({ script: 'onstep' });
+  }
 
   /*
     state machine actions

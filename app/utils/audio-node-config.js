@@ -3,6 +3,7 @@ export const DISTORTION = 'distortion';
 export const DYNAMICS = 'dynamics';
 export const TIME = 'time';
 
+
 // groups of interfaces for different params
 const bool = ['toggle'];
 const oneD = ['slider', 'dial', 'multislider'];
@@ -202,6 +203,10 @@ export const AudioNodeConfig = {
       ...oscillatorAttrs,
     },
   },
+  noise: {},
+  pink: {},
+  white: {},
+  brown: {},
 };
 
 export const defaultParams = {

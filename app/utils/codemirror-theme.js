@@ -116,7 +116,16 @@ export const theme = EditorView.theme(
     '.cm-tooltip-autocomplete': {
       '& > ul > li[aria-selected]': {
         backgroundColor: highlightBackground,
-        color: base03,
+        color: base_cyan,
+      },
+      '& > ul > li': {
+        backgroundColor: darkBackground,
+      },
+      '& .cm-completionLabel': {
+        color: base_cyan,
+      },
+      '& .cm-completionDetail': {
+        color: base05,
       },
     },
   },

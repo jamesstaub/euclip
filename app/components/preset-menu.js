@@ -1,7 +1,7 @@
 import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
-import { useMachine, matchesState } from 'ember-statecharts';
+import { useMachine } from 'ember-statecharts';
 import listSelectMachine from '../machines/list-select-machine';
 
 export default class PresetMenuComponent extends Component {
@@ -34,8 +34,9 @@ export default class PresetMenuComponent extends Component {
     };
   });
 
-  @matchesState('selected')
-  canSubmit;
+  get canSubmit() {
+    return this.statechart.state.matches('selected');
+  }
 
   async submit() {
     try {

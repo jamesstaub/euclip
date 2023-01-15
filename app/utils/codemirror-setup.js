@@ -72,39 +72,40 @@ import { lintKeymap } from '@codemirror/lint';
 
 
 import { javascriptLanguage } from '@codemirror/lang-javascript';
-import completeCrackedNode from '../utils/codemirror-autocomplete';
+import completeCrackedNode, { crackedCompletion } from '../utils/codemirror-autocomplete';
 
-const crackedNodeCompletions = javascriptLanguage.data.of({
-  autocomplete: completeCrackedNode,
-});
-
+// const crackedNodeCompletions = javascriptLanguage.data.of({
+//   // autocomplete: completeCrackedNode,
+//   autocomplete: scopeCompletionSource(__),
+// });
 
 export const basicSetup = (() => [
-  crackedNodeCompletions,
-  highlightActiveLineGutter(),
-  highlightSpecialChars(),
-  history(),
-  foldGutter(),
-  drawSelection(),
-  dropCursor(),
-  EditorState.allowMultipleSelections.of(true),
-  indentOnInput(),
-  syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-  closeBrackets(),
+  // crackedNodeCompletions,
+  crackedCompletion,
+  // highlightActiveLineGutter(),
+  // highlightSpecialChars(),
+  // history(),
+  // foldGutter(),
+  // drawSelection(),
+  // dropCursor(),
+  // EditorState.allowMultipleSelections.of(true),
+  // indentOnInput(),
+  // syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+  // closeBrackets(),
   autocompletion(),
-  rectangularSelection(),
-  crosshairCursor(),
-  highlightActiveLine(),
-  highlightSelectionMatches(),
-  keymap.of([
-    indentWithTab,
-    ...closeBracketsKeymap,
-    ...defaultKeymap,
-    ...historyKeymap,
-    ...foldKeymap,
-    ...completionKeymap,
-    ...lintKeymap,
-  ]),
+  // rectangularSelection(),
+  // crosshairCursor(),
+  // highlightActiveLine(),
+  // highlightSelectionMatches(),
+  // keymap.of([
+  //   indentWithTab,
+  //   ...closeBracketsKeymap,
+  //   ...defaultKeymap,
+  //   ...historyKeymap,
+  //   ...foldKeymap,
+  //   ...completionKeymap,
+  //   ...lintKeymap,
+  // ]),
 ])();
 
 /// A minimal set of extensions to create a functional editor. Only
