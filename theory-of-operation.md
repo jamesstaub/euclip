@@ -14,6 +14,7 @@ Here is where the sound source is defined. The basic anatomy of a Setup script i
     .sampler()      // a source node
     .gain()         // an "effect" or intermediate node
     .channelStrip() // a macro containing a gain, a panner, and connection to the main output
+    .connect('#main-output') // assume there's a node defined on the main track with the id main-output, which ultimately connects to the dac
 
 ```
 

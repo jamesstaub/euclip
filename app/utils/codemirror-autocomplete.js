@@ -1,14 +1,5 @@
-import { scopeCompletionSource } from '@codemirror/lang-javascript';
 import { syntaxTree } from '@codemirror/language';
-
-import { AudioNodeConfig } from './audio-node-config';
-
-import { Extension } from '@codemirror/state';
-import {
-  CompletionContext,
-  autocompletion,
-  Completion,
-} from '@codemirror/autocomplete';
+import { autocompletion } from '@codemirror/autocomplete';
 import { objectCompletions } from './autocomplete/object-completions';
 import { argCompletions } from './autocomplete/arg-completions';
 
@@ -100,6 +91,9 @@ function getArgPosition(tokenBeforeText) {
 }
 
 function createAttrsArgumentCompletion(completions) {
+  if (!completions) {
+    return [];
+  }
   // an autocomplete option to set an attrs arg with default values
   return completions.reduce((acc, curr) => {
     return {
@@ -237,19 +231,19 @@ export const crackedCompletion = autocompletion({
 
       const methodName = getMethodName(menuState, tree, state, tokenBefore);
       const argPosition = getArgPosition(tokenBeforeText);
+
       const completions = completionsForState(
         menuState,
         methodName,
         argPosition
       );
 
-      let from = context.pos;
-
+      let word = context.matchBefore(/\w*/);
       // CompletionResult
       return {
-        from: from,
+        from: word.from,
         filter: true,
-        validFor: null,
+        validFor: /\w*/,
         options: completions,
       };
     },
@@ -271,8 +265,15 @@ export const crackedCompletion = autocompletion({
 'Noise', 'Oscillator', 'Setters', 'Synth', 'Utility', 
  */
 function getObjectCompletions() {
-  return objectCompletions.filter((o) => {
-    return Array.from(arguments).indexOf(o.type) > -1;
+  const args = Array.from(arguments);
+  let completions = objectCompletions.map((c) => {
+    return { ...c, detail: `(${c.type}) ${c.detail}` };
+  });
+  if (args.length == 0) {
+    return completions;
+  }
+  return completions.filter((o) => {
+    return args.indexOf(o.type) > -1;
   });
 }
 

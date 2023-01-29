@@ -19,7 +19,7 @@ export function getCrackedNode(uuid) {
 export function defineChannelStripMacro() {
   cracked.channelStrip = function (params = {}) {
     __.begin('channelStrip', params).gain(1).panner().end('channelStrip');
-    return cracked;
+    return __;
   };
 }
 
