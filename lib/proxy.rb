@@ -25,14 +25,14 @@ class Proxy < Rack::Proxy
 
   def rewrite_env(env)
     unless Rails.env.production?
-      env["HTTP_X_FORWARDED_PROTO"] = "http"
-      env["rack.url_scheme"] = "http"
+      env["rack.ssl_verify_none"] = true
+      env["HTTP_X_FORWARDED_PROTO"] = "https"
+      env["rack.url_scheme"] = "https"
     end
     env["HTTP_HOST"] = @drumserver_host
     env["REQUEST_PATH"] = remove_prefix(env["REQUEST_PATH"])
     env["REQUEST_URI"] = remove_prefix(env["REQUEST_URI"])
     env["PATH_INFO"] = remove_prefix(env["PATH_INFO"])
-
   end
 
   def remove_prefix(str)
