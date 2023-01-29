@@ -12,6 +12,7 @@ class Track < ApplicationRecord
 
   scope :master_track, -> { where(:is_master => true)}
 
+  # cloning of active record associations
   amoeba do
     enable
     exclude_association :project
