@@ -70,9 +70,10 @@ import { lintKeymap } from '@codemirror/lint';
 /// and an array literal), copy it into your own code, and adjust it
 /// as desired.
 
-
 import { javascriptLanguage } from '@codemirror/lang-javascript';
-import completeCrackedNode, { crackedCompletion } from '../utils/codemirror-autocomplete';
+import completeCrackedNode, {
+  crackedCompletion,
+} from '../utils/codemirror-autocomplete';
 
 // const crackedNodeCompletions = javascriptLanguage.data.of({
 //   // autocomplete: completeCrackedNode,
@@ -89,23 +90,23 @@ export const basicSetup = (() => [
   // drawSelection(),
   // dropCursor(),
   // EditorState.allowMultipleSelections.of(true),
-  // indentOnInput(),
+  indentOnInput(),
   // syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-  // closeBrackets(),
+  closeBrackets(),
   autocompletion(),
   // rectangularSelection(),
   // crosshairCursor(),
   // highlightActiveLine(),
   // highlightSelectionMatches(),
-  // keymap.of([
-  //   indentWithTab,
-  //   ...closeBracketsKeymap,
-  //   ...defaultKeymap,
-  //   ...historyKeymap,
-  //   ...foldKeymap,
-  //   ...completionKeymap,
-  //   ...lintKeymap,
-  // ]),
+  keymap.of([
+    indentWithTab,
+    ...closeBracketsKeymap,
+    //   ...defaultKeymap,
+    //   ...historyKeymap,
+    //   ...foldKeymap,
+    //   ...completionKeymap,
+    //   ...lintKeymap,
+  ]),
 ])();
 
 /// A minimal set of extensions to create a functional editor. Only

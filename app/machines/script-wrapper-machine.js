@@ -7,6 +7,7 @@ const guiCanCreate = (context, event) => {
 
 export default createMachine({
   initial: 'script',
+  predictableActionArguments: true,
   context: {
     selectedTab: '',
   },

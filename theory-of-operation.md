@@ -8,20 +8,62 @@ A project consists of Tracks. Tracks are comprised of the following components:
 
 ### The `Setup` script
 Here is where the sound source is defined. The basic anatomy of a Setup script is as follows:
-[Sound Source Node] --> [Effects nodes] --> [Connect to Main output]
 
-Every project has a **Main** track where the audio output is defined. All other tracks should *connect* their sources to the Main track.
+```js
+  __()              // invoke the cracked object to start a new chain
+    .sampler()      // a source node
+    .gain()         // an "effect" or intermediate node
+    .channelStrip() // a macro containing a gain, a panner, and connection to the main output
+
+```
+
+Every project has a **Main** track where the audio output is defined. All other tracks should *connect* their sources to the Main track. The `channelStrip` macro takes care of this but you could also do it yourself like this:
+
+```js
+__().sampler().connect('dac')
+```
 
 The Cracked audio library provides a simple syntax for defining and connecting [https://developer.mozilla.org/en-US/docs/Web/API/AudioNode](Audio Nodes).
 
 ### The `Play` script
 Once you have defined an audio signal chain in the Setup Script, use the Play script to map your audio nodes to the track's **Sequencer**
 
-Define how your audio nodes behave with 
+The play script is a function that gets called on every step of the step. Play functions have the following variables available.
+
+`index` a number representing the current step in this track's sequencer.
+`data` 0 or 1 indicating the value of the current step.
+`array` the array value of the entire sequence
+
+The simplest PLAY script could look like this.
+```js
+if (step) {
+  this.play()
+}
+```
+
+`this.play()` is a euclip-provided convenience method to select the source nodes defined in this track's SETUP script and to call `play()` on them. 
+
+Here's another example of a PLAY script just using the cracked API
+```js
+if (step) {
+  // for samplers we need to stop the currently playing node before starting it again
+  __('#my-sampler-id').stop().start();
+}
+```
+
+Here's another example where we modify the sampler playback speed on each step
+```js
+let possibleSpeeds = [.5, 1, 2]; // an array of half speed, normal speed, double speed
+let speed = possibleSpeeds[index % 3]; // pick from the array based on the current step in the sequence
+if (step) {
+  // use the attr() method on the selected sampler to change the speed
+  __('#my-sampler-id').stop().attr({speed: speed}).start();
+}
+```
 
 ### Track Controls
 After defining an audio signal chain in a track's Setup Script, Euclip will create Track Controls for each audio node you've defined. For example, if your Setup Script was something like this:
-```
+```js
 __().sampler({path: this.filepath}).overdrive().connect("dac");
 ```
 After running the script you would see Track Controls appear to control the `speed` parameter of the `sampler` node, and `drive`, `color`, and `postCut` controls to control the `overdrive` node.
@@ -35,7 +77,7 @@ Unlike standard sliders, or number boxes, the `multislider` Track Control type a
 #### Track Controls and Scripts
 The **Play** Script is responsible for applying the value of your Track Controls to your Audio Nodes. You can take advantage of this to write code to maipulate the Track Control values before they get applied. For example, say you have a `lowpass` filter on your track and the `frequency` Track Control is a `slider`. You can write a bit of code in your **play** script to slightly randomize the slider value on each step of the sequencer. 
 
-```
+```js
 // TODO: verify +update this example once fully implemented
 controls["#lowpass-1"]["frequency] = controls["#lowpass-1"]["frequency] * __.random(1, 2)
 ```
@@ -68,7 +110,6 @@ See the **Selectors** section for more.
 
 
 ### The Main Track
-
 
 ## Macros
 Euclip provides a `channelStrip` macro which is a creates a default volume + panner node on each track.
@@ -112,7 +153,7 @@ an ID selector always has a `#` at the beginning of the name.
 
 **example**
 setup a sinewave playing into an ADSR envelope node
-```
+```js
 __()
   .sine(440)
   .adsr({ id: 'my-first-envelope' })
@@ -124,7 +165,7 @@ __()
 ```
 
 `id` selector used to trigger one or the other ADSR envelopes depending on the `data` variable
-```
+```js
 if (data === 1) {
 __('#my-first-envelope')
 }
@@ -140,7 +181,7 @@ a class selector always has a `.` at the beginning of the name.
 
 **example** 
 setup 2 different samplers with filters
-```
+```js
 __()
   .sampler()
   .lowpass({ class: 'my-filter' })
@@ -153,7 +194,7 @@ __()
 ```
 
 `class` selectors used to set frequency of 2 different filters
-```
+```js
 __('.my-filter').attr({
   frequency: 440,
   q: 4,
@@ -165,7 +206,7 @@ __('.my-filter').attr({
 
 **example**
 setup a bunch of sine waves in a loop
-```
+```js
   __()
     .sampler()
     .lowpass()
@@ -177,7 +218,7 @@ __()
 ```
 
 Set all lowpass filters to the same frequency. 
-```
+```js
 __('lowpass').attr({ frequency: 440})
 ```
 
@@ -205,14 +246,14 @@ The PLAY script is responsible for triggering the audio source on each step of t
 Euclip provides the method `this.playSourceNodes()` which automatically selects any source nodes on the given track and starts them. 
 
 Alternatively, you can use `cracked`'s API to manually trigger a source node. For example, if you had a sampler on track 3 you could add the following to your PLAY script:
-```
+```js
   __('sampler .track-3').stop().start()
 ```
 
 This uses cracked's `__()` method, passing in a selector for this track's sampler node, stops it if it was previously playing, then starts it again.
 
 You can also manually update the sampler attributes like so:
-```
+```js
   let isLooping = index % 3;
   __('sampler .track-3').stop().attr({ loop: isLooping}).start()
 ```
@@ -226,7 +267,7 @@ if the PLAY script is modifying an audio node's property it will override whatev
 
 ## Modify controls with code
 You can write code to modify the value of the UI controls. Say you had a setup script like this
-```
+```js
   __()
   .sine()
   .adsr('fast')
@@ -237,7 +278,7 @@ And in the `controls` section of the track footer, you set the `frequency` contr
 
 You could write a PLAY script like this
 
-js```
+```js
 // start the oscillator and trigger the ADSR
 this.play();
 let pitch = this.controls.

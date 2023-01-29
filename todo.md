@@ -8,7 +8,8 @@ investigate cracked's `ignoreGrid` property to investigate scheduling bugs
 go live list:
 - do a pass at auto-selectors
   - attempt to automatically use sampler filepath if not supplied
-  - 
+  - add `connect()` to channelStrip
+
 - finish node config refactor (add ADSR, fix compressor threshold)
 - ember-responsive fixes for small + touch screen
   - sidebar service to auto open-close when small
@@ -17,7 +18,7 @@ go live list:
 - simplify interface control
   - remove dial option. single or multislider options as icon selectsion
 
-### PLANS
+### USER PLANS
 given DB row limit, must enforce project and track limitations per user
 
 ### Scripts
@@ -90,6 +91,10 @@ to keep recent state in tact when returning to a track
 ### Sequences
 - FIXME: when updating a sequence (clicking a square)
   - dont make the UI wait for the API request. 
+- right click a sequence step to set it's value.
+- add a menu to determine how sequence values get set
+  - 0 / 1 
+  - true false
 
 - implement an `this.updateSequence()` method
   - alias `data` variable to `step` for clarity in PLAY function
