@@ -1,34 +1,44 @@
-<div 
-  class="tab-menu relative flex f7 tc flex {{if @verticle "verticle flex-column h-100"}}" 
+<div
+  class='tab-menu relative flex f7 tc flex-wrap
+    {{if @verticle "verticle flex-column h-100"}}'
   {{did-update this.setSelected @selectedValue}}
   ...attributes
 >
-  {{#each @items key="order" as |item|}}
+  {{#each @items key='order' as |item|}}
     {{#if @verticle}}
       <button
-        type="button"
-        class="flex flex-column items-center ba b--dark-gray br0 h-auto grow-1 {{if (eq this.val item.value) "bg-light-blue black" "bg-yellow black"}}" 
-        {{on "click" (fn this.select item.value)}}
+        type='button'
+        class='flex flex-column items-center ba b--dark-gray br0 h-auto grow-1
+          {{if
+            (eq this.val item.value)
+            "bg-light-blue black"
+            "bg-yellow black"
+          }}'
+        {{on 'click' (fn this.select item.value)}}
         title={{item.label}}
       >
-        <div class="flex items-center justify-center flex-column h-100 mb3">
+        <div class='flex items-center justify-center flex-column h-100 mb3'>
           {{svg-jar item.icon width=item.iconWidth height=item.iconHeight}}
-          <p class="f6 mv0">{{item.label}}</p>
+          <p class='f6 mv0'>{{item.label}}</p>
         </div>
       </button>
     {{else}}
       <button
-        type="button" 
-        class="w4 pa2 f6 ttu ba bw1 b--dark-gray {{if (eq this.val item.value) "selected bg-light-yellow dark-gray fw6" "bg-yellow dark-gray"}}"
+        type='button'
+        class='tab-btn w4 pa2 f6 ttu no-bottom
+          {{if
+            (eq this.val item.value)
+            (concat "selected" " " @selectedClass)
+            (concat " " @buttonClass)
+          }}'
         title={{item.label}}
-        {{on "click" (fn this.select item.value)}}
+        {{on 'click' (fn this.select item.value)}}
       >
         {{item.label}}
         {{#if item.beacon}}
-          <span class="absolute beacon right-1" title={{item.beacon}}>⬤</span>
+          <span class='absolute beacon right-1' title={{item.beacon}}>⬤</span>
         {{/if}}
       </button>
     {{/if}}
   {{/each}}
 </div>
-

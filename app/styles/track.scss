@@ -12,12 +12,11 @@
     border-spacing: 0 .5rem;
 
     tr:nth-child(odd) {
-      background-color: $gray;
+      background-color: $near-black;
     }
 
     code, .code {
-      background-color: $near-black;
-      padding: .25rem .5rem;
+      padding: 0rem .5rem;
     }
   
     td, th {

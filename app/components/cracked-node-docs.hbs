@@ -1,4 +1,23 @@
-<div class="node-docs">
-  <h4 class="mv1">{{this.currentNode.name}} attributes</h4>
-  {{this.currentNodeDocs}}
+<div class='node-docs'>
+  <h4 class='mv1'>{{this.currentNode.label}}</h4>
+  <table>
+    <tbody>
+      <tr>
+        <td>attribute</td>
+        <td>type</td>
+        <td>detail</td>
+      </tr>
+      {{#each this.currentNodeDocs as |doc|}}
+        <tr>
+          <td>{{doc.label}}</td>
+          <td>{{doc.type}}</td>
+          <td>{{doc.defaultValue}}</td>
+          <td>{{doc.detail}}</td>
+        </tr>
+      {{/each}}
+
+    </tbody>
+
+  </table>
+
 </div>

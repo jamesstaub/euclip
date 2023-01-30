@@ -1,19 +1,11 @@
 .tab-menu {
-  button:focus {
-    z-index: 1;
-    outline: 2px $dark-gray;
-  }
+  /* button:not([disabled]):hover,
+  button:not([disabled]):active {
+    background-color: $dark-gray;
+    /* border-bottom: $light-gray; */
+}
 
-  &:not(.verticle) {
-    button:not(:last-of-type) {
-      border-right: $light-yellow;
-    }
-  }
-  
-  .verticle {
-    button:not(:last-of-type) {
-      border-right: $light-blue;
-    }
-  }
-  
+.no-bottom {
+  border-bottom: none;
+  transform: translateY(0.125rem);
 }

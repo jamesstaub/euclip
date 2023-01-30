@@ -88,5 +88,7 @@ a {
 }
 
 .cm-editor {
-  height: calc(100% - 1.7rem);
+  /* height: calc(100% - 1.7rem); */
+  height: calc(100%);
+  border: solid .125rem $light-gray;
 }

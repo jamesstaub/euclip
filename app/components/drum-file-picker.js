@@ -35,7 +35,7 @@ export default class DrumFilePicker extends Component {
 
   async saveFilepathControl(filepath) {
     const track = await this.args.track;
-    // TODO find a betterplace to createDefaultFilepathControl if it doersn' exist 
+    // TODO find a betterplace to createDefaultFilepathControl if it doersn' exist
     const filepathControl =
       track.get('samplerFilepathControl') ||
       (await TrackControlModel.createDefaultFilepathControl(track));

@@ -3,7 +3,7 @@ import { EditorView } from '@codemirror/view';
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
 import { tags as t } from '@lezer/highlight';
 
-const base00 = '#2e3235',
+const base00 = '#333',
   base01 = '#505d64',
   base02 = '#606f7a',
   base03 = '#707d8b',

@@ -21,6 +21,7 @@
           might require a "sidebars-service", or passing a function up to the project controller
          }}
         <TabMenu
+          @buttonClass="ba b--dark-gray"
           @verticle={{true}}
           @onSelect={{fn this.setUi 'controlUiState'}}
           @selectedValue={{this.controlUiState}}
@@ -91,7 +92,9 @@
               <h3 class='ma3'>Audio Node Controls</h3>
               <div class='flex h-100 flex-column grow-1 shrink-1'>
                 <TabMenu
-                  class='ph3 mb3'
+                  class='ph3 mb3 flush'
+                  @selectedClass="bn bg-dark-gray yellow z-2 mr2"
+                  @buttonClass="bn b--dark-gray bg-transparent mr2"
                   @onSelect={{fn this.setUi 'visibleNodeIdx'}}
                   @items={{this.trackNodesTabs}}
                   @selectedValue={{this.visibleNodeIdx}}
@@ -120,7 +123,7 @@
   {{/unless}}
   <div>
     <ButtonPrimary
-      class='absolute top-1 mr2 right-0 flex f7 yellow-fill'
+      class='absolute top-0 right-0 flex ph1 f7 yellow-fill w4 mr2 mt2'
       {{on 'click' this.toggleReference}}
       @label='Edit'
     >

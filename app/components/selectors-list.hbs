@@ -1,45 +1,43 @@
-<div class="selector-docs overflow-scroll">
+<div class='selector-docs'>
   <table>
     <tbody>
       <tr>
         {{#if this.idSelector}}
-        <td>
-          <h4 class="mv0">id</h4>
-        </td>
-        <td>
-          <span class="code mv1 bg-near-black pa1 f7">{{this.idSelector.name}}</span>
-        </td>
-        <td>
-          Selects a single node. An ID should never get defined on more than one node.
-        </td>
+          <td>
+            <span class='code mv1 pa1 f7'>{{this.idSelector.name}}</span>
+          </td>
+          <td>
+            id: selects single node.
+            <code>__("#my-id-string").</code>
+            An ID should never get defined on more than one node.
+          </td>
         {{/if}}
       </tr>
       <tr>
         <td>
-          <h4 class="mv0">class</h4>
-        </td>
-        <td>
           {{#each this.classSelectors as |s|}}
-          {{#if (eq s.type "class")}}
-          <span class="code db min-w-3 mv1 bg-near-black pa1 f7">{{s.name}}</span>
-          {{/if}}
+            {{#if (eq s.type 'class')}}
+              <span class='code db min-w-3 mv1 pa1 f7'>{{s.name}}</span>
+            {{/if}}
           {{/each}}
         </td>
         <td>
-          Selects any node with this class. Useful for selecting nodes within a track.
+          class: selects any nodes with this class.
+          <code>__(".my-class-string").</code>
+          Selects any node with this class. Useful for selecting nodes within a
+          track.
         </td>
       </tr>
       <tr>
         {{#if this.elementSelector}}
-        <td class="min-w-4">
-          <h4 class="mv0">node type</h4>
-        </td>
-        <td>
-          <span class="code db mv1 bg-near-black pa1 f7">{{this.elementSelector.name}}</span>
-        </td>
-        <td>
-          Selects any node of this type across all tracks.
-        </td>
+          <td class='min-w-4'>
+            <span
+              class='code db mv1 pa1 f7'
+            >{{this.elementSelector.name}}</span>
+          </td>
+          <td>
+            Node name <code>__(sampler).</code> Selects any node of this type across all tracks.
+          </td>
         {{/if}}
       </tr>
     </tbody>

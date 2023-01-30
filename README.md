@@ -60,7 +60,7 @@ You will need the following things properly installed on your computer.
 
 ### Deploying
 
-Specify what it takes to deploy your app.
+see `deploy_to_rails.sh`
 
 ## Further Reading / Useful Links
 

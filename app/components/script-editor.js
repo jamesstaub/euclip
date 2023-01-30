@@ -10,13 +10,25 @@ export default class ScriptEditorComponent extends Component {
   @tracked renderFlag = 0; // integer passed to codemirror modifier to retrigger an upage to the editor's content
 
   get functionIsLoaded() {
-    const { safeCode, editorContent, functionRef } = getProperties(
+    const { code, editorContent, functionRef } = getProperties(
       this.args.scriptModel,
+      'code',
       'safeCode',
       'editorContent',
       'functionRef'
     );
-    return safeCode === editorContent && functionRef;
+    return code === editorContent && functionRef;
+  }
+
+  get canRevert() {
+    const { safeCode, editorContent, functionRef } = getProperties(
+      this.args.scriptModel,
+      'code',
+      'safeCode',
+      'editorContent',
+      'functionRef'
+    );
+    return safeCode !== editorContent;
   }
 
   @restartableTask
@@ -43,6 +55,8 @@ export default class ScriptEditorComponent extends Component {
       'editorContent',
       this.args.scriptModel.get('safeCode')
     );
+    // pass to modifier to update codemirror when
+    // code changes from above
     this.renderFlag = ++this.renderFlag;
   }
 
@@ -50,6 +64,9 @@ export default class ScriptEditorComponent extends Component {
   async disableScript() {
     // await proxy to model record
     const scriptModel = await this.args.scriptModel;
+
+    // set `code` and save, API response will set this
+    // value on `safeCode`, which is what actually gets run
     scriptModel.updateScriptTask.perform('code', '');
   }
 }

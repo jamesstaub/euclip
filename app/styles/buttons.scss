@@ -1,5 +1,6 @@
 button {
   cursor: pointer;
+  border-style: solid;
 }
 
 .textbutton {
@@ -8,10 +9,8 @@ button {
 }
 
 input:focus, button:focus {
-  outline-color: $yellow;
-  &.bg-dark-gray {
-    background-color: darken($dark-gray, 10);
-  }
+  outline-color: $light-blue;
+
 }
 
 .light-yellow-button {
@@ -23,7 +22,7 @@ button[disabled] {
   cursor: default;
 }
 
-button:not([disabled]):hover, button:not([disabled]):focus  {
+button:not([disabled]):not(.selected):hover {
   &.bg-dark-gray {
     background-color: darken($dark-gray, 10);
   }
@@ -38,6 +37,27 @@ button:not([disabled]):hover, button:not([disabled]):focus  {
   }
   &.bg-light-blue {
     background-color: darken($light-blue , 10);
+  }
+  &.bg-transparent {
+    background-color: rgba(255, 255, 255, .25);
+  }
+}
+
+button:not([disabled]):active {
+  &.bg-dark-gray {
+    background-color: darken($dark-gray, 25);
+  }
+  &.bg-light-gray {
+    background-color: $moon-gray;
+  }
+  &.bg-light-yellow, &.light-yellow-button {
+    background-color: lighten($light-yellow, 10);
+  }
+  &.bg-yellow {
+    background-color: darken($dark-yellow, 10);
+  }
+  &.bg-light-blue {
+    background-color: darken($light-blue , 15);
   }
   &.bg-transparent {
     background-color: rgba(255, 255, 255, .25);

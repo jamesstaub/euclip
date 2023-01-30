@@ -5,12 +5,14 @@
   <div class="flex justify-between">
     <TabMenu
       class="mv3"
+      @selectedClass="bw0 bg-dark-gray yellow z-2"
+      @buttonClass="bn bg-dark-gray moon-gray"
       @onSelect={{fn this.setUi "visibleNodeIdx"}}
       @items={{this.tabItems}}
       @selectedValue={{this.tabItems.firstObject.value}}
     />
   </div>
-  <div class="overflow-scroll h5 pb3">
+  <div class="overflow-scroll h5 pb6">
     {{#if (and @validTrackNodes (eq this.ui "selectors"))}}
       <SelectorsList @selectorsForNode={{this.selectorsForNode}} />
     {{/if}}
