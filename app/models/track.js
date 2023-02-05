@@ -6,7 +6,6 @@ import { keepLatestTask, timeout } from 'ember-concurrency';
 import { unbindFromSequencer } from '../utils/cracked';
 import ENV from 'euclip/config/environment';
 import { inject as service } from '@ember/service';
-import { cached } from '@glimmer/tracking';
 import TrackNodeModel from './track-node';
 
 export default class TrackModel extends TrackAudioModel {

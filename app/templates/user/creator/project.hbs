@@ -1,5 +1,5 @@
 <nav class="flex items-center justify-between project-header-height ph3">
-  <div class="flex items-center justify-between w-100">    
+  <div class="flex flex-wrap items-center justify-between w-100">    
     <h1 class="ma0 f3">{{this.model.displayTitle}}</h1>
       <div class="flex">
         <IconButton class="mh1" @icon="fi-play" @label="play" {{on "click" this.play}} />
@@ -34,7 +34,7 @@
   </div>
 </nav>
 
-<div class="flex project-tracks-height flex-wrap flex-nowrap-ns">
+<div class="flex flex-wrap project-tracks-height flex-nowrap-ns">
   {{#if (and this.leftSidebarOpen this.activeTrack (not this.activeTrack.isDeleted))}}
     <SidebarWrapper 
       class="h-100 bw2 br b--yellow"

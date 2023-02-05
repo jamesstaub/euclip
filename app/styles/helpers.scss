@@ -54,7 +54,12 @@
 .min-w-3 { min-width: $width-3; }
 .min-w-4 { min-width: $width-4; }
 .min-w-5 { min-width: $width-5; }
-.min-w-6 { min-width: $width-6; }
+
+.min-w-6 { min-width: 100%; }
+
+@media #{$breakpoint-not-small} {
+  .min-w-6 { min-width: $width-6; }
+}
 
 .rotate-0 {
   transform: rotate(0deg);

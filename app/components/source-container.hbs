@@ -12,21 +12,25 @@
     {{#if @showReference}}
       {{yield}}
     {{else}}
-      <ul class='mv0 ml2 flex items-center pa0 list f7'>
-        {{#each @track.samplerFilepathControl.pathSegments as |directory|}}
-          {{#if directory.length}}
-            <li class='directory-btns'>
-              <button
-                class='textbutton pa2'
-                type='button'
-                {{on 'click' @showFilePath}}
-              >
-                {{directory}}
-              </button>
-            </li>
-          {{/if}}
-        {{/each}}
-      </ul>
+      {{#if @track.sourceNodeRecords.length}}
+        <ul class='mv0 ml2 flex items-center pa0 list f7'>
+          {{#each @track.samplerFilepathControl.pathSegments as |directory|}}
+            {{#if directory.length}}
+              <li class='directory-btns'>
+                <button
+                  class='textbutton pa2'
+                  type='button'
+                  {{on 'click' @showFilePath}}
+                >
+                  {{directory}}
+                </button>
+              </li>
+            {{/if}}
+          {{/each}}
+        </ul>
+      {{else}}
+        <p>There are no source nodes defined on this track</p>
+      {{/if}}
       {{#each @track.samplerNativeBuffers as |buffer|}}
         {{#if buffer}}
           <canvas

@@ -8,6 +8,8 @@ import { argCompletions } from './autocomplete/arg-completions';
 // eslint-disable-next-line no-useless-escape
 const hasSelectorRegEx = /__\((\'|\")[\w\s-]+(\'|\")\)/;
 
+const endsWithColonRegEx = /^\s*\w+:\s*$/;
+
 // match if a user is about to enter a selector string in a cracked invocation
 // eg. __("")
 const autocompleteSelectorRegex = /__\(\'\'\)|__\(\"\"\)|__\(``\)/;
@@ -46,7 +48,7 @@ function getObjectCompletionstate(
     nodeAfter.type.name === 'String' &&
     nodeBeforeText.match(autocompleteSelectorRegex)
   ) {
-    return STATES.SELECTOR_ARG;
+    return STATES.SELECTOR_ARG; // cracked method has been invoked, completion for a selector string as first argument
   } else if (tokenBeforeText?.startsWith('__(')) {
     return STATES.ALL_METHODS;
   } else if (
@@ -119,7 +121,7 @@ function getArgCompletions(methodName, position) {
   const attrsArgComp = createAttrsArgumentCompletion(completions);
 
   if (attrsArgComp) {
-    completions.unshift(attrsArgComp);
+    completions?.unshift(attrsArgComp);
   }
 
   return completions.map((c) => {
@@ -149,19 +151,22 @@ function mapDefaultsToAttrs(c) {
         defaultValue = 'this.filepath';
       }
       c.apply = `${attr}: ${defaultValue},`;
+      c.attr = attr; // attr is not used in the completion, but used for filtering
     }
 
     return c;
   }
 }
 
-function getAttrsCompletions(methodName) {
+function getAttrsCompletions(methodName, tokenBeforeText = null) {
   if (!methodName) return;
-  return argCompletions[methodName]?.map(mapDefaultsToAttrs);
+  return argCompletions[methodName]
+    ?.map(mapDefaultsToAttrs)
+    .filter(({ attr }) => tokenBeforeText.indexOf(`${attr}:`) == -1); // remove attributes that have alreay been declared in the object literal
 }
 
 // return autocomplete options for a given menu state
-function completionsForState(state, methodName, argPosition) {
+function completionsForState(state, methodName, argPosition, tokenBeforeText) {
   switch (state) {
     case STATES.ALL_METHODS:
       return getObjectCompletions();
@@ -190,7 +195,7 @@ function completionsForState(state, methodName, argPosition) {
     case STATES.ARG_LIST:
       return getArgCompletions(methodName, argPosition);
     case STATES.ATTRS:
-      return getAttrsCompletions(methodName);
+      return getAttrsCompletions(methodName, tokenBeforeText);
     case STATES.PROPERTY:
       console.log('PROPERTY autocomplete default value?');
       return [];
@@ -221,6 +226,7 @@ export const crackedCompletion = autocompletion({
       const nodeBefore = tree.resolveInner(tokenBefore?.from);
       const nodeAfter = tree.resolveInner(tokenBefore?.to);
       const nodeBeforeText = state.sliceDoc(nodeBefore.from, nodeBefore.to);
+      let word = context.matchBefore(/\w*/);
 
       const menuState = getObjectCompletionstate(
         tokenBeforeText,
@@ -235,10 +241,10 @@ export const crackedCompletion = autocompletion({
       const completions = completionsForState(
         menuState,
         methodName,
-        argPosition
+        argPosition,
+        tokenBeforeText
       );
 
-      let word = context.matchBefore(/\w*/);
       // CompletionResult
       return {
         from: word.from,
