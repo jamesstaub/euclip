@@ -1,14 +1,13 @@
 <div class="mv3 ph3 mw6 center">
   <h2>Your Projects</h2>
-
   <ul class="list ph0">
     {{#each @model as |project|}}
       <li class="flex justify-between pv2">
         <div class="flex items-center grow-1">
           {{#if project.isPlaying}}
-            <IconButton @icon="fi-stop" @label="stop" {{action "stop" project}} />
+            <IconButton @icon="fi-stop" @label="stop" {{on "click" (fn this.stop project)}} />
           {{else}}
-            <IconButton @icon="fi-play" @label="play" {{action "play" project}} />
+            <IconButton @icon="fi-play" @label="play" {{on "click" (fn this.play project)}} />
           {{/if}}
           <h3 class="mv0 ml3">
             <LinkTo @route="user.creator.project" @models={{array project.creator project.slug}} class="blue">
@@ -20,7 +19,7 @@
           class="h-100 flex-grow dark-fill bn bg-transparent"
           @offsetY={{15}}
           @items={{array
-            (hash label="delete" select=(action "deleteProject" project)) 
+            (hash label="delete" select=(fn this.deleteProject project)) 
           }}
         />
       </li>
@@ -28,5 +27,4 @@
   </ul>
   {{outlet}}
 </div>
-
 {{outlet}}

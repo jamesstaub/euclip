@@ -29,8 +29,25 @@ export default class SequencePaginationComponent extends Component {
     return this.args.sequence.slice(this.currentPageStartIdx, end);
   }
 
+  get valuesPaginated() {
+    const end = this.currentPageStartIdx + this.pageSize;
+    return this.args.values.slice(this.currentPageStartIdx, end);
+  }
+
   get totalPages() {
     return Math.ceil((this.args.sequence?.length || 0) / this.pageSize);
+  }
+
+  get indexForPage() {
+    const idx = this.args.stepIndex || 0;
+    const pageOffset = this.pageOffset;
+    const pageSize = this.pageSize;
+    const pageEnd = pageOffset + pageSize;
+    if (idx >= pageOffset && idx < pageEnd) {
+      return idx - pageOffset;
+    } else {
+      return -1;
+    }
   }
 
   get paginationButtons() {
@@ -76,5 +93,18 @@ export default class SequencePaginationComponent extends Component {
         return (this.page = targetPage);
       }
     }
+  }
+
+  @action
+  // takes the pageValues array, which is a subset of the total trackControl.values array
+  // and updates the trackControl.values array with the new pageValues in place
+  updateSequencePage(trackControl, pageValues) {
+    const sequence = trackControl.controlArrayValue.map((val, idx) => {
+      if (idx >= this.pageOffset && idx < this.pageOffset + this.pageSize) {
+        return pageValues[idx - this.pageOffset];
+      }
+      return val;
+    });
+    this.args.updateControl(trackControl, sequence);
   }
 }

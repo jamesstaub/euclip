@@ -1,5 +1,5 @@
 import Model, { attr, belongsTo, hasMany } from '@ember-data/model';
-import { AudioNodeConfig } from '../utils/audio-node-config';
+import { AudioNodeConfig, defaultParams } from '../utils/audio-node-config';
 import { getCrackedNode, noiseNodes, synthNodes } from '../utils/cracked';
 import { computed } from '@ember/object';
 import { inject as service } from '@ember/service';
@@ -182,6 +182,7 @@ export default class TrackNodeModel extends Model {
   createTrackControls() {
     // get default attributes for node
     const controlAttrs = Object.keys(AudioNodeConfig[this.nodeType]?.attrs);
+
     if (!controlAttrs.map) {
       console.error('Node type not supported');
       return;
@@ -193,9 +194,19 @@ export default class TrackNodeModel extends Model {
     const existingTrackControls = this.track.get('trackControls').toArray();
 
     return controlAttrs.map((controlAttr) => {
-      // set the defaultValue as the trackControl's value
-      const [min, max, defaultValue, interfaceOptions] =
-        AudioNodeConfig[this.nodeType].attrs[controlAttr];
+      let defaultForAttr = {};
+
+      defaultForAttr = defaultParams[controlAttr];
+      if (controlAttr === 'frequency') {
+        defaultForAttr = defaultParams[controlAttr][this.trackNode.nodeType];
+      } else {
+        defaultForAttr = defaultParams[controlAttr];
+      }
+      if (!defaultForAttr) {
+        debugger;
+      }
+      const { min, max, stepSize, defaultValue, interfaceName } =
+        defaultForAttr;
 
       const params = {
         nodeAttr: controlAttr,
@@ -204,15 +215,16 @@ export default class TrackNodeModel extends Model {
         trackNode: this,
         nodeType: this.nodeType,
         nodeOrder: this.order,
-        interfaceName: interfaceOptions[0],
+        interfaceName: interfaceName[0],
         controlValue: defaultValue,
         // set default drum sample before so it's ready synchronously
         controlStringValue:
-          interfaceOptions[0] == 'filepath' &&
+          interfaceName[0] == 'filepath' &&
           defaultKit[this.track.get('order') % defaultKit.length],
         defaultValue,
         min,
         max,
+        stepSize,
       };
 
       // As of now this should only ever match the filepath control on a sampler

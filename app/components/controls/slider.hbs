@@ -1,0 +1,14 @@
+
+<span class="fw7 w3 overflow-hidden">{{@value}}</span>
+<div
+  class="mh3"
+  {{nexus-ui
+    'Slider'
+    min=@min
+    max=@max
+    value=@value
+    step=@step
+    size=(array 20 120)
+    onChange=@onChange
+  }}
+></div>

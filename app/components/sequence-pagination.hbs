@@ -1,4 +1,4 @@
-{{yield this.sequencePaginated this.page this.currentPageStartIdx this.pageOffset}}
+{{yield this}}
 <div {{did-update (fn this.autoPageOnUpdate @sequence @stepIndex @isCurrentTrack)}}>
   <div class="flex w-auto mv1">
     {{#if this.showPages}}

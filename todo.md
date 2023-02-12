@@ -25,6 +25,15 @@ given DB row limit, must enforce project and track limitations per user
 BUG; if possible clear the "cmd-z"  undo state when changing tracks, since code mirror doesn't get re-initialized
 
 #### scope + variables
+- rename variables to match the tabs 
+  (source.filepath instead of this.filepath)
+  - `source.slices[]`
+  - controls instead of this.controls
+  - `sequence.array` ? 
+  - sequence.hits, steps, offset
+  can these be settable?
+
+
 - implement variables in script scope to access TrackControl values
   - - This could use existing selectors to access track nodes for controls eg.
       controls['.sampler-1']['speed']

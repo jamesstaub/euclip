@@ -93,7 +93,7 @@ function getArgPosition(tokenBeforeText) {
 }
 
 function createAttrsArgumentCompletion(completions) {
-  if (!completions) {
+  if (!completions || completions.length == 0) {
     return [];
   }
   // an autocomplete option to set an attrs arg with default values
@@ -122,6 +122,10 @@ function getArgCompletions(methodName, position) {
 
   if (attrsArgComp) {
     completions?.unshift(attrsArgComp);
+  }
+
+  if (!completions || completions.length == 0) {
+    return [];
   }
 
   return completions.map((c) => {
@@ -162,7 +166,7 @@ function getAttrsCompletions(methodName, tokenBeforeText = null) {
   if (!methodName) return;
   return argCompletions[methodName]
     ?.map(mapDefaultsToAttrs)
-    .filter(({ attr }) => tokenBeforeText.indexOf(`${attr}:`) == -1); // remove attributes that have alreay been declared in the object literal
+    .filter(({ attr }) => tokenBeforeText?.indexOf(`${attr}:`) == -1); // remove attributes that have alreay been declared in the object literal
 }
 
 // return autocomplete options for a given menu state

@@ -17,7 +17,7 @@ export default class TrackFooterContainerComponent extends Component {
     this.visibleNodeIdx = 0;
     // this.setTabs();
     this.showReference = false;
-    this.controlUiState = 'sequence';
+    this.controlUiState = 'controls';
   }
 
   get showSequence() {

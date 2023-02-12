@@ -1,0 +1,16 @@
+
+<div class='flex flex-column items-center ml2 bg-dark-yellow'>
+  <span class="fw7 w3">{{@trackControl.nodeAttr}}</span>
+    {{yield}}
+    <div class="pa2 mv3">
+      <div
+        {{nexus-ui
+          "Toggle"
+          state=(eq @trackControl.interfaceName "multislider")
+          onChange=this.toggleInterface
+        }}
+      ></div>
+    </div>
+
+</div>
+

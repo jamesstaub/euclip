@@ -1,0 +1,16 @@
+<div class='flex items-center ma3'>
+  <span class="fw7 w3">{{@label}}:</span>
+  <span class="fw7 w2 tr">{{@value}}</span>
+  <div
+    class="mh3"
+    {{nexus-ui
+      'Slider'
+      min=@min
+      max=@max
+      value=@value
+      step=1
+      size=(array 300 20)
+      onChange=@onChange
+    }}
+  ></div>
+</div>

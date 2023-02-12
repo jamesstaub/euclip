@@ -23,6 +23,7 @@ export default class TrackControlModel extends Model {
   @attr('string') interfaceName; // type of nexus ui element
   @attr('number') min;
   @attr('number') max;
+  @attr('number') stepSize;
   @attr('number') defaultValue;
   @attr('number') controlValue; // number value of control
 
@@ -174,7 +175,6 @@ export default class TrackControlModel extends Model {
       // const node = getCrackedNode(uuid);
       if (isArray(value)) {
         this.set('controlArrayValue', value);
-        this.notifyPropertyChange('controlArrayValue');
       } else {
         this.set('controlValue', value);
         this.setAttrsOnNode(value);
@@ -183,12 +183,18 @@ export default class TrackControlModel extends Model {
     }
   }
 
+  // force the min/max/stepSize to make sure the defaultValue
+  // is within their range.
   setMinMaxByDefault() {
     if (this.defaultValue > this.max) {
       this.set('max', this.defaultValue);
     }
     if (this.defaultValue < this.min) {
       this.set('min', this.defaultValue);
+    }
+
+    if (this.stepSize >= this.defaultValue) {
+      this.set('stepSize', this.stepSize / 10);
     }
   }
 

@@ -3,15 +3,15 @@
     @sequence={{@sequence}} 
     @stepIndex={{@stepIndex}}
     @isCurrentTrack={{@isCurrentTrack}}
-    as |sequencePaginated page currentPageStartIdx pageOffset|
+    as |pgn|
   >
     <div class="sequencer-width flex justify-start shrink-0 mr3">
-      {{#each sequencePaginated as |step idx|}}
+      {{#each pgn.sequencePaginated as |step idx|}}
         <SequencerStep 
-          {{on "click" (fn @onClickStep (add pageOffset idx))}}
+          {{on "click" (fn @onClickStep (add pgn.pageOffset idx))}}
           @step={{step}} 
           @stepIndex={{seq-step-offset @stepIndex @sequence}} 
-          @idx={{add idx currentPageStartIdx}}
+          @idx={{add idx pgn.currentPageStartIdx}}
         />
       {{/each}}
     </div>

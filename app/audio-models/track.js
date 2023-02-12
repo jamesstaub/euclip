@@ -388,13 +388,18 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       },
       playADSRNodes() {
         adsrNodes.forEach((adsrNode) => {
-          __(adsrNode.uniqueSelector).adsr('trigger');
+          __(adsrNode.uniqueSelector).adsr('trigger', 'fast');
         });
       },
       play(attrs) {
-        this.playSourceNodes(attrs);
         this.playADSRNodes();
+        this.playSourceNodes(attrs);
         // TODO: rampNodes, LFONodes
+      },
+      stop() {
+        sourceNodes.forEach((sourceNode) => {
+          __(sourceNode.uniqueSelector).stop();
+        });
       },
     };
   }

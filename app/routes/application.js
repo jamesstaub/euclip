@@ -5,8 +5,12 @@ export default class ApplicationRoute extends Route {
   @service store;
   @service session;
 
+  constructor() {
+    super(...arguments);
+    this.session.setup();
+  }
+
   async beforeModel(transition) {
-    await this.session.setup();
     return super.beforeModel(transition);
   }
 }

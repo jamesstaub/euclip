@@ -30,7 +30,7 @@ export default class TrackListItemComponent extends Component {
     seq[idx] = Number(!seq[idx]);
 
     // which means this is now  a custom sequence (not euclidean algorithm)
-    this.args.track.updateTrackSequence.perform(
+    this.args.track.updateTrackSequence(
       this.args.track.currentSequence,
       'customSequence',
       seq

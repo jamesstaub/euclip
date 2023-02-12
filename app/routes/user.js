@@ -1,14 +1,13 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
-import ENV from '../config/environment';
 
 export default class UserRoute extends Route {
   @service session;
   @service currentUser;
 
   beforeModel() {
-    // FIME this request is blocking if there is no network connection
     try {
+      // FIXME this request is blocking if there is no network connection
       // fetch(ENV.APP.DRUMSERVER_HOST); // fire a ping to wakeup free heroku server
     } catch (error) {
       console.log(error);

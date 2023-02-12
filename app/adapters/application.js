@@ -2,7 +2,7 @@ import JSONAPIAdapter from '@ember-data/adapter/json-api';
 import { inject as service } from '@ember/service';
 import { computed } from '@ember/object';
 
-export default class ApplicationAdapter extends JSONAPIAdapter.extend() {
+export default class ApplicationAdapter extends JSONAPIAdapter {
   @service session;
 
   buildURL() {

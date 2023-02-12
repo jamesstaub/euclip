@@ -1,0 +1,20 @@
+{{#let @sequence.length as |len|}}
+  {{#let (mult len 32.2) as |width|}}
+    <div
+      {{nexus-ui-multislider
+        min=@min
+        max=@max
+        stepIndex=@stepIndex
+        numberOfSliders=len
+        values=@values
+        sequence=@sequence
+        step=@stepSize
+        size=(array width 120)
+        onChange=@onChange
+        smoothing=0
+        mode='bar'
+      }}
+    >
+    </div>
+  {{/let}}
+{{/let}}

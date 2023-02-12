@@ -7,6 +7,7 @@ import { unbindFromSequencer } from '../utils/cracked';
 import ENV from 'euclip/config/environment';
 import { inject as service } from '@ember/service';
 import TrackNodeModel from './track-node';
+import { action } from '@ember/object';
 
 export default class TrackModel extends TrackAudioModel {
   @service store;
@@ -23,7 +24,7 @@ export default class TrackModel extends TrackAudioModel {
 
   @attr('number') order;
 
-  @attr('number') stepIndex;
+  @attr('number', { defaultValue: 0 }) stepIndex;
 
   async createAudioFileTree() {
     await this.trackControls; // audio-tree relies on the filepath track control
@@ -142,27 +143,31 @@ export default class TrackModel extends TrackAudioModel {
     );
   }
 
-  // TODO: dedupe from similar method on track-list-item
-  @keepLatestTask
-  *updateTrackSequence(sequenceRecord, key, value) {
+  @action
+  updateTrackSequence(sequenceRecord, key, value) {
     // switching from custom back to euclidean
     if (key === 'hits') {
-      sequenceRecord.set('customSequence', []);
+      sequenceRecord?.set('customSequence', []);
     }
     // don't allow more hits than steps
     if (key === 'steps' && value < sequenceRecord.hits) {
-      sequenceRecord.set('hits', value);
+      sequenceRecord?.set('hits', value);
     }
 
-    sequenceRecord.set(key, value);
+    sequenceRecord?.set(key, value);
     this.sourceNodeRecords.forEach((source) => {
       unbindFromSequencer(source.uniqueSelector);
       this.bindToSequencer(source);
     });
+    this.saveTrackSequence.perform(sequenceRecord);
+  }
+
+  @keepLatestTask
+  *saveTrackSequence(sequenceRecord) {
+    yield timeout(2000);
     yield new Promise((resolve) => {
       sequenceRecord.save().then(resolve);
     });
-    yield timeout(1000);
   }
 
   // REFACTOR: this is only called when the filepath
