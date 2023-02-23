@@ -137,6 +137,8 @@ to keep recent state in tact when returning to a track
 
 
 ### Other ideas
+- key bindings and tab-navigation. look at ember-focus-trap
+
 - create a  "mixer view" for mixing all tracks that have a `channelStrip` macro
 
 - Sequence

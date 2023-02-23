@@ -2,9 +2,9 @@
   <div class="flex flex-wrap items-center justify-between w-100">    
     <h1 class="ma0 f3">{{this.model.displayTitle}}</h1>
       <div class="flex">
-        <IconButton class="mh1" @icon="fi-play" @label="play" {{on "click" this.play}} />
-        <IconButton class="mh1" @icon="fi-stop" @label="stop" {{on "click" this.stop}} />
-        <IconButton class="mh1" @icon="fi-previous" @label="reset" {{on "click" this.reset}} />
+        <IconButton class="bg-transparent mh1" @icon="fi-play" @label="play" {{on "click" this.play}} />
+        <IconButton class="bg-transparent mh1" @icon="fi-stop" @label="stop" {{on "click" this.stop}} />
+        <IconButton class="bg-transparent mh1" @icon="fi-previous" @label="reset" {{on "click" this.reset}} />
         <div class="flex items-center ba b--dark-gray bw1 ml2">
           <NexusNumber
             @value={{this.model.bpm}} 
@@ -47,7 +47,7 @@
           <p class="f6 mb3 mt0">When you select a sound file from this menu the sound's URL is available in the code as <code>this.filepath</code>.
           </p>
           <p class="f6 mb3 mt0">You pass the sound's URL to a <code>sampler</code> node in the setup script like so:</p>
-          <p class="f6 mb3 mt0"><code>__().sampler(path: this.filepath)</code></p>
+          <p class="f6 mb3 mt0"><code>__().sampler({path: this.filepath})</code></p>
         </InfoBox>
       </div>
       {{#if (and this.activeTrack this.activeTrack.audioFileTreeModel)}}

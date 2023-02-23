@@ -10,6 +10,7 @@ const COLORS = {
   sliderBgColor: '#f7f7f7',
   red: 'rgb(217, 83, 79)',
 };
+
 export default class NexusUiMultislider extends NexusUi {
   modify(element, [optionsHash], namedOptions) {
     super.modify(element, ['Multislider', optionsHash], namedOptions);

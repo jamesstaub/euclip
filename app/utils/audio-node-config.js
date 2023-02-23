@@ -214,6 +214,7 @@ const oscillatorDefaults = {
   stepSize: 10,
   defaultValue: 300,
   interfaceName: oneD,
+  unit: 'hz',
 };
 const filterDefaults = {
   min: 0,
@@ -221,30 +222,40 @@ const filterDefaults = {
   stepSize: 10,
   defaultValue: 20000,
   interfaceName: oneD,
+  unit: 'hz',
 };
 
 export const defaultParams = {
+  attack: {
+    min: 0.00125,
+    max: 1,
+    stepSize: 0.0125,
+    defaultValue: 0,
+    interfaceName: oneD,
+    unit: 'seconds',
+  },
   bits: {
     min: 1,
     max: 16,
     stepSize: 1,
     defaultValue: 6,
     interfaceName: oneD,
+    unit: 'bits',
   },
-  channelStrip: {
-    interfaceName: ['slider'],
-    min: 0,
-    max: 1,
-    stepSize: 0.0125,
-    defaultValue: 0.9,
-    interfaceName: oneD,
-  },
+  // channelStrip: {
+  //   interfaceName: ['slider'],
+  //   min: 0,
+  //   max: 1,
+  //   stepSize: 0.0125,
+  //   defaultValue: 0.9,
+  // },
   color: {
     min: 0,
     max: 1000,
     stepSize: 1,
     defaultValue: 800,
     interfaceName: oneD,
+    unit: 'hz',
   },
   cutoff: {
     min: 0,
@@ -252,6 +263,7 @@ export const defaultParams = {
     stepSize: 20,
     defaultValue: 1500,
     interfaceName: oneD,
+    unit: 'hz',
   },
   damping: {
     min: 0,
@@ -259,6 +271,7 @@ export const defaultParams = {
     stepSize: 0.1,
     defaultValue: 0.84,
     interfaceName: oneD,
+    unit: 'gain',
   },
   delay: {
     min: 0,
@@ -266,6 +279,7 @@ export const defaultParams = {
     stepSize: 0.1,
     defaultValue: 1,
     interfaceName: oneD,
+    unit: 'seconds',
   },
   detune: {
     min: 0,
@@ -273,13 +287,15 @@ export const defaultParams = {
     stepSize: 1,
     defaultValue: 0,
     interfaceName: oneD,
+    unit: 'cents',
   },
   distortion: {
-    min: 0,
+    min: 1,
     max: 4,
     stepSize: 0.1,
     defaultValue: 1,
     interfaceName: oneD,
+    unit: 'curve amount',
   },
   drive: {
     min: 0,
@@ -287,6 +303,7 @@ export const defaultParams = {
     stepSize: 0.1,
     defaultValue: 0.5,
     interfaceName: oneD,
+    unit: 'curve amount',
   },
   end: {
     min: 0,
@@ -294,6 +311,7 @@ export const defaultParams = {
     stepSize: 0.1,
     defaultValue: 1,
     interfaceName: oneD,
+    unit: 'seconds',
   },
   feedback: {
     min: 0,
@@ -301,12 +319,14 @@ export const defaultParams = {
     stepSize: 0.05,
     defaultValue: 0,
     interfaceName: oneD,
+    unit: 'gain',
   },
   frequency: {
     sine: oscillatorDefaults,
     sawtooth: oscillatorDefaults,
     square: oscillatorDefaults,
     triangle: oscillatorDefaults,
+    bandpass: filterDefaults,
     lowpass: filterDefaults,
     highpass: filterDefaults,
     lowshelf: filterDefaults,
@@ -319,6 +339,7 @@ export const defaultParams = {
       stepSize: 0.0125,
       defaultValue: 5,
       interfaceName: oneD,
+      unit: 'hz',
     },
   },
   gain: {
@@ -327,6 +348,7 @@ export const defaultParams = {
     stepSize: 0.0125,
     defaultValue: 0.9,
     interfaceName: oneD,
+    unit: 'gain',
   },
   knee: {
     min: 0,
@@ -334,6 +356,7 @@ export const defaultParams = {
     stepSize: 1,
     defaultValue: 30,
     interfaceName: oneD,
+    unit: 'decibels',
   },
   pan: {
     min: -1,
@@ -341,6 +364,7 @@ export const defaultParams = {
     stepSize: 0.01,
     defaultValue: 0,
     interfaceName: oneD,
+    unit: 'gain',
   },
   postCut: {
     min: 0,
@@ -348,6 +372,7 @@ export const defaultParams = {
     stepSize: 10,
     defaultValue: 3000,
     interfaceName: oneD,
+    unit: 'hz',
   },
   q: {
     min: 0,
@@ -376,6 +401,7 @@ export const defaultParams = {
     stepSize: 0.1,
     defaultValue: 0,
     interfaceName: oneD,
+    unit: 'seconds',
   },
   speed: {
     min: 0.125,
@@ -383,6 +409,7 @@ export const defaultParams = {
     stepSize: 0.0125,
     defaultValue: 1,
     interfaceName: oneD,
+    unit: 'playback rate',
   },
   start: {
     // should be set from sample length
@@ -391,6 +418,7 @@ export const defaultParams = {
     stepSize: 0.0125,
     defaultValue: 0,
     interfaceName: oneD,
+    unit: 'seconds',
   },
   threshold: {
     min: -60,
@@ -398,6 +426,7 @@ export const defaultParams = {
     stepSize: 1,
     defaultValue: -12,
     interfaceName: oneD,
+    unit: 'decibels',
   },
   path: {
     min: null,

@@ -1,0 +1,58 @@
+<div
+  class='relative tc flex flex-column items-center mr2 bg-dark-yellow'
+  ...attributes
+>
+  <div
+    class='relative w-100 slider-control-width items-center flex justify-between'
+  >
+    <IconButton
+      class={{concat
+        "h2 w2 "
+        (if @trackControl.isMultislider 'bg-dark-gray' 'bg-transparent')
+      }}
+      @iconClass={{(if @trackControl.isMultislider 'yellow-fill' 'dark-fill')}}
+      @label='Toggle Multislider Mode'
+      @icon='multislider'
+      {{on 'click' this.toggleInterface}}
+    />
+
+    <div class="flex items-center">
+      <span class='fw7 w3'>{{@trackControl.nodeAttr}}</span>
+      {{#if this.isShowingConfig}}
+        <span class="f7">{{unit-for-param @trackControl.nodeAttr}}</span>
+      {{/if}}
+    </div>
+    {{!-- <div
+      class='mv1'
+      {{nexus-ui
+        'Toggle'
+        size=(array 35 15)
+        state=(eq @trackControl.interfaceName 'multislider')
+        onChange=this.toggleInterface
+      }}
+    ></div> --}}
+    <button
+      class='dropdown-menu-btn bg-transparent dark-fill bn bg-transparent h2'
+      type='button'
+      {{on 'click' this.toggleConfig}}
+      {{on-key 'Escape' this.close event='keydown'}}
+    >
+      {{svg-jar
+        'fi-dots'
+        class='light-fill h2'
+        width='16px'
+        height='40px'
+      }}
+
+    </button>
+  </div>
+
+  <div>
+    {{#if this.isShowingConfig}}
+      <Controls::ControlConfig @trackControl={{@trackControl}} />
+    {{else}}
+      {{yield}}
+    {{/if}}
+  </div>
+
+</div>

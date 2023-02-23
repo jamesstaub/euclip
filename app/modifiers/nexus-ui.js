@@ -2,6 +2,11 @@ import Modifier from 'ember-modifier';
 import { registerDestructor } from '@ember/destroyable';
 import Nexus from 'nexusui';
 import { guidFor } from '@ember/object/internals';
+import { isPresent } from '@ember/utils';
+import { next } from '@ember/runloop';
+function roundFloat(num) {
+  return Number(Number((num || 0).toFixed(4)));
+}
 
 export default class NexusUi extends Modifier {
   didSetup = false;
@@ -24,9 +29,12 @@ export default class NexusUi extends Modifier {
       this.setup(element, nexusClass, options);
     }
 
-    this.setValue(options);
-
-    this._options = options;
+    // Not ideal, but prevents double rendering caused
+    // by using number box and slider with same value
+    next(this, () => {
+      this.setValue(options);
+      this._options = options;
+    });
   }
 
   setup(element, nexusClass, options) {
@@ -48,13 +56,13 @@ export default class NexusUi extends Modifier {
   }
 
   setValue(options) {
-    if (this.valueChanged(options)) {
-      this.nexusElement.value = options.value;
+    if (isPresent(options.value) && this.valueChanged(options)) {
+      this.nexusElement.value = roundFloat(options.value);
     }
   }
 
   valueChanged(options) {
-    return options?.value != this._options?.value;
+    return roundFloat(options?.value) != roundFloat(this._options?.value);
   }
 
   // Only the `value` option can be updated without re-initializing

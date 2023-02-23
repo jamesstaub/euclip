@@ -1,6 +1,6 @@
 <div class="relative signal-chain-node mb3 w4">
   {{#if (and @node @onRemoveNode)}}
-    <IconButton class="absolute top-0 right-0 light-fill small-icon-btn bn z-2" @icon="fi-cancel" @iconClass="ph2 pv3" {{on "click" @onRemoveNode}} />
+    <IconButton class="bg-transparent absolute top-0 right-0 light-fill small-icon-btn bn z-2" @icon="fi-cancel" @iconClass="ph2 pv3" {{on "click" @onRemoveNode}} />
   {{/if}}
   <button class="bg-transparent w4 h3 ba b--yellow yellow" type="button" {{on "click" this.toggleMenu}}>
     {{#if @node}}

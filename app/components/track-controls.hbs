@@ -1,61 +1,61 @@
 {{#each @trackNodesForControls as |trackNode idx|}}
   {{#if (eq @visibleNodeIdx idx)}}
-    <div class='flex justify-start overflow-scroll h-100 mw-100'>
-      <div
-        class='flex h-auto flex-column tc track-controls-container-pb overflow-y'
-      >
-        {{#each trackNode.multisliderControls as |trackControl|}}
-          <Controls::SliderConfig @trackControl={{trackControl}}>
-            <SequencePagination
-              @sequence={{@track.currentSequence.sequence}}
-              @values={{trackControl.controlArrayComputed}}
-              @stepIndex={{@track.stepIndex}}
-              @updateControl={{@updateControl}}
-              as |pgn|
-            >
-              <Controls::Multislider
-                @stepIndex={{pgn.indexForPage}}
-                @sequence={{pgn.sequencePaginated}}
-                @values={{pgn.valuesPaginated}}
-                @min={{trackControl.min}}
-                @max={{trackControl.max}}
-                @stepSize={{trackControl.stepSize}}
-                @defaultValue={{trackControl.defaultValue}}
-                @onChange={{fn pgn.updateSequencePage trackControl}}
-              />
-            </SequencePagination>
-          </Controls::SliderConfig>
+    <div class='flex ml3'>
+      {{!-- <ul class='list flex flex-column pl2'>
+        {{#each trackNode.trackControls as |trackControl|}}
+          <button
+            type='button'
+            class='textbutton tl f7'
+            {{on 'click' 
+              (set this 'selectedControl' trackControl.id)
+            }}
+          >
+            <li>{{trackControl.nodeAttr}}</li>
+          </button>
+        {{/each}}
+      </ul> --}}
+      <div class='flex justify-start overflow-scroll h-100 mw-100'>
 
-          {{!-- <TrackControlWrapper
-            @sequence={{@track.currentSequence.sequence}}
-            @trackControl={{trackControl}}
-            @wrapperStyleClass='mr2'
-          > --}}
-          {{!-- <NexusMultislider
-                  @stepIndex={{@track.stepIndex}}
-                  @sequence={{@track.currentSequence.sequence}}
-                  @values={{trackControl.controlArrayComputed}}
+        {{#each trackNode.trackControls as |trackControl|}}
+          {{#if trackControl.isMultislider}}
+            <Controls::Wrapper
+              class='multislider-width'
+              @trackControl={{trackControl}}
+            >
+              <SequencePagination
+                @sequence={{@track.currentSequence.sequence}}
+                @values={{trackControl.controlArrayComputed}}
+                @stepIndex={{@track.stepIndex}}
+                @updateControl={{@updateControl}}
+                as |pgn|
+              >
+                <Controls::Multislider
+                  @stepIndex={{pgn.indexForPage}}
+                  @sequence={{pgn.sequencePaginated}}
+                  @values={{pgn.valuesPaginated}}
                   @min={{trackControl.min}}
                   @max={{trackControl.max}}
-                  @width={{multisliderWidth}}
+                  @stepSize={{trackControl.stepSize}}
                   @defaultValue={{trackControl.defaultValue}}
-                  @onChangeValue={{fn @updateControl trackControl}}
-                /> --}}
-
-          {{! </TrackControlWrapper> }}
-        {{/each}}
-      </div>
-      <div class='flex flex-nowrap tc mh3'>
-        {{#each trackNode.oneDimensionalControls as |trackControl|}}
-          <Controls::SliderConfig @trackControl={{trackControl}}>
-            <Controls::Slider
-              @value={{trackControl.controlValue}}
-              @step={{trackControl.stepSize}}
-              @min={{trackControl.min}}
-              @max={{trackControl.max}}
-              @onChange={{fn @updateControl trackControl}}
-            />
-          </Controls::SliderConfig>
+                  @onChange={{fn pgn.updateSequencePage trackControl}}
+                />
+              </SequencePagination>
+            </Controls::Wrapper>
+          {{/if}}
+          {{#if trackControl.isSlider}}
+            <Controls::Wrapper
+              class="pb3"
+              @trackControl={{trackControl}}
+             >
+              <Controls::Slider
+                @value={{trackControl.controlValue}}
+                @step={{trackControl.stepSize}}
+                @min={{trackControl.min}}
+                @max={{trackControl.max}}
+                @onChange={{fn @updateControl trackControl}}
+              />
+            </Controls::Wrapper>
+          {{/if}}
         {{/each}}
       </div>
     </div>

@@ -1,0 +1,26 @@
+<div class='flex flex-column slider-control-width ph2 f7'>
+  <label class='flex tl f7 justify-between items-center'>{{'max'}}
+    <Controls::NumberBox
+      @onChange={{(fn this.setControlProperty 'max')}}
+      @value={{@trackControl.max}}
+    /></label>
+  <label
+    class='flex tl f7 justify-between items-center'
+  >{{'min'}}<Controls::NumberBox
+      @onChange={{(fn this.setControlProperty 'min')}}
+      @value={{@trackControl.min}}
+    /></label>
+  <label
+    class='flex tl f7 justify-between items-center'
+  >{{'step size'}}<Controls::NumberBox
+      @onChange={{(fn this.setControlProperty 'stepSize')}}
+      @value={{@trackControl.stepSize}}
+    /></label>
+  <label
+    class='flex tl f7 justify-between items-center'
+  >{{'default'}}<Controls::NumberBox
+      @onChange={{(fn this.setControlProperty 'defaultValue')}}
+      @value={{@trackControl.defaultValue}}
+    /></label>
+</div>
+{{yield}}

@@ -32,8 +32,6 @@
 /*Display*/
 
 
-
-
 .z-5 {
   z-index: 5;
 }
@@ -120,5 +118,12 @@
   fill: $dark-yellow;
   svg {
     fill: $dark-yellow;
+  }
+}
+
+/* select input from NexusUI modifier parent */
+.tc {
+  input {
+    text-align: center;
   }
 }

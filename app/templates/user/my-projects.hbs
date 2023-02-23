@@ -5,9 +5,9 @@
       <li class="flex justify-between pv2">
         <div class="flex items-center grow-1">
           {{#if project.isPlaying}}
-            <IconButton @icon="fi-stop" @label="stop" {{on "click" (fn this.stop project)}} />
+            <IconButton class="bg-transparent" @icon="fi-stop" @label="stop" {{on "click" (fn this.stop project)}} />
           {{else}}
-            <IconButton @icon="fi-play" @label="play" {{on "click" (fn this.play project)}} />
+            <IconButton class="bg-transparent" @icon="fi-play" @label="play" {{on "click" (fn this.play project)}} />
           {{/if}}
           <h3 class="mv0 ml3">
             <LinkTo @route="user.creator.project" @models={{array project.creator project.slug}} class="blue">

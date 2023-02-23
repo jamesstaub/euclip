@@ -1,5 +1,5 @@
 {{yield this}}
-<div {{did-update (fn this.autoPageOnUpdate @sequence @stepIndex @isCurrentTrack)}}>
+<div class="w-100" {{did-update (fn this.autoPageOnUpdate @sequence @stepIndex @isCurrentTrack)}} ...attributes>
   <div class="flex w-auto mv1">
     {{#if this.showPages}}
       {{#each this.paginationButtons as |pageIdx|}}

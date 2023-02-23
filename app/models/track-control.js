@@ -176,11 +176,34 @@ export default class TrackControlModel extends Model {
       if (isArray(value)) {
         this.set('controlArrayValue', value);
       } else {
+        if (this.controlValue === value) {
+          return;
+        }
+        this.beforeUpdateValue(value);
         this.set('controlValue', value);
         this.setAttrsOnNode(value);
       }
       this.saveTrackControl.perform();
     }
+  }
+
+  // compares value to min, max, stepSize of trackControl record.
+  // if value is not a number, or is outside of min/max, or is not a multiple of stepSize,
+  // then update those values on the trackControl accordingly (and save)
+  beforeUpdateValue(value) {
+    const min = this.min;
+    const max = this.max;
+    const isNumber = !isNaN(value);
+    if (isNumber) {
+      this.set('min', Math.min(min, value));
+      this.set('max', Math.max(max, value));
+    }
+    // if (!isMultipleOfStepSize) {
+    //   // determine a step size between min and max that is a multiple of the value
+    //   const newStepSize =
+    //     Math.abs(max - min) / Math.floor(Math.abs(max - min) / value);
+    //   this.set('stepSize', newStepSize);
+    // }
   }
 
   // force the min/max/stepSize to make sure the defaultValue
@@ -223,8 +246,9 @@ export default class TrackControlModel extends Model {
     // // FIXME: need a better strategy to prevent the last save response from coming in
     // // out of sync with current UI state. (occurs when lots of rapid changes are made to nexus-multislider)
     // See codemirror implementation, needs a modifier class that tracks attr updatate
-    yield timeout(3000);
+    yield timeout(500);
     const project = yield this.track.get('project');
+    console.log('save');
     // dont save if project was deleted during task timeout
     if (project) {
       // this.save not working for saome reason

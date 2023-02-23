@@ -198,12 +198,13 @@ export default class TrackNodeModel extends Model {
 
       defaultForAttr = defaultParams[controlAttr];
       if (controlAttr === 'frequency') {
-        defaultForAttr = defaultParams[controlAttr][this.trackNode.nodeType];
+        defaultForAttr = defaultParams[controlAttr][this.nodeType];
       } else {
         defaultForAttr = defaultParams[controlAttr];
       }
       if (!defaultForAttr) {
-        debugger;
+        console.error('No default params for Node Control: ', controlAttr);
+        return null;
       }
       const { min, max, stepSize, defaultValue, interfaceName } =
         defaultForAttr;

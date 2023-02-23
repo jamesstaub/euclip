@@ -1,14 +1,17 @@
+<Controls::NumberBox
+  @value={{@value}}
+  @onChange={{@onChange}}
+/>
 
-<span class="fw7 w3 overflow-hidden">{{@value}}</span>
 <div
-  class="mh3"
+  class='mh3'
   {{nexus-ui
     'Slider'
     min=@min
     max=@max
     value=@value
+    onChange=@onChange
     step=@step
     size=(array 20 120)
-    onChange=@onChange
   }}
 ></div>
