@@ -48,7 +48,7 @@ export default class NexusUi extends Modifier {
 
   setupElement(element, nexusClass, options) {
     this.nexusElement = new Nexus[nexusClass](`#${element.id}`, options);
-
+    this.nexusElement.decimalPlaces = 6;
     if (options.onChange) {
       this.nexusElement.on('change', options.onChange);
     }

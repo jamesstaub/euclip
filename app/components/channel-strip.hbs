@@ -1,33 +1,34 @@
-<div class="channel-strip-w flex flex-column justify-between shrink-0 items-center ba pv3 tc ph2" ...attributes>
-  <h4 class="f7 mv0">channel strip</h4>
-  <TrackControlWrapper
-    @hideConfig={{true}}
-    @hideInterfaceMenu={{true}}
-    @trackControl={{@channelStripGainControl}}
-    @wrapperStyleClass="flex flex-column items-center"
+<div
+  class='channel-strip-w flex flex-column justify-between shrink-0 items-center ba pv3 tc ph2'
+  ...attributes
+>
+  <h4 class='f7 mv0'>channel strip</h4>
+  <span class='fw7 w3'>gain</span>
+  <div
+    {{nexus-ui
+      'Slider'
+      min=@channelStripGainControl.min
+      max=@channelStripGainControl.max
+      value=@channelStripGainControl.controlValue
+      onChange=(fn @updateValue @channelStripGainControl)
+      step=@channelStripGainControl.step
+      size=(array 20 130)
+    }}
   >
-    <NexusSlider 
-      @value={{@channelStripGainControl.controlValue}}
-      @min={{@channelStripGainControl.min}}
-      @max={{@channelStripGainControl.max}}
-      @defaultValue={{@channelStripGainControl.defaultValue}}
-      @onChangeValue={{fn @updateValue @channelStripGainControl}}
-    />
-  </TrackControlWrapper>
+  </div>
+  <span class='fw7 w3'>pan</span>
+  <div
+    {{nexus-ui
+      'Slider'
+      min=@channelStripPannerControl.min
+      max=@channelStripPannerControl.max
+      value=@channelStripPannerControl.controlValue
+      onChange=(fn @updateValue @channelStripPannerControl)
+      step=@channelStripPannerControl.step
+      size=(array 80 20)
+    }}
+  >
 
-  <TrackControlWrapper
-    @hideConfig={{true}}
-    @hideInterfaceMenu={{true}}
-    @trackControl={{@channelStripPannerControl}}
-    @wrapperStyleClass="flex flex-column"
-  >
-    <NexusSlider 
-      @value={{@channelStripPannerControl.controlValue}}
-      @min={{@channelStripPannerControl.min}}
-      @max={{@channelStripPannerControl.max}}
-      @size={{array 80 20}}
-      @defaultValue={{@channelStripPannerControl.defaultValue}}
-      @onChangeValue={{fn @updateValue @channelStripPannerControl}}
-    />
-  </TrackControlWrapper>
+  </div>
+
 </div>

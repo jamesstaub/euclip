@@ -55,6 +55,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   }
 
   async setupAudioFromScripts(unbindBeforeCreate = true) {
+    console.log('setupAudioFromScripts');
     const initScript = await this.initScript;
     await this.trackControls;
 

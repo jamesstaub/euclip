@@ -4,6 +4,7 @@ import { getCrackedNode, noiseNodes, synthNodes } from '../utils/cracked';
 import { computed } from '@ember/object';
 import { inject as service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
+import sampsToSecs from '../utils/samps-to-secs';
 
 export const defaultKit = [
   '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CR8KBASS.mp3',
@@ -162,6 +163,8 @@ export default class TrackNodeModel extends Model {
    * not have them jump back to the default every time the script re-inits (same problem as updateUserDefinedInterfaceName)
    */
   updateDefaultValue(userSettingsForControl) {
+    this.setSamplerControlsToBuffer();
+
     this.trackControls.forEach((trackControl) => {
       const userDefault = userSettingsForControl[trackControl.nodeAttr];
       if (trackControl._defaultValue !== userDefault) {
@@ -171,6 +174,28 @@ export default class TrackNodeModel extends Model {
       }
       trackControl.set('_defaultValue', userDefault);
     });
+  }
+
+  setSamplerControlsToBuffer() {
+    console.log('setSamplerControlsToBuffer');
+    console.log(this.trackControls);
+    // set the track control for the `end` controlAttr to the audio buffer's length
+    // unless the user has already set a value
+    // convert buffer len to seconds
+    if (this.nodeType === 'sampler') {
+      const endControl = this.trackControls.find(
+        (trackControl) => trackControl.nodeAttr === 'end'
+      );
+      if (!endControl) return;
+      if (!this.nativeNode.buffer) return;
+      debugger
+      const bufferLenSeconds = sampsToSecs(
+        this.nativeNode.buffer.length,
+        this.nativeNode.buffer.sampleRate
+      );
+      endControl.set('defaultValue', bufferLenSeconds);
+      endControl.setMinMaxByDefault();
+    }
   }
 
   /**

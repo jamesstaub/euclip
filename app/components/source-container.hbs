@@ -37,6 +37,7 @@
             class='ba bw1 ml3 w-100 h-50'
             {{audio-waveform buffer}}
           ></canvas>
+          <span class="ml3">{{display-float (buffer-len buffer)}} sec</span>
         {{/if}}
       {{/each}}
     {{/if}}

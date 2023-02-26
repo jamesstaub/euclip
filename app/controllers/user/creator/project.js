@@ -2,6 +2,7 @@ import Controller from '@ember/controller';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import { inject as service } from '@ember/service';
+import { keepLatestTask, timeout } from 'ember-concurrency';
 
 export default class UserCreatorProjectController extends Controller {
   @service router;
@@ -39,14 +40,13 @@ export default class UserCreatorProjectController extends Controller {
     );
   }
 
-  @action
-  // OPTIMIZE:
-  // Throttle this with a concurrency task
-  updateProject(key, value) {
+  @keepLatestTask
+  *updateProject(key, value) {
     this.model.set(key, value);
     if (this.model.isPlaying) {
       this.model.startLoop();
     }
+    yield timeout(1000);
     this.model.save();
   }
 

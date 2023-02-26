@@ -18,6 +18,8 @@ export default class NexusUiMultislider extends NexusUi {
 
   setupElement(element, nexusClass, options) {
     this.nexusElement = new Nexus[nexusClass](`#${element.id}`, options);
+    this.nexusElement.decimalPlaces = 6;
+
     // select sliders (ignoring the caps)
     this.sliderQuery = element.querySelectorAll(
       `rect[height="${options.size[1]}"]`
