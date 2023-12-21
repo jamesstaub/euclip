@@ -7,5 +7,5 @@ export default class UserModel extends Model {
 
   // FIXME: dont store this in the client after POSTing
   @attr('string') password;
-  @hasMany('project') projects;
+  @hasMany('project', { async: false }) projects;
 }

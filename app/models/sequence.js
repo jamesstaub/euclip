@@ -7,7 +7,7 @@ export default class SequenceModel extends Model {
   @tracked steps;
   @tracked offset;
 
-  @belongsTo('track') track;
+  @belongsTo('track', { async: false, inverse: 'sequence' }) track;
 
   // euclidean rhythm params (should eventually move to a Sequence model)
   @attr('number', {

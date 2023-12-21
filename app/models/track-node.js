@@ -23,8 +23,8 @@ export const FILE_LOAD_STATES = {
 
 export default class TrackNodeModel extends Model {
   @service store;
-  @belongsTo('track') track;
-  @hasMany('track-control') trackControls;
+  @belongsTo('track', { async: false, inverse: 'trackNode' }) track;
+  @hasMany('track-control', { async: false }) trackControls;
 
   /**
    * this attr is used to catch any user-defined UI preferences such as { ui: 'multislider'}
@@ -163,8 +163,6 @@ export default class TrackNodeModel extends Model {
    * not have them jump back to the default every time the script re-inits (same problem as updateUserDefinedInterfaceName)
    */
   updateDefaultValue(userSettingsForControl) {
-    this.setSamplerControlsToBuffer();
-
     this.trackControls.forEach((trackControl) => {
       const userDefault = userSettingsForControl[trackControl.nodeAttr];
       if (trackControl._defaultValue !== userDefault) {
@@ -176,26 +174,17 @@ export default class TrackNodeModel extends Model {
     });
   }
 
-  setSamplerControlsToBuffer() {
-    console.log('setSamplerControlsToBuffer');
-    console.log(this.trackControls);
+  async setSamplerControlsToBuffer(buffer) {
     // set the track control for the `end` controlAttr to the audio buffer's length
     // unless the user has already set a value
     // convert buffer len to seconds
-    if (this.nodeType === 'sampler') {
-      const endControl = this.trackControls.find(
-        (trackControl) => trackControl.nodeAttr === 'end'
+    const trackControls = await this.store.peekAll('track-control');
+    trackControls
+      .filterBy('nodeType', 'sampler')
+      .map(
+        async (trackControl) =>
+          await trackControl.setSamplerControlsToBuffer(buffer)
       );
-      if (!endControl) return;
-      if (!this.nativeNode.buffer) return;
-      debugger
-      const bufferLenSeconds = sampsToSecs(
-        this.nativeNode.buffer.length,
-        this.nativeNode.buffer.sampleRate
-      );
-      endControl.set('defaultValue', bufferLenSeconds);
-      endControl.setMinMaxByDefault();
-    }
   }
 
   /**

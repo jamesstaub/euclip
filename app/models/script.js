@@ -16,8 +16,6 @@ export default class ScriptModel extends Model {
   // the current state of the editor, regardless of it being submitted
   @attr('string') editorContent;
 
-  @belongsTo('track') track;
-
   get functionRef() {
     // create the function referecne and bind it's scope
     if (this.safeCode) {
@@ -77,7 +75,7 @@ export default class ScriptModel extends Model {
       if (project.get('isPlaying')) {
         // clean reset on delete to prevent the _loopListeners array gets cleared out in cracked
         project.stopLoop();
-        project.initSignalChain();
+        yield project.initSignalChain();
         project.startLoop();
       } else {
         track.setupAudioFromScripts();

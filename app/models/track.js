@@ -12,15 +12,16 @@ import { action } from '@ember/object';
 export default class TrackModel extends TrackAudioModel {
   @service store;
   @attr('boolean') isMaster;
-  @belongsTo('project') project;
+  @belongsTo('project', { async: false, inverse: 'tracks' }) project;
 
-  @belongsTo('init-script') initScript;
-  @belongsTo('onstep-script') onstepScript;
-  @belongsTo('audio-file-tree') audioFileTreeModel;
+  @belongsTo('init-script', { async: false, inverse: 'track' }) initScript;
+  @belongsTo('onstep-script', { async: false, inverse: 'track' }) onstepScript;
+  @belongsTo('audio-file-tree', { async: false, inverse: 'track' })
+  audioFileTreeModel;
 
-  @hasMany('track-node') trackNodes;
-  @hasMany('track-control') trackControls;
-  @hasMany('sequence') sequences;
+  @hasMany('track-node', { async: false, inverse: 'track' }) trackNodes;
+  @hasMany('track-control', { async: false, inverse: 'track' }) trackControls;
+  @hasMany('sequence', { async: false, inverse: 'track' }) sequences;
 
   @attr('number') order;
 
@@ -62,7 +63,7 @@ export default class TrackModel extends TrackAudioModel {
     if (project.get('isPlaying')) {
       // clean reset on delete to prevent the _loopListeners array gets cleared out in cracked
       project.stopLoop();
-      project.initSignalChain();
+      await project.initSignalChain();
       project.startLoop();
     }
   }
@@ -145,6 +146,11 @@ export default class TrackModel extends TrackAudioModel {
 
   @action
   updateTrackSequence(sequenceRecord, key, value) {
+    if (sequenceRecord.get(key) == value) {
+      // nexus element re-fires when initialized,
+      // so skip if the value is the same
+      return;
+    }
     // switching from custom back to euclidean
     if (key === 'hits') {
       sequenceRecord?.set('customSequence', []);

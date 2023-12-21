@@ -9,10 +9,11 @@ import {
 import { getCrackedNode } from '../utils/cracked';
 import { isPresent } from '@ember/utils';
 import { defaultKit } from './track-node';
-
+import sampsToSecs from '../utils/samps-to-secs';
+import { setProperties } from '@ember/object';
 export default class TrackControlModel extends Model {
-  @belongsTo('track') track;
-  @belongsTo('trackNode') trackNode;
+  @belongsTo('track', { async: false, inverse: 'trackControl' }) track;
+  @belongsTo('trackNode', { async: false, inverse: 'trackControl' }) trackNode;
 
   // while redundant, nodeType and trackNodeOrder are needed here when POSTing
   // because TrackNode models do not exist in the back end
@@ -184,6 +185,32 @@ export default class TrackControlModel extends Model {
         this.setAttrsOnNode(value);
       }
       this.saveTrackControl.perform();
+    }
+  }
+
+  // TODO:
+  // this currently overwrites user-defined start and end values.
+  // custom UI elements for start and end could be created to just disallow
+  // customization. till then it will seem buggy
+  async setSamplerControlsToBuffer(nativeBuffer) {
+    // set the track control for the `end` controlAttr to the audio buffer's length
+    // unless the user has already set a value
+    // convert buffer len to seconds
+
+    const bufferLen = nativeBuffer.duration;
+    if (this.nodeAttr === 'start') {
+      setProperties(this, {
+        min: 0,
+        max: bufferLen,
+        defaultValue: 0,
+      });
+    }
+    if (this.nodeAttr === 'end') {
+      setProperties(this, {
+        min: 0,
+        max: bufferLen,
+        defaultValue: bufferLen,
+      });
     }
   }
 

@@ -9,8 +9,8 @@ export default class ProjectModel extends ProjectAudioModel {
   @attr('string') title;
   @attr('string') slug;
   @attr('number') bpm;
-  @belongsTo('user') creator;
-  @hasMany('track') tracks;
+  @belongsTo('user', { async: false, inverse: 'projects' }) creator;
+  @hasMany('track', { async: false, inverse: 'project' }) tracks;
 
   // maybe move this to track?
   async setupAndSaveNewTrack(track, saveOptions) {
