@@ -73,7 +73,7 @@ export default class TrackModel extends TrackAudioModel {
       return null;
     }
     // TODO management of current sequence
-    return this.sequences.firstObject;
+    return this.sequences[0];
   }
 
   get scriptAlert() {
@@ -128,6 +128,10 @@ export default class TrackModel extends TrackAudioModel {
   }
 
   get filepathUrl() {
+    if (!this.filePathRelative) {
+      return null;
+    }
+
     return `${ENV.APP.AUDIO_PATH}${this.filePathRelative}`;
   }
 

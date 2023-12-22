@@ -1,4 +1,4 @@
-import Model, { attr, belongsTo } from '@ember-data/model';
+import Model, { attr } from '@ember-data/model';
 import { keepLatestTask, task, timeout } from 'ember-concurrency';
 import { tracked } from '@glimmer/tracking';
 

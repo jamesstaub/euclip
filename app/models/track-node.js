@@ -24,7 +24,8 @@ export const FILE_LOAD_STATES = {
 export default class TrackNodeModel extends Model {
   @service store;
   @belongsTo('track', { async: false, inverse: 'trackNode' }) track;
-  @hasMany('track-control', { async: false }) trackControls;
+  @hasMany('track-control', { async: false, inverse: 'trackNode' })
+  trackControls;
 
   /**
    * this attr is used to catch any user-defined UI preferences such as { ui: 'multislider'}

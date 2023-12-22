@@ -40,7 +40,7 @@ class Directory {
  * on a given Track
  */
 export default class AudioFileTreeModel extends Model {
-  @belongsTo('track') track;
+  @belongsTo('track', { async: false, inverse: 'audioFileTreeModel' }) track;
   @tracked directoryTree = [];
 
   // TODO:
@@ -68,13 +68,14 @@ export default class AudioFileTreeModel extends Model {
   }
 
   static async fetchDirectory(path) {
-    const url = `${ENV.APP.DRUMSERVER_HOST}${path}`;
+    const url = `/v1/files${path}`;
     const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
       },
     });
     const json = await response.json();
+
     return json;
   }
 }

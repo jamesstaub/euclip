@@ -7,7 +7,8 @@ export default class PresetModel extends Model {
   @attr('string') initScript;
   @attr('string') onstepScript;
 
-  @belongsTo('preset-collection') presetCollection;
+  @belongsTo('preset-collection', { async: false, inverse: 'presets' })
+  presetCollection;
 
   @task
   *applyToTrack(track) {

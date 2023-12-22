@@ -13,7 +13,7 @@ import sampsToSecs from '../utils/samps-to-secs';
 import { setProperties } from '@ember/object';
 export default class TrackControlModel extends Model {
   @belongsTo('track', { async: false, inverse: 'trackControl' }) track;
-  @belongsTo('trackNode', { async: false, inverse: 'trackControl' }) trackNode;
+  @belongsTo('trackNode', { async: false, inverse: 'trackControls' }) trackNode;
 
   // while redundant, nodeType and trackNodeOrder are needed here when POSTing
   // because TrackNode models do not exist in the back end
@@ -109,7 +109,14 @@ export default class TrackControlModel extends Model {
   }
 
   setAttrOnTrackStep(index) {
-    if (this.nodeType !== this.trackNode.get('nodeType')) {
+    if (!this.trackNode) {
+      //FIXME: channelStrips don't have a trackNode
+      //see app/audio-models/track.js:273
+      // just return to prevent error
+      // maybe this is fine since we dont set attrs directly on macros, just their children?
+      return;
+    }
+    if (this.nodeType !== this.trackNode.nodeType) {
       // if this case happens, it is hopefully just because trackControls are in the process of deleting in a non-blocking way,
       //  so we cant wait for the request to finish.
       // in anycase its invalid and should not be used
@@ -275,7 +282,6 @@ export default class TrackControlModel extends Model {
     // See codemirror implementation, needs a modifier class that tracks attr updatate
     yield timeout(500);
     const project = yield this.track.get('project');
-    console.log('save');
     // dont save if project was deleted during task timeout
     if (project) {
       // this.save not working for saome reason
