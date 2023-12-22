@@ -1,0 +1,64 @@
+.track-controls-container-pb {
+  padding-bottom: 3.7rem;
+}
+
+.track-control-wrapper-mb {
+  margin-bottom: 2.6rem;
+}
+
+.variables-overlay table {
+  border-collapse: separate;
+  border-spacing: 0 0.5rem;
+}
+
+.variables-overlay table tr:nth-child(odd) {
+  background-color: var(--near-black);
+}
+
+.variables-overlay table code,
+.variables-overlay table .code {
+  padding: 0 0.5rem;
+}
+
+.variables-overlay table td,
+.variables-overlay table th {
+  padding: 0.25rem 0.5rem;
+  text-align: left;
+}
+
+.variables-overlay .node-docs table td {
+  padding-right: 2rem;
+}
+
+.variables-overlay .node-docs table td.attributes {
+  display: none;
+}
+
+.variables-overlay .node-docs table thead th:nth-of-type(3) {
+  display: none;
+}
+
+.channel-strip-w {
+  width: 6.5rem;
+}
+
+.euclidean-param-label {
+  width: 5.2rem;
+  display: flex;
+  justify-content: space-between;
+}
+
+.directory-btns {
+  display: flex;
+  align-items: center;
+}
+
+.directory-btns:hover {
+  background-color: var(--dark-yellow);
+}
+
+.directory-btns:not(:first-of-type):before {
+  content: ' / ';
+  background-color: var(--yellow);
+  padding: 1rem 0;
+}

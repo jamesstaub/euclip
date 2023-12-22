@@ -1,5 +1,7 @@
-$seq-width: calc(32.2px * 16); 
-$step-width: 32.2px;
+:root {
+  --seq-width: calc(32.2px * 16);
+  --step-width: 32.2px;
+}
 
 .nexus-slider {
   display: inline;
@@ -10,13 +12,13 @@ $step-width: 32.2px;
 }
 
 .sequencer-width {
-  $step-width: 32.2px;
-  width: $seq-width;
+  --step-width: 32.2px;
+  width: var(--seq-width);
 }
 
 .multislider-width {
-  width: $seq-width;
-  flex: 0 0 $seq-width;
+  width: var(--seq-width);
+  flex: 0 0 var(--seq-width);
 }
 
 .slider-control-width {

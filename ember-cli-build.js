@@ -5,6 +5,9 @@ const EmberApp = require('ember-cli/lib/broccoli/ember-app');
 module.exports = function (defaults) {
   let app = new EmberApp(defaults, {
     sourcemaps: { enabled: true },
+    minifyCSS: {
+      options: { processImport: true },
+    },
     ace: {
       themes: ['ambiance', 'chaos'],
       modes: ['javascript'],
@@ -19,6 +22,7 @@ module.exports = function (defaults) {
     },
   });
 
+  app.import('node_modules/tachyons/css/tachyons.css');
   // Use `app.import` to add additional libraries to the generated
   // output files.
   //

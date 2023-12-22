@@ -1,0 +1,16 @@
+.dropdown-menu {
+  z-index: 3;
+}
+
+.dropdown-menu-btn span {
+  cursor: pointer;
+}
+
+.dropdown-menu-btn:focus {
+  outline: none;
+  color: var(--dark-gray);
+}
+
+.dropdown-menu-btn:focus span {
+  color: var(--dark-gray);
+}

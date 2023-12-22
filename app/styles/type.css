@@ -40,22 +40,24 @@ a {
   font-weight: 400;
 }
 
-table {
-  thead {
-    th {
-      font-size: .85rem;
-    }
-  }
-  td, th {
-    font-size: 1rem;
-    p {
-      margin: .125rem 0;
-    }
-  }
-  .name {
-    font-weight: bold;
-  }
+table thead th {
+  font-size: 0.85rem;
 }
+
+table td,
+table th {
+  font-size: 1rem;
+}
+
+table td p,
+table th p {
+  margin: 0.125rem 0;
+}
+
+table .name {
+  font-weight: bold;
+}
+
 
 .ace-editor, .code {
   div, span, textarea {

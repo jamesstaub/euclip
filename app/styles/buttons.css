@@ -9,14 +9,14 @@ button {
 }
 
 input:focus, button:focus {
-  outline-color: $light-blue;
+  outline-color: var(--light-blue);
 
 }
 
 .light-yellow-button {
   @extend .dark-fill;
-  color: $dark-gray;
-  background-color: $light-yellow;
+  color: var(--dark-gray);
+  background-color: var(--light-yellow);
 }
 button[disabled] {
   cursor: default;
@@ -24,19 +24,19 @@ button[disabled] {
 
 button:not([disabled]):not(.selected):hover {
   &.bg-dark-gray {
-    background-color: darken($dark-gray, 10);
+    background-color: var(--dark-gray);
   }
   &.bg-light-gray {
-    background-color: $moon-gray;
+    background-color: var(--moon-gray);
   }
   &.bg-light-yellow, &.light-yellow-button {
-    background-color: lighten($light-yellow, 5);
+    background-color: var(--light-yellow);
   }
   &.bg-yellow {
-    background-color: $dark-yellow;
+    background-color: var(--dark-yellow);
   }
   &.bg-light-blue {
-    background-color: darken($light-blue , 10);
+    background-color: var(--light-blue);
   }
   &.bg-transparent {
     background-color: rgba(255, 255, 255, .25);
@@ -45,19 +45,20 @@ button:not([disabled]):not(.selected):hover {
 
 button:not([disabled]):active {
   &.bg-dark-gray {
-    background-color: darken($dark-gray, 25);
+    background-color: var(--dark-gray);
   }
   &.bg-light-gray {
-    background-color: $moon-gray;
+    background-color: var(--moon-gray);
   }
   &.bg-light-yellow, &.light-yellow-button {
-    background-color: lighten($light-yellow, 10);
+    background-color: var(--light-yellow);
+    backdrop-filter: brightness(1.2);
   }
   &.bg-yellow {
-    background-color: darken($dark-yellow, 10);
+    background-color: var(--dark-yellow);
   }
   &.bg-light-blue {
-    background-color: darken($light-blue , 15);
+    background-color: var(--light-blue);
   }
   &.bg-transparent {
     background-color: rgba(255, 255, 255, .25);

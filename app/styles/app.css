@@ -1,0 +1,119 @@
+/* Import statements */
+@import 'tachyons-variable-overrides.css';
+@import 'type.css';
+@import 'buttons.css';
+@import 'helpers.css';
+@import 'nexus.css';
+@import 'track.css';
+@import 'sidebars.css';
+@import 'components/dropdown-menu.css';
+@import 'components/tab-menu.css';
+@import 'components/signal-chain.css';
+
+/* Custom properties */
+:root {
+  --app-header-height: 4.2rem;
+  --project-header-height: 4rem;
+  --project-tracks-height: calc(100% - var(--app-header-height) - var(--project-header-height));
+  --sidebar-width: 36rem;
+  --footer-height: 20rem;
+
+  --light-gray: #eeeeee;
+  --dark-gray: #333;
+  --near-black: #111;
+
+  --dark-blue: #075f68;
+  --blue: #0fe3ff;
+  --light-blue: #52ebff;
+
+  --yellow: #ffce55;
+  --dark-yellow: #eab849;
+  --light-yellow: #ffebbb;
+  --near-white: #f7f7f7;
+
+  --red: #9d534f;
+  --light-red: #e7040f;
+}
+
+
+/* Global styles */
+html, body {
+  height: 100%;
+}
+
+div {
+  scrollbar-width: none;
+}
+
+div::-webkit-scrollbar {
+  -webkit-appearance: none;
+  width: 0;
+  height: 0;
+}
+
+div::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background-color: var(--moon-gray);
+  box-shadow: 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+a {
+  cursor: pointer;
+}
+
+::placeholder {
+  color: var(--gray);
+}
+
+/* Header and Footer heights */
+.app-header-height {
+  height: var(--app-header-height);
+}
+
+.project-header-height {
+  height: var(--project-header-height);
+}
+
+.project-tracks-height {
+  height: var(--project-tracks-height);
+}
+
+.footer-height {
+  height: var(--footer-height);
+}
+
+/* Drum file picker */
+.drum-file-picker a {
+  color: var(--yellow);
+}
+
+.drum-file-picker input::placeholder {
+  color: var(--moon-gray);
+}
+
+.file-search-height {
+  height: calc(100% - 10rem);
+}
+
+/* Script sidebar */
+.scrim {
+  width: 100vw;
+  height: 100vh;
+  z-index: 2;
+}
+
+.script-wrapper-height {
+  height: calc(100% - 12rem);
+}
+
+@media (min-width: 40em) {
+  .script-wrapper-height {
+    height: calc(100% - 4rem);
+  }
+}
+
+.cm-editor {
+  /* height: calc(100% - 1.7rem); */
+  height: calc(100%);
+  border: solid 0.125rem var(--light-gray);
+}
