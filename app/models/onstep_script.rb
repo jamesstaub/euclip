@@ -18,10 +18,11 @@ class OnstepScript < Script
   end
 
   def track_default_init
-    self.safe_code = %{
-if (data) {
+    self.safe_code = %{if (data) {
   this.play();
-} 
+} else {
+  this.stop();
+}
         } if self.safe_code.nil?
   end
 end

@@ -42,6 +42,9 @@ Rails.application.routes.draw do
     resources :onstep_scripts, :controller => 'scripts', :path => '/onstep-scripts'
     
     resources :sequences, only: %i[create update destroy]
+    
+    get '/files/*path', to: 'files#index', format: false, as: :nested_files
+
   end
 
   get '/*ember_path', to: 'ember#index', constraints: -> (req) { !(req.fullpath =~ /^\/v1\/.*/) }

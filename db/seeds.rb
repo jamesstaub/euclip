@@ -7,8 +7,8 @@ admin = User.create!({
   last_name: "staub",
   username: "euclip",
   email: "jamesstaub@gmail.com",
-  password: "",
-  password_confirmation: "",
+  password: "3uCl1p#",
+  password_confirmation: "3uCl1p#",
 })
 
 james = User.create!({
@@ -16,8 +16,8 @@ james = User.create!({
   last_name: "staub",
   username: "james",
   email: "jamesstaub+test@gmail.com",
-  password: "euclip",
-  password_confirmation: "euclip",
+  password: "3uCl1p#",
+  password_confirmation: "3uCl1p#",
 })
 
 project = Project.create_with_relations!({
@@ -102,8 +102,12 @@ EOS
 ),
     onstep_script: OnstepScript.create!(safe_code: <<-EOS
 if (data) {
-  __('adsr').adsr('trigger');
+  this.play();
+  __('adsr').adsr('trigger', 'fast')
+} else {
+  this.stop();
 }
+
 EOS
 ),
   },
@@ -130,4 +134,12 @@ EOS
   Preset.create!(preset_collection: sample_collection, **preset)
 end
 
+
+
+
+SearchableFile.destroy_all
+SearchableDirectory.destroy_all
+SearchableDirectory.create(name: '/')
+file_names = File.readlines('db/seeds/filepaths.txt').map(&:chomp)
+file_names.map{|file_path| FileService.create_record(file_path) }
 

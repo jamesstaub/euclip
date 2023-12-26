@@ -1,5 +1,5 @@
 #Euclip API
-`rvm use 2.7.7`
+`rvm use 3.2.`
 
 [user auth strategy for this app was forked from](https://github.com/scott-knight/rails6-sandbox-api)
 

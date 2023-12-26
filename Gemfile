@@ -16,7 +16,6 @@ gem 'hamlit-rails'
 gem 'humanize'
 gem 'pagy' # https://github.com/ddnexus/pagy - fast pagination
 gem 'rack-cors'
-gem 'rack-proxy'
 
 
 

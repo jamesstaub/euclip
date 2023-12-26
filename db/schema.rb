@@ -2,15 +2,15 @@
 # of editing this file, please use the migrations feature of Active Record to
 # incrementally modify your database, and then regenerate this schema definition.
 #
-# This file is the source Rails uses to define your schema when running `rails
-# db:schema:load`. When creating a new database, `rails db:schema:load` tends to
+# This file is the source Rails uses to define your schema when running `bin/rails
+# db:schema:load`. When creating a new database, `bin/rails db:schema:load` tends to
 # be faster and is potentially less error prone than running all of your
 # migrations from scratch. Old migrations may fail to apply correctly if those
 # migrations use external dependencies or application code.
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_01_08_171921) do
+ActiveRecord::Schema.define(version: 2023_12_20_233345) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
@@ -88,6 +88,31 @@ ActiveRecord::Schema.define(version: 2021_01_08_171921) do
     t.index ["track_id"], name: "index_scripts_on_track_id"
   end
 
+  create_table "searchable_directories", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "name"
+    t.integer "depth"
+    t.uuid "parent_id"
+    t.uuid "root_id"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["name"], name: "index_searchable_directories_on_name"
+    t.index ["parent_id"], name: "index_searchable_directories_on_parent_id"
+    t.index ["root_id"], name: "index_searchable_directories_on_root_id"
+  end
+
+  create_table "searchable_files", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "name"
+    t.string "file_extension"
+    t.integer "depth"
+    t.uuid "searchable_directory_id", null: false
+    t.uuid "root_id"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["name"], name: "index_searchable_files_on_name"
+    t.index ["root_id"], name: "index_searchable_files_on_root_id"
+    t.index ["searchable_directory_id"], name: "index_searchable_files_on_searchable_directory_id"
+  end
+
   create_table "sequences", force: :cascade do |t|
     t.integer "hits"
     t.integer "steps"
@@ -100,8 +125,8 @@ ActiveRecord::Schema.define(version: 2021_01_08_171921) do
   end
 
   create_table "track_controls", force: :cascade do |t|
-    t.integer "min"
-    t.integer "max"
+    t.float "min"
+    t.float "max"
     t.float "default_value"
     t.float "control_value"
     t.float "control_array_value", default: [], array: true
@@ -113,6 +138,7 @@ ActiveRecord::Schema.define(version: 2021_01_08_171921) do
     t.bigint "track_id", null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.decimal "step_size"
     t.index ["track_id"], name: "index_track_controls_on_track_id"
   end
 
@@ -164,6 +190,10 @@ ActiveRecord::Schema.define(version: 2021_01_08_171921) do
   add_foreign_key "projects", "users", column: "creator_id", on_delete: :cascade
   add_foreign_key "scripts", "presets"
   add_foreign_key "scripts", "tracks"
+  add_foreign_key "searchable_directories", "searchable_directories", column: "parent_id", on_delete: :cascade
+  add_foreign_key "searchable_directories", "searchable_directories", column: "root_id", on_delete: :cascade
+  add_foreign_key "searchable_files", "searchable_directories"
+  add_foreign_key "searchable_files", "searchable_directories", column: "root_id", on_delete: :cascade
   add_foreign_key "sequences", "tracks"
   add_foreign_key "track_controls", "tracks"
   add_foreign_key "tracks", "projects"
