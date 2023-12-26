@@ -3,6 +3,10 @@
   background-color: var(--dark-gray);
 }
 
+.bg-dark-blue {
+  background-color: var(--dark-blue);
+}
+
 .bg-light-blue {
   background-color: var(--light-blue);
 }
@@ -137,28 +141,34 @@
 
 .light-fill {
   fill: var(--light-gray);
-  svg {
-    fill: var(--light-gray);
-  }
+}
+
+.light-fill svg {
+  fill: var(--light-gray);
 }
 
 .light-stroke {
   stroke: var(--light-gray);
-  svg, g, path {
-    stroke: var(--light-gray);
-  }
+}
+
+.light-stroke svg,
+.light-stroke g,
+.light-stroke path {
+  stroke: var(--light-gray);
 }
 
 .dark-fill {
   fill: var(--dark-gray);
-  svg {
-    fill: var(--dark-gray);
-  }
+}
+
+.dark-fill svg {
+  fill: var(--dark-gray);
 }
 
 .yellow-fill {
   fill: var(--dark-yellow);
-  svg {
-    fill: var(--dark-yellow);
-  }
+}
+
+.yellow-fill svg {
+  fill: var(--dark-yellow);
 }

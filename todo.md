@@ -92,6 +92,10 @@ to keep recent state in tact when returning to a track
   - finish implementing, include all node attributes in presets
     (at least for one section of them to learn the nodes)
 
+  - preset ideas:
+    mutate this.controls for sampler start/end time to create granular loops that
+    are subdivisions of the BPM or slices of a loop file
+
 ### Project
   - Save "Snapshots" (need to plan this out to work with concurrent editing, permissions)
   - Arrange mode: chain multiple projects together
@@ -149,6 +153,8 @@ to keep recent state in tact when returning to a track
   - - in addition to Euclidean tab, add some sorta generative/evolving/automated UI
   - - add a "Binary" sequence which converts 1-127 into a binary sequence
 
+- Separate the `offset` from the euclidean algo. 
+  offset should work for custom rhyhtms
 
 ### bugs
 -- master track doesn't update when new nodes are added (until playback is restarted)

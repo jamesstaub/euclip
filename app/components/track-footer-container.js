@@ -42,13 +42,19 @@ export default class TrackFooterContainerComponent extends Component {
    * In all likelyhood they only need to be re-fetched when the script is updated
    * */
   get channelStripGainControl() {
-    return TrackNodeModel.channelStripNode(this.args.track, 'gain')
-      ?.trackControls?.firstObject;
+    const controls = TrackNodeModel.channelStripNode(
+      this.args.track,
+      'gain'
+    )?.trackControls;
+    return controls ? controls[0] : null;
   }
 
   get channelStripPannerControl() {
-    return TrackNodeModel.channelStripNode(this.args.track, 'panner')
-      ?.trackControls?.firstObject;
+    const controls = TrackNodeModel.channelStripNode(
+      this.args.track,
+      'panner'
+    )?.trackControls;
+    return controls ? controls[0] : null;
   }
 
   get trackNodesTabs() {
@@ -66,6 +72,7 @@ export default class TrackFooterContainerComponent extends Component {
   @action
   setUi(key, val) {
     this[key] = val;
+    this.showReference = false;
   }
 
   @action

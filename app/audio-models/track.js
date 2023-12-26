@@ -36,27 +36,36 @@ export default class TrackAudioModel extends Model.extend(Evented) {
    *
    */
   setNodeToVisualize() {
+    // FIXME: it is brittle to hardcode "main-output" id
     const firstVisualizableNode = this.settingsForNodes.find(
       (audioNode) => audioNode.userSettings?.id == 'main-output'
     );
-
     const node = __._getNode(firstVisualizableNode?.uuid)?.getNativeNode();
     this.nodeToVisualize = node;
   }
 
+  // FIXME:
+  // check if the APP breaks if a user uses a hard coded filepath string in the script
+  // rather than selecting from drum-file-picker
   async downloadSample() {
     if (this.filepathUrl) {
       await fetch(this.filepathUrl)
         .then((res) => res.blob()) // Gets the response and returns it as a blob
         .then((blob) => {
           this.localFilePath = URL.createObjectURL(blob);
+        })
+        .catch((err) => {
+          throw err;
         });
     }
   }
 
   async setupAudioFromScripts(unbindBeforeCreate = true) {
-    console.log('setupAudioFromScripts');
     const initScript = await this.initScript;
+    if (!initScript) {
+      console.error('no initScript: This happened once, figure out why');
+      debugger;
+    }
     await this.trackControls;
 
     // settingsForNodes is an array to store audio node uuids created in this track's script
@@ -91,17 +100,21 @@ export default class TrackAudioModel extends Model.extend(Evented) {
           // callback is a custom addition to cracked library that
           // fires when audio file loads
           userSettings.callback = async ({ buffer, error }) => {
-            this.trackNodes.then((_store) => {
-              const trackNode = _store.findBy('nodeUUID', node.getUUID());
-              if (this.trackNodes.isFulfilled && trackNode) {
-                if (buffer) {
-                  trackNode.fileLoadState = FILE_LOAD_STATES.SUCCESS;
-                }
-                if (error) {
-                  trackNode.fileLoadState = FILE_LOAD_STATES.ERROR;
-                }
+            const trackNode = this.trackNodes.findBy(
+              'nodeUUID',
+              node.getUUID()
+            );
+
+            if (this.trackNodes && trackNode) {
+              if (buffer) {
+                trackNode.fileLoadState = FILE_LOAD_STATES.SUCCESS;
+                trackNode.setSamplerControlsToBuffer(buffer);
               }
-            });
+              if (error) {
+                console.error('File Load Error:', error);
+                trackNode.fileLoadState = FILE_LOAD_STATES.ERROR;
+              }
+            }
           };
         }
         // 'ui' is a custom attr that users can set in the script editor when defining a cracked audio node
@@ -125,7 +138,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
     trackNodes = this.findOrCreateTrackNodeRecords();
     this.setupTrackControls(trackNodes); // need to wait to make sure we have filepath
-
     if (this.currentSequence) {
       if (trackNodes.length) {
         let onStepCallback = this.onStepCallback.bind(this);
@@ -133,9 +145,10 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         // bind to sequencer?  ramp, LFO?
         // what about if there are multiple chains declared in
         // a track's setup script?
-        if (trackNodes.firstObject) {
+
+        if (trackNodes.length) {
           bindSourcenodeToLoopStep(
-            trackNodes.firstObject.uniqueSelector,
+            trackNodes[0].uniqueSelector,
             onStepCallback,
             this.currentSequence.sequence
           );
@@ -262,6 +275,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   async setupTrackControls(trackNodes) {
     let trackControls = await this.trackControls;
     let nodesWithoutTrackControls = [];
+
     trackNodes.forEach((trackNode) => {
       // find a matching trackControl
       // FIXME: channelStrip nodes are not successfully matched
@@ -337,8 +351,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       trackControl.setAttrOnTrackStep(index);
     });
 
-    // FIXME: ideally this would not be a proxy, so .content not used
-    this.onstepScript.content.invokeFunctionRef(index, data, array);
+    this.onstepScript.invokeFunctionRef(index, data, array);
   }
 
   get scriptScope() {

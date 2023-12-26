@@ -34,10 +34,10 @@
       {{#each @track.samplerNativeBuffers as |buffer|}}
         {{#if buffer}}
           <canvas
-            class='ba bw1 ml3 w-100 h-50'
+            class='ba bw1 ml3 w6 h-50'
             {{audio-waveform buffer}}
           ></canvas>
-          <span class="ml3">{{display-float (buffer-len buffer)}} sec</span>
+          <span class="ml3">{{display-float buffer.duration}} sec</span>
         {{/if}}
       {{/each}}
     {{/if}}

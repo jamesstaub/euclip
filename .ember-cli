@@ -9,6 +9,9 @@
   "ssl": true,
   "ssl-key":"/Users/admin/.ssh/server.key",
   "ssl-cert":"/Users/admin/.ssh/server.crt",
+  "proxy": "https://localhost:3000",
+
+
 
   /**
   Setting `isTypeScriptProject` to true will force the blueprint generators to generate TypeScript

@@ -87,7 +87,16 @@
             <div
               class='flex overflow-hidden overflow-x-scroll flex-column flex-grow-1 shrink-1 bl'
             >
-              <h3 class='ma3'>Audio Node Controls</h3>
+            <div class="ma3 flex justify-between flex-wrap items-center">
+              <h3 class="mv1">Audio Node Controls</h3>
+              <ButtonText
+                class='ph1 pa2 f7 yellow-fill w4 mr2 mt2'
+                {{on 'click' this.toggleReference}}
+                @label='Toggle Reference'
+              >
+                {{if this.showReference "show controls" "show reference"}} 
+              </ButtonText>
+            </div>
               <div class='flex h-100 flex-column grow-1 shrink-1 overflow-y-hidden'>
                 <TabMenu
                   class='ph3 mb3 flush'
@@ -119,15 +128,7 @@
       </div>
     </div>
   {{/unless}}
-  <div>
-    <ButtonPrimary
-      class='absolute top-0 right-0 flex ph1 f7 yellow-fill w4 mr2 mt2'
-      {{on 'click' this.toggleReference}}
-      @label='Edit'
-    >
-      {{if this.showReference "hide" "show"}} reference
-    </ButtonPrimary>
-  </div>
+
   {{! 
       TODO perhaps design a symbolic UI for track nodes when in script view
       to demonstrate nodes getting added/removed

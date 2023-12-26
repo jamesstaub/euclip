@@ -59,6 +59,7 @@ div::-webkit-scrollbar-thumb {
 
 a {
   cursor: pointer;
+  text-decoration-line: none;
 }
 
 ::placeholder {

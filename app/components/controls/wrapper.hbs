@@ -3,7 +3,7 @@
   ...attributes
 >
   <div
-    class='relative w-100 slider-control-width items-center flex justify-between mb2'
+    class='relative w-100 slider-control-width items-center flex justify-between mb1'
   >
     <IconButton
       class={{concat
@@ -18,10 +18,8 @@
 
     <div class="flex items-center">
       <span class='fw7 w3'>{{@trackControl.nodeAttr}}</span>
-      {{#if this.isShowingConfig}}
-        <span class="f7">{{unit-for-param @trackControl.nodeAttr}}</span>
-      {{/if}}
     </div>
+
     {{!-- <div
       class='mv1'
       {{nexus-ui
@@ -49,6 +47,7 @@
 
   <div>
     {{#if this.isShowingConfig}}
+      <p class="f7 mv0">{{unit-for-param @trackControl.nodeAttr}}</p>
       <Controls::ControlConfig @trackControl={{@trackControl}} />
     {{else}}
       {{yield}}

@@ -10,24 +10,12 @@ export default class ScriptEditorComponent extends Component {
   @tracked renderFlag = 0; // integer passed to codemirror modifier to retrigger an upage to the editor's content
 
   get functionIsLoaded() {
-    const { code, editorContent, functionRef } = getProperties(
-      this.args.scriptModel,
-      'code',
-      'safeCode',
-      'editorContent',
-      'functionRef'
-    );
+    const { code, editorContent, functionRef } = this.args.scriptModel;
     return code === editorContent && functionRef;
   }
 
   get canRevert() {
-    const { safeCode, editorContent, functionRef } = getProperties(
-      this.args.scriptModel,
-      'code',
-      'safeCode',
-      'editorContent',
-      'functionRef'
-    );
+    const { safeCode, editorContent, functionRef } = this.args.scriptModel;
     return safeCode !== editorContent;
   }
 

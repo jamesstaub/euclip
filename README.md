@@ -4,8 +4,8 @@ See [Theory of Operation](theory-of-operation.md) to get a better idea of how Eu
 
 # euclip
 local development against api server using a self signed certificate
-`ember s --proxy https://localhost:3000  --secure-proxy=false`
-`rails server -b 'ssl://127.0.0.1:3000?key=/Users/admin/.ssh/server.key&cert=/Users/admin/.ssh/server.crt'`
+`ember s  --secure-proxy=false` (proxy is in .ember-cli)
+`rails server -b 'ssl://localhost:3000?key=/Users/admin/.ssh/server.key&cert=/Users/admin/.ssh/server.crt'`
 
 ## Deploying
 `deploy-to-rails.sh` is a helper scipt that assumes the euclip-api repo exists in the same directory as this repo. This script will run build a production version of this app

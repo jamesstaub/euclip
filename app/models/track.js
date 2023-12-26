@@ -131,7 +131,6 @@ export default class TrackModel extends TrackAudioModel {
     if (!this.filePathRelative) {
       return null;
     }
-
     return `${ENV.APP.AUDIO_PATH}${this.filePathRelative}`;
   }
 
@@ -198,7 +197,7 @@ export default class TrackModel extends TrackAudioModel {
 
   async duplicate() {
     const project = await this.project;
-    const newTrack = project.get('tracks').createRecord();
+    const newTrack = project.tracks.createRecord();
     return await project.setupAndSaveNewTrack(newTrack, {
       adapterOptions: { duplicateId: this.id },
     });

@@ -1,0 +1,12 @@
+<button 
+  type="button"
+  class="ttc bg-transparent bn"
+  title={{@label}}
+  ...attributes
+>
+  {{#if (has-block)}}
+    {{yield}}
+  {{else}}
+    {{@label}}
+  {{/if}}
+</button>

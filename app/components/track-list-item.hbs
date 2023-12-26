@@ -1,5 +1,5 @@
 {{!-- template-lint-disable no-invalid-interactive --}}
-{{#if @track.trackNodes.content}}
+{{#if @track.trackNodes}}
   <div 
     class="pointer {{if @track.isMaster "pl4 pr3" "pl3"}} bb b--silver {{if @isActive "bg-yellow" "bg-dark-gray hover-bg-near-black"}}" 
     {{on "click" @selectActiveTrack}}

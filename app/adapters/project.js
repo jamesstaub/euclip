@@ -2,7 +2,7 @@ import ApplicationAdapter from './application';
 import ENV from 'euclip/config/environment';
 
 export default class ProjectAdapter extends ApplicationAdapter {
-  urlForQueryRecord(params, modelName) {
+  urlForQueryRecord(params) {
     const slug = params.slug;
     delete params.slug;
     return `/projects/${encodeURIComponent(slug)}`;

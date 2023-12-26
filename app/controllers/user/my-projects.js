@@ -8,11 +8,11 @@ export default class UserMyProjectsController extends Controller {
   @service router;
 
   @action
-  play(project) {
+  async play(project) {
     this.model.forEach((project) => {
       project.stopLoop();
     });
-    project.initSignalChain();
+    await project.initSignalChain();
     project.startLoop();
   }
 

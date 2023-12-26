@@ -59,7 +59,7 @@
 
     {{#each this.selectedNodes as |node idx|}}
       {{!-- exclude the source node --}}
-      {{#unless (eq idx 0)}}
+      {{#if (not (eq idx 0))}}
         <SignalChainNode
           @activeNodeIdx={{this.activeNodeIdx}}
           @node={{node}}
@@ -69,10 +69,10 @@
           @onSelectNode={{fn this.insertEffectNodeAtIdx idx}}
           @onRemoveNode={{fn this.removeNodeFromArray idx}}
         />
-      {{/unless}}
+      {{/if}}
     {{/each}}
     
-    {{#unless (eq this.selectedNodes.length 0)}}
+    {{#if (not (eq this.selectedNodes.length 0))}}
       <SignalChainNode
         @idx={{-1}}
         @activeNodeIdx={{this.activeNodeIdx}}
@@ -80,7 +80,7 @@
         @onToggleMenu={{this.setActiveNode}}
         @onSelectNode={{fn this.insertEffectNodeAtIdx 1}}
       />
-    {{/unless}}
+    {{/if}}
   </div>
   <div class="pv3">
     <ButtonPrimary

@@ -8,7 +8,7 @@
       </ButtonPrimary>
     </div>
   {{else}}
-    <form class="mw5 center" {{on "submit" this.authenticate}}>
+    <form class="mw5 center" {{on "submit" this.submitAuth}}>
       {{#if this.loginView}}
         <fieldset class="mb4">
           <legend>Login</legend>

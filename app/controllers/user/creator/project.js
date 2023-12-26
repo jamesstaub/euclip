@@ -9,7 +9,7 @@ export default class UserCreatorProjectController extends Controller {
   @tracked activeTrack;
   @tracked leftSidebarOpen;
   @tracked rightSidebarOpen;
-  @tracked _sortedTracks;
+  @tracked sortedTracks;
 
   constructor() {
     super(...arguments);
@@ -20,16 +20,6 @@ export default class UserCreatorProjectController extends Controller {
     const tracks = await project.tracks;
     // OPTIMIZE: bundle this in a single request and set to each track
     tracks.forEach((track) => track.createAudioFileTree());
-  }
-
-  // see note below if weirdness occurs
-  get sortedTracks() {
-    if (this.model.tracks.isFulfilled) {
-      this._sortedTracks = this.model.tracks.sortBy('order');
-      return this._sortedTracks;
-    } else {
-      return this._sortedTracks;
-    }
   }
 
   @action
@@ -53,9 +43,7 @@ export default class UserCreatorProjectController extends Controller {
   @action
   async addTrack() {
     let track = this.model.tracks.createRecord({ hits: 1 });
-    // NOTE this is potentially a bad idea but the cached value in the sortedTracks getter above
-    // prevents a flicker when adding tracks
-    this._sortedTracks.push(track);
+    this.sortedTracks = [...this.sortedTracks, track];
     try {
       track = await this.model.setupAndSaveNewTrack(track);
     } catch (error) {

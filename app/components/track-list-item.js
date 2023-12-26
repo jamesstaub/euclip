@@ -18,7 +18,10 @@ export default class TrackListItemComponent extends Component {
 
   @action
   async duplicateTrack() {
-    await this.args.track.duplicate();
+    const track = await this.args.track.duplicate();
+    this.project.sortedTracks = [...this.project.sortedTracks, track].sortBy(
+      'order'
+    );
   }
 
   @action

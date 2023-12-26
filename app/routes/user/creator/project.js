@@ -5,6 +5,8 @@ import { inject as service } from '@ember/service';
 
 export default class UserCreatorProjectRoute extends Route {
   @service store;
+  @service router;
+
   model({ slug }) {
     return this.store.queryRecord('project', {
       slug,
@@ -19,8 +21,9 @@ export default class UserCreatorProjectRoute extends Route {
   setupController(controller, project) {
     controller.fetchAudioFileTrees(project);
     controller.setProperties({
-      activeTrack: project.get('tracks.firstObject'),
+      activeTrack: project.tracks[0],
       model: project,
+      sortedTracks: project.tracks.sortBy('order'),
     });
     this.getPresets(controller);
   }

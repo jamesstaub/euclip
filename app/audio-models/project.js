@@ -19,8 +19,14 @@ export default class ProjectAudioModel extends Model {
     defineChannelStripMacro();
     this.masterTrack.setupAudioFromScripts();
     await this.downloadTrackSamples();
-    this.orderedTracks.forEach((track) => track.setupAudioFromScripts());
+    await this.setupTracks();
     return this;
+  }
+
+  async setupTracks() {
+    return await Promise.all(
+      this.orderedTracks.map((track) => track.setupAudioFromScripts())
+    );
   }
 
   async downloadTrackSamples() {

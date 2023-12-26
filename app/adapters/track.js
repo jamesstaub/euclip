@@ -30,20 +30,34 @@ export default class TrackAdapter extends ApplicationAdapter {
     if (isArray(response.data)) {
       // first we find all the tracks except the newly created one and manually push them to the store
       // because their order may have changed
+      const { data, meta } = response;
+
+      // HACK
+      // cache the stringified inclued array because i think
+      // some ember store race condition is mutating included[0].relationships.data into proxy objects
+      // which throw an error
+      const _included = JSON.stringify(response.included);
+
+
       const payloadWithoutNewTrack = {
-        ...response,
-        data: response.data.rejectBy('id', String(response.meta.created)),
+        meta,
+        included: JSON.parse(_included),
+        data: data.rejectBy('id', String(meta.created)),
       };
+
       store.pushPayload('track', payloadWithoutNewTrack);
 
       // then munge and return a new response object to look like what the adapter's createRecord would normally
       // expect with a single newly created track record
       const payloadNewTrackOnly = {
-        ...response,
-        data: response.data.findBy('id', String(response.meta.created)),
+        meta,
+        included: JSON.parse(_included),
+        data: data.findBy('id', String(meta.created)),
       };
+
       return payloadNewTrackOnly;
     }
+
     return response;
   }
 

@@ -20,7 +20,7 @@ export default class LoginController extends Controller {
   }
 
   @action
-  async authenticate(e) {
+  async submitAuth(e) {
     e.preventDefault();
     try {
       if (!this.loginView) {
