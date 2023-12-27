@@ -1,4 +1,5 @@
-require_relative 'boot'
+require_relative "boot"
+require_relative '../lib/middleware/snake_case_parameters'
 
 require "rails"
 # Pick the frameworks you want:
@@ -12,11 +13,7 @@ require "action_mailbox/engine"
 require "action_text/engine"
 require "action_view/railtie"
 require "action_cable/engine"
-require_relative "../app/middlewares/snake_case_parameters"
 
-
-
-# require "sprockets/railtie"
 # require "rails/test_unit/railtie"
 
 # Require the gems listed in Gemfile, including any gems
@@ -28,22 +25,24 @@ module EuclipApi
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 6.0
 
-    # Settings in config/environments/* take precedence over those specified here.
-    # Application configuration can go into files in config/initializers
-    # -- all .rb files in that directory are automatically loaded after loading
-    # the framework and any gems in your application.
+    # Configuration for the application, engines, and railties goes here.
+    #
+    # These settings can be overridden in specific environments using the files
+    # in config/environments, which are processed later.
+    #
+    # config.time_zone = "Central Time (US & Canada)"
+    # config.eager_load_paths << Rails.root.join("extras")
 
     # Only loads a smaller set of middleware suitable for API only apps.
     # Middleware like session, flash, cookies can be added back manually.
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
 
-    # load lib files
     config.autoload_paths += %W(#{config.root}/lib)
     config.autoload_paths += Dir["#{config.root}/lib/*"]
     config.autoload_paths += Dir["#{config.root}/lib/**/"]
 
-    config.middleware.use SnakeCaseParameters
 
+    config.middleware.use SnakeCaseParameters
   end
 end
