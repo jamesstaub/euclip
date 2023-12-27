@@ -34,7 +34,7 @@ class V1::TracksController < V1::BaseController
           # no need to pass related models to client for anything other than
           # the duplicated track, only the track orders have been updated on others
           params: {relations_only_for: @track },
-          # pass the ID of the newly created track in the {meat} to client so ember track adapter can
+          # pass the ID of the newly created track in the {meta} to client so ember track adapter can
           # differentiate from the rest of the tracks that are retunrned in this case
           meta: { created: @track.id }
         }

@@ -33,11 +33,44 @@ class FileService
                                 file_extension: file_extension, 
                                 searchable_directory: current_directory, 
                                 root_id: root&.id, 
-                                depth: index
+                                depth: index,
+                                path: file_path
                               )
         end
       end
     end
+  end
+
+  def self.perform_search(query, page)
+    # TODO: pagination not fully implemented, need to pass total pages to client
+    page_size = 2000
+    offset = page * page_size
+
+    searchable_files = SearchableFile
+                      .where("path ILIKE ?", "%#{query}%")
+                      .offset(offset)
+                      .limit(page_size)
+
+    # Group results by folder
+    grouped_results = searchable_files.group_by { |file| 
+      file.root&.name || '/' 
+    }
+
+    # Format the results as needed
+    formatted_results = grouped_results.map do |folder, files|
+      {
+        folder: folder,
+        files: files.map do |file|
+          {
+            filename: file.name,
+            path: file.path.start_with?('/') ? file.path : "/#{file.path}"
+
+          }
+        end
+      }
+    end
+
+    formatted_results
   end
 
 end

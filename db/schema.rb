@@ -103,6 +103,7 @@ ActiveRecord::Schema.define(version: 2023_12_20_233345) do
   create_table "searchable_files", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "name"
     t.string "file_extension"
+    t.string "path"
     t.integer "depth"
     t.uuid "searchable_directory_id", null: false
     t.uuid "root_id"

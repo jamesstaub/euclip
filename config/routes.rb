@@ -43,7 +43,9 @@ Rails.application.routes.draw do
     
     resources :sequences, only: %i[create update destroy]
     
-    get '/files/*path', to: 'files#index', format: false, as: :nested_files
+
+    get '/files/search', to: 'files#search', format: :json
+    get '/files/*path', to: 'files#index', format: :json
 
   end
 

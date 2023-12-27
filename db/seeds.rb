@@ -140,6 +140,6 @@ end
 SearchableFile.destroy_all
 SearchableDirectory.destroy_all
 SearchableDirectory.create(name: '/')
-file_names = File.readlines('db/seeds/filepaths.txt').map(&:chomp)
+file_names = File.readlines('db/seeds/mp3filepaths.txt').map(&:chomp)
 file_names.map{|file_path| FileService.create_record(file_path) }
 

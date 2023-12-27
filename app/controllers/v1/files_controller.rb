@@ -19,6 +19,17 @@ class V1::FilesController < ApplicationController
     render json: response
   end
 
+  def search
+    query = params[:q]
+    page = params[:page].to_i
+
+    # Perform a search based on the query and pagination
+    results = FileService.perform_search(query, page)
+
+    render json: { results: results }
+  end
+
+
   private
 
   # the top_dir passed in here will be a named folder like "Roland"
@@ -56,7 +67,6 @@ class V1::FilesController < ApplicationController
 
   # top_dir is the named directory which is a direct child of the / directory
   # descendents are all directories that have top_dir as the root
-
   def determine_dir(descendents, top_dir, path_part, idx)
     dir = SearchableDirectory.get_root if path_part == '/'
     dir = top_dir if path_part == top_dir.name && idx == 1
