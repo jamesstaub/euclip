@@ -37,6 +37,10 @@
 }
 
 /* Flexbox */
+.flex-0 {
+  flex: 0;
+}
+
 .grow-1 {
   flex-grow: 1;
 }

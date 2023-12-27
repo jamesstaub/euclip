@@ -66,7 +66,7 @@ module.exports = function (environment) {
     // ENV.APP.LOG_ACTIVE_GENERATION = true;
     // ENV.APP.LOG_TRANSITIONS = true;
     // ENV.APP.LOG_TRANSITIONS_INTERNAL = true;
-    ENV.APP.AUDIO_PATH = '/assets/audio/drum-machines';
+    ENV.APP.DRUMMACHINES_PATH = '/assets/audio/drum-machines';
   }
 
   if (environment === 'test') {
@@ -82,7 +82,7 @@ module.exports = function (environment) {
   }
 
   if (environment === 'production') {
-    ENV.APP.AUDIO_PATH =
+    ENV.APP.DRUMMACHINES_PATH =
       'https://storage.googleapis.com/euclidean-cracked.appspot.com/Drum%20Machines%20mp3';
   }
 

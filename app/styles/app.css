@@ -118,3 +118,29 @@ a {
   height: calc(100%);
   border: solid 0.125rem var(--light-gray);
 }
+
+.progress-container {
+  width: calc(100% - 2rem);
+  height: 4px;
+  background-color: #e0e0e0; /* Background color of the progress container */
+  position: relative;
+}
+
+.progress-bar {
+  height: 100%;
+  width: 0;
+  background-color: var(--light-blue); /* Color of the progress bar */
+  position: absolute;
+  top: 0;
+  left: 0;
+  animation: progressBarAnimation 2s ease infinite; /* Animation for the progress bar */
+}
+
+@keyframes progressBarAnimation {
+  0% {
+    width: 0;
+  }
+  100% {
+    width: 100%;
+  }
+}

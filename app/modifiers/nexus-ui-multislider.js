@@ -5,7 +5,7 @@ import Nexus from 'nexusui';
 
 const COLORS = {
   sliderColor: '#52ebff',
-  bgColor: '#075f68',
+  bgColor: '', // darkblue: #075f68
   sliderStrokeColor: '#333',
   sliderBgColor: '#f7f7f7',
   red: 'rgb(217, 83, 79)',

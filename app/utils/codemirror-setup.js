@@ -101,7 +101,7 @@ export const basicSetup = (() => [
   keymap.of([
     indentWithTab,
     ...closeBracketsKeymap,
-    //   ...defaultKeymap,
+    ...defaultKeymap,
     ...historyKeymap,
     //   ...foldKeymap,
     //   ...completionKeymap,

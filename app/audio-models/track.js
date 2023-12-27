@@ -44,9 +44,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     this.nodeToVisualize = node;
   }
 
-  // FIXME:
-  // check if the APP breaks if a user uses a hard coded filepath string in the script
-  // rather than selecting from drum-file-picker
   async downloadSample() {
     if (this.filepathUrl) {
       await fetch(this.filepathUrl)

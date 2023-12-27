@@ -24,7 +24,7 @@ export default class DrumFilePicker extends Component {
     yield timeout(300);
     if (this.searchQuery.length > 2) {
       const results = yield AudioFileTreeModel.fetchDirectory(
-        `/search/${this.searchQuery}?include_dir=${true}&page=${pageToSearch}`
+        `/search?q=${this.searchQuery}&page=${pageToSearch}`
       );
 
       this.searchResults = results.results;

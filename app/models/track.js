@@ -124,14 +124,17 @@ export default class TrackModel extends TrackAudioModel {
     // let defaultFile =
     //   '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CR8KBASS.mp3';
 
+    // for the same resons, there's a bad UX where if a user manually enters a filepath string
+    // in the code, the file picker shows a default drumfile (which corresponds to the this.filepath variable)
+    // improve the ui by allowing a manual URL in the file tree.
     return this.samplerFilepathControl?.controlStringValue;
   }
 
   get filepathUrl() {
     if (!this.filePathRelative) {
-      return null;
+      return '/assets/audio/silent.mp3'; // if there's no track-control for filepath yet, we still want to create a sampler node
     }
-    return `${ENV.APP.AUDIO_PATH}${this.filePathRelative}`;
+    return `${ENV.APP.DRUMMACHINES_PATH}${this.filePathRelative}`;
   }
 
   get validTrackNodes() {

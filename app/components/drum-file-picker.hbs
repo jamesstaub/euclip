@@ -2,15 +2,18 @@
   {{yield}}
   <Input
     aria-label='Search for Drum Sounds'
-    class='ba bw2 b--yellow grow-1 white bg-dark-gray f5 pa3'
+    class='ba bw1 b--yellow grow-1 white bg-dark-gray f5 pa3'
     placeholder='Search for drums sounds'
     @value={{this.searchQuery}}
      {{on 'keyup' this.search}} 
   />
   {{#if this.searchResults.length}}
-    <ButtonPrimary {{on 'click' this.backToBrowse}} @label='← browse' />
+    <ButtonPrimary class="bl0" {{on 'click' this.backToBrowse}} @label='← browse' />
   {{/if}}
 </div>
+{{#if this.searchTask.isRunning}}
+  <ProgressBar class='absolute top-0 ma3' />
+{{/if}}
 
 {{#if this.searchResults.length}}
   <div
@@ -51,7 +54,4 @@
       </div>
     {{/each}}
   </div>
-{{/if}}
-{{#if this.searchTask.isRunning}}
-  <ProgressBar class='absolute bottom-0 right-0' />
 {{/if}}

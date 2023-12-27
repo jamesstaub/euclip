@@ -57,6 +57,13 @@ export function startLoop(loopInterval) {
 export function stopLoop() {
   __.loop('stop');
   __('*').stop();
+  stopDelays();
+}
+
+export function stopDelays() {
+
+  __('delay').ramp(0, 0.1, 'feedback');
+  __('delay').ramp(0, 0.5, 'gain');
 }
 
 /**

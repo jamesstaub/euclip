@@ -1,6 +1,6 @@
 {{#each @trackNodesForControls as |trackNode idx|}}
   {{#if (eq @visibleNodeIdx idx)}}
-    <div class='flex ml3'>
+    <div class='flex ml3 overflow-hidden'>
       {{!-- <ul class='list flex flex-column pl2'>
         {{#each trackNode.trackControls as |trackControl|}}
           <button
@@ -14,12 +14,12 @@
           </button>
         {{/each}}
       </ul> --}}
-      <div class='flex justify-start overflow-scroll h-100 mw-100'>
+      <div class='flex justify-start overflow-x-scroll overflow-y-hidden h-100 mw-100'>
 
         {{#each trackNode.trackControls as |trackControl|}}
           {{#if trackControl.isMultislider}}
             <Controls::Wrapper
-              class='multislider-width'
+              class='multislider-wrapper multislider-width justify-between'
               @trackControl={{trackControl}}
             >
               <SequencePagination

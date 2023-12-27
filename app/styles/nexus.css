@@ -1,6 +1,10 @@
 :root {
-  --seq-width: calc(32.2px * 16);
+  --num-steps: 16; /* Change the number of steps as needed */
   --step-width: 32.2px;
+  --seq-width: calc(calc(32.2px * var(--num-steps)) + 4);
+  --transparent-gray-1: rgba(10, 10, 10, 0.1);
+  --transparent-gray-2: rgba(10, 10, 10, 0.2);
+
 }
 
 .nexus-slider {
@@ -12,7 +16,6 @@
 }
 
 .sequencer-width {
-  --step-width: 32.2px;
   width: var(--seq-width);
 }
 
@@ -21,6 +24,19 @@
   flex: 0 0 var(--seq-width);
 }
 
+
 .slider-control-width {
   min-width: 8rem;
+}
+
+
+.multislider-bg {
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--transparent-gray-1),
+    var(--transparent-gray-1) var(--step-width),
+    var(--transparent-gray-2) calc(var(--step-width)),
+    var(--transparent-gray-2) calc(var(--step-width) * 2),
+    var(--transparent-gray-2) var(--step-width)
+  );  
 }

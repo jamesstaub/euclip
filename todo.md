@@ -74,6 +74,7 @@ to keep recent state in tact when returning to a track
   - hover over node tabs to show cracked uuid and selectors
   - info menu should show example of how to mutate track controls
 
+
 ### Track Controls
 
 
@@ -134,6 +135,10 @@ to keep recent state in tact when returning to a track
   - waveform UI control for slicing (array of start times)
   - support a dropbox URL or local folder
 
+  - File listings should have a preview button
+  - Search results should also have a "go to folder" button
+  
+
 ### Misc featurs:
   - multiplayer websocket editing
   - contributor chat box
@@ -157,6 +162,10 @@ to keep recent state in tact when returning to a track
   offset should work for custom rhyhtms
 
 ### bugs
+
+"no source node"
+sometimes when a filepath is not set, or the trackcontrol for the filepath is not ready, the sampler node will fail to create. fix this by falling back to silence.mp3 so it still creates a sampler node
+
 -- master track doesn't update when new nodes are added (until playback is restarted)
 - - need more solid sequencer-awareness when adding/removing tracks (use generators to start on a particular beat)
 
