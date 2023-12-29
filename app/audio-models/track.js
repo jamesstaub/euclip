@@ -2,7 +2,7 @@ import Model from '@ember-data/model';
 import Evented from '@ember/object/evented';
 
 import ENV from '../config/environment';
-import { difference } from '../utils/arrays-equal';
+
 import {
   addCustomSelector,
   bindSourcenodeToLoopStep,
@@ -131,9 +131,11 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     initScript.invokeFunctionRef();
     // nullify this callback after creating track nodes to prevent it from getting called outside of this track
     __.onCreateNode = null;
-    let trackNodes = this.cleanupNodeRecords();
+    
+    // Destroy all TrackNode records for this track, they'll be recreated from the latest update to the AudioNode tree
+    this.trackNodes.forEach((trackNode) => this.store.unloadRecord(trackNode));
 
-    trackNodes = this.findOrCreateTrackNodeRecords();
+    let trackNodes = this.findOrCreateTrackNodeRecords();
     this.setupTrackControls(trackNodes); // need to wait to make sure we have filepath
     if (this.currentSequence) {
       if (trackNodes.length) {
@@ -234,32 +236,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     return this.trackNodes;
   }
 
-  /**
-   * if a node was removed by user, the settingsForNodes array will be without
-   * it at this point.
-   * so make sure we delete it from the store
-   *
-   * existingAudioNodes relies on the synchronous point at which this method is called,
-   * but since trackNodes might not be fulfilled yet, we need to await it,
-   * so it's crucial that existingAudioNodes get declared before awaiting anything
-   */
-  cleanupNodeRecords() {
-    return this.trackNodes.filter((node) => {
-      if (!node) {
-        return false;
-      }
-      // FIXME: this only works if there are no duplicates of a given nodeType.
-      // this should look at node order as well
-      const shouldDestroy =
-        !this.settingsForNodes.findBy('nodeType', node.nodeType) &&
-        !node.isChannelStripChild; // settingsForNodes does not look at macro child nodes. This should be updated to support other macros too
-
-      if (shouldDestroy) {
-        node.deleteRecord();
-      }
-      return !shouldDestroy;
-    });
-  }
 
   /**
    *
@@ -269,10 +245,10 @@ export default class TrackAudioModel extends Model.extend(Evented) {
    *  else create a new TrackControl for the node
    *
    */
+
   async setupTrackControls(trackNodes) {
     let trackControls = await this.trackControls;
     let nodesWithoutTrackControls = [];
-
     trackNodes.forEach((trackNode) => {
       // find a matching trackControl
       // FIXME: channelStrip nodes are not successfully matched
@@ -281,6 +257,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
           trackNode.nodeType == trackControl.nodeType &&
           trackNode.order == trackControl.nodeOrder
       );
+
       if (matchingControls.length) {
         matchingControls.forEach((trackControl) => {
           // set the relation on the control to keep ember-data happy

@@ -163,6 +163,7 @@ to keep recent state in tact when returning to a track
 
 ### bugs
 
+
 "no source node"
 sometimes when a filepath is not set, or the trackcontrol for the filepath is not ready, the sampler node will fail to create. fix this by falling back to silence.mp3 so it still creates a sampler node
 

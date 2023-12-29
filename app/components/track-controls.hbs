@@ -1,24 +1,8 @@
 {{#each @trackNodesForControls as |trackNode idx|}}
   {{#if (eq @visibleNodeIdx idx)}}
     <div class='flex ml3 overflow-hidden'>
-      {{!-- <ul class='list flex flex-column pl2'>
-        {{#each trackNode.trackControls as |trackControl|}}
-          <button
-            type='button'
-            class='textbutton tl f7'
-            {{on 'click' 
-              (set this 'selectedControl' trackControl.id)
-            }}
-          >
-            <li>{{trackControl.nodeAttr}}</li>
-          </button>
-        {{/each}}
-      </ul> --}}
       <div class='flex justify-start overflow-x-scroll overflow-y-hidden h-100 mw-100'>
-        {{log "trackNode.id" trackNode.id}}
-
         {{#each trackNode.trackControls as |trackControl|}}
-          {{log "trackControl.id" trackControl.id}}
           {{#if trackControl.isMultislider}}
             <Controls::Wrapper
               class='multislider-wrapper multislider-width justify-between'

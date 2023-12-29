@@ -60,6 +60,7 @@ export default class TrackModel extends TrackAudioModel {
       }
     });
     await this.destroyRecord();
+
     if (project.get('isPlaying')) {
       // clean reset on delete to prevent the _loopListeners array gets cleared out in cracked
       project.stopLoop();

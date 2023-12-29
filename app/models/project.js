@@ -22,6 +22,7 @@ export default class ProjectModel extends ProjectAudioModel {
     }
 
     this.tracks.pushObject(track);
+
     await track.setupAudioFromScripts(false);
     track.createAudioFileTree(); // not required to start playing, just filetree UI
     return track;
