@@ -1,0 +1,60 @@
+<NavBar @logoWidth='220px' />
+{{page-title 'Sign up'}}
+<main class='pa4'>
+  <form class='measure center' {{on 'submit' this.submitAuth}}>
+    <fieldset id='sign_up' class='ba b--transparent ph0 mh0'>
+      <legend class='f4 fw6 ph0 mh0'>Create an account</legend>
+      <div class='mt3'>
+        <label class='db fw6 lh-copy f6' for='username'>Username</label>
+        <Input
+          class='pa2 input-reset ba bg-transparent w-100'
+          id='username'
+          name='username'
+          autocomplete='username'
+          placeholder='Enter Username'
+          @value={{this.username}}
+        />
+      </div>
+      <div class='mt3'>
+        <label class='db fw6 lh-copy f6' for='username'>Email</label>
+        <Input
+          class='pa2 input-reset ba bg-transparent w-100'
+          id='email'
+          name='email'
+          autocomplete='email'
+          placeholder='Enter Email'
+          @value={{this.email}}
+        />
+      </div>
+      <div class='mv3'>
+        <label class='db fw6 lh-copy f6' for='password'>Password</label>
+        <Input
+          class='pa2 input-reset ba bg-transparent w-100'
+          id='password'
+          name='password'
+          placeholder='Enter Password'
+          @type='password'
+          @value={{this.password}}
+          autocomplete='current-password'
+        />
+      </div>
+    </fieldset>
+    {{#if this.errorMessage}}
+      <p class="red">
+        {{this.errorMessage}}
+      </p>
+    {{/if}}
+    <div class=''>
+      <button
+        class='b ph3 pv2 input-reset ba b--black bg-transparent grow pointer f6 dib'
+        type='submit'
+      >Sign up</button>
+    </div>
+    <div class='lh-copy mt3'>
+      <LinkTo class='f6 link dim black db' @route='login'>
+        Log in
+      </LinkTo>
+      {{! <a href='#0' class='f6 link dim black db'>Forgot your password?</a> }}
+    </div>
+  </form>
+</main>

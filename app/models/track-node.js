@@ -207,7 +207,6 @@ export default class TrackNodeModel extends Model {
     //  before the script runs because we want it to be ready to go
     // so it gets special treatment here
     const existingTrackControls = this.track.get('trackControls').toArray();
-
     return controlAttrs.map((controlAttr) => {
       let defaultForAttr = {};
 

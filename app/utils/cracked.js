@@ -61,7 +61,6 @@ export function stopLoop() {
 }
 
 export function stopDelays() {
-
   __('delay').ramp(0, 0.1, 'feedback');
   __('delay').ramp(0, 0.5, 'gain');
 }

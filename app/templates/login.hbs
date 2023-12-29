@@ -1,78 +1,61 @@
-<NavBar @logoWidth="220px" />
-<div class="mt4 center">
+<NavBar @logoWidth='220px' />
+<div class='mt4 center'>
+  {{log this.session}}
   {{#if this.session.isAuthenticated}}
-    <div class="mw5 center">
+    <div class='mw5 center'>
       <p>Logged in as {{this.currentUser.user.username}}</p>
-      <ButtonPrimary {{on "click" this.invalidateSession}}>
+      <ButtonPrimary {{on 'click' this.invalidateSession}}>
         Logout
       </ButtonPrimary>
     </div>
   {{else}}
-    <form class="mw5 center" {{on "submit" this.submitAuth}}>
-      {{#if this.loginView}}
-        <fieldset class="mb4">
-          <legend>Login</legend>
-          <div class="mb3">
-            <label class="db" for="username">
-              Username
-            </label>
-            <Input class="w-100" id="username" autocomplete="username" placeholder="Enter Username" @value={{this.username}} />
+    <main class='pa4 black-80'>
+      <form class='measure center' {{on 'submit' this.submitAuth}}>
+        <fieldset id='sign_up' class='ba b--transparent ph0 mh0'>
+          <legend class='f4 fw6 ph0 mh0'>Sign In</legend>
+          <div class='mt3'>            
+            <label class='db fw6 lh-copy f6' for='username'>Username</label>
+            <Input
+              class='pa2 input-reset ba bg-transparent w-100'
+              id='username'
+              name='username'
+              autocomplete='username'
+              placeholder='Enter Username'
+              @value={{this.username}}
+            />
           </div>
-          <div class="mb3">
-            <label class="db" for="password">
-              Password
-            </label>
-            <Input class="w-100" id="password" placeholder="Enter Password" @type="password" @value={{this.password}} autocomplete="current-password" />
+          <div class='mv3'>
+            <label class='db fw6 lh-copy f6' for='password'>Password</label>
+            <Input
+              class='pa2 input-reset ba bg-transparent w-100'
+              id='password'
+              name='password'
+              placeholder='Enter Password'
+              @type='password'
+              @value={{this.password}}
+              autocomplete='current-password'
+            />
           </div>
-          <div class="flex items-center">
-            <ButtonPrimary type="submit">
-              Login
-            </ButtonPrimary>
-            <span class="mh2">or</span>
-            <button class="pointer" type="button" {{on "click" this.toggleView}}>{{this.toggleViewTxt}}</button>
-          </div>
-          {{#if this.errorMessage}}
-          <p>
+        </fieldset>
+        {{#if this.errorMessage}}
+          <p class="red">
             {{this.errorMessage}}
           </p>
-          {{/if}}
-        </fieldset>
-      {{else}}
-        <fieldset>
-          <legend>Sign up</legend>
-          <div class="mb3">
-            <label class="db" for="username">
-              Username
-            </label>
-            <Input class="w-100" id="username" placeholder="Enter Username" @value={{this.username}} />
-          </div>
-          <div class="mb3">
-            <label class="db" for="email">
-              Email
-            </label>
-            <Input class="w-100" id="email" autocomplete="email" placeholder="Enter Email Address" @value={{this.email}} />
-          </div>
-          <div class="mb3">
-            <label class="db" for="signup-password">
-              Password
-            </label>
-            <Input class="w-100" id="signup-password" placeholder="Enter Password" @type="password" @value={{this.password}} autocomplete="new-password" />
-          </div>
-          <div class="flex items-center">
-            <ButtonPrimary type="submit">
-              Sign Up
-            </ButtonPrimary>
-            <span class="mh2">or</span>
-            <p class="pointer" {{on "click" this.toggleView}}>{{this.toggleViewTxt}}</p>
-          </div>
-          {{#if this.errorMessage}}
-            <p>
-              {{this.errorMessage}}
-            </p>
-          {{/if}}
-        </fieldset>
-      {{/if}}
-    </form>
+        {{/if}}
+        <div class=''>
+          <button
+            class='b ph3 pv2 input-reset ba b--black bg-transparent grow pointer f6 dib'
+            type='submit'
+          >Sign in</button>
+        </div>
+        <div class='lh-copy mt3'>
+          <LinkTo class='f6 link dim black db' @route='signup'>
+            Sign up
+          </LinkTo>
+          {{!-- <a href='#0' class='f6 link dim black db'>Forgot your password?</a> --}}
+        </div>
+      </form>
+    </main>
   {{/if}}
   {{outlet}}
 </div>

@@ -38,7 +38,6 @@ export default class TrackAdapter extends ApplicationAdapter {
       // which throw an error
       const _included = JSON.stringify(response.included);
 
-
       const payloadWithoutNewTrack = {
         meta,
         included: JSON.parse(_included),

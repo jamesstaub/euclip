@@ -6,7 +6,9 @@ export default class ApplicationAdapter extends JSONAPIAdapter {
   @service session;
 
   buildURL() {
-    return `/v1${super.buildURL(...arguments)}`;
+    const url = super.buildURL(...arguments);
+    if (url == '/registration') return url; // TODO: fix this with proper inheritance for v1 adapters
+    return `/v1${url}`;
   }
 
   @computed('session.{data.authenticated.token,isAuthenticated}')

@@ -60,7 +60,7 @@
     (and this.leftSidebarOpen this.activeTrack (not this.activeTrack.isDeleted))
   }}
     <SidebarWrapper
-      class='h-100 bw2 br b--yellow'
+      class='h-100 bw2 br b--yellow max-w-100'
       @direction='left'
       @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id 'left'}}
     >

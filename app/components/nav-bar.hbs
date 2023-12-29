@@ -6,7 +6,9 @@
   </div>
   <div>
     <LinkTo class="white ttc mr3" @route="about">about</LinkTo>
-    <LinkTo class="yellow ttc mr3" @route="user.new">new project</LinkTo>
+    {{#if this.session.isAuthenticated}}
+      <LinkTo class="yellow ttc mr3" @route="user.new">new project</LinkTo>
+    {{/if}}
     {{yield}}
   </div>
 </nav>

@@ -61,6 +61,10 @@
   flex-basis: auto;
 }
 
+.basis-\[34px\] {
+  flex-basis: 34px;
+}
+
 .row-reverse {
   flex-direction: row-reverse;
 }
@@ -106,6 +110,10 @@
 
 .min-w-6 {
   min-width: var(--width-6);
+}
+
+.max-w-100 {
+  max-width: 100%;
 }
 
 /* Transform */

@@ -18,6 +18,7 @@ Router.map(function () {
     });
   });
   this.route('login');
+  this.route('signup');
   this.route('about');
   this.route('user-error');
 });

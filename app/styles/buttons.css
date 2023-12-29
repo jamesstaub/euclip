@@ -10,7 +10,6 @@ button {
 
 input:focus, button:focus {
   outline-color: var(--light-blue);
-
 }
 
 .light-yellow-button {

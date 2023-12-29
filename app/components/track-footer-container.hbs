@@ -87,7 +87,7 @@
             <div
               class='flex overflow-hidden overflow-x-scroll flex-column flex-grow-1 shrink-1 bl'
             >
-            <div class="ma3 flex justify-between flex-wrap items-center">
+            <div class="mh3 mv2 flex justify-between flex-wrap items-center">
               <h3 class="mv1">Audio Node Controls</h3>
               <ButtonText
                 class='ph1 pa2 f7 yellow-fill w4 mr2 mt2 flex-0'
@@ -99,7 +99,7 @@
             </div>
               <div class='flex h-100 flex-column grow-1 shrink-1 overflow-y-hidden'>
                 <TabMenu
-                  class='ph3 mb3 flush'
+                  class='ph3 mb3 flush flex-nowrap max-w-100 overflow-y-scroll grow-0 shrink-0 basis-[34px]'
                   @selectedClass="bn bg-dark-gray yellow z-2 mr2"
                   @buttonClass="bn b--dark-gray bg-transparent mr2"
                   @onSelect={{fn this.setUi 'visibleNodeIdx'}}
