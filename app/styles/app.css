@@ -16,7 +16,7 @@
   --project-header-height: 4rem;
   --project-tracks-height: calc(100% - var(--app-header-height) - var(--project-header-height));
   --sidebar-width: 36rem;
-  --footer-height: 20rem;
+  --footer-height: 22rem;
 
   --light-gray: #eeeeee;
   --dark-gray: #333;

@@ -7,12 +7,20 @@
 
 }
 
+.nexus-select select {
+	 background-color: yellow;
+}
+
 .nexus-slider {
   display: inline;
 }
 
 .nexus-number input {
   background-color: transparent;
+}
+
+.slider-number input {
+  text-align: center
 }
 
 .sequencer-width {

@@ -52,6 +52,7 @@ export default class NexusUi extends Modifier {
     if (options.onChange) {
       this.nexusElement.on('change', options.onChange);
     }
+
     this.colorize(options);
   }
 
@@ -101,6 +102,9 @@ export default class NexusUi extends Modifier {
         break;
       case 'Number':
         this.nexusElement.colorize('fill', 'transparent');
+        break;
+      case 'Select':
+        this.nexusElement.colorize('fill', '#ffce55');
         break;
       default:
         break;

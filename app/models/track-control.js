@@ -9,8 +9,9 @@ import {
 import { getCrackedNode } from '../utils/cracked';
 import { isPresent } from '@ember/utils';
 import { defaultKit } from './track-node';
-import sampsToSecs from '../utils/samps-to-secs';
+
 import { setProperties } from '@ember/object';
+import { unitTransformsForNodeAttr } from '../utils/audio-param-config';
 export default class TrackControlModel extends Model {
   @belongsTo('track', { async: false, inverse: 'trackControl' }) track;
   @belongsTo('trackNode', { async: false, inverse: 'trackControls' }) trackNode;
@@ -95,6 +96,10 @@ export default class TrackControlModel extends Model {
     return '';
   }
 
+  get paramUnitNames() {
+    return unitTransformsForNodeAttr[this.nodeAttr];
+  }
+
   /**
    * Helper for setting a track-control's value on it's respective audio node at
    * a given time,
@@ -164,7 +169,7 @@ export default class TrackControlModel extends Model {
       } else if (uuid) {
         // there's no audio node for this trackNode's uuid, so clear it.
         // this trackControl may then get reassigned to a new or updated trackNode
-        this.set('nodeUUID', null);
+        this.nodeUUID = null;
       }
     }
   }
@@ -275,6 +280,15 @@ export default class TrackControlModel extends Model {
     this.saveTrackControl.perform();
   }
 
+  //
+  setParamUnit({ index, value }) {
+    // TODO:
+    // when a user changes the unit of a param:
+    // 1. update the min/max/default to the new unit.
+    // 2. store a new propertiy on TrackControl "unitConversionFunction"
+    // 3. apply the new current value to the TrackNode's param
+  }
+
   @keepLatestTask
   *saveTrackControl() {
     // // FIXME: need a better strategy to prevent the last save response from coming in
@@ -334,7 +348,7 @@ export default class TrackControlModel extends Model {
     const twoD = ['position']; // control 2 attributes
     const tonal = ['piano'];
     const array = ['envelope'];
-    const filepath = ['filepath']; //
+    const filepath = ['filepath'];
     switch (this.nodeAttr) {
       case 'gain':
         return oneD;

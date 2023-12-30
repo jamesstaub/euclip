@@ -32,6 +32,7 @@ export default class TrackNodeModel extends Model {
    * exceptions need to be made for attrs such as filepath
    */
   @attr('string') userDefinedInterfaceName;
+  @attr('string') userSettingsForControl;
 
   @attr('string') nodeUUID;
   @attr('string') nodeType;
@@ -50,11 +51,10 @@ export default class TrackNodeModel extends Model {
     );
   }
 
-  @computed('nodeType', 'track.order')
+  @computed('nodeUUID')
   get uniqueSelector() {
-    // FIXME: using `order` for track selectors is super brittle because duplicating + deleting tracks changes the order of others!
-    // need an immutable "createdOrder property " to solve this. could be alphabetical to avoid confusion with order
-    return `${this.nodeType} .track-${this.get('track.order')}`;
+    return `${this.nodeUUID}`;
+    // return `${this.nodeType} ${this.track.classSelector}`;
   }
 
   get isSampler() {
@@ -94,10 +94,15 @@ export default class TrackNodeModel extends Model {
   }
 
   static validTrackNodes(track) {
-    return track.get('trackNodes').filter((trackNode) => {
-      // TODO delete trackNodes that have an orphaned uuid
-      return trackNode?.nodeUUID && __._getNode(trackNode.nodeUUID);
-    });
+    return track.trackNodes;
+
+    // Deprecated this after framework upgrade and bug fixes
+    // hopefully track.trackNodes suffices
+
+    // return track.get('trackNodes').filter((trackNode) => {
+    //   // TODO delete trackNodes that have an orphaned uuid
+    //   return trackNode?.nodeUUID && __._getNode(trackNode.nodeUUID);
+    // });
   }
 
   static channelStripNodes(track) {
@@ -163,9 +168,10 @@ export default class TrackNodeModel extends Model {
    * cache the user default value and only re-set it if the user changed it, this allows user to use the sliders and
    * not have them jump back to the default every time the script re-inits (same problem as updateUserDefinedInterfaceName)
    */
-  updateDefaultValue(userSettingsForControl) {
+  updateDefaultValue() {
     this.trackControls.forEach((trackControl) => {
-      const userDefault = userSettingsForControl[trackControl.nodeAttr];
+      const userDefault = this.userSettingsForControl[trackControl.nodeAttr];
+
       if (trackControl._defaultValue !== userDefault) {
         trackControl.set('defaultValue', userDefault);
         // setDefault also saves and updates sliders if user hard coded a value into the script
@@ -242,8 +248,6 @@ export default class TrackNodeModel extends Model {
         stepSize,
       };
 
-      // As of now this should only ever match the filepath control on a sampler
-      // see notes elsewhere about default filepath control
       let trackControl = existingTrackControls.find((tc) => {
         return (
           tc.nodeAttr == params.nodeAttr &&

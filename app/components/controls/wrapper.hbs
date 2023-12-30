@@ -7,7 +7,7 @@
   >
     <IconButton
       class={{concat
-        "h2 w2 "
+        'h2 w2 '
         (if @trackControl.isMultislider 'bg-dark-gray' 'bg-transparent')
       }}
       @iconClass={{(if @trackControl.isMultislider 'yellow-fill' 'dark-fill')}}
@@ -16,7 +16,7 @@
       {{on 'click' this.toggleInterface}}
     />
 
-    <div class="flex items-center">
+    <div class='flex items-center'>
       <span class='fw7 w3'>{{@trackControl.nodeAttr}}</span>
     </div>
 
@@ -35,19 +35,25 @@
       {{on 'click' this.toggleConfig}}
       {{on-key 'Escape' this.close event='keydown'}}
     >
-      {{svg-jar
-        'fi-dots'
-        class='light-fill h2'
-        width='16px'
-        height='40px'
-      }}
+      {{svg-jar 'fi-dots' class='light-fill h2' width='16px' height='40px'}}
 
     </button>
   </div>
-
-  <div>
+  <div class='flex flex-column justify-between h-100 items-center'>
+    {{#if (eq @trackControl.paramUnitNames 1)}}
+      <p class='f7 mv0'>{{unit-for-param @trackControl.nodeAttr}}</p>
+    {{else}}
+      <div
+        class='nexus-select bg-yellow center'
+        {{nexus-ui
+          'Select'
+          size=(array 110 24)
+          options=@trackControl.paramUnitNames
+          onChange=@trackControl.setParamUnit
+        }}
+      ></div>
+    {{/if}}
     {{#if this.isShowingConfig}}
-      <p class="f7 mv0">{{unit-for-param @trackControl.nodeAttr}}</p>
       <Controls::ControlConfig @trackControl={{@trackControl}} />
     {{else}}
       {{yield}}

@@ -35,6 +35,7 @@ const oscillatorAttrs = {
 // TODO: abstract the values of defaultParams (below)
 // and populate the min/max/defaultValue/defaultInterface of AudioNodeConfig
 // and this should be the source of truth for all nodes + control configs
+// note attrs array is [min, max, defaultValue, interfaceOptions]
 export const AudioNodeConfig = {
   adsr: {
     type: DYNAMICS,
@@ -316,7 +317,7 @@ export const defaultParams = {
   feedback: {
     min: 0,
     max: 1,
-    stepSize: 0.05,
+    stepSize: 0.1,
     defaultValue: 0,
     interfaceName: oneD,
     unit: 'gain',
@@ -388,6 +389,14 @@ export const defaultParams = {
     defaultValue: 12,
     interfaceName: oneD,
   },
+  release: {
+    min: 0.00125,
+    max: 1,
+    stepSize: 0.0125,
+    defaultValue: 0,
+    interfaceName: oneD,
+    unit: 'seconds',
+  },
   reverse: {
     min: 0,
     max: 1,
@@ -397,7 +406,7 @@ export const defaultParams = {
   },
   seconds: {
     min: 0,
-    max: 6,
+    max: 1,
     stepSize: 0.1,
     defaultValue: 0,
     interfaceName: oneD,
