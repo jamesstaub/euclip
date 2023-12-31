@@ -4,8 +4,3 @@
     background-color: $dark-gray;
     /* border-bottom: $light-gray; */
 }
-
-.no-bottom {
-  border-bottom: none;
-  transform: translateY(0.125rem);
-}

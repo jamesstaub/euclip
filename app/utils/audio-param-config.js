@@ -2,7 +2,8 @@ const DB = 'dB';
 const RATE = 'Play Rate';
 const HZ = 'Hz';
 const CENTS = 'Cents';
-const STEPS = 'Steps';
+const HALFSTEPS = 'Half Steps';
+const BEATS = 'Beats';
 const Q = 'Q';
 const S = 'Seconds';
 const MS = 'Miliseconds';
@@ -13,12 +14,12 @@ const PRCNT = '%';
 
 export const unitTransformsForNodeAttr = {
   gain: [AMP, DB],
-  speed: [RATE, STEPS, CENTS],
+  speed: [RATE, HALFSTEPS, CENTS],
   frequency: [HZ, CENTS],
   detune: [CENTS],
   q: [Q],
-  decay: [S, MS],
-  delay: [S, MS],
+  decay: [S, MS, BEATS],
+  delay: [S, MS, BEATS],
   damping: [DB],
   feedback: [AMP],
   cutoff: [HZ],

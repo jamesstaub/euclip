@@ -1,7 +1,5 @@
 # TODO
 
-- initial drum sound not loading correctly 
-batch track controls?
 
 investigate cracked's `ignoreGrid` property to investigate scheduling bugs
 
@@ -15,9 +13,6 @@ go live list:
   - sidebar service to auto open-close when small
   - collapse track list items
 
-- simplify interface control
-  - remove dial option. single or multislider options as icon selectsion
-
 ### USER PLANS
 given DB row limit, must enforce project and track limitations per user
 
@@ -25,6 +20,11 @@ given DB row limit, must enforce project and track limitations per user
 BUG; if possible clear the "cmd-z"  undo state when changing tracks, since code mirror doesn't get re-initialized
 
 #### scope + variables
+
+TODO: revisit the cracked sequence `bind` method. Does euclip correctly keep the bound nodes in the selector scope for each track?
+<!-- -->
+
+
 - rename variables to match the tabs 
   (source.filepath instead of this.filepath)
   - `source.slices[]`
@@ -75,15 +75,20 @@ BUG; if possible clear the "cmd-z"  undo state when changing tracks, since code 
 
 
 ### Track Footer
-  - each section (source, sequencer, controls) should display "Script Variables" in a list
-  styled in the same color as the syntax highlight in the actual script editor
-  - the Script Wrapper gets a collapsable menu with all available variables and their values
-
+  
   - Source editor for dealing with sample start/end and loop settings. 
   - - create an array structure for segmenting an audio sample
   - - implement an onset detection + sample chopper
+  the add a namespace for array of timestamps for slice points, 
+  ```
+  __this.select('sampler')__.attr({start: this.slices[0], end: this.slices[1]})
+  or 
+  __.attr({speed: .1}) 
 
-implement an ephemeral "uiState" object on track models which hold currentTabIdx values for various tabs
+  ```
+  
+ 
+implement a "uiState" object on track models which hold currentTabIdx values for various tabs
 to keep recent state in tact when returning to a track
 
 ### Track Nodes
@@ -178,6 +183,7 @@ to keep recent state in tact when returning to a track
   offset should work for custom rhyhtms
 
 ### bugs
+Script editor states are wonky, stale value, debounce, revert not working
 
 
 "no source node"

@@ -95,7 +95,6 @@ export const AudioNodeConfig = {
       damping: [0, 1, 0.84, oneD],
       feedback: [0, 1, 0.25, oneD],
       cutoff: [40, 10000, 10000, oneD],
-      frequency: [],
     },
   },
   gain: {
@@ -276,9 +275,9 @@ export const defaultParams = {
   },
   delay: {
     min: 0,
-    max: 6,
+    max: 1,
     stepSize: 0.1,
-    defaultValue: 1,
+    defaultValue: 0.125,
     interfaceName: oneD,
     unit: 'seconds',
   },

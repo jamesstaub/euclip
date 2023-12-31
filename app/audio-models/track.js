@@ -143,10 +143,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         // bind to sequencer?  ramp, LFO?
         // what about if there are multiple chains declared in
         // a track's setup script?
-
         if (trackNodes.length) {
           bindSourcenodeToLoopStep(
-            trackNodes[0].uniqueSelector,
+            this.classSelector,
             onStepCallback,
             this.currentSequence.sequence
           );
@@ -306,10 +305,10 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     );
   }
 
-  bindToSequencer(sourceNode) {
+  bindToSequencer() {
     let onStepCallback = this.onStepCallback.bind(this);
     bindSourcenodeToLoopStep(
-      sourceNode.uniqueSelector,
+      this.classSelector,
       onStepCallback,
       this.currentSequence.sequence
     );
@@ -339,6 +338,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       if (trackControl.get('trackNode.nodeType') == 'channelStrip') {
         return;
       }
+      // TODO:
+      // look into optimizing this by mapping all the params to an object
+      // then updating the nodes once, rather than once per parameter
       trackControl.setAttrOnTrackStep(index);
     });
 

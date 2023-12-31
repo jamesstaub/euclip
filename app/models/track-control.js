@@ -168,6 +168,9 @@ export default class TrackControlModel extends Model {
     } else {
       const uuid = this.trackNode.get('nodeUUID');
       const node = getCrackedNode(uuid);
+      if (node.getType() == 'delay') {
+        console.log(uuid, attrs)
+      }
       if (node) {
         node.attr(attrs);
       } else if (uuid) {

@@ -7,10 +7,10 @@
   ...attributes
 >
   <div
-    class='spaced-text ttu bg-dark-gray white f7 fw3 relative w-100 slider-control-width items-center flex justify-between mb1'
+    class='relative flex items-center justify-between spaced-text ttu bg-dark-gray white f7 fw3 w-100 slider-control-width mb1'
   >
     <IconButton
-      class={{concat 'h2 w2 bg-dark-gray'}}
+      class='h2 w2 bg-dark-gray'
       @iconClass={{(if @trackControl.isMultislider 'blue-fill' 'yellow-fill')}}
       @label='Toggle Multislider Mode'
       @icon='multislider'
@@ -44,14 +44,13 @@
       {{on 'click' this.toggleConfig}}
       {{on-key 'Escape' this.close event='keydown'}}
     >
-      {{svg-jar 'fi-dots' class='h2' width='16px' height='40px'}}
+      {{svg-jar 'fi-dots' class='h2 scale-7' width='16px' height='40px'}}
 
     </button>
   </div>
-  <div class='flex flex-column justify-between h-100 items-start'>
-    <div class='bg-yellow mh2 f7 mv0'>
+  <div class='bg-transparent mh2 f7 mv0 dark-gry'>
       {{#if (eq @trackControl.paramUnitNames.length 1)}}
-        <p>{{@trackControl.paramUnitNames.firstObject}}</p>
+        <p class="w-100 ">{{@trackControl.paramUnitNames.firstObject}}</p>
       {{else}}
         <div
           class='nexus-select'
@@ -64,6 +63,7 @@
         ></div>
       {{/if}}
     </div>
+  <div class='flex items-start justify-between flex-column h-100'>
     {{#if this.isShowingConfig}}
       <Controls::ControlConfig @trackControl={{@trackControl}} />
     {{else}}

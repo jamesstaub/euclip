@@ -138,6 +138,11 @@
   display: block;
 }
 
+.scale-7 {
+  transform: scale(0.85);
+  transform-origin: top right;
+}
+
 /* SVG */
 .small-square {
   width: 1.5rem;

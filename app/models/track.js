@@ -168,10 +168,8 @@ export default class TrackModel extends TrackAudioModel {
     }
 
     sequenceRecord?.set(key, value);
-    this.sourceNodeRecords.forEach((source) => {
-      unbindFromSequencer(source.uniqueSelector);
-      this.bindToSequencer(source);
-    });
+    unbindFromSequencer(this.classSelector);
+    this.bindToSequencer();
     this.saveTrackSequence.perform(sequenceRecord);
   }
 
