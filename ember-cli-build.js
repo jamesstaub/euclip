@@ -4,8 +4,8 @@ const EmberApp = require('ember-cli/lib/broccoli/ember-app');
 
 module.exports = function (defaults) {
   let app = new EmberApp(defaults, {
-    "ember-cli-babel": {
-      enableTypeScriptTransform: true
+    'ember-cli-babel': {
+      enableTypeScriptTransform: true,
     },
 
     sourcemaps: { enabled: true },
@@ -27,7 +27,7 @@ module.exports = function (defaults) {
 
     'ember-composable-helpers': {
       only: ['compact', 'array'],
-    }
+    },
   });
 
   app.import('node_modules/tachyons/css/tachyons.css');

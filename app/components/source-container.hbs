@@ -1,11 +1,18 @@
-<div class='flex bl justify-between grow-1 w-auto'>
-  <div class='mh2 flex flex-column w-auto'>
+{{!-- <Oscilloscope
+  @id={{concat @track.id 'scope'}}
+  @node={{@track.nodeToVisualize}}
+  @fill='#ffce55'
+  @accent='#000000'
+/> --}}
+<div class='flex justify-between w-auto bl grow-1'>
+  <div class='flex w-auto mh2 flex-column'>
     <h3 class='ma3 ttc'>
       {{#each @track.sourceNodeRecords as |source|}}
-        {{!-- TODO: better UI if there are multiple source on a track --}}
+        {{! TODO: better UI if there are multiple source on a track }}
         {{source.nodeType}}
-        {{#if @track.samplerFilepathControl.filename }}
-          - {{@track.samplerFilepathControl.filename}}
+        {{#if @track.samplerFilepathControl.filename}}
+          -
+          {{@track.samplerFilepathControl.filename}}
         {{/if}}
       {{/each}}
     </h3>
@@ -13,7 +20,7 @@
       {{yield}}
     {{else}}
       {{#if @track.sourceNodeRecords.length}}
-        <ul class='mv0 ml2 flex items-center pa0 list f7'>
+        <ul class='flex items-center mv0 ml2 pa0 list f7'>
           {{#each @track.samplerFilepathControl.pathSegments as |directory|}}
             {{#if directory.length}}
               <li class='directory-btns'>
@@ -33,11 +40,8 @@
       {{/if}}
       {{#each @track.samplerNativeBuffers as |buffer|}}
         {{#if buffer}}
-          <canvas
-            class='ba bw1 ml3 w6 h-50'
-            {{audio-waveform buffer}}
-          ></canvas>
-          <span class="ml3">{{display-float buffer.duration}} sec</span>
+          <canvas class='ba bw1 ml3 w6 h-50' {{audio-waveform buffer}}></canvas>
+          <span class='ml3'>{{display-float buffer.duration}} sec</span>
         {{/if}}
       {{/each}}
     {{/if}}

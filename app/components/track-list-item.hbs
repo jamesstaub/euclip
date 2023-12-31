@@ -12,7 +12,7 @@
           <p class="truncate tc pv2 ph3 ml2 f6 ttu bg-dark-gray yellow ba bw1 b--yellow w4 f7">Main Output</p>
           {{#if @track.nodeToVisualize}}
             <div class="overflow-hidden">
-              <Oscilloscope class="ml3 pl1" @id={{"master-scope"}} @isActive={{@isActive}} @node={{@track.nodeToVisualize}}/>
+              <Oscilloscope class="ml3 pl1" @id={{concat @track.id 'scope'}} @isActive={{@isActive}} @node={{@track.nodeToVisualize}} @fill="#333333" @accent="#52ebff" />
             </div>
           {{/if}}
         {{/if}}

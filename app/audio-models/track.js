@@ -13,14 +13,13 @@ import filterNumericAttrs from '../utils/filter-numeric-attrs';
 import { tracked } from '@glimmer/tracking';
 import TrackControlModel from '../models/track-control';
 import { inject as service } from '@ember/service';
-import { FILE_LOAD_STATES } from '../models/track-node';
+import TrackNodeModel, { FILE_LOAD_STATES } from '../models/track-node';
 import { set } from '@ember/object';
 import { isPresent } from '@ember/utils';
 
 export default class TrackAudioModel extends Model.extend(Evented) {
-  @tracked nodeToVisualize;
   @service store;
-
+  @tracked nodeToVisualize;
   // serialize 2d array of track control values to use in scripts
   get trackControlData() {
     return this.trackControls.map((trackControl) => {
@@ -33,16 +32,12 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     });
   }
 
-  /**
-   *
-   */
   setNodeToVisualize() {
-    // FIXME: it is brittle to hardcode "main-output" id
     const firstVisualizableNode = this.settingsForNodes.find(
-      (audioNode) => audioNode.userSettings?.id == 'main-output'
+      (audioNode) => audioNode.nodeType === 'channelStrip'
     );
     const node = __._getNode(firstVisualizableNode?.uuid)?.getNativeNode();
-    this.nodeToVisualize = node;
+    this.nodeToVisualize = node[0]; // get the gain node of the channelSTrip
   }
 
   async downloadSample() {
@@ -160,10 +155,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         console.error('no track nodes to bind to sequencer');
       }
     }
-
-    if (this.isMaster) {
-      this.setNodeToVisualize();
-    }
+    this.setNodeToVisualize();
   }
 
   // can take array of trackNodes or trackControls
@@ -277,7 +269,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         );
       });
 
-      if (matchingControls.length) {
+      if (
+        TrackNodeModel.validateControls(matchingControls, trackNode.nodeType)
+      ) {
         matchingControls.forEach((trackControl) => {
           // set the relation on the control to keep ember-data happy
           trackControl.set('trackNode', trackNode);
@@ -293,6 +287,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       trackNode.updateDefaultValue();
     });
 
+    // BUG:
+    // Sometimes it seems that specifically the sampler node's track controls get destroyed unwantedly
     // any trackControls that don't match to a node get destroyed
     trackControls.forEach((trackControl) => {
       // except we allow a filepath control to remain even if the node
@@ -300,12 +296,13 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       // immediately when a sampler gets created and not need to wait for trackControls
       // to be created
       if (trackControl.interfaceName !== 'filepath') {
+        console.log('destroy!', trackControl);
         trackControl.destroyRecord();
       }
     });
 
     nodesWithoutTrackControls.map((trackNode) =>
-      trackNode.createTrackControls()
+      trackNode.findOrCreateTrackControls()
     );
   }
 

@@ -1,6 +1,5 @@
 <NavBar @logoWidth='220px' />
 <div class='mt4 center'>
-  {{log this.session}}
   {{#if this.session.isAuthenticated}}
     <div class='mw5 center'>
       <p>Logged in as {{this.currentUser.user.username}}</p>

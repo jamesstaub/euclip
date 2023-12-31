@@ -177,10 +177,27 @@
   fill: var(--dark-gray);
 }
 
+
 .yellow-fill {
-  fill: var(--dark-yellow);
+  fill: var(--yellow);
 }
 
 .yellow-fill svg {
+  fill: var(--yellow);
+}
+
+.blue-fill {
+  fill: var(--light-blue);
+}
+
+.blue-fill svg {
+  fill: var(--light-blue);
+}
+
+.dark-yellow-fill {
+  fill: var(--dark-yellow);
+}
+
+.dark-yellow-fill svg {
   fill: var(--dark-yellow);
 }

@@ -41,7 +41,6 @@ export default class UserAdapter extends ApplicationAdapter {
     return ENV.APP.registrationEndpoint;
   }
 
-
   async ajax(url, type, data) {
     let requestData = {
       url: url,

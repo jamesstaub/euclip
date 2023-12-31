@@ -9,6 +9,7 @@
 @import 'components/tab-menu.css';
 @import 'components/signal-chain.css';
 
+
 /* Custom properties */
 :root {
   --app-header-height: 4.2rem;
@@ -117,6 +118,8 @@ a {
   height: calc(100%);
   border: solid 0.125rem var(--light-gray);
 }
+
+
 
 .progress-container {
   width: calc(100% - 2rem);

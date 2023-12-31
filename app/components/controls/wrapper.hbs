@@ -1,16 +1,17 @@
 <div
-  class='relative tc flex flex-column items-center mr2 bg-dark-yellow ba bw1'
+  class={{concat
+    'relative tc flex flex-column items-center mr2 ba bw1'
+    ' '
+    (if this.isShowingConfig 'bg-moon-gray' 'bg-dark-yellow')
+  }}
   ...attributes
 >
   <div
-    class='relative w-100 slider-control-width items-center flex justify-between mb1'
+    class='spaced-text ttu bg-dark-gray white f7 fw3 relative w-100 slider-control-width items-center flex justify-between mb1'
   >
     <IconButton
-      class={{concat
-        'h2 w2 '
-        (if @trackControl.isMultislider 'bg-dark-gray' 'bg-transparent')
-      }}
-      @iconClass={{(if @trackControl.isMultislider 'yellow-fill' 'dark-fill')}}
+      class={{concat 'h2 w2 bg-dark-gray'}}
+      @iconClass={{(if @trackControl.isMultislider 'blue-fill' 'yellow-fill')}}
       @label='Toggle Multislider Mode'
       @icon='multislider'
       {{on 'click' this.toggleInterface}}
@@ -30,29 +31,39 @@
       }}
     ></div> --}}
     <button
-      class='dropdown-menu-btn bg-transparent dark-fill bn bg-transparent h2'
+      class={{concat
+        'dropdown-menu-btn light-fill bn h2'
+        ' '
+        (if
+          this.isShowingConfig
+          'dark-fill bg-moon-gray'
+          'light-fill bg-dark-gray'
+        )
+      }}
       type='button'
       {{on 'click' this.toggleConfig}}
       {{on-key 'Escape' this.close event='keydown'}}
     >
-      {{svg-jar 'fi-dots' class='light-fill h2' width='16px' height='40px'}}
+      {{svg-jar 'fi-dots' class='h2' width='16px' height='40px'}}
 
     </button>
   </div>
-  <div class='flex flex-column justify-between h-100 items-center'>
-    {{#if (eq @trackControl.paramUnitNames.length 1)}}
-      <p class='f7 mv0'>{{@trackControl.paramUnitNames.firstObject}}</p>
-    {{else}}
-      <div
-        class='nexus-select bg-yellow center'
-        {{nexus-ui
-          'Select'
-          size=(array 110 24)
-          options=@trackControl.paramUnitNames
-          onChange=@trackControl.setParamUnit
-        }}
-      ></div>
-    {{/if}}
+  <div class='flex flex-column justify-between h-100 items-start'>
+    <div class='bg-yellow mh2 f7 mv0'>
+      {{#if (eq @trackControl.paramUnitNames.length 1)}}
+        <p>{{@trackControl.paramUnitNames.firstObject}}</p>
+      {{else}}
+        <div
+          class='nexus-select'
+          {{nexus-ui
+            'Select'
+            size=(array 110 24)
+            options=@trackControl.paramUnitNames
+            onChange=@trackControl.setParamUnit
+          }}
+        ></div>
+      {{/if}}
+    </div>
     {{#if this.isShowingConfig}}
       <Controls::ControlConfig @trackControl={{@trackControl}} />
     {{else}}

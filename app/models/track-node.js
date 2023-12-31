@@ -98,11 +98,19 @@ export default class TrackNodeModel extends Model {
 
     // Deprecated this after framework upgrade and bug fixes
     // hopefully track.trackNodes suffices
-
+    //  probably safe to remove
     // return track.get('trackNodes').filter((trackNode) => {
     //   // TODO delete trackNodes that have an orphaned uuid
     //   return trackNode?.nodeUUID && __._getNode(trackNode.nodeUUID);
     // });
+  }
+  static validateControls(trackControls, nodeType) {
+    const controlAttrs = Object.keys(AudioNodeConfig[nodeType]?.attrs);
+    return controlAttrs.every((controlAttr) =>
+      trackControls.find(
+        (trackControl) => trackControl.nodeAttr === controlAttr
+      )
+    );
   }
 
   static channelStripNodes(track) {
@@ -200,10 +208,9 @@ export default class TrackNodeModel extends Model {
    * and then save to db non-blocking
    *
    */
-  createTrackControls() {
+  findOrCreateTrackControls() {
     // get default attributes for node
     const controlAttrs = Object.keys(AudioNodeConfig[this.nodeType]?.attrs);
-
     if (!controlAttrs.map) {
       console.error('Node type not supported');
       return;
@@ -217,6 +224,8 @@ export default class TrackNodeModel extends Model {
       let defaultForAttr = {};
 
       defaultForAttr = defaultParams[controlAttr];
+
+      // FIXME: this is an edge case for a poorly designed defaultParams
       if (controlAttr === 'frequency') {
         defaultForAttr = defaultParams[controlAttr][this.nodeType];
       } else {
@@ -250,6 +259,7 @@ export default class TrackNodeModel extends Model {
 
       let trackControl = existingTrackControls.find((tc) => {
         return (
+          !tc.isDeleted &&
           tc.nodeAttr == params.nodeAttr &&
           tc.nodeType == params.nodeType &&
           tc.nodeOrder == params.nodeOrder &&

@@ -35,9 +35,25 @@ BUG; if possible clear the "cmd-z"  undo state when changing tracks, since code 
 
 
 - implement variables in script scope to access TrackControl values
-  - - This could use existing selectors to access track nodes for controls eg.
-      controls['.sampler-1']['speed']
-  - -  you could do speed: `controls('.sampler') + __.rand()`
+  - - This could use existing selectors to access track nodes for controls.
+  - API getters could be `this.source`, `this.controls`, `this.sequence`
+  - or could be selector getters like `this.source('#my-sampler')`
+  - or even `track.source()` or 
+      Track Controls Example API:
+      ```
+
+      sequence
+      controls('sampler').speed
+      
+      source().start // return first sourcw node
+      source('#my-sampler').end
+
+      
+      
+      ```
+
+
+  - -  you could do `{speed: controls('.sampler').speed + __.rand()}`
 - Fix brittle use of order for track selectors:s  See not note on `uniqueSelector` in models/track-node.js
 
 - node `class`
@@ -94,7 +110,7 @@ to keep recent state in tact when returning to a track
     (at least for one section of them to learn the nodes)
 
   - preset ideas:
-    mutate this.controls for sampler start/end time to create granular loops that
+    mutate this.controls (or `controls()` perhaps?) for sampler start/end time to create granular loops that
     are subdivisions of the BPM or slices of a loop file
 
 ### Project

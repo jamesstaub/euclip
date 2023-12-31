@@ -66,3 +66,8 @@ table .name {
     font-family: Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace;
   }
 }
+
+
+.spaced-text {
+  letter-spacing: 0.1rem;
+}

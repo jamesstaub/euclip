@@ -1,7 +1,6 @@
 import { inject as service } from '@ember/service';
 import Devise from 'ember-simple-auth/authenticators/devise';
 
-
 import ENV from '../config/environment';
 
 export default class DeviseAuthenticator extends Devise {
