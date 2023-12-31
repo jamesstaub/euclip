@@ -1,31 +1,32 @@
-<button 
-  class="" ...attributes type="button" {{on "click" this.toggleOpen}}
-  {{on-key 'Escape' this.close event="keydown"}}
-  {{did-insert this.setPosition}}
->
-  {{#if (has-block)}}
-    {{yield}}
-  {{else}}
-    {{svg-jar (or @icon "fi-dots") class=(or @iconClass "light-fill") width="16px" height="40px"}}
-  {{/if}}
-</button>
-{{#if this.open}}
-  <EmberWormhole @to="dropdown-target">
-    <ul
-      class="dropdown-menu absolute ma3 bg-white flex flex-column list pa0 mao {{if this.open "shadow-3"}}"
-      {{did-insert this.addPositionClass}}
-    >
+<BasicDropdown as |dd|>
+  <dd.Trigger class=''>
+    <span class='caret'></span>
+    {{#if (has-block)}}
+      {{yield}}
+    {{else}}
+      {{svg-jar
+        (or @icon 'fi-dots')
+        class=(or @iconClass 'light-fill')
+        width='16px'
+        height='40px'
+      }}
+    {{/if}}
+  </dd.Trigger>
+
+  <dd.Content class=''>
+    <ul class="list pl0">
       {{#each @items as |item|}}
         <li>
-          <button class="bg-light-gray bn w-100 ph2 pv1" type="button" title={{item.label}} {{on "click" (fn this.onSelectItem item.select)}}>
+          <button
+            class='bg-light-gray bn w-100 ph2 pv1'
+            type='button'
+            title={{item.label}}
+            {{on 'click' (fn this.onSelectItem item.select)}}
+          >
             {{item.label}}
           </button>
         </li>
       {{/each}}
     </ul>
-    {{!-- template-lint-disable no-invalid-interactive --}}
-    <div class="absolute bg-transparent scrim" 
-      {{on "click" this.toggleOpen}}
-    ></div>
-  </EmberWormhole>
-{{/if}}
+  </dd.Content>
+</BasicDropdown>

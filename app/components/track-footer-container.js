@@ -92,6 +92,9 @@ export default class TrackFooterContainerComponent extends Component {
 
   @action
   updateControl(trackControl, value) {
+    if (trackControl.isToggle) {
+      value = value ? 1 : 0;
+    }
     trackControl.setValue(value);
   }
 }

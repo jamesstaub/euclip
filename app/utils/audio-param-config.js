@@ -9,7 +9,7 @@ const MS = 'Miliseconds';
 const AMP = 'Amplitude';
 const CURVE = 'Curve';
 const BOOL = 'Boolean';
-const PRCNT  = '%';
+const PRCNT = '%';
 
 export const unitTransformsForNodeAttr = {
   gain: [AMP, DB],
@@ -38,3 +38,7 @@ const centToHz = (cents) => Math.pow(2, cents / 1200);
 const dbToa = (db) => Math.pow(10, db / 20);
 const StepsToRate = (steps) => Math.pow(2, steps / 12);
 const CentsToRate = (cents) => centToHz(cents) / centToHz(0);
+
+// When you select a unit from the dropdown it should set all the defaults for
+// the trackcontrol. ther can be muultiple choiecs that are the same unit but
+// different ranges, like Hz vs LFO Hz or Cents (chromatic) vs Cents (Diatonic)

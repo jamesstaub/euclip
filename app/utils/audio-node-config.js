@@ -163,7 +163,7 @@ export const AudioNodeConfig = {
   reverb: {
     type: TIME,
     attrs: {
-      reverse: [null, null, null, bool],
+      reverse: [0, 1, 0, bool],
     },
     // seconds: [],
     // decay: [],
@@ -400,7 +400,6 @@ export const defaultParams = {
   reverse: {
     min: 0,
     max: 1,
-    stepSize: 1,
     defaultValue: 0,
     interfaceName: bool,
   },

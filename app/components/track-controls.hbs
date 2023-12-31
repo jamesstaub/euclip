@@ -42,6 +42,17 @@
               />
             </Controls::Wrapper>
           {{/if}}
+          {{#if trackControl.isToggle}}
+            <Controls::Wrapper
+              class="pb3"
+              @trackControl={{trackControl}}
+             >
+              <Controls::Toggle
+                @value={{trackControl.controlValue}}
+                @onChange={{fn @updateControl trackControl}}
+              />
+            </Controls::Wrapper>
+          {{/if}}
         {{/each}}
       </div>
     </div>

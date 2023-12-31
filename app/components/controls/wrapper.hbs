@@ -40,8 +40,8 @@
     </button>
   </div>
   <div class='flex flex-column justify-between h-100 items-center'>
-    {{#if (eq @trackControl.paramUnitNames 1)}}
-      <p class='f7 mv0'>{{unit-for-param @trackControl.nodeAttr}}</p>
+    {{#if (eq @trackControl.paramUnitNames.length 1)}}
+      <p class='f7 mv0'>{{@trackControl.paramUnitNames.firstObject}}</p>
     {{else}}
       <div
         class='nexus-select bg-yellow center'

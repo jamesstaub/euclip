@@ -4,6 +4,9 @@ import Nexus from 'nexusui';
 import { guidFor } from '@ember/object/internals';
 import { isPresent } from '@ember/utils';
 import { next } from '@ember/runloop';
+import { typeOf } from '@ember/utils';
+
+
 function roundFloat(num) {
   return Number(Number((num || 0).toFixed(4)));
 }
@@ -57,7 +60,9 @@ export default class NexusUi extends Modifier {
   }
 
   setValue(options) {
-    if (isPresent(options.value) && this.valueChanged(options)) {
+    if (typeOf(options.value) === 'boolean') {
+      this.nexusElement.state = options.value;
+    } else if (isPresent(options.value) && this.valueChanged(options)) {
       this.nexusElement.value = roundFloat(options.value);
     }
   }

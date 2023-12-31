@@ -58,6 +58,10 @@ export default class TrackControlModel extends Model {
     return this.interfaceName === 'slider';
   }
 
+  get isToggle() {
+    return this.interfaceName === 'toggle';
+  }
+
   /**
    * REFACTOR: it may be necessary to decouple the fact that the control uses a multislider interface
    * from the fact that the control is an array type, which means it looks up it's value
