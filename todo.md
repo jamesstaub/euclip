@@ -1,10 +1,8 @@
-# TODO
-
+# TODO LIST
 
 investigate cracked's `ignoreGrid` property to investigate scheduling bugs
 
 go live list:
-- do a pass at auto-selectors
   - attempt to automatically use sampler filepath if not supplied
   - add `connect()` to channelStrip
 
@@ -13,17 +11,17 @@ go live list:
   - sidebar service to auto open-close when small
   - collapse track list items
 
-### USER PLANS
-given DB row limit, must enforce project and track limitations per user
 
 ### Scripts
 BUG; if possible clear the "cmd-z"  undo state when changing tracks, since code mirror doesn't get re-initialized
 
+#### Sampler / filepath
+Problem: if filepath not provided, the sampler will not call the onCreateNode callback.
+potentially monkey patch it in cracked lib so it uses silent.mp3 if no filepath is provided, then the onCreateNode can check for the absence of `path: this.filepath` and
+manually set it to `this.localFilePath || this.filepathUrl`s
+
+
 #### scope + variables
-
-TODO: revisit the cracked sequence `bind` method. Does euclip correctly keep the bound nodes in the selector scope for each track?
-<!-- -->
-
 
 - rename variables to match the tabs 
   (source.filepath instead of this.filepath)
@@ -37,31 +35,16 @@ TODO: revisit the cracked sequence `bind` method. Does euclip correctly keep the
 - implement variables in script scope to access TrackControl values
   - - This could use existing selectors to access track nodes for controls.
   - API getters could be `this.source`, `this.controls`, `this.sequence`
-  - or could be selector getters like `this.source('#my-sampler')`
-  - or even `track.source()` or 
-      Track Controls Example API:
-      ```
-
-      sequence
-      controls('sampler').speed
-      
-      source().start // return first sourcw node
-      source('#my-sampler').end
-
-      
-      
-      ```
 
 
   - -  you could do `{speed: controls('.sampler').speed + __.rand()}`
 - Fix brittle use of order for track selectors:s  See not note on `uniqueSelector` in models/track-node.js
 
-- node `class`
-  either implement support for multiple classes per node (split classname by spaces)
-  or dont allow spaces in classnames (update on laod)
 
+## Cracked Library Updates:
+- Modify the class selector lookup to attempt permutations of the order for multiple classnames
+  
 #### helpers
-- add helper function to set speed as a factor of the sequencer length (for loops)
 - - access to slider value in functions would effectively allow non-linear sliders
 - add examples of __.ms2freq using the track tempo to control LFO speeds
 - the `playSample()` helper should be responsible for calling `applyTrackControls` internally, but can take an options argument to override/mutate them.
@@ -98,16 +81,41 @@ to keep recent state in tact when returning to a track
 
 ### Track Controls
 
+## Model
+  - add "enabled/disabled" state
+  - Cache Node Connections for LFOS, TrackControls:
+      add callbacks **.onConnectNode **.onDisconnectNode which get called with the return value from node.connect() in the cracked script.
+      in the model, pass in this callback which will save the connection to the TrackNode model.
+      When a setup script is run, look for modulators connected to each node and auto-disable the TrackControl for that paramer, indicate that is disabled to allow the LFO
+      Then in onStepCallback when onStepCallback gets the `attrsForNodes` it can exclude trackControls that are turned off.
+
+
+  - detect if a param is manually being set in the script, show a warning on the TrackControl UI
   - add a property: "apply on: step/all"
-  - Oscillators also get Track Controls to control their type. (if the script contains a generic oscillator macro)
-  - control menu should contain a text input for the target selector of a track control. By default this should populate with the related TrackNode's unique selector
-    but could be a dropdown of all selectors (filtered by those that are controllable by this control type
-  - with track control selectors implemented, the track attrOnStep can use the selector method
-  - element/nodes to implement
-    - Envelope node : breakpoint nexus element or group of sliders
-    - multidimensional controls (XY slider, breakpoint)
-    - use for filters, LFOs, 
-  - in addition to default attributes, some Track Controls might update their defaults depending on their context: such as an LFO's default gain ranges when connected to an oscillator vs a sampler. In such case the LFO node could read the defaults from the modulating node
+
+  - control menu could contain a text input for the target selector of a track control. By default this should populate with the related TrackNode's unique selector
+  but could be a dropdown of all selectors (filtered by those that are controllable by this control type
+  with track control selectors implemented, the track attrOnStep can use the selector method  
+
+
+
+## UI
+  - fix bugs in min/max/default/stepSize settings. they wonky.
+  - finish implementing Track Control unit functions (hz to steps etc). 
+  - - when selecting a unit option for the Track Control it also sets a range of min/max/default vals
+  - - LOOPSTEPS function for sampler speed: 
+      sets the playback rate so the duration is x steps.
+        - must update when tempo changes, sequence changes or sample changes
+
+
+
+## Node Specific features
+  - Oscillators also get Track Controls to control their waveform type. (if the script contains a generic oscillator macro)
+
+  - Implement Envelope node : breakpoint nexus element or group of sliders. Uses ramps instead of steps
+  - multidimensional controls (XY slider, breakpoint)
+  - use for filters, LFOs,
+
 
 
 ### Presets:
@@ -119,25 +127,34 @@ to keep recent state in tact when returning to a track
     are subdivisions of the BPM or slices of a loop file
 
 ### Project
+  - my-projects should not initially load all relations, too much if there are many projects.
+  - - instead, load the project name only then relations on play
+  - - unload project from store when exiting
   - Save "Snapshots" (need to plan this out to work with concurrent editing, permissions)
   - Arrange mode: chain multiple projects together
   - Rails Action Cables for live editing
 
 ### Sequences
-- FIXME: when updating a sequence (clicking a square)
-  - dont make the UI wait for the API request. 
-- right click a sequence step to set it's value.
-- add a menu to determine how sequence values get set
-  - 0 / 1 
-  - true false
+  Implement `hasMany` sequence relationship on tracks, add UI to manage sequences. 
+  - Refactor MultiSliderArray on The track control to be a new related model `ControlSequence`
+  - For each `Sequence` on a given track, each TrackControl has one `ControlSequence` of the same size
 
-- implement an `this.updateSequence()` method
+- Add new Sequence UIs:
+  - Euclidean
+  - Binary
+  - Random
+  - Manual
+
+- implement an `this.updateSequence()` method to mutate it from code. it should have the same API as the euclidean/binary/random inputs, or can take an array directly
+  ```
+  this.seqeunce.euclidean(3,8,0)
+  this.sequence.binary(127)
+  this.sequence.random(16: len)
+  this.sequence.set([1,0,1,0,1,0,1,0])
+  ```
+
   - alias `data` variable to `step` for clarity in PLAY function
-  - right click sequence square to edit it's value 
-  - in sequence menu, dropdown for "default step value"
-    - 1
-    - true
-    - custom
+
 
   - implement a "Matrix View", which replaces the standard track list with an intanace of 
   nexus sequencer with rows for each track. inherit the Nexus matrix model to allow use of 
@@ -185,11 +202,6 @@ to keep recent state in tact when returning to a track
 ### bugs
 Script editor states are wonky, stale value, debounce, revert not working
 
-
-"no source node"
-sometimes when a filepath is not set, or the trackcontrol for the filepath is not ready, the sampler node will fail to create. fix this by falling back to silence.mp3 so it still creates a sampler node
-
--- master track doesn't update when new nodes are added (until playback is restarted)
 - - need more solid sequencer-awareness when adding/removing tracks (use generators to start on a particular beat)
 
 -- when deleting a track, the script sidebar closes but property is not re-set so the button to re-open sidebar disappears
@@ -220,3 +232,6 @@ and message to rotate phone to horizontal. there it should be a minimal track li
 footer view
 
 Current Track selection could be a native dropdown menu
+
+### USER Roles/premium plan
+given DB row limit, must enforce project and track limitations per user
