@@ -1,12 +1,12 @@
 <BasicDropdown as |dd|>
-  <dd.Trigger class=''>
+  <dd.Trigger ...attributes>
     <span class='caret'></span>
     {{#if (has-block)}}
       {{yield}}
     {{else}}
       {{svg-jar
         (or @icon 'fi-dots')
-        class=(or @iconClass 'light-fill')
+        class=(or @iconClass 'dark-fill')
         width='16px'
         height='40px'
       }}

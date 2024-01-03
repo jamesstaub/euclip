@@ -11,10 +11,14 @@ const AMP = 'Amplitude';
 const CURVE = 'Curve';
 const BOOL = 'Boolean';
 const PRCNT = '%';
+const LOOPSTEPS = 'Steps';
+const RATIO = 'Ratio';
 
 export const unitTransformsForNodeAttr = {
+  attack: [S, MS, BEATS],
+  release: [S, MS, BEATS],
   gain: [AMP, DB],
-  speed: [RATE, HALFSTEPS, CENTS],
+  speed: [RATE, HALFSTEPS, CENTS, LOOPSTEPS],
   frequency: [HZ, CENTS],
   detune: [CENTS],
   q: [Q],
@@ -30,6 +34,7 @@ export const unitTransformsForNodeAttr = {
   knee: [DB],
   start: [S, MS, PRCNT],
   threshold: [DB],
+  ratio: [RATIO],
   end: [S, MS, PRCNT],
   reverse: [BOOL],
   loop: [BOOL],

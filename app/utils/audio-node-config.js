@@ -202,6 +202,12 @@ export const AudioNodeConfig = {
       ...oscillatorAttrs,
     },
   },
+  waveshaper: {
+    type: DISTORTION,
+    attrs: {
+      drive: [0, 100, 50, oneD],
+    },
+  },
   noise: {},
   pink: {},
   white: {},

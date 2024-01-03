@@ -52,6 +52,7 @@ module.exports = function (environment) {
         'square',
         'sawtooth',
         'triangle',
+        'waveshaper',
       ],
 
       // JSON API include? query param string of related models for calls to projects endpoint

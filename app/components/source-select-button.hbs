@@ -1,6 +1,6 @@
 {{#if @onToggleFilePicker}}
   <ButtonPrimary
-    class="w4 truncate ma2 {{if @samplerFilepathControl.filename "f7" "f8 white-"}}"
+    class="w4 truncate ma2 {{if @samplerFilepathControl.filename "f7" "f8 white"}}"
     {{on "click"  @onToggleFilePicker}}
     @label="Open Audio File Browser. Current Selection: {{@samplerFilepathControl.filename}}"
     ...attributes

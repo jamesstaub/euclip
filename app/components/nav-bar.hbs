@@ -1,10 +1,10 @@
-<nav class="app-header-height bg-dark-gray light-gray flex items-center justify-between pr3">
+<nav class="flex items-center justify-between app-header-height bg-dark-gray light-gray pr3">
   <div class="ml3 pa2">
     <LinkTo @route="user">
       {{svg-jar "logo-250-min" width=@logoWidth}}
     </LinkTo>
   </div>
-  <div>
+  <div class="flex items-center">
     <LinkTo class="white ttc mr3" @route="about">about</LinkTo>
     {{#if this.session.isAuthenticated}}
       <LinkTo class="yellow ttc mr3" @route="user.new">new project</LinkTo>

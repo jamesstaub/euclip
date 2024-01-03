@@ -11,7 +11,8 @@ export default class ProjectModel extends ProjectAudioModel {
   @attr('number') bpm;
   @belongsTo('user', { async: false, inverse: 'projects' }) creator;
   @hasMany('track', { async: false, inverse: 'project' }) tracks;
-
+  @attr('number', { defaultValue: 0 }) stepIndex;
+  
   // maybe move this to track?
   async setupAndSaveNewTrack(track, saveOptions) {
     // need to wait to for save because orders may change

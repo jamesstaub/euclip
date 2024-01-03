@@ -73,11 +73,17 @@ export function stopDelays() {
  *
  * The cracked __.loop is the main sequencer that Euclip binds track scripts to
  */
-export function bindSourcenodeToLoopStep(nodeSelector, callback, array) {
+export function bindSourcenodeToLoopStep(
+  nodeSelector,
+  callback,
+  array,
+  options
+) {
   __(nodeSelector).bind(
     'step', // on every crack sequencer step
     callback, // call this function (bound to component scope)
-    array // passing in array value at position
+    array, // passing in array value at position,
+    options
   );
 }
 

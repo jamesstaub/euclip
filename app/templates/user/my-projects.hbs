@@ -30,7 +30,7 @@
           </h3>
         </div>
         <DropdownMenu
-          class='h-100 flex-grow dark-fill bn bg-transparent'
+          class='flex-grow bg-transparent h-100 dark-fill bn'
           @offsetY={{15}}
           @items={{array
             (hash label='delete' select=(fn this.deleteProject project))
@@ -42,7 +42,7 @@
 
   {{#unless @model.length}}
   <div class="ma5">
-      <LinkTo class='f2 pv2 ph3 mv5 ttc bw1 bg-dark-gray yellow ba b--yellow tc' @route="user.new">
+      <LinkTo class='f2 pv2 ph3 mv5 ttc bw1 bg-dark-gray yellow ba b--yellow tc nowrap' @route="user.new">
       Create a project
     </LinkTo>
   </div>

@@ -25,7 +25,7 @@ export default class TrackModel extends TrackAudioModel {
 
   @attr('number') order;
 
-  @attr('number', { defaultValue: 0 }) stepIndex;
+  @attr('number', { defaultValue: -1 }) stepIndex;
 
   async createAudioFileTree() {
     await this.trackControls; // audio-tree relies on the filepath track control
@@ -48,12 +48,12 @@ export default class TrackModel extends TrackAudioModel {
     // this.store.unloadRecord(this.initScript);
     // this.store.unloadRecord(this.onstepScript);
     this.trackNodes.forEach((trackNode) => {
-      if (trackNode) {
+      if (trackNode && trackNode.isLoaded) {
         this.store.unloadRecord(trackNode);
       }
     });
     this.trackControls.forEach((trackControl) => {
-      if (trackControl) {
+      if (trackControl && trackControl.isLoaded) {
         // these are deleted via :dependent_destory on the server,
         // so just unload them on track delete
         this.store.unloadRecord(trackControl);
@@ -70,10 +70,7 @@ export default class TrackModel extends TrackAudioModel {
   }
 
   get currentSequence() {
-    if (this.isMaster) {
-      return null;
-    }
-    // TODO management of current sequence
+    if (this.isMaster) return null;
     return this.sequences[0];
   }
 

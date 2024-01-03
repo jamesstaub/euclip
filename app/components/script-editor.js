@@ -15,17 +15,8 @@ export default class ScriptEditorComponent extends Component {
   }
 
   get canRevert() {
-    const { safeCode, editorContent, functionRef } = this.args.scriptModel;
+    const { safeCode, editorContent } = this.args.scriptModel;
     return safeCode !== editorContent;
-  }
-
-  @restartableTask
-  *onUpdateEditor(content) {
-    // hack to avoid a double-submit error when hitting enter
-    // which causes cursor to jump
-    // yield timeout(500);
-    const scriptModel = yield this.args.scriptModel;
-    scriptModel.updateScriptTask.perform('editorContent', content);
   }
 
   @action

@@ -87,7 +87,20 @@ export const argCompletions = {
   ],
   attr: [],
   script: [],
-  waveshaper: [],
+  waveshaper: [
+    {
+      label: 'userParams.drive',
+      type: 'Number',
+      detail: 'drive amount',
+      defaultValue: '1',
+    },
+    {
+      label: 'userParams.curve',
+      type: 'Array',
+      detail: 'curve array',
+      defaultValue: undefined,
+    },
+  ],
   compressor: [
     {
       label: 'userParams.threshold',

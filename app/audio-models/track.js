@@ -37,7 +37,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       (audioNode) => audioNode.nodeType === 'channelStrip'
     );
     const node = __._getNode(firstVisualizableNode?.uuid)?.getNativeNode();
-    this.nodeToVisualize = node[0]; // get the gain node of the channelSTrip
+    this.nodeToVisualize = (node && node[0]) || node; // get the gain node of the channelSTrip
   }
 
   async downloadSample() {
@@ -89,6 +89,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         addCustomSelector(node, `${type} ${this.classSelector}`);
         addCustomSelector(node, node.getUUID()); // NOTE: no . or # is used, the uuid is the full selector
         this.settingsForNodes.push(nodeSettings);
+
         if (userSettings) {
           // callback is a custom addition to cracked library that
           // fires when audio file loads
@@ -139,15 +140,12 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     if (this.currentSequence) {
       if (trackNodes.length) {
         let onStepCallback = this.onStepCallback.bind(this);
-        // TODO: if there is no source might we still want to
-        // bind to sequencer?  ramp, LFO?
-        // what about if there are multiple chains declared in
-        // a track's setup script?
         if (trackNodes.length) {
           bindSourcenodeToLoopStep(
             this.classSelector,
             onStepCallback,
-            this.currentSequence.sequence
+            this.currentSequence.sequence,
+            { loopIndex: this.project.stepIndex }
           );
         }
       } else {
@@ -286,16 +284,12 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       trackNode.updateDefaultValue();
     });
 
-    // BUG:
-    // Sometimes it seems that specifically the sampler node's track controls get destroyed unwantedly
-    // any trackControls that don't match to a node get destroyed
     trackControls.forEach((trackControl) => {
       // except we allow a filepath control to remain even if the node
       // doesn't exist because it ensures that a path value can be provided
       // immediately when a sampler gets created and not need to wait for trackControls
       // to be created
       if (trackControl.interfaceName !== 'filepath') {
-        console.log('destroy!', trackControl);
         trackControl.destroyRecord();
       }
     });
@@ -310,7 +304,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     bindSourcenodeToLoopStep(
       this.classSelector,
       onStepCallback,
-      this.currentSequence.sequence
+      this.currentSequence.sequence,
+      { loopIndex: this.project.stepIndex }
     );
   }
 
@@ -326,22 +321,90 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       console.warn('tried to run call back on deleted track, must reset loop');
       return;
     }
-
     this.stepIndex = index;
+
+    if (this.isMaster) {
+      this.project.stepIndex = index;
+    }
 
     // before calling the user's onstepScript, pass the current values of all track-controls
     // to the their respective track-nodes. Sampler nodes are a special case, since they get
     // rebuilt on each play, so they need to be passed their params in the .start() call (see below).
+    // this.trackControls.forEach((trackControl) => {
+    //   // channel strip is a special case so it doesn't get applied on each step
+    //   if (trackControl.get('trackNode.nodeType') == 'channelStrip') {
+    //     return;
+    //   }
 
-    this.trackControls.forEach((trackControl) => {
-      // channel strip is a special case so it doesn't get applied on each step
-      if (trackControl.get('trackNode.nodeType') == 'channelStrip') {
-        return;
-      }
-      // TODO:
-      // look into optimizing this by mapping all the params to an object
-      // then updating the nodes once, rather than once per parameter
-      trackControl.setAttrOnTrackStep(index);
+    //   trackControl.setAttrOnTrackStep(index);
+    // });
+    const attrsForNodes = this.trackControls
+      .filter((trackControl) => {
+        // TODO: if trackControl.disabled skip
+
+        // FIXME: abandonned trackControls should be destroyed by now
+        if (!trackControl.trackNode) {
+          return false;
+        }
+
+        if (trackControl.get('trackNode.nodeType') == 'channelStrip') {
+          return false;
+        }
+
+        // FIXME:
+        // This problem seems to be when a node has the same name as it's parent macro
+        // The trackControl should probably not get created at all for the child node
+        // test by modulating the delay parameter of a delay node while seq running
+        if (
+          trackControl.trackNode.nodeType == 'delay' &&
+          trackControl.trackNode.parentMacro
+        ) {
+          return false;
+        }
+        if (!trackControl.trackNode) {
+          //FIXME: channelStrips don't have a trackNode
+          //see app/audio-models/track.js:273
+          // just return to prevent error
+          // maybe this is fine since we dont set attrs directly on macros, just their children?
+          return false;
+        }
+        if (trackControl.nodeType !== trackControl.trackNode.nodeType) {
+          // if this case happens, it is hopefully just because trackControls are in the process of deleting in a non-blocking way,
+          //  so we cant wait for the request to finish.
+          // in anycase its invalid and should not be used
+          // it could also be a default filepath control on a track with no sampler node
+          return false;
+        }
+        return true;
+      })
+      .reduce((acc, trackControl) => {
+        // this might get called by the sequencer while we're trying to delete the track, track-node or track-control
+        if (!trackControl.isDestroyed && trackControl.nodeAttr) {
+          if (!trackControl.controlArrayComputed) {
+            // TO reproduce
+            // create a sine wave track, then duplicate it, change properties
+            // then delete the duplicated track
+            console.error('FIXME: this should never happen');
+          }
+
+          if (!acc[trackControl.trackNode.uniqueSelector]) {
+            acc[trackControl.trackNode.uniqueSelector] = {};
+          }
+
+          acc[trackControl.trackNode.uniqueSelector][trackControl.nodeAttr] =
+            trackControl.attrValueForType(index);
+          return acc;
+        }
+      }, {});
+
+    // FIXME: updating trackNodes from control attrs supercedes
+    // modulations from LFOs and probably other modulators.
+    // LFO track controls need a "modulates" string attr.
+    // TrackControls should check if an LFO exists in the audio tree and could
+    // self-disable if so
+    this.trackNodes.forEach((trackNode) => {
+      const attrs = attrsForNodes[trackNode.uniqueSelector];
+      trackNode.updateNodeAttr(attrs);
     });
 
     this.onstepScript.invokeFunctionRef(index, data, array);

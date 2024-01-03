@@ -32,9 +32,6 @@
   font-size: 0.065rem;
 }
 
-.white- {
-  color: var(--white) !important;
-}
 
 /* Flexbox */
 .flex-0 {
@@ -205,4 +202,13 @@
 
 .dark-yellow-fill svg {
   fill: var(--dark-yellow);
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.no-bottom {
+  border-bottom: none;
+  transform: translateY(0.125rem);
 }

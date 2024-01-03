@@ -1,5 +1,5 @@
 import Model, { attr } from '@ember-data/model';
-import { keepLatestTask, task, timeout } from 'ember-concurrency';
+import { keepLatestTask, task, timeout, waitForProperty } from 'ember-concurrency';
 import { tracked } from '@glimmer/tracking';
 
 export default class ScriptModel extends Model {
@@ -64,21 +64,24 @@ export default class ScriptModel extends Model {
   @keepLatestTask
   *runCode() {
     this.alert = null;
-    this.set('code', this.editorContent);
+    this.code = this.editorContent;
     yield this.updateScriptTask.perform('code', this.editorContent);
     if (this.name === 'init-script') {
-      const track = yield this.track;
-      if (track.samplerNodes.length) {
-        yield track.downloadSample();
-      }
-      const project = yield track.get('project');
-      if (project.get('isPlaying')) {
-        // clean reset on delete to prevent the _loopListeners array gets cleared out in cracked
-        project.stopLoop();
-        yield project.initSignalChain();
-        project.startLoop();
+      if (this.track.localFilePath) {
+        // no need to wait if we alrea have an existing one,
+        // otherwise it will interrupt the loops
+        this.track.downloadSample();
       } else {
-        track.setupAudioFromScripts();
+        yield this.track.downloadSample();
+      }
+
+      if (this.track.project.isPlaying) {
+        // clean reset on delete to prevent the _loopListeners array gets cleared out in cracked
+        this.track.project.stopLoop();
+        yield this.track.project.initSignalChain();
+        this.track.project.startLoop();
+      } else {
+        this.track.setupAudioFromScripts();
       }
     }
     yield timeout(1000);
@@ -88,9 +91,8 @@ export default class ScriptModel extends Model {
   // doesn't appear to be cancelable https://githubplus.com/machty/ember-concurrency/issues/463
   @task
   *updateScriptTask(property, value) {
-    this.set(property, value);
-    yield new Promise((resolve) => {
-      this.save().then(resolve);
-    });
+    this[property] = value;
+    yield timeout(300);
+    yield this.save();
   }
 }

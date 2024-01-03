@@ -5,7 +5,7 @@
     {{codemirror
       (add @scriptModel.id this.renderFlag)
       @scriptModel.editorContent
-      (perform this.onUpdateEditor)
+      (perform @scriptModel.updateScriptTask 'editorContent')
     }}
   ></div>
 
@@ -23,7 +23,7 @@
         @disabled={{this.functionIsLoaded}}
         {{on 'click' (perform @scriptModel.runCode)}}
       >
-        {{#if this.functionIsLoaded}}
+        {{#if (or this.functionIsLoaded this.runCode.isRunning)}}
           Running
         {{else}}
           Run
@@ -37,16 +37,16 @@
           title='Disable this script. Nodes will be removed and disconnected from the sequencer.'
         >disable</ButtonPrimary>
       {{else}}
-      {{#if this.canRevert}}
-        <ButtonPrimary
-          class='light-gray b--light-gray bg-dark-gray mt3 f4'
-          @restyle={{true}}
-          {{on 'click' this.discardChanges}}
-          title='Revert editor to currently running code'
-        >
-          revert
-        </ButtonPrimary>
-      {{/if}}
+        {{#if this.canRevert}}
+          <ButtonPrimary
+            class='light-gray b--light-gray bg-dark-gray mt3 f4'
+            @restyle={{true}}
+            {{on 'click' this.discardChanges}}
+            title='Revert editor to currently running code'
+          >
+            revert
+          </ButtonPrimary>
+        {{/if}}
       {{/if}}
     </div>
     {{yield}}

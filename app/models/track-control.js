@@ -6,7 +6,7 @@ import {
   keepLatestTask,
   task,
 } from 'ember-concurrency';
-import { getCrackedNode } from '../utils/cracked';
+
 import { isPresent } from '@ember/utils';
 import { defaultKit } from './track-node';
 
@@ -68,9 +68,9 @@ export default class TrackControlModel extends Model {
    * depending on the current stepIndex of the sequence
    */
   get isMultislider() {
-    // hack to prevent bug when a gain node is deleted, channel strip gain inherits it's defaultInterace property
+    // hack to prevent bug when a gain node is deleted, channel strip gain inherits it's defaultInterface property
     // see error in audio-models/track cleanupNodeRecords
-    if (this.get('trackNode.isChannelStripChild')) {
+    if (this.trackNode.isChannelStripChild) {
       return false;
     }
     if (!isPresent(this.controlArrayComputed)) {
@@ -117,37 +117,6 @@ export default class TrackControlModel extends Model {
     }
   }
 
-  setAttrOnTrackStep(index) {
-    if (!this.trackNode) {
-      //FIXME: channelStrips don't have a trackNode
-      //see app/audio-models/track.js:273
-      // just return to prevent error
-      // maybe this is fine since we dont set attrs directly on macros, just their children?
-      return;
-    }
-    if (this.nodeType !== this.trackNode.nodeType) {
-      // if this case happens, it is hopefully just because trackControls are in the process of deleting in a non-blocking way,
-      //  so we cant wait for the request to finish.
-      // in anycase its invalid and should not be used
-      // it could also be a default filepath control on a track with no sampler node
-      return;
-    }
-
-    // this might get called by the sequencer while we're trying to delete the track, track-node or track-control
-    if (!this.isDestroyed && this.nodeAttr) {
-      if (!this.controlArrayComputed) {
-        // TO reproduce
-        // create a sine wave track, then duplicate it, change properties
-        // then delete the duplicated track
-        console.error('FIXME: this should never happen');
-      }
-
-      const currentValue = this.attrValueForType(index);
-      this.setAttrsOnNode(currentValue);
-      return currentValue;
-    }
-  }
-
   /* 
     Query and update the audio node object
     used for sliders and 1 dimensional track-control values
@@ -158,27 +127,7 @@ export default class TrackControlModel extends Model {
   setAttrsOnNode(val) {
     const attrs = {};
     attrs[this.nodeAttr] = val;
-
-    // NOTE:
-    // users can (someday) declare a custom selector on a control (like a class)
-    // so it can control multiple nodes at once
-    // till then this first condition is nevermet
-    if (this.trackNode.nodeSelector) {
-      __(this.trackNode.nodeSelector).attr(attrs);
-    } else {
-      const uuid = this.trackNode.get('nodeUUID');
-      const node = getCrackedNode(uuid);
-      if (node.getType() == 'delay') {
-        console.log(uuid, attrs)
-      }
-      if (node) {
-        node.attr(attrs);
-      } else if (uuid) {
-        // there's no audio node for this trackNode's uuid, so clear it.
-        // this trackControl may then get reassigned to a new or updated trackNode
-        this.nodeUUID = null;
-      }
-    }
+    this.trackNode.updateNodeAttr(attrs);
   }
 
   // TODO create an @unlessDeleted decorator!
@@ -206,6 +155,7 @@ export default class TrackControlModel extends Model {
       this.saveTrackControl.perform();
     }
   }
+
 
   // TODO:
   // this currently overwrites user-defined start and end values.

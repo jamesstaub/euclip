@@ -189,6 +189,33 @@ export default class TrackNodeModel extends Model {
     });
   }
 
+  // attrs is an object of attributes that a audio node expects like
+  // {speed, start, end} for a sampler node.
+  // improve this by adding validations for the nodeType
+  updateNodeAttr(attrs) {
+    // NOTE:
+    // users can (someday) declare a custom selector on a control (like a class)
+    // so it can control multiple nodes at once
+    // till then this first condition is nevermet
+    if (this.nodeSelector) {
+      __(this.nodeSelector).attr(attrs);
+    } else {
+      const uuid = this.nodeUUID;
+      const node = getCrackedNode(uuid);
+
+      if (node) {
+        node.attr(attrs);
+      } else if (uuid) {
+        // there's no audio node for this trackNode's uuid, so clear it.
+        // this trackControl may then get reassigned to a new or updated trackNode
+        this.trackControls.forEach((trackControl) => {
+          trackControl.nodeUUID = null;
+        });
+        // TODO: do we need to save the trackControls here?
+      }
+    }
+  }
+
   async setSamplerControlsToBuffer(buffer) {
     // set the track control for the `end` controlAttr to the audio buffer's length
     // unless the user has already set a value
