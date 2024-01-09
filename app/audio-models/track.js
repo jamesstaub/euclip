@@ -5,7 +5,7 @@ import ENV from '../config/environment';
 
 import {
   addCustomSelector,
-  bindSourcenodeToLoopStep,
+  bindToLoopStep,
   getCrackedNode,
   unbindFromSequencer,
 } from '../utils/cracked';
@@ -42,7 +42,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
   async downloadSample() {
     if (this.filepathUrl) {
-      await fetch(this.filepathUrl)
+      return await fetch(this.filepathUrl)
         .then((res) => res.blob()) // Gets the response and returns it as a blob
         .then((blob) => {
           this.localFilePath = URL.createObjectURL(blob);
@@ -53,18 +53,17 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     }
   }
 
-  async setupAudioFromScripts(unbindBeforeCreate = true) {
-    const initScript = await this.initScript;
+  setupAudioFromScripts(unbindBeforeCreate = true) {
+    const initScript = this.initScript;
     if (!initScript) {
       console.error('no initScript: This happened once, figure out why');
       debugger;
     }
-    await this.trackControls;
 
     // settingsForNodes is an array to store audio node uuids created in this track's script
     // not to be confused with trackNode models,
     // { uuid: type, atts: { filename: '...', speed: 1} }
-    set(this, 'settingsForNodes', []);
+    this.settingsForNodes = [];
 
     // cracked.onCreateNode was added to the Cracked library to give access to the AudioNode object upon creation
     // this callback gets called when a user creates cracked audio nodes in the script editor ui
@@ -141,11 +140,15 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       if (trackNodes.length) {
         let onStepCallback = this.onStepCallback.bind(this);
         if (trackNodes.length) {
-          bindSourcenodeToLoopStep(
+          bindToLoopStep(
             this.classSelector,
             onStepCallback,
             this.currentSequence.sequence,
-            { loopIndex: this.project.stepIndex }
+            {
+              loopIndex:
+                (this.project.stepIndex - 1) %
+                this.currentSequence.sequence.length,
+            }
           );
         }
       } else {
@@ -159,6 +162,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   // compares keys to determine where in the order of creation
   // this trackNode or trackControl is positioned. used to
   // match existing trackControls to newly re-created trackNodes
+  // TODO: refactor to static method?
   applyOrderOfType(recordsArray) {
     recordsArray.reduce((acc, record) => {
       const { nodeType, nodeAttr } = record;
@@ -189,58 +193,61 @@ export default class TrackAudioModel extends Model.extend(Evented) {
    *
    * TrackNode records are ephemeral, so trackNode.save is never called.
    * TrackControls however, get created on the server, and returned to the client where they are associated with the TrackNode records
-   *
-   * FIXME: how to re-order if user adds new nodes between existing ones?
-   *
+   
    */
   findOrCreateTrackNodeRecords() {
     // map over audio node objects created in this track's script
     // to create corresponding trackNode model records
-    this.settingsForNodes.forEach((node, idx) => {
-      const [uuid, type] = Object.entries(node)[0];
-      if (getCrackedNode(uuid)) {
-        // a `ui` attribute might have been defined in the cracked node definition
-        const userDefinedInterfaceName = getCrackedNode(uuid).ui;
+    this.settingsForNodes
+      .filter((setting) => {
+        // currently the channelStrip is the only use case where the child nodes of a macro get TrackNode models.
+        if (setting.parentMacro?.nodeType == 'channelStrip') return true;
+        return !setting.parentMacro;
+      })
+      .forEach((node, idx) => {
+        const [uuid, type] = Object.entries(node)[0];
+        if (getCrackedNode(uuid)) {
+          // a `ui` attribute might have been defined in the cracked node definition
+          const userDefinedInterfaceName = getCrackedNode(uuid).ui;
 
-        // grab the attributes passed in to the initialization of a cracked node that will be used to set default state of track controls (eg. frequency, gain, speed etc.)
-        const userSettingsForControl = filterNumericAttrs(node.userSettings);
-        let trackNodeAttrs = {
-          nodeUUID: uuid, // always update uuid since the audio nodes will be new every time
-          nodeType: type,
-          order: idx, // FIXME: does this break when nodes changed, reordered, multiple of same type? Consider using a cumulative "createdOrder" (based on initialization from the script, not every rebuild)
-          parentMacro: node.parentMacro,
-          userDefinedInterfaceName, // get the custom ui saved on the AudioNode, which was defined by the user
-        };
-        // the parentMacro property is a cracked web audio node which happens to be a macro
-        // this is used to determine if the node should appear with the normal node controls,
-        // or separated as in the channel strip component.
-        // since the AudioNodes are ephemeral, but the TrackNode models persist to the database
-        // we need to save a boolean telling the data model that it expects to have a channel strip maco audio node
-        trackNodeAttrs.isChannelStripChild =
-          trackNodeAttrs.parentMacro &&
-          trackNodeAttrs.parentMacro.getType() === 'channelStrip';
+          // grab the attributes passed in to the initialization of a cracked node that will be used to set default state of track controls (eg. frequency, gain, speed etc.)
+          const userSettingsForControl = filterNumericAttrs(node.userSettings);
+          let trackNodeAttrs = {
+            nodeUUID: uuid, // always update uuid since the audio nodes will be new every time
+            nodeType: type,
+            order: idx, // FIXME: does this break when nodes changed, reordered, multiple of same type? Consider using a cumulative "createdOrder" (based on initialization from the script, not every rebuild)
+            parentMacro: node.parentMacro,
+            userDefinedInterfaceName, // get the custom ui saved on the AudioNode, which was defined by the user
+          };
+          // the parentMacro property is a cracked web audio node which happens to be a macro
+          // this is used to determine if the node should appear with the normal node controls,
+          // or separated as in the channel strip component.
+          // since the AudioNodes are ephemeral, but the TrackNode models persist to the database
+          // we need to save a boolean telling the data model that it expects to have a channel strip maco audio node
+          trackNodeAttrs.isChannelStripChild =
+            trackNodeAttrs.parentMacro &&
+            trackNodeAttrs.parentMacro.getType() === 'channelStrip';
+          // ID is necessary for client-side relationships between track-node and track-controller
+          // so we're using the audio node's UUID at time of creation.
+          // however when a trackNode is found and updated in the if block above,
+          // it will update with a new audio node uuid and this id value will be outdated
+          // so theyre just a representation of the state of original creation
+          trackNodeAttrs = {
+            id: `${uuid}`,
+            ...trackNodeAttrs,
+          };
 
-        // ID is necessary for client-side relationships between track-node and track-controller
-        // so we're using the audio node's UUID at time of creation.
-        // however when a trackNode is found and updated in the if block above,
-        // it will update with a new audio node uuid and this id value will be outdated
-        // so theyre just a representation of the state of original creation
-        trackNodeAttrs = {
-          id: `${uuid}`,
-          ...trackNodeAttrs,
-        };
+          let trackNode = this.trackNodes.createRecord(trackNodeAttrs);
 
-        let trackNode = this.trackNodes.createRecord(trackNodeAttrs);
+          // if the `ui` attribute was changed in the script editor, update the interfaceName of track-controls
+          trackNode.updateUserDefinedInterfaceName(userDefinedInterfaceName);
 
-        // if the `ui` attribute was changed in the script editor, update the interfaceName of track-controls
-        trackNode.updateUserDefinedInterfaceName(userDefinedInterfaceName);
-
-        // stash the userSettingsForControl on the trackNode
-        // So it can be read by trackControls to set their default values
-        // update track control with user default values
-        trackNode.userSettingsForControl = userSettingsForControl;
-      }
-    });
+          // stash the userSettingsForControl on the trackNode
+          // So it can be read by trackControls to set their default values
+          // update track control with user default values
+          trackNode.userSettingsForControl = userSettingsForControl;
+        }
+      });
     return this.trackNodes;
   }
 
@@ -254,9 +261,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
    */
   async setupTrackControls(trackNodes) {
     let trackControls = await this.trackControls;
+    trackControls = this.applyOrderOfType(this.trackControls);
     let nodesWithoutTrackControls = [];
-
-    trackControls = this.applyOrderOfType(trackControls);
 
     trackNodes.forEach((trackNode) => {
       const matchingControls = trackControls.filter((trackControl) => {
@@ -301,24 +307,30 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
   bindToSequencer() {
     let onStepCallback = this.onStepCallback.bind(this);
-    bindSourcenodeToLoopStep(
+
+    let loopIndex = this.project.isPlaying
+      ? (this.project.stepIndex - 1) % this.currentSequence.sequence.length
+      : 0;
+
+    bindToLoopStep(
       this.classSelector,
       onStepCallback,
       this.currentSequence.sequence,
-      { loopIndex: this.project.stepIndex }
+      {
+        loopIndex,
+      }
     );
   }
 
   unbindAndRemoveCrackedNodes() {
-    this.sourceNodeRecords.forEach((sourceNode) => {
-      unbindFromSequencer(sourceNode.uniqueSelector);
-    });
+    unbindFromSequencer(this.classSelector);
     __(`${this.classSelector}`).remove();
   }
 
   onStepCallback(index, data, array) {
     if (this.isDeleted) {
       console.warn('tried to run call back on deleted track, must reset loop');
+
       return;
     }
     this.stepIndex = index;
@@ -330,18 +342,10 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // before calling the user's onstepScript, pass the current values of all track-controls
     // to the their respective track-nodes. Sampler nodes are a special case, since they get
     // rebuilt on each play, so they need to be passed their params in the .start() call (see below).
-    // this.trackControls.forEach((trackControl) => {
-    //   // channel strip is a special case so it doesn't get applied on each step
-    //   if (trackControl.get('trackNode.nodeType') == 'channelStrip') {
-    //     return;
-    //   }
 
-    //   trackControl.setAttrOnTrackStep(index);
-    // });
     const attrsForNodes = this.trackControls
       .filter((trackControl) => {
         // TODO: if trackControl.disabled skip
-
         // FIXME: abandonned trackControls should be destroyed by now
         if (!trackControl.trackNode) {
           return false;
@@ -351,23 +355,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
           return false;
         }
 
-        // FIXME:
-        // This problem seems to be when a node has the same name as it's parent macro
-        // The trackControl should probably not get created at all for the child node
-        // test by modulating the delay parameter of a delay node while seq running
-        if (
-          trackControl.trackNode.nodeType == 'delay' &&
-          trackControl.trackNode.parentMacro
-        ) {
-          return false;
-        }
-        if (!trackControl.trackNode) {
-          //FIXME: channelStrips don't have a trackNode
-          //see app/audio-models/track.js:273
-          // just return to prevent error
-          // maybe this is fine since we dont set attrs directly on macros, just their children?
-          return false;
-        }
         if (trackControl.nodeType !== trackControl.trackNode.nodeType) {
           // if this case happens, it is hopefully just because trackControls are in the process of deleting in a non-blocking way,
           //  so we cant wait for the request to finish.
@@ -404,7 +391,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // self-disable if so
     this.trackNodes.forEach((trackNode) => {
       const attrs = attrsForNodes[trackNode.uniqueSelector];
-      trackNode.updateNodeAttr(attrs);
+      if (attrs) {
+        trackNode.updateNodeAttrs(attrs);
+      }
     });
 
     this.onstepScript.invokeFunctionRef(index, data, array);

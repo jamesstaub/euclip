@@ -1,5 +1,10 @@
 import Model from '@ember-data/model';
-import { defineChannelStripMacro, startLoop, stopLoop } from '../utils/cracked';
+import {
+  defineChannelStripMacro,
+  resetLoop,
+  startLoop,
+  stopLoop,
+} from '../utils/cracked';
 
 /*
  *  base class for the project model
@@ -19,14 +24,16 @@ export default class ProjectAudioModel extends Model {
     defineChannelStripMacro();
     this.masterTrack.setupAudioFromScripts();
     await this.downloadTrackSamples();
-    await this.setupTracks();
+    this.setupTracks();
+    if (!this.isPlaying) {
+      stopLoop(); // prevent autoplaying if there are `.start()` in the init scripts
+    }
+
     return this;
   }
 
-  async setupTracks() {
-    return await Promise.all(
-      this.orderedTracks.map((track) => track.setupAudioFromScripts())
-    );
+  setupTracks() {
+    return this.orderedTracks.map((track) => track.setupAudioFromScripts());
   }
 
   async downloadTrackSamples() {
@@ -55,7 +62,9 @@ export default class ProjectAudioModel extends Model {
   }
 
   resetLoop() {
-    __.loop('reset');
+    this.stepIndex = -1;
+    this.tracks.forEach((track) => (track.stepIndex = -1));
+    resetLoop();
     return this;
   }
 }

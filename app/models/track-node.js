@@ -93,17 +93,6 @@ export default class TrackNodeModel extends Model {
     );
   }
 
-  static validTrackNodes(track) {
-    return track.trackNodes;
-
-    // Deprecated this after framework upgrade and bug fixes
-    // hopefully track.trackNodes suffices
-    //  probably safe to remove
-    // return track.get('trackNodes').filter((trackNode) => {
-    //   // TODO delete trackNodes that have an orphaned uuid
-    //   return trackNode?.nodeUUID && __._getNode(trackNode.nodeUUID);
-    // });
-  }
   static validateControls(trackControls, nodeType) {
     const controlAttrs = Object.keys(AudioNodeConfig[nodeType]?.attrs);
     return controlAttrs.every((controlAttr) =>
@@ -113,15 +102,10 @@ export default class TrackNodeModel extends Model {
     );
   }
 
-  static channelStripNodes(track) {
-    return this.validTrackNodes(track).filter(
-      (trackNode) => trackNode?.parentMacro?.getType() === 'channelStrip'
-    );
-  }
-
-  static channelStripNode(track, type) {
-    return this.channelStripNodes(track).find(
-      (trackNode) => trackNode.nodeType === type
+  static channelStripNode(track) {
+    // if for some reason there are multiple channelStrips declared, only the first will return
+    return track.trackNodes.find(
+      (trackNode) => trackNode.nodeType === 'channelStrip'
     );
   }
 
@@ -192,27 +176,28 @@ export default class TrackNodeModel extends Model {
   // attrs is an object of attributes that a audio node expects like
   // {speed, start, end} for a sampler node.
   // improve this by adding validations for the nodeType
-  updateNodeAttr(attrs) {
+  updateNodeAttrs(attrs) {
     // NOTE:
     // users can (someday) declare a custom selector on a control (like a class)
     // so it can control multiple nodes at once
     // till then this first condition is nevermet
-    if (this.nodeSelector) {
-      __(this.nodeSelector).attr(attrs);
-    } else {
-      const uuid = this.nodeUUID;
-      const node = getCrackedNode(uuid);
 
-      if (node) {
-        node.attr(attrs);
-      } else if (uuid) {
-        // there's no audio node for this trackNode's uuid, so clear it.
-        // this trackControl may then get reassigned to a new or updated trackNode
-        this.trackControls.forEach((trackControl) => {
-          trackControl.nodeUUID = null;
-        });
-        // TODO: do we need to save the trackControls here?
-      }
+    __(this.uniqueSelector).attr(attrs);
+
+    const uuid = this.nodeUUID;
+    const node = getCrackedNode(uuid);
+
+    if (uuid && !node) {
+      // there's no audio node for this trackNode's uuid, so clear it.
+      // this trackControl may then get reassigned to a new or updated trackNode
+      console.warn(
+        'attempted to updated attrs on an orphaned trackNode',
+        this.nodeType
+      );
+      this.trackControls.forEach((trackControl) => {
+        trackControl.nodeUUID = null;
+      });
+      // TODO: do we need to save the trackControls here?
     }
   }
 
@@ -234,6 +219,7 @@ export default class TrackNodeModel extends Model {
    * locally-created records will be available syncronously,
    * and then save to db non-blocking
    *
+   *
    */
   findOrCreateTrackControls() {
     // get default attributes for node
@@ -247,6 +233,7 @@ export default class TrackNodeModel extends Model {
     //  before the script runs because we want it to be ready to go
     // so it gets special treatment here
     const existingTrackControls = this.track.get('trackControls').toArray();
+
     return controlAttrs.map((controlAttr) => {
       let defaultForAttr = {};
 

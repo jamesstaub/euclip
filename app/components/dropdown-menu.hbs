@@ -14,11 +14,11 @@
   </dd.Trigger>
 
   <dd.Content class=''>
-    <ul class="list pl0">
+    <ul class="list pl0 ma0">
       {{#each @items as |item|}}
         <li>
           <button
-            class='bg-light-gray bn w-100 ph2 pv1'
+            class='bg-light-gray bn w-100 ph3 pv2'
             type='button'
             title={{item.label}}
             {{on 'click' (fn this.onSelectItem item.select)}}

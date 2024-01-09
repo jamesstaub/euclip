@@ -24,7 +24,7 @@ export const unitTransformsForNodeAttr = {
   q: [Q],
   decay: [S, MS, BEATS],
   delay: [S, MS, BEATS],
-  damping: [DB],
+  damping: [AMP],
   feedback: [AMP],
   cutoff: [HZ],
   drive: [AMP],

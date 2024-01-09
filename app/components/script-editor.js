@@ -1,8 +1,6 @@
 import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { inject as service } from '@ember/service';
-import { timeout, restartableTask } from 'ember-concurrency';
-import { getProperties } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 
 export default class ScriptEditorComponent extends Component {
@@ -22,6 +20,7 @@ export default class ScriptEditorComponent extends Component {
   @action
   async loadScript() {
     const scriptModel = await this.args.scriptModel;
+    console.log('loadScript');
     scriptModel.runCode.perform();
   }
 
@@ -47,5 +46,10 @@ export default class ScriptEditorComponent extends Component {
     // set `code` and save, API response will set this
     // value on `safeCode`, which is what actually gets run
     scriptModel.updateScriptTask.perform('code', '');
+  }
+
+  @action
+  updateEditorContent(value) {
+    this.args.scriptModel.updateScriptTask.perform('editorContent', value);
   }
 }

@@ -25,6 +25,7 @@ const gainableFilterAttrs = {
 const envelopeAttrs = {
   attack: [0.003, 1, 0.0125, oneD],
   decay: [0, 4, 0, oneD],
+  sustain: [0, 1, 0.15, oneD],
   release: [0, 1, 0.25, oneD],
 };
 
@@ -41,7 +42,6 @@ export const AudioNodeConfig = {
     type: DYNAMICS,
     attrs: {
       ...envelopeAttrs,
-      sustain: [], // todo is sustain level gain or db?
     },
   },
   allpasss: {
@@ -83,6 +83,7 @@ export const AudioNodeConfig = {
     },
   },
   channelStrip: {
+    type: DYNAMICS,
     attrs: {
       gain: [0, 1, 1, oneD],
       pan: [-1, 1, 0, oneD],
@@ -179,6 +180,7 @@ export const AudioNodeConfig = {
       speed: [-2, 2, 1, oneD],
       start: [0, 1, 0, oneD],
       end: [0, 1, 1, oneD],
+      loop: [false, true, false, bool],
       path: [null, null, null, filepath],
     },
   },
@@ -279,6 +281,14 @@ export const defaultParams = {
     interfaceName: oneD,
     unit: 'gain',
   },
+  decay: {
+    min: 0,
+    max: 2,
+    stepSize: 0.1,
+    defaultValue: 0,
+    interfaceName: oneD,
+    unit: 'seconds',
+  },
   delay: {
     min: 0,
     max: 1,
@@ -364,6 +374,12 @@ export const defaultParams = {
     interfaceName: oneD,
     unit: 'decibels',
   },
+  loop: {
+    min: false,
+    max: true,
+    defaultValue: false,
+    interfaceName: bool,
+  },
   pan: {
     min: -1,
     max: 1,
@@ -432,6 +448,14 @@ export const defaultParams = {
     defaultValue: 0,
     interfaceName: oneD,
     unit: 'seconds',
+  },
+  sustain: {
+    min: 0,
+    max: 1,
+    stepSize: 0.125,
+    defaultValue: 0.9,
+    interfaceName: oneD,
+    unit: 'gain',
   },
   threshold: {
     min: -60,

@@ -1,5 +1,5 @@
 import Model, { attr } from '@ember-data/model';
-import { keepLatestTask, task, timeout, waitForProperty } from 'ember-concurrency';
+import { keepLatestTask, restartableTask, task, timeout, waitForProperty } from 'ember-concurrency';
 import { tracked } from '@glimmer/tracking';
 
 export default class ScriptModel extends Model {
@@ -87,12 +87,12 @@ export default class ScriptModel extends Model {
     yield timeout(1000);
   }
 
-  // REFACTOR: is it actually meaningful to use a task for this.promise?
-  // doesn't appear to be cancelable https://githubplus.com/machty/ember-concurrency/issues/463
-  @task
+  @restartableTask
   *updateScriptTask(property, value) {
     this[property] = value;
-    yield timeout(300);
+    if (property === 'editorContent') {
+      yield timeout(1000); // debounce while typing, not other updates
+    }
     yield this.save();
   }
 }

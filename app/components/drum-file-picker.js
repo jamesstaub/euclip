@@ -6,14 +6,14 @@ import { inject as service } from '@ember/service';
 import { typeOf } from '@ember/utils';
 import AudioFileTreeModel from '../models/audio-file-tree';
 import { tracked } from '@glimmer/tracking';
-import { keepLatestTask, timeout } from 'ember-concurrency';
+import { restartableTask, timeout } from 'ember-concurrency';
 import TrackControlModel from '../models/track-control';
 
 export default class DrumFilePicker extends Component {
   @service store;
   @tracked searchResults;
 
-  @keepLatestTask
+  @restartableTask
   *searchTask() {
     let pageToSearch = 0;
     // this sucks but when this method is called by the pagination buttons, second arg is the page
@@ -21,7 +21,7 @@ export default class DrumFilePicker extends Component {
     if (typeOf(arguments[1]) === 'number') {
       pageToSearch = arguments[1];
     }
-    yield timeout(300);
+    yield timeout(200);
     if (this.searchQuery.length > 2) {
       const results = yield AudioFileTreeModel.fetchDirectory(
         `/search?q=${this.searchQuery}&page=${pageToSearch}`
@@ -29,7 +29,7 @@ export default class DrumFilePicker extends Component {
 
       this.searchResults = results.results;
       this.currentPage = results.page;
-      this.lastPage = results.last_page;
+      // this.lastPage = results.last_page;
     }
   }
 

@@ -1,7 +1,7 @@
 {{!-- template-lint-disable no-invalid-interactive --}}
 {{#if @track.trackNodes}}
   <div 
-    class="pointer {{if @track.isMaster "pl4 pr3" "pl3"}} bb b--silver {{if @isActive "bg-yellow" "bg-dark-gray hover-bg-near-black"}}" 
+    class="pointer {{if @track.isMaster "pl4 pr2" "pl3"}} bb b--silver {{if @isActive "bg-yellow" "bg-dark-gray hover-bg-near-black"}}" 
     {{on "click" @selectActiveTrack}}
     ...attributes
   >
@@ -39,7 +39,7 @@
       {{yield}}
 
       <div class="overflow-hidden grow-1 basis-auto">
-        {{#if @track.currentSequence.sequence}}
+        {{#if (and (not @track.isMaster) @track.currentSequence.sequence)}}
           <TrackSequencer 
             @sequence={{@track.currentSequence.sequence}}
             @stepIndex={{@track.stepIndex}}

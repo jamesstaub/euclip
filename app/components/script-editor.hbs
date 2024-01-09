@@ -1,11 +1,10 @@
-<div class='relative h-100' ...attributes>
-
+<div class='relative' ...attributes>
   <div
-    class='h-100'
+    class='codemirror-height'
     {{codemirror
       (add @scriptModel.id this.renderFlag)
       @scriptModel.editorContent
-      (perform @scriptModel.updateScriptTask 'editorContent')
+      this.updateEditorContent
     }}
   ></div>
 

@@ -23,6 +23,18 @@ manually set it to `this.localFilePath || this.filepathUrl`s
 
 #### scope + variables
 
+refactor docs and preset scripts once the loop.bind(selector) is fixed and working properly.
+for samplers you still need to do `__(this.trackSelector).stop().start()` because `__.stop().start()` doesnt work correctly
+but for other nodes you can do  `__.adsr()` to select only the adsr on that track etc
+
+LFOs on samplers are a weird case 
+```**('lfo').connect('sampler').start()
+if (data) {
+**(this.trackSelector).stop().start()
+}
+```
+
+
 - rename variables to match the tabs 
   (source.filepath instead of this.filepath)
   - `source.slices[]`
@@ -200,9 +212,14 @@ to keep recent state in tact when returning to a track
   offset should work for custom rhyhtms
 
 ### bugs
-Script editor states are wonky, stale value, debounce, revert not working
+
+
 
 - - need more solid sequencer-awareness when adding/removing tracks (use generators to start on a particular beat)
+
+- Sequencer UI bug:
+  stepIdx displays on the last step first when starts playing.
+  refactor the stepIndex that gets passed into Control::Multislider and SequencePagination. should be logic in those components to not render the current step if the value is -1 and had just started playing
 
 -- when deleting a track, the script sidebar closes but property is not re-set so the button to re-open sidebar disappears
 
@@ -223,6 +240,9 @@ Script editor states are wonky, stale value, debounce, revert not working
 ## Platform improvements
 
 implement a Forum with Threaded
+
+optimize with dynamic imports https://github.com/embroider-build/ember-auto-import
+
 
 also look at Kofi https://ko-fi.com/gold?ref=home
 

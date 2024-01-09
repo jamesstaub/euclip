@@ -32,29 +32,20 @@ export default class TrackFooterContainerComponent extends Component {
     return this.controlUiState === 'controls';
   }
 
-  get channelStripTrackNodes() {
-    // the children of channelStrip maco
-    return this.args.track.validTrackNodes.filterBy('parentMacro');
-  }
-
   /**
    * Optimize: these getters get called on every step of sequence
    * In all likelyhood they only need to be re-fetched when the script is updated
    * */
   get channelStripGainControl() {
-    const controls = TrackNodeModel.channelStripNode(
-      this.args.track,
-      'gain'
-    )?.trackControls;
-    return controls ? controls[0] : null;
+    return TrackNodeModel.channelStripNode(this.args.track)
+      ?.trackControls.toArray()
+      .findBy('nodeAttr', 'gain');
   }
 
   get channelStripPannerControl() {
-    const controls = TrackNodeModel.channelStripNode(
-      this.args.track,
-      'panner'
-    )?.trackControls;
-    return controls ? controls[0] : null;
+    return TrackNodeModel.channelStripNode(this.args.track)
+      ?.trackControls.toArray()
+      .findBy('nodeAttr', 'pan');
   }
 
   get trackNodesTabs() {

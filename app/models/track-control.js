@@ -117,18 +117,6 @@ export default class TrackControlModel extends Model {
     }
   }
 
-  /* 
-    Query and update the audio node object
-    used for sliders and 1 dimensional track-control values
-
-    this is fired immediately for sliders
-    and triggered on each step for multisliders
-  */
-  setAttrsOnNode(val) {
-    const attrs = {};
-    attrs[this.nodeAttr] = val;
-    this.trackNode.updateNodeAttr(attrs);
-  }
 
   // TODO create an @unlessDeleted decorator!
   /**
@@ -143,14 +131,16 @@ export default class TrackControlModel extends Model {
       const uuid = this.trackNode.get('nodeUUID');
       // const node = getCrackedNode(uuid);
       if (isArray(value)) {
-        this.set('controlArrayValue', value);
+        this.controlArrayValue = value;
       } else {
         if (this.controlValue === value) {
           return;
         }
         this.beforeUpdateValue(value);
-        this.set('controlValue', value);
-        this.setAttrsOnNode(value);
+        this.controlValue = value;
+        const attrs = {};
+        attrs[this.nodeAttr] = value;
+        this.trackNode.updateNodeAttrs(attrs);
       }
       this.saveTrackControl.perform();
     }

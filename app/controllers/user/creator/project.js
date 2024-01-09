@@ -58,6 +58,8 @@ export default class UserCreatorProjectController extends Controller {
 
   @action
   play() {
+    this.model.stopLoop();
+    this.model.resetLoop();
     this.model.initSignalChain();
     this.model.startLoop();
   }
@@ -65,13 +67,18 @@ export default class UserCreatorProjectController extends Controller {
   @action
   stop() {
     this.model.stopLoop();
+    this.model.resetLoop();
+  }
+
+  @action
+  pause() {
+    this.model.stopLoop();
   }
 
   @action
   reset() {
     this.model.resetLoop();
-    this.model.stepIndex = -1;
-    this.model.tracks.forEach((track) => (track.stepIndex = -1));
+    // this.model.initSignalChain();
   }
 
   @action

@@ -2,24 +2,34 @@
   <div class='flex flex-wrap items-center justify-between w-100'>
     <h1 class='ma0 f3'>{{this.model.displayTitle}}</h1>
     <div class='flex'>
-      <IconButton
-        class='bg-transparent mh1'
-        @icon='fi-play'
-        @label='play'
-        {{on 'click' this.play}}
-      />
+      {{#if this.model.isPlaying}}
+        <IconButton
+          class='bg-transparent mh1'
+          @icon='fi-pause'
+          @label='pause'
+          {{on 'click' this.pause}}
+        />
+      {{else}}
+        <IconButton
+          class='bg-transparent mh1'
+          @icon='fi-play'
+          @label='play'
+          {{on 'click' this.play}}
+        />
+      {{/if}}
+
       <IconButton
         class='bg-transparent mh1'
         @icon='fi-stop'
         @label='stop'
         {{on 'click' this.stop}}
       />
-      <IconButton
+      {{!-- <IconButton
         class='bg-transparent mh1'
         @icon='fi-previous'
         @label='reset'
         {{on 'click' this.reset}}
-      />
+      /> --}}
       <div class='flex items-center ba b--dark-gray bw1 ml2'>
 
         <div
@@ -55,7 +65,9 @@
   </div>
 </nav>
 
-<div class='flex flex-wrap project-tracks-height flex-nowrap-ns'>
+<div
+  class='flex flex-wrap overflow-hidden project-tracks-height flex-nowrap-ns'
+>
   {{#if
     (and this.leftSidebarOpen this.activeTrack (not this.activeTrack.isDeleted))
   }}

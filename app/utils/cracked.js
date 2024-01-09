@@ -18,7 +18,10 @@ export function getCrackedNode(uuid) {
  */
 export function defineChannelStripMacro() {
   cracked.channelStrip = function (params = {}) {
-    __.begin('channelStrip', params).gain(1).panner().end('channelStrip');
+    __.begin('channelStrip', params)
+      .gain(params.gain)
+      .panner(params.pan)
+      .end('channelStrip');
     return __;
   };
 }
@@ -48,6 +51,7 @@ export function addCustomSelector(node, selector) {
 export function startLoop(loopInterval) {
   __.loop('start');
   __.loop(loopInterval);
+  __('dac').start();
 }
 
 /**
@@ -58,6 +62,10 @@ export function stopLoop() {
   __.loop('stop');
   __('*').stop();
   stopDelays();
+}
+
+export function resetLoop() {
+  __.loop('reset');
 }
 
 export function stopDelays() {
@@ -73,12 +81,7 @@ export function stopDelays() {
  *
  * The cracked __.loop is the main sequencer that Euclip binds track scripts to
  */
-export function bindSourcenodeToLoopStep(
-  nodeSelector,
-  callback,
-  array,
-  options
-) {
+export function bindToLoopStep(nodeSelector, callback, array, options) {
   __(nodeSelector).bind(
     'step', // on every crack sequencer step
     callback, // call this function (bound to component scope)

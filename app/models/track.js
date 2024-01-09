@@ -3,7 +3,7 @@
 import { attr, belongsTo, hasMany } from '@ember-data/model';
 import TrackAudioModel from '../audio-models/track';
 import { keepLatestTask, timeout } from 'ember-concurrency';
-import { unbindFromSequencer } from '../utils/cracked';
+import { resetLoop, unbindFromSequencer } from '../utils/cracked';
 import ENV from 'euclip/config/environment';
 import { inject as service } from '@ember/service';
 import TrackNodeModel from './track-node';
@@ -62,15 +62,15 @@ export default class TrackModel extends TrackAudioModel {
     await this.destroyRecord();
 
     if (project.get('isPlaying')) {
-      // clean reset on delete to prevent the _loopListeners array gets cleared out in cracked
-      project.stopLoop();
-      await project.initSignalChain();
-      project.startLoop();
+      // TODO: add a hook to remove a callback from _loopListeners,
+      // otherwise will get "tried to run callback on deleted track" warning.
+      // Or add an argument to resetLoop() to target a listener by selctor
+      // __.loop('reset', '.track-1');
     }
   }
 
   get currentSequence() {
-    if (this.isMaster) return null;
+    // if (this.isMaster) return null;
     return this.sequences[0];
   }
 
@@ -136,8 +136,9 @@ export default class TrackModel extends TrackAudioModel {
   }
 
   get validTrackNodes() {
-    //dont try to render if record has no corresponding AudioNode
-    return TrackNodeModel.validTrackNodes(this);
+    // TODO: if there are still orphaned nodes, then implement a filter here
+    // otherwise remove this method
+    return this.trackNodes;
   }
 
   get trackNodesForControls() {
@@ -172,10 +173,8 @@ export default class TrackModel extends TrackAudioModel {
 
   @keepLatestTask
   *saveTrackSequence(sequenceRecord) {
-    yield timeout(2000);
-    yield new Promise((resolve) => {
-      sequenceRecord.save().then(resolve);
-    });
+    yield timeout(1000);
+    yield sequenceRecord.save();
   }
 
   // REFACTOR: this is only called when the filepath

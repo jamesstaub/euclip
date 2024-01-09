@@ -28,6 +28,7 @@ module.exports = function (environment) {
 
       // nodes defined in cracked library that euclip supports for TrackNodes and TrackControls
       supportedAudioNodes: [
+        'adsr',
         'allpasss',
         'bandpass',
         'bitcrusher',
