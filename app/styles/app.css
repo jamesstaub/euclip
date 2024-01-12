@@ -39,7 +39,6 @@
 /* Global styles */
 html, body {
   height: 100%;
-  overflow: hidden;
 }
 
 div {
@@ -84,8 +83,13 @@ a {
   height: var(--footer-height);
 }
 
-.codemirror-height {
-  height: 42.5rem;
+
+.sidebar-inner-max-height {
+  max-height: calc(100vh - 19rem);
+}
+
+.track-list-max-height {
+  max-height: calc(100vh - 30rem);
 }
 
 /* Drum file picker */
@@ -97,9 +101,6 @@ a {
   color: var(--moon-gray);
 }
 
-.file-search-height {
-  height: calc(100% - 10rem);
-}
 
 /* Script sidebar */
 .scrim {

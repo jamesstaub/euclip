@@ -6,7 +6,6 @@ import { isPresent } from '@ember/utils';
 import { next } from '@ember/runloop';
 import { typeOf } from '@ember/utils';
 
-
 function roundFloat(num) {
   return Number(Number((num || 0).toFixed(4)));
 }

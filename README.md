@@ -1,11 +1,24 @@
+# EUCLIP DRUM CONSOLE
 [euclip.app](https://euclip.app)
 
 See [Theory of Operation](theory-of-operation.md) to get a better idea of how Euclip works. 
 
-# euclip
+This is the frontend repository for Euclip Drum Console. It is an ember app that runs against a rails API backend.
+
 local development against api server using a self signed certificate
-`ember s  --secure-proxy=false` (proxy is in .ember-cli)
-`rails server -b 'ssl://localhost:3000?key=/Users/admin/.ssh/server.key&cert=/Users/admin/.ssh/server.crt'`
+
+
+## Pre-requisites
+
+1. Node.js > 18
+1. ember-cli `npm install -g ember-cli`
+
+
+## Run the app
+Assuming you have the back end repository installed and the server running, you can sinmply run `ember s --secure-proxy=false  --ssl-key /PATH/TO/server.key --ssl-cert /PATH/TO/server.crt` 
+See `.ember-cli` for local server config
+
+You can now open that app at `localhost:4200`
 
 ## Deploying
 `deploy-to-rails.sh` is a helper scipt that assumes the euclip-api repo exists in the same directory as this repo. This script will run build a production version of this app

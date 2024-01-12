@@ -5,6 +5,7 @@ import ENV from '../config/environment';
 
 import {
   addCustomSelector,
+  applyAttrs,
   bindToLoopStep,
   getCrackedNode,
   unbindFromSequencer,
@@ -146,8 +147,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
             this.currentSequence.sequence,
             {
               loopIndex:
-                (this.project.stepIndex - 1) %
-                this.currentSequence.sequence.length,
+                this.project.stepIndex % this.currentSequence.sequence.length,
             }
           );
         }
@@ -258,6 +258,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
    *  if found, update it with the trackNode
    *  else create a new TrackControl for the node
    *
+   * Then apply the values from the track controls to the audio nodes
    */
   async setupTrackControls(trackNodes) {
     let trackControls = await this.trackControls;
@@ -303,13 +304,26 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     nodesWithoutTrackControls.map((trackNode) =>
       trackNode.findOrCreateTrackControls()
     );
+
+    // now apply the value for all track controls old and new
+    const attrsForNodes = TrackControlModel.getAttrsForNodes(
+      this.trackControls
+    );
+    this.trackNodes.forEach((trackNode) => {
+      trackNode.delinkControlsForDeadNodes();
+
+      const attrs = attrsForNodes[trackNode.uniqueSelector];
+      if (attrs) {
+        applyAttrs(trackNode.uniqueSelector, attrs);
+      }
+    });
   }
 
   bindToSequencer() {
     let onStepCallback = this.onStepCallback.bind(this);
 
     let loopIndex = this.project.isPlaying
-      ? (this.project.stepIndex - 1) % this.currentSequence.sequence.length
+      ? this.project.stepIndex % this.currentSequence.sequence.length
       : 0;
 
     bindToLoopStep(
@@ -342,49 +356,12 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // before calling the user's onstepScript, pass the current values of all track-controls
     // to the their respective track-nodes. Sampler nodes are a special case, since they get
     // rebuilt on each play, so they need to be passed their params in the .start() call (see below).
+    const attrsForNodes = TrackControlModel.getAttrsForNodes(
+      this.trackControls,
+      index
+    );
 
-    const attrsForNodes = this.trackControls
-      .filter((trackControl) => {
-        // TODO: if trackControl.disabled skip
-        // FIXME: abandonned trackControls should be destroyed by now
-        if (!trackControl.trackNode) {
-          return false;
-        }
-
-        if (trackControl.get('trackNode.nodeType') == 'channelStrip') {
-          return false;
-        }
-
-        if (trackControl.nodeType !== trackControl.trackNode.nodeType) {
-          // if this case happens, it is hopefully just because trackControls are in the process of deleting in a non-blocking way,
-          //  so we cant wait for the request to finish.
-          // in anycase its invalid and should not be used
-          // it could also be a default filepath control on a track with no sampler node
-          return false;
-        }
-        return true;
-      })
-      .reduce((acc, trackControl) => {
-        // this might get called by the sequencer while we're trying to delete the track, track-node or track-control
-        if (!trackControl.isDestroyed && trackControl.nodeAttr) {
-          if (!trackControl.controlArrayComputed) {
-            // TO reproduce
-            // create a sine wave track, then duplicate it, change properties
-            // then delete the duplicated track
-            console.error('FIXME: this should never happen');
-          }
-
-          if (!acc[trackControl.trackNode.uniqueSelector]) {
-            acc[trackControl.trackNode.uniqueSelector] = {};
-          }
-
-          acc[trackControl.trackNode.uniqueSelector][trackControl.nodeAttr] =
-            trackControl.attrValueForType(index);
-          return acc;
-        }
-      }, {});
-
-    // FIXME: updating trackNodes from control attrs supercedes
+    // FIXME: check if updating trackNodes from control attrs supercedes
     // modulations from LFOs and probably other modulators.
     // LFO track controls need a "modulates" string attr.
     // TrackControls should check if an LFO exists in the audio tree and could
@@ -392,7 +369,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     this.trackNodes.forEach((trackNode) => {
       const attrs = attrsForNodes[trackNode.uniqueSelector];
       if (attrs) {
-        trackNode.updateNodeAttrs(attrs);
+        applyAttrs(trackNode.uniqueSelector, attrs);
       }
     });
 

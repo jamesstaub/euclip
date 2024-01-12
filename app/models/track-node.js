@@ -173,17 +173,7 @@ export default class TrackNodeModel extends Model {
     });
   }
 
-  // attrs is an object of attributes that a audio node expects like
-  // {speed, start, end} for a sampler node.
-  // improve this by adding validations for the nodeType
-  updateNodeAttrs(attrs) {
-    // NOTE:
-    // users can (someday) declare a custom selector on a control (like a class)
-    // so it can control multiple nodes at once
-    // till then this first condition is nevermet
-
-    __(this.uniqueSelector).attr(attrs);
-
+  delinkControlsForDeadNodes() {
     const uuid = this.nodeUUID;
     const node = getCrackedNode(uuid);
 
@@ -197,7 +187,6 @@ export default class TrackNodeModel extends Model {
       this.trackControls.forEach((trackControl) => {
         trackControl.nodeUUID = null;
       });
-      // TODO: do we need to save the trackControls here?
     }
   }
 
@@ -233,7 +222,6 @@ export default class TrackNodeModel extends Model {
     //  before the script runs because we want it to be ready to go
     // so it gets special treatment here
     const existingTrackControls = this.track.get('trackControls').toArray();
-
     return controlAttrs.map((controlAttr) => {
       let defaultForAttr = {};
 
@@ -290,6 +278,9 @@ export default class TrackNodeModel extends Model {
       if (this.userDefinedInterfaceName) {
         trackControl.set('interfaceName', this.userDefinedInterfaceName);
       }
+      // TODO: dont save in the loop
+      // implement a batch-save to do it all in one request
+      // maybe use the new ember-data Handler/RequestManager system
       trackControl.save();
       return trackControl;
     });

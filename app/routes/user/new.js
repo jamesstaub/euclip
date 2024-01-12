@@ -8,7 +8,6 @@ export default class UserNewRoute extends Route {
 
   async beforeModel() {
     if (this.currentUser.user) {
-      // TODO if save fails then delete the created project and show error
       const project = await this.store
         .createRecord('project', {
           creator: this.currentUser.user,

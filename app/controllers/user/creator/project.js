@@ -6,6 +6,7 @@ import { keepLatestTask, timeout } from 'ember-concurrency';
 
 export default class UserCreatorProjectController extends Controller {
   @service router;
+  @service media;
   @tracked activeTrack;
   @tracked leftSidebarOpen;
   @tracked rightSidebarOpen;
@@ -13,7 +14,7 @@ export default class UserCreatorProjectController extends Controller {
 
   constructor() {
     super(...arguments);
-    this.rightSidebarOpen = true;
+    this.rightSidebarOpen = this.media.isDesktop;
   }
 
   async fetchAudioFileTrees(project) {

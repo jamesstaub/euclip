@@ -94,5 +94,12 @@ export function unbindFromSequencer(samplerSelector) {
   __(samplerSelector).unbind('step');
 }
 
+// attrs is an object of attributes that a audio node expects like
+// {speed, start, end} for a sampler node.
+// improve this by adding validations for the nodeType
+export function applyAttrs(selector, attrs) {
+  __(selector).attr(attrs);
+}
+
 export const synthNodes = ['triangle', 'sine', 'square', 'saw'];
 export const noiseNodes = ['noise', 'pink', 'white', 'brown'];

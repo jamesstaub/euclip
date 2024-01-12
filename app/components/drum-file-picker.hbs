@@ -17,7 +17,7 @@
 
 {{#if this.searchResults.length}}
   <div
-    class='flex justify-between flex-column mv3 file-search-height overflow-scroll'
+    class='flex justify-between flex-column mv3 sidebar-inner-max-height overflow-scroll'
   >
     <ul
       class='flex flex-column shrink-1 grow-1 list ma0 ph3'
@@ -38,7 +38,7 @@
     />
   </div>
 {{else}}
-  <div class='flex overflow-x-scroll w-100 pa3 file-search-height'>
+  <div class='flex overflow-x-scroll w-100 pa3 sidebar-inner-max-height'>
     {{#each @audioFileTreeModel.directoryTree as |directory idx|}}
       <div class='flex w-auto flex-column mr2'>
         <h4 class='black w-100 mv3 mb0 pl1 yellow'>

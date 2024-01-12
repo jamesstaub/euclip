@@ -20,7 +20,6 @@ export default class ScriptEditorComponent extends Component {
   @action
   async loadScript() {
     const scriptModel = await this.args.scriptModel;
-    console.log('loadScript');
     scriptModel.runCode.perform();
   }
 

@@ -67,6 +67,10 @@
 }
 
 /* Display */
+.z-0 {
+  z-index: 0;
+}
+
 .z-5 {
   z-index: 5;
 }
@@ -77,6 +81,8 @@
 }
 
 /* Sizing */
+
+
 .w6 {
   width: var(--width-6);
 }

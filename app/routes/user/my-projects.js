@@ -1,6 +1,6 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
-import ENV from 'euclip/config/environment';
+import ProjectAdapter from '../../adapters/project';
 
 export default class UserMyProjectsRoute extends Route {
   @service session;
@@ -16,7 +16,7 @@ export default class UserMyProjectsRoute extends Route {
         adapterOptions: {
           userId: this.currentUser.user.id,
         },
-        include: ENV.APP.projectIncludeParams,
+        include: ProjectAdapter.projectIncludeParams,
       });
     } else {
       this.router.transitionTo('login');

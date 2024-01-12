@@ -12,6 +12,7 @@ import { defaultKit } from './track-node';
 
 import { setProperties } from '@ember/object';
 import { unitTransformsForNodeAttr } from '../utils/audio-param-config';
+import { applyAttrs } from '../utils/cracked';
 export default class TrackControlModel extends Model {
   @belongsTo('track', { async: false, inverse: 'trackControl' }) track;
   @belongsTo('trackNode', { async: false, inverse: 'trackControls' }) trackNode;
@@ -117,7 +118,6 @@ export default class TrackControlModel extends Model {
     }
   }
 
-
   // TODO create an @unlessDeleted decorator!
   /**
    *
@@ -128,8 +128,6 @@ export default class TrackControlModel extends Model {
    */
   setValue(value) {
     if (!this.isDestroyed) {
-      const uuid = this.trackNode.get('nodeUUID');
-      // const node = getCrackedNode(uuid);
       if (isArray(value)) {
         this.controlArrayValue = value;
       } else {
@@ -140,12 +138,11 @@ export default class TrackControlModel extends Model {
         this.controlValue = value;
         const attrs = {};
         attrs[this.nodeAttr] = value;
-        this.trackNode.updateNodeAttrs(attrs);
+        applyAttrs(this.trackNode.uniqueSelector, attrs);
       }
       this.saveTrackControl.perform();
     }
   }
-
 
   // TODO:
   // this currently overwrites user-defined start and end values.
@@ -155,7 +152,6 @@ export default class TrackControlModel extends Model {
     // set the track control for the `end` controlAttr to the audio buffer's length
     // unless the user has already set a value
     // convert buffer len to seconds
-
     const bufferLen = nativeBuffer.duration;
     if (this.nodeAttr === 'start') {
       setProperties(this, {
@@ -280,6 +276,50 @@ export default class TrackControlModel extends Model {
       });
       return attrs;
     });
+  }
+
+  // Loop over a list of trackControls an return an array of
+  static getAttrsForNodes(trackControls, index) {
+    return trackControls
+      .filter((trackControl) => {
+        // TODO: if trackControl.disabled skip
+        // FIXME: abandonned trackControls should be destroyed by now
+        if (!trackControl.trackNode) {
+          return false;
+        }
+
+        // if (trackControl.get('trackNode.nodeType') == 'channelStrip') {
+        //   return false;
+        // }
+
+        if (trackControl.nodeType !== trackControl.trackNode.nodeType) {
+          // if this case happens, it is hopefully just because trackControls are in the process of deleting in a non-blocking way,
+          //  so we cant wait for the request to finish.
+          // in anycase its invalid and should not be used
+          // it could also be a default filepath control on a track with no sampler node
+          return false;
+        }
+        return true;
+      })
+      .reduce((acc, trackControl) => {
+        // this might get called by the sequencer while we're trying to delete the track, track-node or track-control
+        if (!trackControl.isDestroyed && trackControl.nodeAttr) {
+          if (!trackControl.controlArrayComputed) {
+            // TO reproduce
+            // create a sine wave track, then duplicate it, change properties
+            // then delete the duplicated track
+            console.error('FIXME: this should never happen');
+          }
+
+          if (!acc[trackControl.trackNode.uniqueSelector]) {
+            acc[trackControl.trackNode.uniqueSelector] = {};
+          }
+
+          acc[trackControl.trackNode.uniqueSelector][trackControl.nodeAttr] =
+            trackControl.attrValueForType(index);
+          return acc;
+        }
+      }, {});
   }
 
   /**

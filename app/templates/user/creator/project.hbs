@@ -1,175 +1,177 @@
-<nav class='flex items-center justify-between ph3 pv2'>
-  <div class='flex flex-wrap items-center justify-between w-100'>
-    <h1 class='ma0 f3'>{{this.model.displayTitle}}</h1>
-    <div class='flex'>
-      {{#if this.model.isPlaying}}
-        <IconButton
-          class='bg-transparent mh1'
-          @icon='fi-pause'
-          @label='pause'
-          {{on 'click' this.pause}}
-        />
-      {{else}}
-        <IconButton
-          class='bg-transparent mh1'
-          @icon='fi-play'
-          @label='play'
-          {{on 'click' this.play}}
-        />
-      {{/if}}
-
-      <IconButton
-        class='bg-transparent mh1'
-        @icon='fi-stop'
-        @label='stop'
-        {{on 'click' this.stop}}
-      />
-      {{!-- <IconButton
-        class='bg-transparent mh1'
-        @icon='fi-previous'
-        @label='reset'
-        {{on 'click' this.reset}}
-      /> --}}
-      <div class='flex items-center ba b--dark-gray bw1 ml2'>
-
-        <div
-          {{nexus-ui
-            'Number'
-            min=1
-            max=500
-            value=this.model.bpm
-            onChange=(perform this.updateProject 'bpm')
-            step=1
-          }}
-        >
-
-        </div>
-        <span class='pr3'>bpm</span>
-      </div>
-    </div>
-    <div class='flex ml3'>
-      <ButtonPrimary @label={{'New Track'}} {{on 'click' this.addTrack}} />
-      <DropdownMenu
-        class='h-100 grow-1 bg-dark-gray ba bl-0 bw1 b--yellow ph2'
-        @icon='fi-play'
-        @iconClass='yellow-fill rotate-90'
-        @items={{array
-          (hash label='Sampler' select=(fn this.addTrack 'samplerPreset'))
-          (hash label='Synth' select=(fn this.addTrack 'synthPreset'))
-          (hash label='New From Preset')
-          (hash label='Drum Machine')
-          (hash label='Blank Track' select=(fn this.addTrack 'signalChainGui'))
-        }}
-      />
-    </div>
-  </div>
-</nav>
-
-<div
-  class='flex flex-wrap overflow-hidden project-tracks-height flex-nowrap-ns'
->
-  {{#if
-    (and this.leftSidebarOpen this.activeTrack (not this.activeTrack.isDeleted))
-  }}
-    <SidebarWrapper
-      class='h-100 bw2 br b--yellow max-w-100'
-      @direction='left'
-      @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id 'left'}}
-    >
-      <div class='relative flex mh3 yellow flex-column'>
-        <h3 class='pv3'>Drum Machines</h3>
-        <InfoBox class='absolute top-0 right-2'>
-          <p class='f6 mb3 mt0'>When you select a sound file from this menu the
-            sound's URL is available in the code as
-            <code>this.filepath</code>.
-          </p>
-          <p class='f6 mb3 mt0'>You pass the sound's URL to a
-            <code>sampler</code>
-            node in the setup script like so:</p>
-          <p class='f6 mb3 mt0'><code>__().sampler({path: this.filepath})</code></p>
-        </InfoBox>
-      </div>
-      {{#if (and this.activeTrack this.activeTrack.audioFileTreeModel)}}
-        <DrumFilePicker
-          @audioFileTreeModel={{this.activeTrack.audioFileTreeModel}}
-          @track={{this.activeTrack}}
-        />
-      {{/if}}
-    </SidebarWrapper>
-  {{/if}}
-  <TrackListWrapper
-    @rightSidebarOpen={{this.rightSidebarOpen}}
-    @leftSidebarOpen={{this.leftSidebarOpen}}
-  >
-    <div class='overflow-scroll'>
-      {{#each this.sortedTracks key='order' as |track|}}
-        {{#unless track.isMaster}}
-          <TrackListItem
-            @track={{track}}
-            @isActive={{eq track.id this.activeTrack.id}}
-            @selectActiveTrack={{fn this.transitionToTrack track.id}}
-            @onToggleFilePicker={{fn this.toggleSidebar track.id 'left'}}
-            @onToggleScripts={{fn this.toggleSidebar track.id 'right'}}
-            @rightSidebarOpen={{this.rightSidebarOpen}}
+<div class="flex flex-column grow-1 shrink-0">
+  <nav class='flex items-center justify-between ph3 pv2'>
+    <div class='flex flex-wrap items-center justify-between w-100'>
+      <h1 class='ma0 f3'>{{this.model.displayTitle}}</h1>
+      <div class='flex'>
+        {{#if this.model.isPlaying}}
+          <IconButton
+            class='bg-transparent mh1'
+            @icon='fi-pause'
+            @label='pause'
+            {{on 'click' this.pause}}
           />
-        {{/unless}}
-      {{/each}}
-      {{#each this.sortedTracks as |track|}}
-        {{#if track.isMaster}}
-          <TrackListItem
-            @track={{track}}
-            @isActive={{eq track.id this.activeTrack.id}}
-            @selectActiveTrack={{fn this.transitionToTrack track.id}}
-            @onToggleScripts={{fn this.toggleSidebar track.id 'right'}}
-            @rightSidebarOpen={{this.rightSidebarOpen}}
+        {{else}}
+          <IconButton
+            class='bg-transparent mh1'
+            @icon='fi-play'
+            @label='play'
+            {{on 'click' this.play}}
           />
         {{/if}}
-      {{/each}}
-    </div>
-    {{outlet}}
-  </TrackListWrapper>
-  {{#if
-    (and
-      this.rightSidebarOpen this.activeTrack (not this.activeTrack.isDeleted)
-    )
-  }}
-    <SidebarWrapper
-      class='h-100 bw2 bl b--yellow'
-      @direction='right'
-      @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id 'right'}}
-    >
-      <div class='relative flex mh3 yellow flex-column'>
-        <h3 class='mv3'>Track {{this.activeTrack.order}} Scripts</h3>
-        <InfoBox class='absolute top-0 right-2'>
-          <p class='f6 mb3 mt0'>Scripts are where you define the audio signal
-            chain for each track.</p>
-          <p class='f6 mb3 mt0'><b class='ttu'>Setup</b>
-            script runs once to create your audio signal chain. Audio Nodes can
-            be defined with a
-            <code>class</code>
-            or
-            <code>ID</code>, which are used to select and modify their
-            parameters.</p>
-          <p class='f6 mb3 mt0'><b class='ttu'>Play</b>
-            script runs on every step of the sequencer. This is where you
-            trigger sound and modulate parameters.<br />
-            Select node IDs with:
-            <code>__('#someID')</code>
-            <br />Select node classes with:
-            <code>__('.someClass')</code>
-          </p>
-          <p class='mv0'><a
-              class='blue fw6 ttu'
-              href='https://billorcutt.github.io/i_dropped_my_phone_the_screen_cracked/cracked.html'
-              target='_blank'
-              rel='noopener noreferrer'
-            >Read the Cracked docs</a></p>
-        </InfoBox>
+
+        <IconButton
+          class='bg-transparent mh1'
+          @icon='fi-stop'
+          @label='stop'
+          {{on 'click' this.stop}}
+        />
+        {{!-- <IconButton
+          class='bg-transparent mh1'
+          @icon='fi-previous'
+          @label='reset'
+          {{on 'click' this.reset}}
+        /> --}}
+        <div class='flex items-center ba b--dark-gray bw1 ml2'>
+
+          <div
+            {{nexus-ui
+              'Number'
+              min=1
+              max=500
+              value=this.model.bpm
+              onChange=(perform this.updateProject 'bpm')
+              step=1
+            }}
+          >
+
+          </div>
+          <span class='pr3'>bpm</span>
+        </div>
       </div>
-      <ScriptWrapper
-        @track={{this.activeTrack}}
-        @presetCollections={{this.presetCollections}}
-      />
-    </SidebarWrapper>
-  {{/if}}
+      <div class='flex ml3'>
+        <ButtonPrimary @label={{'New Track'}} {{on 'click' this.addTrack}} />
+        <DropdownMenu
+          class='h-100 grow-1 bg-dark-gray ba bl-0 bw1 b--yellow ph2'
+          @icon='fi-play'
+          @iconClass='yellow-fill rotate-90'
+          @items={{array
+            (hash label='Sampler' select=(fn this.addTrack 'samplerPreset'))
+            (hash label='Synth' select=(fn this.addTrack 'synthPreset'))
+            (hash label='New From Preset')
+            (hash label='Drum Machine')
+            (hash label='Blank Track' select=(fn this.addTrack 'signalChainGui'))
+          }}
+        />
+      </div>
+    </div>
+  </nav>
+
+  <div
+    class='flex flex-wrap grow-1 overflow-hidden flex-nowrap-ns'
+  >
+    {{#if
+      (and this.leftSidebarOpen this.activeTrack (not this.activeTrack.isDeleted))
+    }}
+      <SidebarWrapper
+        class={{concat 'h-100 bw2 br b--yellow max-w-100' (if (media 'isMobile') ' absolute top-0')}}
+        @direction='left'
+        @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id 'left'}}
+      >
+        <div class='relative flex mh3 yellow flex-column'>
+          <h3 class='pv3'>Drum Machines</h3>
+          <InfoBox class='absolute top-0 right-2'>
+            <p class='f6 mb3 mt0'>When you select a sound file from this menu the
+              sound's URL is available in the code as
+              <code>this.filepath</code>.
+            </p>
+            <p class='f6 mb3 mt0'>You pass the sound's URL to a
+              <code>sampler</code>
+              node in the setup script like so:</p>
+            <p class='f6 mb3 mt0'><code>__().sampler({path: this.filepath})</code></p>
+          </InfoBox>
+        </div>
+        {{#if (and this.activeTrack this.activeTrack.audioFileTreeModel)}}
+          <DrumFilePicker
+            @audioFileTreeModel={{this.activeTrack.audioFileTreeModel}}
+            @track={{this.activeTrack}}
+          />
+        {{/if}}
+      </SidebarWrapper>
+    {{/if}}
+    <TrackListWrapper
+      @rightSidebarOpen={{this.rightSidebarOpen}}
+      @leftSidebarOpen={{this.leftSidebarOpen}}
+    >
+      <div class='overflow-scroll track-list-max-height'>
+        {{#each this.sortedTracks key='order' as |track|}}
+          {{#unless track.isMaster}}
+            <TrackListItem
+              @track={{track}}
+              @isActive={{eq track.id this.activeTrack.id}}
+              @selectActiveTrack={{fn this.transitionToTrack track.id}}
+              @onToggleFilePicker={{fn this.toggleSidebar track.id 'left'}}
+              @onToggleScripts={{fn this.toggleSidebar track.id 'right'}}
+              @rightSidebarOpen={{this.rightSidebarOpen}}
+            />
+          {{/unless}}
+        {{/each}}
+        {{#each this.sortedTracks as |track|}}
+          {{#if track.isMaster}}
+            <TrackListItem
+              @track={{track}}
+              @isActive={{eq track.id this.activeTrack.id}}
+              @selectActiveTrack={{fn this.transitionToTrack track.id}}
+              @onToggleScripts={{fn this.toggleSidebar track.id 'right'}}
+              @rightSidebarOpen={{this.rightSidebarOpen}}
+            />
+          {{/if}}
+        {{/each}}
+      </div>
+      {{outlet}}
+    </TrackListWrapper>
+    {{#if
+      (and
+        this.rightSidebarOpen this.activeTrack (not this.activeTrack.isDeleted)
+      )
+    }}
+      <SidebarWrapper
+        class={{concat 'h-100 bw2 bl b--yellow ' (if (media 'isMobile') ' absolute top-0')}}
+        @direction='right'
+        @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id 'right'}}
+      >
+        <div class='relative flex mh3 yellow flex-column'>
+          <h3 class='mv3'>Track {{this.activeTrack.order}} Scripts</h3>
+          <InfoBox class='absolute top-0 right-2'>
+            <p class='f6 mb3 mt0'>Scripts are where you define the audio signal
+              chain for each track.</p>
+            <p class='f6 mb3 mt0'><b class='ttu'>Setup</b>
+              script runs once to create your audio signal chain. Audio Nodes can
+              be defined with a
+              <code>class</code>
+              or
+              <code>ID</code>, which are used to select and modify their
+              parameters.</p>
+            <p class='f6 mb3 mt0'><b class='ttu'>Play</b>
+              script runs on every step of the sequencer. This is where you
+              trigger sound and modulate parameters.<br />
+              Select node IDs with:
+              <code>__('#someID')</code>
+              <br />Select node classes with:
+              <code>__('.someClass')</code>
+            </p>
+            <p class='mv0'><a
+                class='blue fw6 ttu'
+                href='https://billorcutt.github.io/i_dropped_my_phone_the_screen_cracked/cracked.html'
+                target='_blank'
+                rel='noopener noreferrer'
+              >Read the Cracked docs</a></p>
+          </InfoBox>
+        </div>
+        <ScriptWrapper
+          @track={{this.activeTrack}}
+          @presetCollections={{this.presetCollections}}
+        />
+      </SidebarWrapper>
+    {{/if}}
+  </div>
 </div>

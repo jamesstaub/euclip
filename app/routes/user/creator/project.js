@@ -1,7 +1,7 @@
 import Route from '@ember/routing/route';
 import { action } from '@ember/object';
-import ENV from 'euclip/config/environment';
 import { inject as service } from '@ember/service';
+import ProjectAdapter from '../../../adapters/project';
 
 export default class UserCreatorProjectRoute extends Route {
   @service store;
@@ -10,7 +10,7 @@ export default class UserCreatorProjectRoute extends Route {
   model({ slug }) {
     return this.store.queryRecord('project', {
       slug,
-      include: ENV.APP.projectIncludeParams,
+      include: ProjectAdapter.projectIncludeParams,
     });
   }
 

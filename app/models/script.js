@@ -1,5 +1,11 @@
 import Model, { attr } from '@ember-data/model';
-import { keepLatestTask, restartableTask, task, timeout, waitForProperty } from 'ember-concurrency';
+import {
+  keepLatestTask,
+  restartableTask,
+  task,
+  timeout,
+  waitForProperty,
+} from 'ember-concurrency';
 import { tracked } from '@glimmer/tracking';
 
 export default class ScriptModel extends Model {

@@ -24,7 +24,6 @@ export const fitStepToRange = (attrs) => {
 };
 
 export const updateValue = (controlValue, existingAttrs) => {
-  let {min, max, defaultValue, stepSize } = existingAttrs;
+  let { min, max, defaultValue, stepSize } = existingAttrs;
   // {min, max} = fitMinMaxToValue(min, max, value);
-
-}
+};

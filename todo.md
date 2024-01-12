@@ -20,6 +20,7 @@ Problem: if filepath not provided, the sampler will not call the onCreateNode ca
 potentially monkey patch it in cracked lib so it uses silent.mp3 if no filepath is provided, then the onCreateNode can check for the absence of `path: this.filepath` and
 manually set it to `this.localFilePath || this.filepathUrl`s
 
+currently the selected filepath will occasionally get lost and revert to a default sound
 
 #### scope + variables
 
@@ -28,9 +29,9 @@ for samplers you still need to do `__(this.trackSelector).stop().start()` becaus
 but for other nodes you can do  `__.adsr()` to select only the adsr on that track etc
 
 LFOs on samplers are a weird case 
-```**('lfo').connect('sampler').start()
+```__('lfo').connect('sampler').start()
 if (data) {
-**(this.trackSelector).stop().start()
+__(this.trackSelector).stop().start()
 }
 ```
 
@@ -181,12 +182,25 @@ to keep recent state in tact when returning to a track
 
 ### Files
   - drag and drop UI for local sounds
+  - recently +  favorites used menus for files
+  - custom url for files
+  - support a dropbox folder of samples
+  - need a pipeline to ingest new audio files:
+    - create a SearchableFile record
+    - upload to cloud storage (manage access permissions to gcloud storage)
+    - implement upload limits per user 
+
   - set filepath local for library 
   - waveform UI control for slicing (array of start times)
   - support a dropbox URL or local folder
 
   - File listings should have a preview button
   - Search results should also have a "go to folder" button
+
+  - file analysis:
+      detect BPM if there are more than 2 transients and length is greater than 1 second
+      if a file has a bpm, add a button under "sources" to set the current tempo
+      and add an option to the track controls for that track to be sample-relative (as well as bpm relative)
   
 
 ### Misc featurs:

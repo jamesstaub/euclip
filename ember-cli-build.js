@@ -8,6 +8,10 @@ module.exports = function (defaults) {
       enableTypeScriptTransform: true,
     },
 
+    babel: {
+      plugins: [require.resolve('ember-auto-import/babel-plugin')],
+    },
+
     sourcemaps: { enabled: true },
 
     minifyCSS: {

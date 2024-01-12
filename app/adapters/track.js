@@ -1,13 +1,14 @@
 import ApplicationAdapter from './application';
 import { isArray } from '@ember/array';
-import ENV from 'euclip/config/environment';
 
 export default class TrackAdapter extends ApplicationAdapter {
+  trackIncludeParams = 'project,sequences,init-script,onstep-script';
+
   // TODO cleanup by overwriting buildUrl method
   urlForCreateRecord(modelName, snapshot) {
     let url = `/projects/${snapshot.record.project.get(
       'slug'
-    )}/tracks?include=${ENV.APP.trackIncludeParams}`;
+    )}/tracks?include=${this.trackIncludeParams}`;
     if (snapshot.adapterOptions?.duplicateId) {
       // when duplicating a track, we'll need to include the duplicated track-controls in the response
       let includes = `track-controls`;
