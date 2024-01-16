@@ -17,7 +17,7 @@ class RegistrationsController < Devise::RegistrationsController
 
   def destroy
     return render_current_password_required unless current_password_valid?
-
+    
     raise StandardError unless resource.discard!
     destroy_all_allowed_sessions
     render json: { message: 'User was successfully deactivated.' }, status: :ok

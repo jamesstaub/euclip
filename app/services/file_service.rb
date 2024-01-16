@@ -43,11 +43,12 @@ class FileService
 
   def self.perform_search(query, page)
     # TODO: pagination not fully implemented, need to pass total pages to client
-    page_size = 2000
+    page_size = 500
     offset = page * page_size
 
     searchable_files = SearchableFile
-                      .where("path ILIKE ?", "%#{query}%")
+                      .includes(:root)
+                      .where("LOWER(path) LIKE LOWER(?)", "%#{query}%")
                       .offset(offset)
                       .limit(page_size)
 

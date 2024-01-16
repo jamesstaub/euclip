@@ -3076,7 +3076,6 @@ Oberheim Matrix 1000/093.mp3
 Oberheim Matrix 1000/099.mp3
 Oberheim Matrix 1000/file_id.diz
 One Shots/BD Crash 2.mp3
-One Shots/BD Crash 2.mp3.asd
 One Shots/Bass Drum Medium.mp3
 One Shots/Bass Drum Punch.mp3
 One Shots/ELE HtsNFill.mp3
@@ -3144,7 +3143,6 @@ Pearl SC-40 Bassdrums/Thumbs.db
 Percussion/Clave--Cuban forward.mp3
 Percussion/Coma Skins 2.mp3
 Percussion/Filtered Hats.mp3
-Percussion/Filtered Hats.mp3.asd
 Percussion/Klang 2.mp3
 Percussion/Klangfloor2.mp3
 Percussion/Klanghi 2.mp3
@@ -8205,24 +8203,17 @@ Simmons SDS8/sds-8-tom12.mp3
 Simmons SDS8/sds-8-tom13.mp3
 Simmons SDS8/sds-8-tom14.mp3
 SimmonsSDS5/Simmons SDS5/BASSDRUM/BDRUM1.mp3
-SimmonsSDS5/Simmons SDS5/BASSDRUM/BDRUM1.mp3.asd
 SimmonsSDS5/Simmons SDS5/BASSDRUM/BDRUM10.mp3
-SimmonsSDS5/Simmons SDS5/BASSDRUM/BDRUM10.mp3.asd
 SimmonsSDS5/Simmons SDS5/BASSDRUM/BDRUM11.mp3
 SimmonsSDS5/Simmons SDS5/BASSDRUM/BDRUM12.mp3
-SimmonsSDS5/Simmons SDS5/BASSDRUM/BDRUM12.mp3.asd
 SimmonsSDS5/Simmons SDS5/BASSDRUM/BDRUM2.mp3
-SimmonsSDS5/Simmons SDS5/BASSDRUM/BDRUM2.mp3.asd
 SimmonsSDS5/Simmons SDS5/BASSDRUM/BDRUM3.mp3
 SimmonsSDS5/Simmons SDS5/BASSDRUM/BDRUM4.mp3
 SimmonsSDS5/Simmons SDS5/BASSDRUM/BDRUM5.mp3
-SimmonsSDS5/Simmons SDS5/BASSDRUM/BDRUM5.mp3.asd
 SimmonsSDS5/Simmons SDS5/BASSDRUM/BDRUM6.mp3
 SimmonsSDS5/Simmons SDS5/BASSDRUM/BDRUM7.mp3
 SimmonsSDS5/Simmons SDS5/BASSDRUM/BDRUM8.mp3
-SimmonsSDS5/Simmons SDS5/BASSDRUM/BDRUM8.mp3.asd
 SimmonsSDS5/Simmons SDS5/BASSDRUM/BDRUM9.mp3
-SimmonsSDS5/Simmons SDS5/BASSDRUM/BDRUM9.mp3.asd
 SimmonsSDS5/Simmons SDS5/CYMBALS/HHCLOSE1.mp3
 SimmonsSDS5/Simmons SDS5/CYMBALS/HHCLOSE2.mp3
 SimmonsSDS5/Simmons SDS5/CYMBALS/HHCLOSE3.mp3

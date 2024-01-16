@@ -1,0 +1,45 @@
+.right-sidebar-width,
+.left-sidebar-width {
+  width: var(--sidebar-width);
+  max-width: 50%;
+  position: absolute;
+  z-index: 2;
+}
+
+.right-sidebar-width {
+  right: 0;
+}
+
+.track-list-wrapper {
+  width: 100%;
+}
+
+.track-list-wrapper.left-sidebar-open,
+.track-list-wrapper.right-sidebar-open {
+  width: 50%;
+}
+
+@media (min-width: 40em) {
+  .right-sidebar-width,
+  .left-sidebar-width {
+    width: 40%;
+    position: relative;
+  }
+
+  .track-list-wrapper.left-sidebar-open,
+  .track-list-wrapper.right-sidebar-open {
+    width: 60%;
+  }
+
+  .track-list-wrapper.left-sidebar-open.right-sidebar-open {
+    max-width: 4.65rem;
+  }
+}
+
+@media (min-width: 60em) {
+  .left-sidebar-width,
+  .right-sidebar-width {
+    width: 33%;
+    max-width: 33%;
+  }
+}

@@ -1,9 +1,17 @@
 class V1::ProjectsController < V1::BaseController
   before_action :set_project_from_id, only: %i[update destroy]
 
-
   def index
-    @pagy, @projects = pagy(Project.where(creator_id: params["user_id"]).order(created_at: :asc))
+    @pagy, @projects = pagy(Project
+                                  .includes(
+                                    :tracks, 
+                                    :tracks => :init_script, 
+                                    :tracks => :onstep_script, 
+                                    :tracks => :sequences
+                                  )
+                                  .where(creator_id: current_user.id)
+                                  .order(created_at: :asc)
+                            )
     render json: ProjectSerializer.new(
       @projects,
       {
@@ -14,7 +22,16 @@ class V1::ProjectsController < V1::BaseController
   end
 
   def show
-    @project = Project.find_by(slug: params["slug"])
+    # TODO: this will get refactored to support multiple users
+    # needs a permissions model manage multiple users access to projects
+    # then can get the creator_id from the params instead of current_user
+    @project = Project.includes(
+                                :tracks,
+                                :tracks => :init_script, 
+                                :tracks => :onstep_script, 
+                                :tracks => :sequences)
+                      .find_by(slug: params["slug"], creator_id: current_user.id)
+
     render json: ProjectSerializer.new(
       @project,
       include: included_relations
@@ -29,7 +46,7 @@ class V1::ProjectsController < V1::BaseController
         include: included_relations
       ), status: :ok
     else
-      render json: { errors: @project.errors.full_messages.join(', ') }, status: :unprocessable_entity
+      render_unprocessable_entity(@project.errors)
     end
   end
 
@@ -41,7 +58,7 @@ class V1::ProjectsController < V1::BaseController
         include: included_relations
       ), status: :ok
     else
-      render json: { errors: @project.errors.full_messages.join(', ') }, status: :unprocessable_entity
+      render_unprocessable_entity(@project.errors)
     end
   end
 

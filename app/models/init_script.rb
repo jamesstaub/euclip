@@ -24,8 +24,6 @@ class InitScript < Script
   def track_default_init
     self.safe_code = %{__()
   .sampler({
-    id: this.id,
-    loop:false,
     path: this.filepath,
   })
   .gain()

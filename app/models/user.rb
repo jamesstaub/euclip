@@ -4,6 +4,8 @@ class User < ApplicationRecord
   include Devise::JWT::RevocationStrategies::Allowlist
   include Discard::Model
   store_accessor :settings, :roles
+  attr_accessor :anonymous
+
 
   # Include default devise modules. Others available are:
   # :confirmable, :timeoutable, :lockable, and :omniauthable
@@ -27,9 +29,11 @@ class User < ApplicationRecord
     format: { with: URI::MailTo::EMAIL_REGEXP, message: FORMAT_INVALID },
     presence: false
 
+
   validates :username,
     uniqueness: { case_sensitive: false },
     presence: true
+
 
   validate :username_is_not_an_existing_email, if: lambda { |u| u.username =~ /@/ }
 
@@ -44,11 +48,13 @@ class User < ApplicationRecord
     presence: true,
     on: :create
 
+
   validates :password,
     format: { with: PASSWORD_FORMAT, message: PW_MESSAGE },
     confirmation: true,
     allow_blank: true,
     on: :update
+
 
   validates :avatar,
     content_type: [:png, :jpg, :jpeg],
@@ -89,6 +95,7 @@ class User < ApplicationRecord
   def email_required?
     false
   end
+
 
   private
 

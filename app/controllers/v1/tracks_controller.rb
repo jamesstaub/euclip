@@ -3,6 +3,10 @@ class V1::TracksController < V1::BaseController
   before_action :set_track, only: %i[show update destroy]
   before_action :set_project, only: %i[show create]
 
+
+  # TODO:
+  # enforce proper permissions for these endpoints
+  
   def show
     render json: TrackSerializer.new(@track), status: :ok
   end
@@ -18,7 +22,7 @@ class V1::TracksController < V1::BaseController
         include: included_relations
       ), status: :ok
     else
-      render json: { errors: @track.errors.full_messages.join(', ') }, status: :unprocessable_entity
+      render_unprocessable_entity(@track.errors)
     end
   end
 
@@ -40,7 +44,7 @@ class V1::TracksController < V1::BaseController
         }
       ), status: :ok
     else
-      render json: { errors: @track.errors.full_messages.join(', ') }, status: :unprocessable_entity
+      render_unprocessable_entity(@track.errors)
     end
   end
 
@@ -52,7 +56,7 @@ class V1::TracksController < V1::BaseController
         include: included_relations
       ), status: :ok
     else
-      render json: { errors: @track.errors.full_messages.join(', ') }, status: :unprocessable_entity
+      render_unprocessable_entity(@track.errors)
     end
   end
 

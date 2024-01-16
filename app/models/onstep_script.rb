@@ -21,8 +21,28 @@ class OnstepScript < Script
     self.safe_code = %{if (data) {
   this.play();
 } else {
-  this.stop();
+  // this.stop();
 }
+
+/** Exmaples: try uncommenting these **/
+
+/** 
+if (data) {
+  this.play({loop: true});  
+} else {
+  this.select('sampler').attr({loop: false});
+}
+
+this.select('sampler').attr({speed: index})
+
+**/  
+
+/**
+  this.play() is a shortcut for __('sampler').stop().attrs({}).play()
+  under the hood this.play() also makes sure to apply the current parameters from the Track Controls
+
+**/
+ 
         } if self.safe_code.nil?
   end
 end

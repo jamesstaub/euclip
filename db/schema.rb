@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2023_12_27_205558) do
+ActiveRecord::Schema[7.0].define(version: 2024_01_12_192421) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -146,6 +146,7 @@ ActiveRecord::Schema[7.0].define(version: 2023_12_27_205558) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.decimal "step_size"
+    t.integer "current_unit_transform_idx", default: 0
     t.index ["track_id"], name: "index_track_controls_on_track_id"
   end
 

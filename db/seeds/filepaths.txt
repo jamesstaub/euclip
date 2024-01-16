@@ -172,7 +172,6 @@ Akai XR-10/Akai XR-10/XR10sd08.wav
 Akai XR-10/Akai XR-10/XR10sd09.wav
 Akai XR-10/Akai XR-10/XR10sd10.wav
 Akai XR-10/Akai XR-10/XR10tamb.wav
-Akai XR-10/Thumbs.db
 Akai XR-10/folder.jpg
 Alesis HR16/Alesis HR16 - 1/BDRM01.WAV
 Alesis HR16/Alesis HR16 - 1/BDRM02.WAV
@@ -230,7 +229,6 @@ Alesis HR16/Alesis HR16 - 1/TOM01-B.WAV
 Alesis HR16/Alesis HR16 - 1/TOM01.WAV
 Alesis HR16/Alesis HR16 - 1/TOM02-B.WAV
 Alesis HR16/Alesis HR16 - 1/TOM02.WAV
-Alesis HR16/Alesis HR16 - 1/Thumbs.db
 Alesis HR16/Alesis HR16 - 1/folder.jpg
 Alesis HR16/Alesis HR16 - 2/BDRM01.WAV
 Alesis HR16/Alesis HR16 - 2/BDRM02.WAV
@@ -352,7 +350,6 @@ Boss DR110/DR110CYM.WAV
 Boss DR110/DR110KIK.WAV
 Boss DR110/DR110OHT.WAV
 Boss DR110/DR110SNR.WAV
-Boss DR110/Thumbs.db
 Boss DR110/folder.JPG
 Boss DR220/Boss DR-220A/01- DR220A BD.wav
 Boss DR220/Boss DR-220A/01- DR220A CCY.wav
@@ -367,7 +364,6 @@ Boss DR220/Boss DR-220A/01- DR220A RCY.wav
 Boss DR220/Boss DR-220A/01- DR220A RIM.wav
 Boss DR220/Boss DR-220A/01- DR220A SD.wav
 Boss DR220/Boss DR-220A/01- DR220A SD_2.wav
-Boss DR220/Boss DR-220B/Thumbs.db
 Boss DR220/Boss DR-220B/dr220Region_002.wav
 Boss DR220/Boss DR-220B/dr220Region_004.wav
 Boss DR220/Boss DR-220B/dr220Region_005.wav
@@ -401,7 +397,6 @@ Boss DR55/SNARE6_2.wav
 Boss DR55/SNARE7.WAV
 Boss DR55/SNARE8.WAV
 Boss DR55/SNARE9.WAV
-Boss DR55/Thumbs.db
 Boss DR55/dr55-001.wav
 Boss DR55/dr55-002.wav
 Boss DR55/dr55-003.wav
@@ -494,9 +489,7 @@ Boss DR550MK2/048.WAV
 Boss DR550MK2/049.WAV
 Boss DR550MK2/049_2.wav
 Boss DR550MK2/050.WAV
-Boss DR550MK2/Thumbs.db
 Boss DR550MK2/folder.GIF
-Casio PT30/Thumbs.db
 Casio PT30/folder.jpg
 Casio PT30/pt30-bd1.aif
 Casio PT30/pt30-bd2.aif
@@ -531,7 +524,6 @@ Casio RZ1/Casio RZ1/01- SNRZ_2.wav
 Casio RZ1/Casio RZ1/01- TM1RZ.wav
 Casio RZ1/Casio RZ1/01- TM2RZ.wav
 Casio RZ1/Casio RZ1/01- TM3RZ.wav
-Casio RZ1/Thumbs.db
 Casio RZ1/folder.jpg
 Casio SK1/Casio SK-1/casio_sk1.txt
 Casio SK1/Casio SK-1/skclhat.wav
@@ -737,7 +729,6 @@ Fricke MFB 512/512hitom.wav
 Fricke MFB 512/512lotom.wav
 Fricke MFB 512/512mdtom.wav
 Fricke MFB 512/512snare.wav
-Fricke MFB 512/Thumbs.db
 Gulbransen/Gulbransen - Conga High.wav
 Gulbransen/Gulbransen - Conga Low.wav
 Gulbransen/Gulbransen - Cowbell.wav
@@ -747,7 +738,6 @@ Gulbransen/Gulbransen - Kick.wav
 Gulbransen/Gulbransen - Rimshot.wav
 Gulbransen/Gulbransen - Snare 01.wav
 Gulbransen/Gulbransen - Snare 02.wav
-Hammond Auto-Vari 64/Thumbs.db
 Hammond Auto-Vari 64/folder.jpg
 Hammond Auto-Vari 64/ha64-bd-1.wav
 Hammond Auto-Vari 64/ha64-bd-2.wav
@@ -786,7 +776,6 @@ Hammond Auto-Vari 64/ha64-tom-a1.wav
 Hammond Auto-Vari 64/ha64-tom-a2.wav
 Hammond Auto-Vari 64/ha64-tom-b1.wav
 Hammond Auto-Vari 64/ha64-tom-b2.wav
-Hammond Rhythm II/Thumbs.db
 Hammond Rhythm II/folder.jpg
 Hammond Rhythm II/ham-bd#01.wav
 Hammond Rhythm II/ham-bd-01.wav
@@ -858,7 +847,6 @@ Jomox Xbase 09/Jomox Xbase-09/Snare03.wav
 Jomox Xbase 09/Jomox Xbase-09/Snare04.wav
 Jomox Xbase 09/Jomox Xbase-09/Snare05.wav
 Jomox Xbase 09/Jomox Xbase-09/Snare06.wav
-Jomox Xbase 09/Thumbs.db
 Jomox Xbase 09/folder.jpg
 Kawai R-100/Kawai_R-100_BD1--CH3.wav
 Kawai R-100/Kawai_R-100_BD2--CH3.wav
@@ -884,7 +872,6 @@ Kawai R-100/Kawai_R-100_TOML-CH3.wav
 Kawai R-100/Kawai_R-100_TRIALCH3.wav
 Kawai R-100/Kawai_R-100_TRIAMCH3.wav
 Kawai R-100/Kawai_R-100_WOODBCH3.wav
-Kawai R50/Thumbs.db
 Kawai R50/agog.wav
 Kawai R50/bd1.wav
 Kawai R50/bd2.wav
@@ -993,7 +980,6 @@ Kawai R50e/Kawai R-50e/SD3_ACOU.WAV
 Kawai R50e/Kawai R-50e/SD4_GATE.WAV
 Kawai R50e/Kawai R-50e/SNAP.WAV
 Kawai R50e/Kawai R-50e/TIMPANI.WAV
-Kawai R50e/Thumbs.db
 Kawai R50e/folder.jpg
 Kawai XD-5/Kawai XD-5/XD5bd01.wav
 Kawai XD-5/Kawai XD-5/XD5bd02.wav
@@ -1014,9 +1000,7 @@ Kawai XD-5/Kawai XD-5/XD5spark.wav
 Kawai XD-5/Kawai XD-5/XD5tom1.wav
 Kawai XD-5/Kawai XD-5/XD5tom2.wav
 Kawai XD-5/Kawai XD-5/XD5tom3.wav
-Kawai XD-5/Thumbs.db
 Kawai XD-5/folder.jpg
-Kent Rhythm Master/Thumbs.db
 Kent Rhythm Master/folder.jpg
 Kent Rhythm Master/rhma-bd01.wav
 Kent Rhythm Master/rhma-bd02.wav
@@ -1039,7 +1023,6 @@ Kent Rhythm Master/rhma-sd3.wav
 Kent Rhythm Master/rhma-sd4.wav
 Kent Rhythm Master/rhma-trig1.wav
 Kent Rhythm Master/rhma-trig2.wav
-Ketron SD-5 Percussion/Thumbs.db
 Ketron SD-5 Percussion/sd-5-001.wav
 Ketron SD-5 Percussion/sd-5-003.wav
 Ketron SD-5 Percussion/sd-5-005.wav
@@ -1176,7 +1159,6 @@ Korg/Korg DDD1/Korg DDD-1/Dsn01.wav
 Korg/Korg DDD1/Korg DDD-1/Dsn02.wav
 Korg/Korg DDD1/Korg DDD-1/Dtamb.wav
 Korg/Korg DDD1/Korg DDD-1/Dtom.wav
-Korg/Korg DDD1/Thumbs.db
 Korg/Korg DDD1/folder.jpg
 Korg/Korg DDD5/DDD5 AGOGO.wav
 Korg/Korg DDD5/DDD5 BD 1.wav
@@ -1214,7 +1196,6 @@ Korg/Korg DDM110/Korg_ddm110/110_lo_tom.wav
 Korg/Korg DDM110/Korg_ddm110/110_op_hat.wav
 Korg/Korg DDM110/Korg_ddm110/110_rim.wav
 Korg/Korg DDM110/Korg_ddm110/110_snare.wav
-Korg/Korg DDM110/Thumbs.db
 Korg/Korg DDM110/folder.jpg
 Korg/Korg DDM220/Korg_ddm220/220_cabasa.wav
 Korg/Korg DDM220/Korg_ddm220/220_cowbell.wav
@@ -1225,7 +1206,6 @@ Korg/Korg DDM220/Korg_ddm220/220_lo_conga.wav
 Korg/Korg DDM220/Korg_ddm220/220_tamb.wav
 Korg/Korg DDM220/Korg_ddm220/220_timbale.wav
 Korg/Korg DDM220/Korg_ddm220/220_woodblock.wav
-Korg/Korg DDM220/Thumbs.db
 Korg/Korg DDM220/folder.jpg
 Korg/Korg KPR77/KORG KPR-77 (2)/KPR77001.aif
 Korg/Korg KPR77/KORG KPR-77 (2)/KPR77002.aif
@@ -1279,7 +1259,6 @@ Korg/Korg KPR77/KPRKICK.WAV
 Korg/Korg KPR77/KPRLOTOM.WAV
 Korg/Korg KPR77/KPROPHH.WAV
 Korg/Korg KPR77/KPRSNARE.WAV
-Korg/Korg KPR77/Thumbs.db
 Korg/Korg KPR77/folder.jpg
 Korg/Korg KPR77/kkpr77 drumkit (2)/KPRCLAPS.aif
 Korg/Korg KPR77/kkpr77 drumkit (2)/KPRCLHH.aif
@@ -1343,7 +1322,6 @@ Korg/Korg KR55/KR55OHAT.WAV
 Korg/Korg KR55/KR55RIM.WAV
 Korg/Korg KR55/KR55SNAR.WAV
 Korg/Korg KR55/KR55TOM.WAV
-Korg/Korg KR55/Thumbs.db
 Korg/Korg KR55/folder.jpg
 Korg/Korg KR55/kkr55 drumkit (2)/KR55CHAT.aif
 Korg/Korg KR55/kkr55 drumkit (2)/KR55CLAV.aif
@@ -1484,7 +1462,6 @@ Korg/Korg Minipops/Korg Minipops/tom1.wav
 Korg/Korg Minipops/Korg Minipops/tom2.wav
 Korg/Korg Minipops/Korg Minipops/wood1.wav
 Korg/Korg Minipops/Korg Minipops/wood2.wav
-Korg/Korg Minipops/Thumbs.db
 Korg/Korg Minipops/folder.jpg
 Korg/Korg Poly-800/Bassdrum-01.wav
 Korg/Korg Poly-800/Bassdrum-02.wav
@@ -1509,7 +1486,6 @@ Korg/Korg ProWave/SNARE2P.WAV
 Korg/Korg ProWave/SPLSHCYM.WAV
 Korg/Korg ProWave/TAMBORIN.WAV
 Korg/Korg ProWave/TMBALELO.WAV
-Korg/Korg ProWave/Thumbs.db
 Korg/Korg ProWave/VIBRSLAP.WAV
 Korg/Korg ProWave/folder.jpg
 Korg/Korg Prophecy/MaxV - KR - Closed HH 01.wav
@@ -2045,7 +2021,6 @@ Linn LM-1/Linn_LM-1/sd1.wav
 Linn LM-1/Linn_LM-1/sd2.wav
 Linn LM-1/Linn_LM-1/sst.wav
 Linn LM-1/Linn_LM-1/tamb.wav
-Linn LM-1/Thumbs.db
 Linn LM-1/folder.JPG
 Linn LM-2/cabasa.wav
 Linn LM-2/chh.wav
@@ -2129,7 +2104,6 @@ Linn Linndrum/TOML.aif
 Linn Linndrum/TOMLL.aif
 Linn Linndrum/TOMLOW1.aif
 Linn Linndrum/TOMLOW2.aif
-Linn Linndrum/Thumbs.db
 Linn Linndrum/cabasa.wav
 Linn Linndrum/chh.wav
 Linn Linndrum/chhl.wav
@@ -2169,7 +2143,6 @@ Luxor Passat/Luxor Passat - Snap.wav
 Luxor Passat/Luxor Passat - Snare 01.wav
 Luxor Passat/Luxor Passat - Snare 02.wav
 MXR Drum Computer 185/.DS_Store
-MXR Drum Computer 185/Thumbs.db
 MXR Drum Computer 185/folder.jpg
 MXR Drum Computer 185/mxr_185/MXR Claps.wav
 MXR Drum Computer 185/mxr_185/MXR Cowbell.wav
@@ -2183,7 +2156,6 @@ MXR Drum Computer 185/mxr_185/MXR Tom 1.wav
 MXR Drum Computer 185/mxr_185/MXR Tom 2.wav
 MXR Drum Computer 185/mxr_185/MXR Tom 3.wav
 MXR Drum Computer 185/mxr_185/MXR woodblock.wav
-Maestro Rhythm King/Thumbs.db
 Maestro Rhythm King/mrk-bd01.wav
 Maestro Rhythm King/mrk-bd02.wav
 Maestro Rhythm King/mrk-bd03.wav
@@ -2282,7 +2254,6 @@ Mattel Electronics Synsonics/Mattel Electronics Synsonics DRM/MatHiT3.wav
 Mattel Electronics Synsonics/Mattel Electronics Synsonics DRM/MatHiT3_2.wav
 Mattel Electronics Synsonics/Mattel Electronics Synsonics DRM/MatLoT.wav
 Mattel Electronics Synsonics/Mattel Electronics Synsonics DRM/MatSn.wav
-Mattel Electronics Synsonics/Thumbs.db
 Mattel Electronics Synsonics/folder.jpg
 Melosonic 350/Melosonic 350 - Clave.wav
 Melosonic 350/Melosonic 350 - HHC.wav
@@ -3008,7 +2979,6 @@ Oberheim DMX/Oberheim DMX/SNARE6.WAV
 Oberheim DMX/Oberheim DMX/STIK_A.WAV
 Oberheim DMX/Oberheim DMX/STIK_B.WAV
 Oberheim DMX/Oberheim DMX/STOM5.WAV
-Oberheim DMX/Thumbs.db
 Oberheim DMX/folder.jpg
 Oberheim DX/Oberheim DX - Bones.wav
 Oberheim DX/Oberheim DX - Clap.wav
@@ -3140,7 +3110,6 @@ Pearl SC-40 Bassdrums/SC40BD06.aif
 Pearl SC-40 Bassdrums/SC40BD07.aif
 Pearl SC-40 Bassdrums/SC40BD09.aif
 Pearl SC-40 Bassdrums/SC40BD10.aif
-Pearl SC-40 Bassdrums/Thumbs.db
 Percussion/Clave--Cuban forward.wav
 Percussion/Coma Skins 2.wav
 Percussion/Filtered Hats.WAV
@@ -4027,7 +3996,6 @@ Rhodes Polaris/Rhodes Polaris/snare1.wav
 Rhodes Polaris/Rhodes Polaris/snare2.wav
 Rhodes Polaris/Rhodes Polaris/snare3.wav
 Rhodes Polaris/Rhodes Polaris/snare4.wav
-Rhodes Polaris/Thumbs.db
 Rhodes Polaris/folder.jpg
 Rhythm Ace FR-8/Rhythm Ace FR-8 - Bongo High.wav
 Rhythm Ace FR-8/Rhythm Ace FR-8 - Bongo Low.wav
@@ -4041,7 +4009,6 @@ Rhythm Ace FR-8/Rhythm Ace FR-8 - Kick.wav
 Rhythm Ace FR-8/Rhythm Ace FR-8 - Maracas.wav
 Rhythm Ace FR-8/Rhythm Ace FR-8 - Rimshot.wav
 Rhythm Ace FR-8/Rhythm Ace FR-8 - Snare.wav
-Rhythm King/Thumbs.db
 Rhythm King/folder.jpg
 Rhythm King/mrk-bd01.wav
 Rhythm King/mrk-bd02.wav
@@ -4318,7 +4285,6 @@ Roland/Roland CR-78 CompuRhythm/CR-78 Kit 06/Woodblock-01.wav
 Roland/Roland CR-78 CompuRhythm/CR-78 Kit 06/Woodblock-02.wav
 Roland/Roland CR-78 CompuRhythm/CR-78 Kit 06/Woodblock-03.wav
 Roland/Roland CR-78 CompuRhythm/CR-78 Kit 06/Woodblock-04.wav
-Roland/Roland CR-78 CompuRhythm/Thumbs.db
 Roland/Roland CR-8000 CompuRhythm/CR-8000 Kit 01/CR8KBASS.WAV
 Roland/Roland CR-8000 CompuRhythm/CR-8000 Kit 01/CR8KCHAT.WAV
 Roland/Roland CR-8000 CompuRhythm/CR-8000 Kit 01/CR8KCLAP.WAV
@@ -4434,8 +4400,6 @@ Roland/Roland CR-8000 CompuRhythm/CR-8000 Kit 05/Snarderum.wav
 Roland/Roland CR-8000 CompuRhythm/CR-8000 Kit 05/Tom H.wav
 Roland/Roland CR-8000 CompuRhythm/CR-8000 Kit 05/Tom L.wav
 Roland/Roland CR-8000 CompuRhythm/CR-8000 Kit 05/Tom M.wav
-Roland/Roland CR-8000 CompuRhythm/Thumbs.db
-Roland/Roland D-10 L.A/Thumbs.db
 Roland/Roland D-10 L.A/la-bd1.wav
 Roland/Roland D-10 L.A/la-bell.wav
 Roland/Roland D-10 L.A/la-castg.wav
@@ -4587,7 +4551,6 @@ Roland/Roland DDR-30/DDR-30 Kit 03/Tom-05.wav
 Roland/Roland DDR-30/DDR-30 Kit 03/Tom-06.wav
 Roland/Roland DDR-30/DDR-30 Kit 03/Tom-07.wav
 Roland/Roland DDR-30/DDR-30 Kit 03/Tom-08.wav
-Roland/Roland DDR-30/Thumbs.db
 Roland/Roland F-30 drums/MaxV - F30 - 01.wav
 Roland/Roland F-30 drums/MaxV - F30 - 02.wav
 Roland/Roland F-30 drums/MaxV - F30 - 03.wav
@@ -4883,7 +4846,6 @@ Roland/Roland Juno-106 Typhoon/TYPHOONC.WAV
 Roland/Roland Juno-106 Typhoon/TYPHOOND.WAV
 Roland/Roland Juno-106 Typhoon/TYPHOONE.WAV
 Roland/Roland Juno-106 Typhoon/TYPHOONF.WAV
-Roland/Roland Juno-106 Typhoon/Thumbs.db
 Roland/Roland MC-09/MC09 HatC_01.wav
 Roland/Roland MC-09/MC09 HatC_02.wav
 Roland/Roland MC-09/MC09 HatC_03.wav
@@ -4942,7 +4904,6 @@ Roland/Roland MC-202 MicroComposer/MC-202 Kit 02/Click.wav
 Roland/Roland MC-202 MicroComposer/MC-202 Kit 02/Tom H-02.wav
 Roland/Roland MC-202 MicroComposer/MC-202 Kit 02/Tom H-03.wav
 Roland/Roland MC-202 MicroComposer/MC-202 Kit 02/Tom H-04.wav
-Roland/Roland MC-202 MicroComposer/Thumbs.db
 Roland/Roland MC-303 Groovebox/MC-303 Kit 01/606bd1.wav
 Roland/Roland MC-303 Groovebox/MC-303 Kit 01/606bd2.wav
 Roland/Roland MC-303 Groovebox/MC-303 Kit 01/606bd3.wav
@@ -5239,7 +5200,6 @@ Roland/Roland MC-303 Groovebox/MC-303 Kit 02/Toms/Losyntht.wav
 Roland/Roland MC-303 Groovebox/MC-303 Kit 02/Toms/Midsynth.wav
 Roland/Roland MC-303 Groovebox/MC-303 Kit 02/Toms/Opensurd.wav
 Roland/Roland MC-303 Groovebox/MC-303 Kit 02/Toms/Udo.wav
-Roland/Roland MC-303 Groovebox/Thumbs.db
 Roland/Roland MT-32/MT-32 Kit 01/MTAgogoHigh.wav
 Roland/Roland MT-32/MT-32 Kit 01/MTAgogoLow.wav
 Roland/Roland MT-32/MT-32 Kit 01/MTBongoHigh.wav
@@ -5300,7 +5260,6 @@ Roland/Roland MT-32/MT-32 Kit 02/Tom L.wav
 Roland/Roland MT-32/MT-32 Kit 02/Tom M.wav
 Roland/Roland MT-32/MT-32 Kit 02/Whistle Short.wav
 Roland/Roland MT-32/MT-32 Kit 02/Whistle.wav
-Roland/Roland MT-32/Thumbs.db
 Roland/Roland PB-300 Rhythm Plus/HH Cl.wav
 Roland/Roland PB-300 Rhythm Plus/HH.wav
 Roland/Roland PB-300 Rhythm Plus/Kick.wav
@@ -5470,7 +5429,6 @@ Roland/Roland R-8/R-8 Kit 03/Toms/Tom M-01.wav
 Roland/Roland R-8/R-8 Kit 03/Toms/Tom M-02.wav
 Roland/Roland R-8/R-8 Kit 03/Toms/Tom M-03.wav
 Roland/Roland R-8/R-8 Kit 03/Toms/Tom M-04.wav
-Roland/Roland R-8/Thumbs.db
 Roland/Roland R8/R8-808-1.aif
 Roland/Roland R8/R8-Cl-Hi-Hat.aif
 Roland/Roland R8/R8-Conga.aif
@@ -5489,7 +5447,6 @@ Roland/Roland R8/R8-Snare-2.aif
 Roland/Roland R8/R8-Snare-3.aif
 Roland/Roland R8/R8-Snare-4.aif
 Roland/Roland R8/R8-Snare-5.aif
-Roland/Roland R8/Thumbs.db
 Roland/Roland R8/folder.jpg
 Roland/Roland S50/Bassdrums/Bassdrum-01.wav
 Roland/Roland S50/Bassdrums/Bassdrum-02.wav
@@ -5619,7 +5576,6 @@ Roland/Roland SH09/909bass6.wav
 Roland/Roland SH09/909bass7.wav
 Roland/Roland SH09/909bass8.wav
 Roland/Roland SH09/909bass9.wav
-Roland/Roland SH09/Thumbs.db
 Roland/Roland SH09/anabdrm1.wav
 Roland/Roland SH09/anabdrm2.wav
 Roland/Roland SH09/anabdrm3.wav
@@ -5900,7 +5856,6 @@ Roland/Roland System-100/System-100 Kit 03/Snaredrum-21.wav
 Roland/Roland System-100/System-100 Kit 03/Snaredrum-22.wav
 Roland/Roland System-100/System-100 Kit 03/Tock.wav
 Roland/Roland System-100/System-100 Kit 03/Triangle.wav
-Roland/Roland System-100/Thumbs.db
 Roland/Roland TD-7/BRUSH_ROLL_1.wav
 Roland/Roland TD-7/BRUSH_ROLL_2.wav
 Roland/Roland TD-7/BRUSH_ROLL_3.wav
@@ -5952,7 +5907,6 @@ Roland/Roland TD-7/SONAR.wav
 Roland/Roland TD-7/SPARK metal.wav
 Roland/Roland TD-7/SPLASH TD_1.wav
 Roland/Roland TD-7/SPLASH TD_2.wav
-Roland/Roland TD-7/Thumbs.db
 Roland/Roland TD-7/Timpani1.wav
 Roland/Roland TD-7/Timpani2.wav
 Roland/Roland TD-7/folder.jpg
@@ -6014,8 +5968,6 @@ Roland/Roland TR-505/TR-505 Kit 03/Timbale.wav
 Roland/Roland TR-505/TR-505 Kit 03/Tom H.wav
 Roland/Roland TR-505/TR-505 Kit 03/Tom L.wav
 Roland/Roland TR-505/TR-505 Kit 03/Tom M.wav
-Roland/Roland TR-505/Thumbs.db
-Roland/Roland TR-55/Thumbs.db
 Roland/Roland TR-55/rh55-001.wav
 Roland/Roland TR-55/rh55-002.wav
 Roland/Roland TR-55/rh55-003.wav
@@ -6102,7 +6054,6 @@ Roland/Roland TR-606 Drumatix/TR-606 Kit 05/Hat Open.wav
 Roland/Roland TR-606 Drumatix/TR-606 Kit 05/Snaredrum.wav
 Roland/Roland TR-606 Drumatix/TR-606 Kit 05/Tom H.wav
 Roland/Roland TR-606 Drumatix/TR-606 Kit 05/Tom L.wav
-Roland/Roland TR-606 Drumatix/Thumbs.db
 Roland/Roland TR-626/TR-626 Kit 01/626_bd1.wav
 Roland/Roland TR-626/TR-626 Kit 01/626_bd2.wav
 Roland/Roland TR-626/TR-626 Kit 01/626_chh.wav
@@ -6163,7 +6114,6 @@ Roland/Roland TR-626/TR-626 Kit 02/626 SD 2.wav
 Roland/Roland TR-626/TR-626 Kit 02/626 SD 3.wav
 Roland/Roland TR-626/TR-626 Kit 02/626 SHAKER.wav
 Roland/Roland TR-626/TR-626 Kit 02/626 TAMBORIN.wav
-Roland/Roland TR-626/Thumbs.db
 Roland/Roland TR-66 Rhythm Arranger/66-bd-01.wav
 Roland/Roland TR-66 Rhythm Arranger/66-bd-02.wav
 Roland/Roland TR-66 Rhythm Arranger/66-bd-03.wav
@@ -6209,7 +6159,6 @@ Roland/Roland TR-66 Rhythm Arranger/66-sd-05.wav
 Roland/Roland TR-66 Rhythm Arranger/66-sd-06.wav
 Roland/Roland TR-66 Rhythm Arranger/66-sd-07.wav
 Roland/Roland TR-66 Rhythm Arranger/66-sd-08.wav
-Roland/Roland TR-66 Rhythm Arranger/Thumbs.db
 Roland/Roland TR-707/TR-707 Kit 01/707_BD0.WAV
 Roland/Roland TR-707/TR-707 Kit 01/707_BD1.WAV
 Roland/Roland TR-707/TR-707 Kit 01/707_COW.WAV
@@ -6258,7 +6207,6 @@ Roland/Roland TR-707/TR-707 Kit 04/Tambourine.wav
 Roland/Roland TR-707/TR-707 Kit 04/Tom H.wav
 Roland/Roland TR-707/TR-707 Kit 04/Tom L.wav
 Roland/Roland TR-707/TR-707 Kit 04/Tom M.wav
-Roland/Roland TR-707/Thumbs.db
 Roland/Roland TR-727/TR-727 Kit 01/727agogh.wav
 Roland/Roland TR-727/TR-727 Kit 01/727agogl.wav
 Roland/Roland TR-727/TR-727 Kit 01/727bngoh.wav
@@ -6312,7 +6260,6 @@ Roland/Roland TR-727/TR-727 Kit 03/Star-chimes.wav
 Roland/Roland TR-727/TR-727 Kit 03/Timbale H.wav
 Roland/Roland TR-727/TR-727 Kit 03/Timbale L.wav
 Roland/Roland TR-727/TR-727 Kit 03/Whistle.wav
-Roland/Roland TR-727/Thumbs.db
 Roland/Roland TR-77 Rhythm 77/Roland_TR-77_Clave.wav
 Roland/Roland TR-77 Rhythm 77/Roland_TR-77_Guiro.wav
 Roland/Roland TR-77 Rhythm 77/Roland_TR-77_Guiro2.wav
@@ -6685,9 +6632,7 @@ Roland/Roland TR-808/TR-808 lofi set/Roland TR-808 lofi set/rvrs-sd2.wav
 Roland/Roland TR-808/TR-808 lofi set/Roland TR-808 lofi set/rvrscymb.wav
 Roland/Roland TR-808/TR-808 lofi set/Roland TR-808 lofi set/shot_sd.wav
 Roland/Roland TR-808/TR-808 lofi set/Roland TR-808 lofi set/soft_bd.wav
-Roland/Roland TR-808/TR-808 lofi set/Thumbs.db
 Roland/Roland TR-808/TR-808 lofi set/folder.jpg
-Roland/Roland TR-808/Thumbs.db
 Roland/Roland TR-909/TR-909/BASSDRUM/BDRUM1.WAV
 Roland/Roland TR-909/TR-909/BASSDRUM/BDRUM10.WAV
 Roland/Roland TR-909/TR-909/BASSDRUM/BDRUM11.WAV
@@ -6884,7 +6829,6 @@ Roland/Roland TR-909/TR-909 lofi set/Roland TR-909 lofi set/noizcrsh.wav
 Roland/Roland TR-909/TR-909 lofi set/Roland TR-909 lofi set/noizophh.wav
 Roland/Roland TR-909/TR-909 lofi set/Roland TR-909 lofi set/rough_sd.wav
 Roland/Roland TR-909/TR-909 lofi set/Roland TR-909 lofi set/syn_rim.wav
-Roland/Roland TR-909/TR-909 lofi set/Thumbs.db
 Roland/Roland TR-909/TR-909 lofi set/folder.jpg
 Roland/Roland TR-909/TR909 - all/BT0A0A7.WAV
 Roland/Roland TR-909/TR909 - all/BT0A0D0.WAV
@@ -7047,8 +6991,6 @@ Roland/Roland TR-909/TR909 - all/STATAS3.WAV
 Roland/Roland TR-909/TR909 - all/STATAS7.WAV
 Roland/Roland TR-909/TR909 - all/STATASA.WAV
 Roland/Roland TR-909/TR909 - all/TR909SET.TXT
-Roland/Roland TR-909/Thumbs.db
-Roland/Roland TR55/Thumbs.db
 Roland/Roland TR55/folder.jpg
 Roland/Roland TR55/rh55-001.wav
 Roland/Roland TR55/rh55-002.wav
@@ -7132,7 +7074,6 @@ Roland/Roland TR66/66-sd-05.wav
 Roland/Roland TR66/66-sd-06.wav
 Roland/Roland TR66/66-sd-07.wav
 Roland/Roland TR66/66-sd-08.wav
-Roland/Roland TR66/Thumbs.db
 Roland/Roland TR66/folder.jpg
 Roland/Roland XV-5080/clap_Dry_a.wav
 Roland/Roland XV-5080/clap_Dry_b.wav
@@ -7417,7 +7358,6 @@ Roland/Roland_CR78/SAMPLE6.WAV
 Roland/Roland_CR78/SAMPLE7.WAV
 Roland/Roland_CR78/SAMPLE8.WAV
 Roland/Roland_CR78/SAMPLE9.WAV
-Roland/Roland_CR78/Thumbs.db
 Roland/Roland_CR78/folder.jpg
 Roland/Roland_CR8000/CR-8000 (2)/CR8KBASS.wav
 Roland/Roland_CR8000/CR-8000 (2)/CR8KCHAT.wav
@@ -7506,7 +7446,6 @@ Roland/Roland_CR8000/ROLANDCR8000 (3)/8000sd-02.wav
 Roland/Roland_CR8000/ROLANDCR8000 (3)/8000sd-03.wav
 Roland/Roland_CR8000/ROLANDCR8000 (3)/8000sd-06.wav
 Roland/Roland_CR8000/ROLANDCR8000 (3)/8000sd-07.wav
-Roland/Roland_CR8000/Thumbs.db
 Roland/Roland_CR8000/folder.jpg
 Roland/Roland_D-10_L.A/Roland D-10 L.A/la-bd1.wav
 Roland/Roland_D-10_L.A/Roland D-10 L.A/la-bell.wav
@@ -7570,7 +7509,6 @@ Roland/Roland_D-10_L.A/Roland D-10 L.A/la-tamb1.wav
 Roland/Roland_D-10_L.A/Roland D-10 L.A/la-trian.wav
 Roland/Roland_D-10_L.A/Roland D-10 L.A/la-wdblk.wav
 Roland/Roland_D-10_L.A/Roland D-10 L.A/la-wetbd.wav
-Roland/Roland_D-10_L.A/Thumbs.db
 Roland/Roland_D-10_L.A/folder.jpg
 Roland/Roland_DDR-30/Roland DDR-30/TIMPANI1.wav
 Roland/Roland_DDR-30/Roland DDR-30/TIMPANI2.wav
@@ -7596,7 +7534,6 @@ Roland/Roland_DDR-30/Roland DDR-30/tom3.wav
 Roland/Roland_DDR-30/Roland DDR-30/tom4.wav
 Roland/Roland_DDR-30/Roland DDR-30/tom5.wav
 Roland/Roland_DDR-30/Roland DDR-30/tom6.wav
-Roland/Roland_DDR-30/Thumbs.db
 Roland/Roland_DDR-30/folder.gif
 Roland/Roland_MC-202/Roland MC-202/202BM1.WAV
 Roland/Roland_MC-202/Roland MC-202/202BM2.WAV
@@ -7607,7 +7544,6 @@ Roland/Roland_MC-202/Roland MC-202/202SHT1.WAV
 Roland/Roland_MC-202/Roland MC-202/202SHT2.WAV
 Roland/Roland_MC-202/Roland MC-202/202SHT3.WAV
 Roland/Roland_MC-202/Roland MC-202/202SHT4.WAV
-Roland/Roland_MC-202/Thumbs.db
 Roland/Roland_MC-202/folder.jpg
 Roland/Roland_MC-303/Roland MC-303/606bd1.wav
 Roland/Roland_MC-303/Roland MC-303/606bd2.wav
@@ -7757,7 +7693,6 @@ Roland/Roland_MC-303/Roland MC-303/Tinysd.wav
 Roland/Roland_MC-303/Roland MC-303/Udo.wav
 Roland/Roland_MC-303/Roland MC-303/Vibrasla.wav
 Roland/Roland_MC-303/Roland MC-303/Whitnoiz.wav
-Roland/Roland_MC-303/Thumbs.db
 Roland/Roland_MC-303/folder.jpg
 Roland/Roland_MT32/MTAgogoHigh.wav
 Roland/Roland_MT32/MTAgogoLow.wav
@@ -7790,7 +7725,6 @@ Roland/Roland_MT32/MTTimbaleLow.wav
 Roland/Roland_MT32/MTTomHigh.wav
 Roland/Roland_MT32/MTTomLow.wav
 Roland/Roland_MT32/MTTomMid.wav
-Roland/Roland_MT32/Thumbs.db
 Roland/Roland_MT32/folder.jpg
 Roland/Roland_System_100/Roland System 100/909+klick.wav
 Roland/Roland_System_100/Roland System 100/909+longklick.wav
@@ -7855,7 +7789,6 @@ Roland/Roland_System_100/Roland System 100/snare_long5.wav
 Roland/Roland_System_100/Roland System 100/snare_noise.wav
 Roland/Roland_System_100/Roland System 100/snare_short.wav
 Roland/Roland_System_100/Roland System 100/snare_short2.wav
-Roland/Roland_System_100/Thumbs.db
 Roland/Roland_System_100/folder.jpg
 Roland/Roland_System_100/sys100 drumkit (2)/909-dist.aif
 Roland/Roland_System_100/sys100 drumkit (2)/909-klick.aif
@@ -7966,8 +7899,6 @@ SC-40 Bassdrums/SC40BD06.aif
 SC-40 Bassdrums/SC40BD07.aif
 SC-40 Bassdrums/SC40BD09.aif
 SC-40 Bassdrums/SC40BD10.aif
-SC-40 Bassdrums/Thumbs.db
-SD-5 Percussion/Thumbs.db
 SD-5 Percussion/folder.jpg
 SD-5 Percussion/sd-5-001.wav
 SD-5 Percussion/sd-5-003.wav
@@ -8078,7 +8009,6 @@ Sakata DPM48/TOM1.WAV
 Sakata DPM48/TOM2.WAV
 Sakata DPM48/TOM3.WAV
 Sakata DPM48/TOM4.WAV
-Sakata DPM48/Thumbs.db
 Sakata DPM48/folder.jpg
 SequentialCircuits Drumtraks/BASS.WAV
 SequentialCircuits Drumtraks/CABASA.WAV
@@ -8090,9 +8020,7 @@ SequentialCircuits Drumtraks/SNARE.WAV
 SequentialCircuits Drumtraks/TAMB.WAV
 SequentialCircuits Drumtraks/TOM1.WAV
 SequentialCircuits Drumtraks/TOM2.WAV
-SequentialCircuits Drumtraks/Thumbs.db
 SequentialCircuits Drumtraks/folder.jpg
-SequentialCircuits Tom/Thumbs.db
 SequentialCircuits Tom/clap.wav
 SequentialCircuits Tom/closehat.wav
 SequentialCircuits Tom/crash.wav
@@ -8160,7 +8088,6 @@ Simmons SDS1000/S8.wav
 Simmons SDS1000/T1.wav
 Simmons SDS1000/T2.wav
 Simmons SDS1000/T3.wav
-Simmons SDS8/Thumbs.db
 Simmons SDS8/folder.jpg
 Simmons SDS8/sds-8-bd01.wav
 Simmons SDS8/sds-8-bd02.wav
@@ -8387,7 +8314,6 @@ Sound Master Rhythm 1/SM-8_SNARE_13.wav
 Sound Master Rhythm 1/SM-8_SNARE_14.wav
 Sound Master Rhythm 1/SM-8_SNARE_15.wav
 Sound Master Rhythm 1/SM-8_SNARE_16.wav
-Sound Master SR-88 Memory Rhythm/Thumbs.db
 Sound Master SR-88 Memory Rhythm/crash.WAV
 Sound Master SR-88 Memory Rhythm/kick.WAV
 Sound Master SR-88 Memory Rhythm/longhi.WAV
@@ -8405,7 +8331,6 @@ Suzuki RPM-40/MaxV - Rim.wav
 Suzuki RPM-40/MaxV - Shaker.wav
 Suzuki RPM-40/MaxV - Snare.wav
 Suzuki RPM-40/MaxV - Tom.wav
-Univox_MicroRhytmer12/Thumbs.db
 Univox_MicroRhytmer12/UNIVOX1.WAV
 Univox_MicroRhytmer12/UNIVOX10.WAV
 Univox_MicroRhytmer12/UNIVOX11.WAV
@@ -8609,7 +8534,6 @@ Virus TI/virus_ti_drums/cw_virus_tom05.wav
 Virus TI/virus_ti_drums/info.txt
 Virus TI/virus_ti_drums.rar
 Visco_Space_Drum/.DS_Store
-Visco_Space_Drum/Thumbs.db
 Visco_Space_Drum/VISCO SPACE (2)/visco-01.aif
 Visco_Space_Drum/VISCO SPACE (2)/visco-02.aif
 Visco_Space_Drum/VISCO SPACE (2)/visco-03.aif
@@ -9082,7 +9006,6 @@ WAV hh+filterloops/28k-drm13-125.wav
 WAV hh+filterloops/28k-drm14-125.wav
 WAV hh+filterloops/28k-drm15-125.wav
 WAV hh+filterloops/28k-drm16-125.wav
-Wersi WM 24/Thumbs.db
 Wersi WM 24/folder.jpg
 Wersi WM 24/wersi-bd1.aif
 Wersi WM 24/wersi-bd3.aif
@@ -9727,7 +9650,6 @@ Yamaha/Yamaha FS1R_kontakt/cw_fs1r_drumkit Samples/torture_kit_bassdrum4.wav
 Yamaha/Yamaha FS1R_kontakt/cw_fs1r_drumkit Samples/torture_kit_bassdrum5.wav
 Yamaha/Yamaha FS1R_kontakt/cw_fs1r_drumkit.nki
 Yamaha/Yamaha FS1R_kontakt/info.txt
-Yamaha/Yamaha MR-10/Thumbs.db
 Yamaha/Yamaha MR-10/bdrum.wav
 Yamaha/Yamaha MR-10/brush.wav
 Yamaha/Yamaha MR-10/ccymbal.wav
@@ -10258,7 +10180,6 @@ Yamaha/Yamaha RX-11/RX11ride.wav
 Yamaha/Yamaha RX-11/RX11rim.wav
 Yamaha/Yamaha RX-11/RX11sd.wav
 Yamaha/Yamaha RX-11/RX11sd02.wav
-Yamaha/Yamaha RX-11/Thumbs.db
 Yamaha/Yamaha RX-15/RX15 BASS D1.wav
 Yamaha/Yamaha RX-15/RX15 BASS D2.wav
 Yamaha/Yamaha RX-15/RX15 CLHH.wav
@@ -10325,7 +10246,6 @@ Yamaha/Yamaha RX-21/RX21 Kit 02/RX21L MT CNG.wav
 Yamaha/Yamaha RX-21/RX21 Kit 02/RX21L TAMB.wav
 Yamaha/Yamaha RX-21/RX21 Kit 02/RX21L WHIST1.wav
 Yamaha/Yamaha RX-21/RX21 Kit 02/RX21L WHIST2.wav
-Yamaha/Yamaha RX-21/Thumbs.db
 Yamaha/Yamaha RX-21L/RX21LAgogoHi.wav
 Yamaha/Yamaha RX-21L/RX21LAgogoLo.wav
 Yamaha/Yamaha RX-21L/RX21LBongoHi.wav
@@ -10400,7 +10320,6 @@ Yamaha/Yamaha RX-5/RX5 Kit 02/RX5 TOM 2.wav
 Yamaha/Yamaha RX-5/RX5 Kit 02/RX5 TOM 3.wav
 Yamaha/Yamaha RX-5/RX5 Kit 02/RX5 TOM 4.wav
 Yamaha/Yamaha RX-5/RX5 Kit 02/RX5 WAO.wav
-Yamaha/Yamaha RX-5/Thumbs.db
 Yamaha/Yamaha RX-7/RX7 AGOGO HI.wav
 Yamaha/Yamaha RX-7/RX7 AGOGO LO.wav
 Yamaha/Yamaha RX-7/RX7 BONGO HI.wav
@@ -10530,7 +10449,6 @@ Yamaha/Yamaha RY-10/SD43VRB.WAV
 Yamaha/Yamaha RY-10/SD44VRB.WAV
 Yamaha/Yamaha RY-10/SD45VRB.WAV
 Yamaha/Yamaha RY-10/SD47VRB.WAV
-Yamaha/Yamaha RY-10/Thumbs.db
 Yamaha/Yamaha RY-30/RY30 Kit 01/BDRUM01.WAV
 Yamaha/Yamaha RY-30/RY30 Kit 01/BDRUM02.WAV
 Yamaha/Yamaha RY-30/RY30 Kit 01/BDRUM03.WAV
@@ -10781,7 +10699,6 @@ Yamaha/Yamaha RY-30/RY30 Kit 03/TOMP SD.wav
 Yamaha/Yamaha RY-30/RY30 Kit 03/VACATION SD.wav
 Yamaha/Yamaha RY-30/RY30 Kit 03/YOUR KICK.wav
 Yamaha/Yamaha RY-30/RY30 Kit 03/ZAP SD.wav
-Yamaha/Yamaha RY-30/Thumbs.db
 Yamaha/Yamaha TG-33/Bassdrum-01.wav
 Yamaha/Yamaha TG-33/Bassdrum-02.wav
 Yamaha/Yamaha TG-33/Bassdrum-03.wav
@@ -10905,7 +10822,6 @@ Yamaha/Yamaha TX16W Typhoon OS/TX16tom3.wav
 Yamaha/Yamaha TX16W Typhoon OS/TX16tom4.wav
 Yamaha/Yamaha TX16W Typhoon OS/TX16tom5.wav
 Yamaha/Yamaha TX16W Typhoon OS/TX16tom6.wav
-Yamaha/Yamaha TX16W Typhoon OS/Thumbs.db
 soundbank/DWMapSnA3Cff1(s).wav
 soundbank/DWMapSnA3Cmf4(s).wav
 soundbank/DWMapSnA3Cmp2(s).wav

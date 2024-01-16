@@ -38,11 +38,19 @@ module EuclipApi
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
 
+    # FIXME: this app was designed to manually manage JWT sessions
+    # but config.session_store :disabled thows errors. 
+    config.session_store :cookie_store, key: '_euclip_session'
+    config.middleware.use ActionDispatch::Cookies
+    config.middleware.use config.session_store, config.session_options
+
+    
+
     config.autoload_paths += %W(#{config.root}/lib)
     config.autoload_paths += Dir["#{config.root}/lib/*"]
     config.autoload_paths += Dir["#{config.root}/lib/**/"]
 
-
+    
     config.middleware.use SnakeCaseParameters
   end
 end

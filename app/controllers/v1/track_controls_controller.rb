@@ -2,6 +2,9 @@ class V1::TrackControlsController < V1::BaseController
   before_action :set_track, only: %i[create update]
   before_action :set_track_control, only: %i[show update destroy]
 
+  # TODO:
+  # enforce proper permissions for these endpoints
+
   def show
     render json: TrackControlSerializer.new(@track_control), status: :ok
   end
@@ -14,7 +17,7 @@ class V1::TrackControlsController < V1::BaseController
         include: included_relations
       ), status: :ok
     else
-      render json: { errors: @track_control.errors.full_messages.join(', ') }, status: :unprocessable_entity
+      render_unprocessable_entity(@track_control.errors)
     end
   end
 
@@ -26,7 +29,7 @@ class V1::TrackControlsController < V1::BaseController
         include: included_relations
       ), status: :ok
     else
-      render json: { errors: @track_control.errors.full_messages.join(', ') }, status: :unprocessable_entity
+      render_unprocessable_entity(@track_control.errors)
     end
   end
 
@@ -51,7 +54,8 @@ class V1::TrackControlsController < V1::BaseController
     # should a track control ever have it's node attribute, node type or node order changed?
     # they may be create-only params
     attrs = @attributes.permit(:min, 
-                               :max, 
+                               :max,
+                               :step_size,
                                :default_value, 
                                :control_value, 
                                :interface_name, 
@@ -59,7 +63,9 @@ class V1::TrackControlsController < V1::BaseController
                                :node_attr, 
                                :node_order,
                                :control_string_value,
-                               :control_array_value => [])
+                               :current_unit_transform_idx,
+                               :control_array_value => [],
+                              )
 
     
     attrs.merge(track_id: @track.id).to_h.reject{|_, v| v.blank?}
