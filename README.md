@@ -70,5 +70,17 @@ Add localhost.ssl to your hosts file as:
 1. `./reset-db.sh` to create deafult seed data (not this clears the any existing data so be careful on subsequent runs) 
 1. `rails server -b 'ssl://127.0.0.1:3000?key=PATH_TO_YOUR_KEY.key&cert=PATH_TO_YOUR_CERT.crt'` to start the server. Be sure to use the correct paths to your key and cert files. See above for how to create them.
 
-Assuming that all went off without a hithch, you should be able to visit https://localhost:3000/ and see the app running.
+Assuming that all went off without a hitch, you should be able to visit https://localhost:3000/ and see the app running.
 
+
+
+## Deploying to Heroku
+Make sure you have the Heroku CLI installed.
+1. `heroku login`
+1. `heroku update`
+1. `git push heroku main`
+1. `heroku run rake db:migrate`
+
+### Debugging
+1. `heroku run rails console`
+1. `heroku logs --tail`
