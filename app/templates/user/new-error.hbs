@@ -1,3 +1,8 @@
 <div class="ma3">
   <h1 class="tc">Sorry, something went wrong while trying to create a new project.</h1>
+  <div class="mv3">
+    {{#each this.model.errors as |err|}}
+      <p>{{render-model-error err}}</p>
+    {{/each}}
+  </div>
 </div>

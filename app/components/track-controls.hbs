@@ -19,6 +19,7 @@
                   @stepIndex={{pgn.indexForPage}}
                   @sequence={{pgn.sequencePaginated}}
                   @values={{pgn.valuesPaginated}}
+                  @transformedValue={{invoke-on-record trackControl 'attrValueForType' @track.stepIndex}}
                   @min={{trackControl.min}}
                   @max={{trackControl.max}}
                   @stepSize={{trackControl.stepSize}}
@@ -35,7 +36,8 @@
              >
               <Controls::Slider
                 @value={{trackControl.controlValue}}
-                @step={{trackControl.stepSize}}
+                @transformedValue={{invoke-on-record trackControl 'attrValueForType'}}
+                @stepSize={{trackControl.stepSize}}
                 @min={{trackControl.min}}
                 @max={{trackControl.max}}
                 @onChange={{fn @updateControl trackControl}}

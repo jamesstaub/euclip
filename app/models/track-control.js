@@ -8,13 +8,20 @@ import {
 } from 'ember-concurrency';
 
 import { isPresent } from '@ember/utils';
-import { defaultKit } from './track-node';
 
 import { setProperties } from '@ember/object';
-import { unitTransformsForNodeAttr } from '../utils/audio-param-config';
+import { defaultKit } from './track-node';
+import {
+  defaultNodeParamsByUnit,
+  unitOptionsForNode,
+} from '../utils/audio-param-config';
 import { applyAttrs } from '../utils/cracked';
+
+// TODO refactor into subclasses for diferent types
+// move configurations into the model
+// add param-specific validations like time bounding start/end params on sample
 export default class TrackControlModel extends Model {
-  @belongsTo('track', { async: false, inverse: 'trackControl' }) track;
+  @belongsTo('track', { async: false, inverse: 'trackControls' }) track;
   @belongsTo('trackNode', { async: false, inverse: 'trackControls' }) trackNode;
 
   // while redundant, nodeType and trackNodeOrder are needed here when POSTing
@@ -24,6 +31,7 @@ export default class TrackControlModel extends Model {
   @attr('string') nodeAttr; // the audio attr that will be controlled
 
   @attr('string') interfaceName; // type of nexus ui element
+  @attr('number', { defaultValue: 0 }) currentUnitTransformIdx; // index of the unit transform function applied to this control (see audio-param-config.js)
   @attr('number') min;
   @attr('number') max;
   @attr('number') stepSize;
@@ -102,19 +110,64 @@ export default class TrackControlModel extends Model {
   }
 
   get paramUnitNames() {
-    return unitTransformsForNodeAttr[this.nodeAttr];
+    if (!unitOptionsForNode[this.nodeAttr]) {
+      debugger;
+    }
+    return unitOptionsForNode[this.nodeAttr];
+  }
+
+  get currentParamUnitLabel() {
+    return this.paramUnitNames[this.currentUnitTransformIdx];
+  }
+
+  get unitParamsForAttr() {
+    return defaultNodeParamsByUnit[this.nodeType][this.nodeAttr];
+  }
+
+  transformCurrentUnit(value) {
+    if (!this.unitParamsForAttr) {
+      console.warn(
+        'Did not find track control config for ',
+        this.nodeType,
+        this.nodeAttr
+      );
+      return value;
+    }
+    const paramsForUnit = this.unitParamsForAttr[this.currentParamUnitLabel];
+
+    if (!paramsForUnit?.func) {
+      return value;
+    }
+    // if trackNode isSampler and has downloaded file
+    // buffer.getChannelData(0); and convert to seconds
+
+    const sampleLenSec =
+      this.trackNode.isSampler &&
+      this.trackNode.sampleIsLoaded &&
+      this.trackNode.nativeNode
+        ? this.trackNode.nativeNode.buffer.duration
+        : 1;
+
+    const ret = paramsForUnit.func(value, {
+      intervalMs: this.track.project.loopInterval,
+      sampleLenSec: sampleLenSec,
+    });
+
+    if (isNaN(ret)) {
+      console.error('ERROR: passed a NAN attribute from track control');
+    }
+    return ret;
   }
 
   /**
-   * Helper for setting a track-control's value on it's respective audio node at
-   * a given time,
-   */
+   * Helper the track-control's usable value at a given time  */
   attrValueForType(index) {
     if (this.isMultislider) {
       const stepValue = this.controlArrayComputed[index];
-      return stepValue;
+      if (stepValue) return this.transformCurrentUnit(stepValue);
     } else {
-      return this.controlValue;
+      if (this.controlValue)
+        return this.transformCurrentUnit(this.controlValue);
     }
   }
 
@@ -134,6 +187,7 @@ export default class TrackControlModel extends Model {
         if (this.controlValue === value) {
           return;
         }
+
         this.beforeUpdateValue(value);
         this.controlValue = value;
         const attrs = {};
@@ -148,7 +202,8 @@ export default class TrackControlModel extends Model {
   // this currently overwrites user-defined start and end values.
   // custom UI elements for start and end could be created to just disallow
   // customization. till then it will seem buggy
-  async setSamplerControlsToBuffer(nativeBuffer) {
+  // Move this to
+  setSamplerControlsToBuffer(nativeBuffer) {
     // set the track control for the `end` controlAttr to the audio buffer's length
     // unless the user has already set a value
     // convert buffer len to seconds
@@ -176,6 +231,7 @@ export default class TrackControlModel extends Model {
     const min = this.min;
     const max = this.max;
     const isNumber = !isNaN(value);
+
     if (isNumber) {
       this.set('min', Math.min(min, value));
       this.set('max', Math.max(max, value));
@@ -198,7 +254,7 @@ export default class TrackControlModel extends Model {
       this.set('min', this.defaultValue);
     }
 
-    if (this.stepSize >= this.defaultValue) {
+    if (this.stepSize > this.max - this.min) {
       this.set('stepSize', this.stepSize / 10);
     }
   }
@@ -223,13 +279,38 @@ export default class TrackControlModel extends Model {
     this.saveTrackControl.perform();
   }
 
-  //
+  // TODO: this should also get called on record creation
+  // and replace existing defaultParam config
   setParamUnit({ index, value }) {
+    if (this.currentUnitTransformIdx === index) return;
+
+    this.currentUnitTransformIdx = index;
+
+    const { min, max, stepSize, defaultValue } =
+      this.unitParamsForAttr[this.currentParamUnitLabel];
+
+    if (isPresent(min)) {
+      this.min = min;
+    }
+
+    if (isPresent(max)) {
+      this.max = max;
+    }
+
+    if (isPresent(stepSize)) {
+      this.stepSize = stepSize;
+    }
+
+    if (isPresent(defaultValue)) {
+      this.defaultValue = defaultValue;
+      this.controlValue = defaultValue;
+    }
+
     // TODO:
-    // when a user changes the unit of a param:
-    // 1. update the min/max/default to the new unit.
-    // 2. store a new propertiy on TrackControl "unitConversionFunction"
-    // 3. apply the new current value to the TrackNode's param
+    // when changing units, attempt to set the current controlValue intelligently
+    // depending on which unit we're going to from.
+    // if we're going from index non-0 to 0
+    this.saveTrackControl.perform();
   }
 
   @keepLatestTask
@@ -322,65 +403,10 @@ export default class TrackControlModel extends Model {
       }, {});
   }
 
-  /**
-   * interfaceNamesForAttr populates the dropdown menu on TrackControls with the allowed interfaceNames
-   * which correspond to different TrackControl UI components, depending on what kind of parameter it controls.
-   *
-   * TODO finish implementing the contents of interfaceType dropdown for
-   * each node attributes's control
-   */
-  get interfaceNamesForAttr() {
-    const bool = ['toggle'];
-    const oneD = ['slider', 'dial', 'multislider'];
-    const twoD = ['position']; // control 2 attributes
-    const tonal = ['piano'];
-    const array = ['envelope'];
-    const filepath = ['filepath'];
-    switch (this.nodeAttr) {
-      case 'gain':
-        return oneD;
-      case 'speed':
-        return oneD;
-      case 'path':
-        return filepath;
-      case 'frequency':
-        return oneD;
-      case 'detune':
-        return oneD;
-      case 'q':
-        return oneD;
-      case 'decay':
-        return oneD;
-      case 'reverse':
-        return [...bool, 'multislider'];
-      case 'delay':
-        return oneD;
-      case 'damping':
-        return oneD;
-      case 'feedback':
-        return oneD;
-      case 'cutoff':
-        return oneD;
-      case 'drive':
-        return oneD;
-      case 'color':
-        return oneD;
-      case 'postCut':
-        return oneD;
-      case 'distortion':
-        return oneD;
-      case 'knee':
-        return oneD;
-      case 'start':
-        return oneD;
-      case 'threshold':
-        return oneD;
-      case 'end':
-        return oneD;
-      default:
-        return [];
-    }
+  get defaultInterfaceName() {
+    return unitOptionsForNode[this.nodeAttr][0];
   }
+
   static async createDefaultFilepathControl(track) {
     const trackControl = track.store.createRecord('track-control', {
       nodeAttr: 'path',

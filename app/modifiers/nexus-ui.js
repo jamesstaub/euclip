@@ -61,8 +61,14 @@ export default class NexusUi extends Modifier {
   setValue(options) {
     if (typeOf(options.value) === 'boolean') {
       this.nexusElement.state = options.value;
-    } else if (isPresent(options.value) && this.valueChanged(options)) {
+    } else if (
+      isPresent(options.value) &&
+      !isNaN(options.value) &&
+      this.valueChanged(options)
+    ) {
       this.nexusElement.value = roundFloat(options.value);
+    } else if (cracked.isStr(options.value)) {
+      this.nexusElement.value = options.value;
     }
   }
 

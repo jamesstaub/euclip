@@ -49,26 +49,29 @@
     </button>
   </div>
   <div class='bg-transparent mh2 f7 mv0 dark-gry'>
-      {{#if (eq @trackControl.paramUnitNames.length 1)}}
-        <p class="w-100 dark-gray">{{@trackControl.paramUnitNames.firstObject}}</p>
-      {{else}}
-        <div
-          class='nexus-select'
-          {{nexus-ui
-            'Select'
-            size=(array 110 24)
-            options=@trackControl.paramUnitNames
-            onChange=@trackControl.setParamUnit
-          }}
-        ></div>
-      {{/if}}
-    </div>
+    {{#if (eq @trackControl.paramUnitNames.length 1)}}
+      <p
+        class='w-100 dark-gray'
+      >{{@trackControl.paramUnitNames.firstObject}}</p>
+    {{else}}
+      <div
+        class='nexus-select'
+        {{nexus-ui
+          'Select'
+          value=@trackControl.currentParamUnitLabel
+          size=(array 110 24)
+          options=@trackControl.paramUnitNames
+          onChange=this.setParamUnit
+        }}
+      ></div>
+    {{/if}}
+  </div>
   <div class='flex items-start justify-between flex-column h-100'>
     {{#if this.isShowingConfig}}
       <Controls::ControlConfig @trackControl={{@trackControl}} />
     {{else}}
       {{yield}}
     {{/if}}
-  </div>
+  </div>  
 
 </div>

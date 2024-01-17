@@ -54,6 +54,10 @@ export function startLoop(loopInterval) {
   __('dac').start();
 }
 
+export function startAllNodes() {
+  __('*').start();
+}
+
 /**
  * stop the cracked `loop` and
  * also stop playback of all nodes

@@ -2,7 +2,7 @@ import Controller from '@ember/controller';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import { inject as service } from '@ember/service';
-import { keepLatestTask, timeout } from 'ember-concurrency';
+import { keepLatestTask, restartableTask, timeout } from 'ember-concurrency';
 
 export default class UserCreatorProjectController extends Controller {
   @service router;
@@ -32,13 +32,24 @@ export default class UserCreatorProjectController extends Controller {
   }
 
   @keepLatestTask
+
+  // TODO:
+  // on update BPM, set relative tempo values on track controls
   *updateProject(key, value) {
+    if (this.model[key] === value) return;
+
     this.model.set(key, value);
     if (this.model.isPlaying) {
       this.model.startLoop();
     }
+
     yield timeout(1000);
-    this.model.save();
+
+    try {
+      return yield this.model.save();
+    } catch (error) {
+      console.error('Failed To Save Project');
+    }
   }
 
   @action
@@ -68,7 +79,6 @@ export default class UserCreatorProjectController extends Controller {
   @action
   stop() {
     this.model.stopLoop();
-    this.model.resetLoop();
   }
 
   @action
@@ -78,7 +88,7 @@ export default class UserCreatorProjectController extends Controller {
 
   @action
   reset() {
-    this.model.resetLoop();
+    // this.model.resetLoop();
     // this.model.initSignalChain();
   }
 

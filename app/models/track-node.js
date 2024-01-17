@@ -211,6 +211,7 @@ export default class TrackNodeModel extends Model {
    *
    */
   findOrCreateTrackControls() {
+    console.log('findOrCreateTrackControls');
     // get default attributes for node
     const controlAttrs = Object.keys(AudioNodeConfig[this.nodeType]?.attrs);
     if (!controlAttrs.map) {

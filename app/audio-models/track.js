@@ -12,11 +12,12 @@ import {
 } from '../utils/cracked';
 import filterNumericAttrs from '../utils/filter-numeric-attrs';
 import { tracked } from '@glimmer/tracking';
-import TrackControlModel from '../models/track-control';
+
 import { inject as service } from '@ember/service';
 import TrackNodeModel, { FILE_LOAD_STATES } from '../models/track-node';
-import { set } from '@ember/object';
+
 import { isPresent } from '@ember/utils';
+import TrackControlModel from '../models/track-control';
 
 export default class TrackAudioModel extends Model.extend(Evented) {
   @service store;
@@ -88,6 +89,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         addCustomSelector(node, this.classSelector);
         addCustomSelector(node, `${type} ${this.classSelector}`);
         addCustomSelector(node, node.getUUID()); // NOTE: no . or # is used, the uuid is the full selector
+
         this.settingsForNodes.push(nodeSettings);
 
         if (userSettings) {
@@ -102,6 +104,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
             if (this.trackNodes && trackNode) {
               if (buffer) {
                 trackNode.fileLoadState = FILE_LOAD_STATES.SUCCESS;
+
                 trackNode.setSamplerControlsToBuffer(buffer);
               }
               if (error) {
@@ -136,7 +139,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
     trackNodes = this.applyOrderOfType(trackNodes);
 
-    this.setupTrackControls(trackNodes); // need to wait to make sure we have filepath
+    this.setupTrackControls(trackNodes);
     if (this.currentSequence) {
       if (trackNodes.length) {
         let onStepCallback = this.onStepCallback.bind(this);
@@ -167,9 +170,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     recordsArray.reduce((acc, record) => {
       const { nodeType, nodeAttr } = record;
       let key;
-      if (record.constructor.name === 'TrackNodeModel') {
+      if (record instanceof TrackNodeModel) {
         key = nodeType;
-      } else if (record.constructor.name === 'TrackControlModel') {
+      } else if (record instanceof TrackControlModel) {
         key = `${nodeType}-${nodeAttr}`;
       }
 
@@ -207,9 +210,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       .forEach((node, idx) => {
         const [uuid, type] = Object.entries(node)[0];
         if (getCrackedNode(uuid)) {
-          // a `ui` attribute might have been defined in the cracked node definition
-          const userDefinedInterfaceName = getCrackedNode(uuid).ui;
-
           // grab the attributes passed in to the initialization of a cracked node that will be used to set default state of track controls (eg. frequency, gain, speed etc.)
           const userSettingsForControl = filterNumericAttrs(node.userSettings);
           let trackNodeAttrs = {
@@ -217,7 +217,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
             nodeType: type,
             order: idx, // FIXME: does this break when nodes changed, reordered, multiple of same type? Consider using a cumulative "createdOrder" (based on initialization from the script, not every rebuild)
             parentMacro: node.parentMacro,
-            userDefinedInterfaceName, // get the custom ui saved on the AudioNode, which was defined by the user
           };
           // the parentMacro property is a cracked web audio node which happens to be a macro
           // this is used to determine if the node should appear with the normal node controls,
@@ -239,9 +238,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
 
           let trackNode = this.trackNodes.createRecord(trackNodeAttrs);
 
-          // if the `ui` attribute was changed in the script editor, update the interfaceName of track-controls
-          trackNode.updateUserDefinedInterfaceName(userDefinedInterfaceName);
-
           // stash the userSettingsForControl on the trackNode
           // So it can be read by trackControls to set their default values
           // update track control with user default values
@@ -260,8 +256,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
    *
    * Then apply the values from the track controls to the audio nodes
    */
-  async setupTrackControls(trackNodes) {
-    let trackControls = await this.trackControls;
+  setupTrackControls(trackNodes) {
+    let trackControls = this.trackControls.toArray();
     trackControls = this.applyOrderOfType(this.trackControls);
     let nodesWithoutTrackControls = [];
 
@@ -272,10 +268,10 @@ export default class TrackAudioModel extends Model.extend(Evented) {
           trackNode.orderOfType == trackControl.orderOfType
         );
       });
-
       if (
         TrackNodeModel.validateControls(matchingControls, trackNode.nodeType)
       ) {
+
         matchingControls.forEach((trackControl) => {
           // set the relation on the control to keep ember-data happy
           trackControl.set('trackNode', trackNode);
@@ -311,7 +307,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     );
     this.trackNodes.forEach((trackNode) => {
       trackNode.delinkControlsForDeadNodes();
-
       const attrs = attrsForNodes[trackNode.uniqueSelector];
       if (attrs) {
         applyAttrs(trackNode.uniqueSelector, attrs);
@@ -366,14 +361,14 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // LFO track controls need a "modulates" string attr.
     // TrackControls should check if an LFO exists in the audio tree and could
     // self-disable if so
+
+    this.onstepScript.invokeFunctionRef(index, data, array);
     this.trackNodes.forEach((trackNode) => {
       const attrs = attrsForNodes[trackNode.uniqueSelector];
       if (attrs) {
         applyAttrs(trackNode.uniqueSelector, attrs);
       }
     });
-
-    this.onstepScript.invokeFunctionRef(index, data, array);
   }
 
   // TODO: create property "createdOrder" and use that here
@@ -387,26 +382,18 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // sampler speed is a special case because they rebuild on every play,
     // so we need to ensure the attrs from the UI controls get applied after .start()
     // this is not an issue for non sampler nodes.
-    // If an LFO is modulating the sampler speed, the speed controls will be ignored
-    // TODO: It may be possible to multiply the values of the LFO and trackcontrols
-
-    const lfoForSamplerSpeed = this.trackNodes
-      .filterBy('nodeType', 'lfo')
-      .map((trackNode) => getCrackedNode(trackNode.nodeUUID))
-      .find((crackedNode) => crackedNode?.isModulatorType() === 'speed');
-
     const sourceNodes = this.sourceNodeRecords;
     const adsrNodes = this.adsrNodes;
-    const controls = TrackControlModel.serializeForScript(
-      this.trackNodes,
-      this.stepIndex
-    );
+    // const controls = TrackControlModel.serializeForScript(
+    //   this.trackNodes,
+    //   this.stepIndex
+    // );
 
     return {
       filepath: this.localFilePath || this.filepathUrl,
       id: this.id,
       trackSelector: this.classSelector,
-      controls: controls, // the value of the controls at this current step
+      // controls: controls, // the value of the controls at this current step
       sliders: this.trackControlData,
       select() {
         let selector = typeof arguments[0] === 'string' ? arguments[0] : null;
@@ -422,7 +409,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
             __(sourceNode.uniqueSelector)
               .stop()
               .attr({
-                ...controls.findBy('nodeUUID', sourceNode.nodeUUID), //NOTE: explicitly using the key nodeUUID instead of `uuid` because the latter will mess up the native audio node when attrs applied
+                // ...controls.findBy('nodeUUID', sourceNode.nodeUUID), //NOTE: explicitly using the key nodeUUID instead of `uuid` because the latter will mess up the native audio node when attrs applied
                 ...attrs,
               })
               .start();

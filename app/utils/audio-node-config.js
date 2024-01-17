@@ -4,12 +4,12 @@ export const DYNAMICS = 'dynamics';
 export const TIME = 'time';
 
 // groups of interfaces for different params
-const bool = ['toggle'];
-const oneD = ['slider', 'dial', 'multislider'];
-const twoD = ['position']; // control 2 attributes
-const tonal = ['piano'];
-const array = ['envelope'];
-const filepath = ['filepath'];
+export const bool = ['toggle'];
+export const oneD = ['slider', 'dial', 'multislider'];
+export const twoD = ['position']; // control 2 attributes
+export const tonal = ['piano'];
+export const array = ['envelope'];
+export const filepath = ['filepath'];
 
 // attr: min, max, defaultValue, interfaceOptions
 const filterAttrs = {
@@ -163,7 +163,7 @@ export const AudioNodeConfig = {
   reverb: {
     type: TIME,
     attrs: {
-      reverse: [0, 1, 0, bool],
+      reverse: [0, 1, 1, bool],
     },
     // seconds: [],
     // decay: [],
@@ -180,7 +180,7 @@ export const AudioNodeConfig = {
       speed: [-2, 2, 1, oneD],
       start: [0, 1, 0, oneD],
       end: [0, 1, 1, oneD],
-      loop: [false, true, false, bool],
+      loop: [0, 1, 1, bool],
       path: [null, null, null, filepath],
     },
   },
@@ -433,7 +433,7 @@ export const defaultParams = {
     unit: 'seconds',
   },
   speed: {
-    min: 0.125,
+    min: 0,
     max: 2,
     stepSize: 0.0125,
     defaultValue: 1,

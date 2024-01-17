@@ -8,7 +8,7 @@
 }
 
 .nexus-select select {
-	 background-color: yellow;
+	 background-color: var(--yellow);
 }
 
 .nexus-slider {

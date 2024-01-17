@@ -13,7 +13,11 @@
     max=@max
     value=@value
     onChange=@onChange
-    step=@step
+    step=@stepSize
     size=(array 20 110)
   }}
 ></div>
+
+{{#if (not (eq @value @transformedValue))}}
+  <span class="f7 dark-gray">{{@transformedValue}}</span>
+{{/if}}

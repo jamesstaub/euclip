@@ -6,6 +6,11 @@ module.exports = function (defaults) {
   let app = new EmberApp(defaults, {
     'ember-cli-babel': {
       enableTypeScriptTransform: true,
+      throwUnlessParallelizable: true,
+    },
+
+    autoImport: {
+      skipBabel: ['cracked.min.js'],
     },
 
     babel: {
@@ -52,6 +57,7 @@ module.exports = function (defaults) {
 
   const { Webpack } = require('@embroider/webpack');
   return require('@embroider/compat').compatBuild(app, Webpack, {
+    splitAtRoutes: ['user'],
     packagerOptions: {
       webpackConfig: {
         module: {

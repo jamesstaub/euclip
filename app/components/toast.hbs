@@ -1,0 +1,11 @@
+{{!-- Example toast component --}}
+{{log "TOASTY"}}
+{{log this.notifications.notifications }}
+{{#each this.notifications.notifications as |notification|}}
+  <div class="{{notification.type}}">
+    <p>{{notification.message}}</p>
+    {{#if notification.action}}
+      <IconButton class="bg-transparent light-fill bn z-2 pa3" @icon="fi-cancel" {{on "click" notification.action}} />
+    {{/if}}
+  </div>
+{{/each}}

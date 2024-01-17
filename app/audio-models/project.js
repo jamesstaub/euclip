@@ -12,23 +12,17 @@ import {
  */
 
 export default class ProjectAudioModel extends Model {
+  // TODO: move bpm to ms into a common place with audio-param-config transform functions
   get loopInterval() {
     return (1000 * 60) / (this.bpm * 2);
   }
 
   async initSignalChain() {
     this.disconnectAll();
-    // const tracks = await this.tracks;
-    // await track.initScript;
-    // await track.onstepScript;
     defineChannelStripMacro();
     this.masterTrack.setupAudioFromScripts();
     await this.downloadTrackSamples();
     this.setupTracks();
-    if (!this.isPlaying) {
-      stopLoop(); // prevent autoplaying if there are `.start()` in the init scripts
-    }
-
     return this;
   }
 

@@ -1,22 +1,38 @@
 import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
-import { isPresent } from '@ember/utils';
+import { inject as service } from '@ember/service';
 
 export default class ControlsWrapperComponent extends Component {
   @tracked isShowingConfig = false;
+  @service notifications;
 
   @action
   toggleInterface() {
-    // TODO: refactor this to support different control types
     const val = this.args.trackControl.isMultislider;
-    const interfaceName = ['slider', 'multislider'][Number(!val)];
+    const interfaceName = [
+      this.args.trackControl.defaultInterfaceName,
+      'multislider',
+    ][Number(!val)];
     this.args.trackControl.set('interfaceName', interfaceName);
-    this.args.trackControl.save();
+    try {
+      this.args.trackControl.save();
+    } catch (error) {
+      console.error('TOGG', error);
+      this.notifications.push({
+        message: 'Error saving track control',
+        type: 'error',
+      });
+    }
   }
 
   @action
   toggleConfig() {
     this.isShowingConfig = !this.isShowingConfig;
+  }
+
+  @action
+  setParamUnit({ index, value }) {
+    this.args.trackControl.setParamUnit({ index, value });
   }
 }

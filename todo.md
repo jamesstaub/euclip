@@ -90,7 +90,9 @@ to keep recent state in tact when returning to a track
 ### Track Nodes
   - hover over node tabs to show cracked uuid and selectors
   - info menu should show example of how to mutate track controls
-
+  
+  - if an audio node fails to create (passed in bad parameters), it causes the whole track to disappear.
+   there should be some instrumentation in place to check that intended nodes were created properly and if not handle it gracefully
 
 ### Track Controls
 
@@ -106,14 +108,23 @@ to keep recent state in tact when returning to a track
   - detect if a param is manually being set in the script, show a warning on the TrackControl UI
   - add a property: "apply on: step/all"
 
+  - Refactor model to subclasses.
+  - the start/end attrs for sampler will fail if set outside sampler range. validate and reconcile this with the custom functions (or just hardcode for start/end)
+
   - control menu could contain a text input for the target selector of a track control. By default this should populate with the related TrackNode's unique selector
-  but could be a dropdown of all selectors (filtered by those that are controllable by this control type
+  but could be a dropdown of all selectors (filtered by those that are controllable by this control type)
   with track control selectors implemented, the track attrOnStep can use the selector method  
 
 
 
 ## UI
   - fix bugs in min/max/default/stepSize settings. they wonky.
+  - design error states for project/track/controls/script/sequence components that use
+     the built in error states like "model.isValid" and "model.errors"
+
+    refactor the login flow validation errors like this too    
+
+
   - finish implementing Track Control unit functions (hz to steps etc). 
   - - when selecting a unit option for the Track Control it also sets a range of min/max/default vals
   - - LOOPSTEPS function for sampler speed: 
@@ -181,6 +192,8 @@ to keep recent state in tact when returning to a track
 - - use ember-concurrency to wait before calling save on the deleted record, show a "toast" with restore button
 
 ### Files
+  bug: selecting an audio file tearsdown and recreates all track-controls
+  
   - drag and drop UI for local sounds
   - recently +  favorites used menus for files
   - custom url for files
