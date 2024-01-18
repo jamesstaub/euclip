@@ -115,8 +115,20 @@
   min-width: var(--width-6);
 }
 
+.min-w-24rem {
+  min-width: 28rem;
+}
+
 .max-w-100 {
   max-width: 100%;
+}
+
+.max-w-50 {
+  max-width: 50%;
+}
+
+.max-w-33 {
+  max-width: 33%;
 }
 
 /* Transform */

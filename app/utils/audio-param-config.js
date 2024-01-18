@@ -1,3 +1,4 @@
+// Deep merge
 function dm(obj1, obj2) {
   let result = { ...obj1 };
 
@@ -351,6 +352,7 @@ export const unitOptionsForNode = {
   detune: [CENTS],
   q: [Q],
   decay: [S, MS, LOOPSTEPS],
+  sustain: [AMP],
   delay: [S, MS, LOOPSTEPS],
   damping: [AMP],
   feedback: [AMP],

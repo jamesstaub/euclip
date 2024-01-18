@@ -1,19 +1,18 @@
 # TODO LIST
 
-investigate cracked's `ignoreGrid` property to investigate scheduling bugs
-
 go live list:
   - attempt to automatically use sampler filepath if not supplied
-  - add `connect()` to channelStrip
 
-- finish node config refactor (add ADSR, fix compressor threshold)
 - ember-responsive fixes for small + touch screen
   - sidebar service to auto open-close when small
   - collapse track list items
 
 
+
 ### Scripts
 BUG; if possible clear the "cmd-z"  undo state when changing tracks, since code mirror doesn't get re-initialized
+
+
 
 #### Sampler / filepath
 Problem: if filepath not provided, the sampler will not call the onCreateNode callback.
@@ -23,20 +22,21 @@ manually set it to `this.localFilePath || this.filepathUrl`s
 currently the selected filepath will occasionally get lost and revert to a default sound
 
 #### scope + variables
+ access to slider value in functions would effectively allow non-linear sliders
 
 refactor docs and preset scripts once the loop.bind(selector) is fixed and working properly.
-for samplers you still need to do `__(this.trackSelector).stop().start()` because `__.stop().start()` doesnt work correctly
+for samplers you still need to do `__('sampler').stop().start()` because `__.stop().start()` doesnt work correctly
 but for other nodes you can do  `__.adsr()` to select only the adsr on that track etc
 
-LFOs on samplers are a weird case 
-```__('lfo').connect('sampler').start()
-if (data) {
-__(this.trackSelector).stop().start()
-}
-```
+- add examples of __.ms2freq using the track tempo to control LFO speeds
+- consider "applyTrackControls" as a public function so users can customize order in onstep scripts
+
+- add a CMD+Click on valid cracked methods that opens the docs in a new tab
 
 
-- rename variables to match the tabs 
+**Implement public api for controls + sequence in the scripts**
+  - API getters could be `this.source`, `this.controls`, `this.sequence`
+  - rename variables to match the tabs 
   (source.filepath instead of this.filepath)
   - `source.slices[]`
   - controls instead of this.controls
@@ -47,20 +47,17 @@ __(this.trackSelector).stop().start()
 
 - implement variables in script scope to access TrackControl values
   - - This could use existing selectors to access track nodes for controls.
-  - API getters could be `this.source`, `this.controls`, `this.sequence`
-
-
   - -  you could do `{speed: controls('.sampler').speed + __.rand()}`
-- Fix brittle use of order for track selectors:s  See not note on `uniqueSelector` in models/track-node.js
 
 
 ## Cracked Library Updates:
 - Modify the class selector lookup to attempt permutations of the order for multiple classnames
-  
-#### helpers
-- - access to slider value in functions would effectively allow non-linear sliders
-- add examples of __.ms2freq using the track tempo to control LFO speeds
-- the `playSample()` helper should be responsible for calling `applyTrackControls` internally, but can take an options argument to override/mutate them.
+
+- implement `onCreateNodeError` in the library to gracefully handle failures
+
+
+
+### Presets
 
 - new track dropdown menu options (different script presets)
   - build preset models in rails
@@ -158,18 +155,24 @@ to keep recent state in tact when returning to a track
   - Arrange mode: chain multiple projects together
   - Rails Action Cables for live editing
 
+  - Refactor Project model into "Pattern", create an arranger view for chaining patterns together. A Project wraps many patterns.
+
 ### Sequences
-  Implement `hasMany` sequence relationship on tracks, add UI to manage sequences. 
-  - Refactor MultiSliderArray on The track control to be a new related model `ControlSequence`
-  - For each `Sequence` on a given track, each TrackControl has one `ControlSequence` of the same size
+
+Implement `hasMany` sequence relationship on tracks, add UI to manage sequences.
+
+- Refactor MultiSliderArray on The track control to be a new related model `ControlSequence`
+- For each `Sequence` on a given track, each TrackControl has one `ControlSequence` of the same size
 
 - Add new Sequence UIs:
+
   - Euclidean
   - Binary
   - Random
   - Manual
 
 - implement an `this.updateSequence()` method to mutate it from code. it should have the same API as the euclidean/binary/random inputs, or can take an array directly
+
   ```
   this.seqeunce.euclidean(3,8,0)
   this.sequence.binary(127)
@@ -179,23 +182,44 @@ to keep recent state in tact when returning to a track
 
   - alias `data` variable to `step` for clarity in PLAY function
 
+  - implement a "Matrix View", which replaces the standard track list with an intanace of
+    nexus sequencer with rows for each track. inherit the Nexus matrix model to allow use of
+    nexus matrix mutation functions.
 
-  - implement a "Matrix View", which replaces the standard track list with an intanace of 
-  nexus sequencer with rows for each track. inherit the Nexus matrix model to allow use of 
-  nexus matrix mutation functions.
-  - despite the matrix data structure, different track sequence lengths can be supported in this view
-  by overlaying a length-slider on each row of the matrix. 
-  the computed value of this matrix model which ultimately gets saved on the track can
-  get trimmed to a given duration
 
-- implement "undo delete" 
-- - use ember-concurrency to wait before calling save on the deleted record, show a "toast" with restore button
+  - - add a sequence BPM divider
+  - - - This could be a "fake" multisequencer, where the callback only gets called on every N steps of the master sequence. The master sequence would be in "ticks", the default track rate would be every 16 ticks.
+
+  - - - also investigate whether it could be possible to send offsets to the _loopListener time values for swing, triplets etc
+
+
+  - - add reverse/pingpong mode for sequences?
+
+  - - ability for track to have many chainable sequences (perhaps with their own script editor for the chaining logic!?)
+
+  - - in addition to Euclidean tab, add some sorta generative/evolving/automated UI
+  - - add a "Binary" sequence which converts 1-127 into a binary sequence
+
+- Separate the `offset` from the euclidean algo.
+  offset should work for custom rhyhtms
+
 
 ### Files
   bug: selecting an audio file tearsdown and recreates all track-controls
   
   - drag and drop UI for local sounds
+  
   - recently +  favorites used menus for files
+  - - Rethink the filepath track-control. It could be a container of many filepaths, with an interface to change the file within a sequence. filesearch sidebar can be less coupled with the existance of a source node. 
+  - - the new filepath track-control could have it's own little sequencer matrix for each file:
+  
+  ```
+    kick.wav:  [x][ ][x][ ][x][ ][ ][ ]
+    snare.wav: [ ][x][ ][ ][x][ ][ ][ ]
+  ```
+  - - the pre-download step would look at all the urls in the track-control.
+  
+  
   - custom url for files
   - support a dropbox folder of samples
   - need a pipeline to ingest new audio files:
@@ -222,27 +246,7 @@ to keep recent state in tact when returning to a track
   - "assistant" in chat window suggesting next steps with actions
 
 
-### Other ideas
-- key bindings and tab-navigation. look at ember-focus-trap
-
-- create a  "mixer view" for mixing all tracks that have a `channelStrip` macro
-
-- Sequence
-  - - add a sequence BPM divider
-  - - add reverse/pingpong mode for tracks
-  - - ability for track to have many chainable sequences (perhaps with their own script editor for the chaining logic!?)
-
-  - - in addition to Euclidean tab, add some sorta generative/evolving/automated UI
-  - - add a "Binary" sequence which converts 1-127 into a binary sequence
-
-- Separate the `offset` from the euclidean algo. 
-  offset should work for custom rhyhtms
-
 ### bugs
-
-
-
-- - need more solid sequencer-awareness when adding/removing tracks (use generators to start on a particular beat)
 
 - Sequencer UI bug:
   stepIdx displays on the last step first when starts playing.
@@ -250,11 +254,8 @@ to keep recent state in tact when returning to a track
 
 -- when deleting a track, the script sidebar closes but property is not re-set so the button to re-open sidebar disappears
 
-  - use the LFO example, then add an additional gain node
-  - - result is the channelStrip gain not working anymore
-      which reads `this.id` internally, allowing you to duplicate tracks an preserve their unique inner-references
-  - when a node is initialized with attributes eg.
-  - verify if `.remove()` is needed in init scripts (or do they all get torn down)
+#### Initialize nodes with attrs
+when a node is initialized with attributes eg.
   ```
   .filter({
     frequency: 440,
@@ -282,3 +283,16 @@ Current Track selection could be a native dropdown menu
 
 ### USER Roles/premium plan
 given DB row limit, must enforce project and track limitations per user
+
+
+### Ergonomics, UX, accessibility
+
+- key bindings and tab-navigation. look at ember-focus-trap
+and https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/#kbd_roving_tabindex
+
+- implement "undo delete"
+- - use ember-concurrency to wait before calling save on the deleted record, show a "toast" with restore button
+
+
+- create a "mixer view" for mixing all tracks that have a `channelStrip` macro
+

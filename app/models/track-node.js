@@ -54,7 +54,6 @@ export default class TrackNodeModel extends Model {
   @computed('nodeUUID')
   get uniqueSelector() {
     return `${this.nodeUUID}`;
-    // return `${this.nodeType} ${this.track.classSelector}`;
   }
 
   get isSampler() {

@@ -356,11 +356,15 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       index
     );
 
-    // FIXME: check if updating trackNodes from control attrs supercedes
-    // modulations from LFOs and probably other modulators.
-    // LFO track controls need a "modulates" string attr.
-    // TrackControls should check if an LFO exists in the audio tree and could
-    // self-disable if so
+
+    // TODO:
+    // what if there was a public method "applyControls"
+    // that came default in the onstep script?
+    // then users could decide to use it or not
+    // the API could be `controls.apply()`
+    // or `controls.
+    // makes sense for step controls but confusing for
+    // sliders which are instantaneous.
 
     this.onstepScript.invokeFunctionRef(index, data, array);
     this.trackNodes.forEach((trackNode) => {
@@ -371,7 +375,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     });
   }
 
-  // TODO: create property "createdOrder" and use that here
+  // TODO: create property "trackCreatedOrder" and use that here
   // so weirdness doesnt happen when track order changes
   get classSelector() {
     const indicator = this.isMaster ? 'master' : this.order;

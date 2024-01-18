@@ -109,6 +109,8 @@ export default class TrackControlModel extends Model {
     return '';
   }
 
+  // Ordered array if unit names for this control
+  // the 0th element is the default unit that the node expects
   get paramUnitNames() {
     if (!unitOptionsForNode[this.nodeAttr]) {
       debugger;
@@ -404,7 +406,8 @@ export default class TrackControlModel extends Model {
   }
 
   get defaultInterfaceName() {
-    return unitOptionsForNode[this.nodeAttr][0];
+    if (this.nodeAttr === 'path') return 'filepath';
+    return 'slider';
   }
 
   static async createDefaultFilepathControl(track) {

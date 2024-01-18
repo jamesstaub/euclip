@@ -67,13 +67,13 @@
   </nav>
 
   <div
-    class='flex flex-wrap grow-1 overflow-hidden flex-nowrap-ns'
+    class='flex flex-wrap overflow-hidden grow-1 flex-nowrap-ns'
   >
     {{#if
       (and this.leftSidebarOpen this.activeTrack (not this.activeTrack.isDeleted))
     }}
       <SidebarWrapper
-        class={{concat 'h-100 bw2 br b--yellow max-w-100' (if (media 'isMobile') ' absolute top-0')}}
+        class='h-100 bw2 br b--yellow'
         @direction='left'
         @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id 'left'}}
       >
@@ -86,7 +86,7 @@
             </p>
             <p class='f6 mb3 mt0'>You pass the sound's URL to a
               <code>sampler</code>
-              node in the setup script like so:</p>
+              node in the Setup script like so:</p>
             <p class='f6 mb3 mt0'><code>__().sampler({path: this.filepath})</code></p>
           </InfoBox>
         </div>
@@ -135,7 +135,7 @@
       )
     }}
       <SidebarWrapper
-        class={{concat 'h-100 bw2 bl b--yellow ' (if (media 'isMobile') ' absolute top-0')}}
+        class={{concat 'h-100 bw2 bl b--yellow min-w-24rem'}}
         @direction='right'
         @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id 'right'}}
       >

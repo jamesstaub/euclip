@@ -101,23 +101,25 @@ export default class NexusUi extends Modifier {
 
   colorize() {
     this.nexusElement.colorize('accent', '#52ebff');
-    switch (this.nexusElement.type) {
-      case 'Slider':
-        this.nexusElement.colorize('fill', '#ffffff');
-        // eslint-disable-next-line no-case-declarations
-        const circle = this.nexusElement.element.querySelector('circle');
-        circle.setAttribute('stroke', '#333');
-        circle.setAttribute('stroke-width', '2px');
-        this.nexusElement.element.style.overflow = 'visible';
-        break;
-      case 'Number':
-        this.nexusElement.colorize('fill', 'transparent');
-        break;
-      case 'Select':
-        this.nexusElement.colorize('fill', '#ffce55');
-        break;
-      default:
-        break;
+
+    // NOTE:
+    // important to use `instanceof` not nexusElement.type
+    // because under the hood type is from constructor.name
+    // which gets mangled when minified
+    if (this.nexusElement instanceof Nexus.Slider) {
+      this.nexusElement.colorize('fill', '#ffffff');
+      // eslint-disable-next-line no-case-declarations
+      const circle = this.nexusElement.element.querySelector('circle');
+      circle.setAttribute('stroke', '#333');
+      circle.setAttribute('stroke-width', '2px');
+      this.nexusElement.element.style.overflow = 'visible';
+    }
+    if (this.nexusElement instanceof Nexus.Number) {
+      this.nexusElement.colorize('fill', 'transparent');
+    }
+
+    if (this.nexusElement instanceof Nexus.Select) {
+      this.nexusElement.colorize('fill', '#ffce55');
     }
   }
 }
