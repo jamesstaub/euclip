@@ -136,7 +136,7 @@ end
 
 
 
-
+# TODO separate this out into a separate script to run/update file records on production
 SearchableFile.destroy_all
 SearchableDirectory.destroy_all
 SearchableDirectory.create(name: '/')
