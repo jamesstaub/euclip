@@ -5,6 +5,7 @@ import { computed } from '@ember/object';
 import { inject as service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 import sampsToSecs from '../utils/samps-to-secs';
+import { isPresent } from '@ember/utils';
 
 export const defaultKit = [
   '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CR8KBASS.mp3',
@@ -163,7 +164,12 @@ export default class TrackNodeModel extends Model {
     this.trackControls.forEach((trackControl) => {
       const userDefault = this.userSettingsForControl[trackControl.nodeAttr];
 
-      if (trackControl._defaultValue !== userDefault) {
+      if (
+        isPresent(trackControl._defaultValue) &&
+        trackControl._defaultValue !== userDefault
+      ) {
+        trackControl.set('currentUnitTransformIdx', 0); // userDefault attrs entered in the script will always be in the default unit
+        trackControl.setValue(userDefault); // make sure to use setValue setter for specific side effects
         trackControl.set('defaultValue', userDefault);
         // setDefault also saves and updates sliders if user hard coded a value into the script
         trackControl.setMinMaxByDefault();
@@ -210,7 +216,6 @@ export default class TrackNodeModel extends Model {
    *
    */
   findOrCreateTrackControls() {
-    console.log('findOrCreateTrackControls');
     // get default attributes for node
     const controlAttrs = Object.keys(AudioNodeConfig[this.nodeType]?.attrs);
     if (!controlAttrs.map) {
@@ -240,7 +245,7 @@ export default class TrackNodeModel extends Model {
       const { min, max, stepSize, defaultValue, interfaceName } =
         defaultForAttr;
 
-      const params = {
+      let params = {
         nodeAttr: controlAttr,
         controlArrayValue: [], // all controls for api must initialize this whenever a multislider is created
         track: this.track,

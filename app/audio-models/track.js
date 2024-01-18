@@ -95,7 +95,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         if (userSettings) {
           // callback is a custom addition to cracked library that
           // fires when audio file loads
-          userSettings.callback = async ({ buffer, error }) => {
+          userSettings.callback = ({ buffer, error }) => {
             const trackNode = this.trackNodes.findBy(
               'nodeUUID',
               node.getUUID()

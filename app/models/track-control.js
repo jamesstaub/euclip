@@ -17,6 +17,33 @@ import {
 } from '../utils/audio-param-config';
 import { applyAttrs } from '../utils/cracked';
 
+function findSmallestDivisor(value, stepSize, range) {
+  let minDifference = Math.abs(value - Math.round(value / stepSize) * stepSize);
+  let smallestDivisor = stepSize;
+
+  for (let divisor = 1; divisor <= range; divisor++) {
+    if (range % divisor === 0) {
+      const nearestMultiple = Math.round(value / divisor) * divisor;
+      const difference = Math.abs(value - nearestMultiple);
+
+      if (difference < minDifference) {
+        minDifference = difference;
+        smallestDivisor = divisor;
+      }
+    }
+  }
+
+  return smallestDivisor;
+}
+
+function findSmallestDecimalPlace(value) {
+  const stringValue = value.toString();
+  const decimalIndex = stringValue.indexOf('.');
+  return decimalIndex === -1
+    ? 1
+    : Math.pow(10, -(stringValue.length - decimalIndex - 1));
+}
+
 // TODO refactor into subclasses for diferent types
 // move configurations into the model
 // add param-specific validations like time bounding start/end params on sample
@@ -238,12 +265,34 @@ export default class TrackControlModel extends Model {
       this.set('min', Math.min(min, value));
       this.set('max', Math.max(max, value));
     }
-    // if (!isMultipleOfStepSize) {
-    //   // determine a step size between min and max that is a multiple of the value
-    //   const newStepSize =
-    //     Math.abs(max - min) / Math.floor(Math.abs(max - min) / value);
-    //   this.set('stepSize', newStepSize);
-    // }
+
+    // if the value is not evenly divisible by the step size, update the step size
+    // so the new value can be set exactly
+    // make sure it works for floats and ints
+
+    const isMultipleOfStepSize = Number.isInteger(value / this.stepSize);
+
+    if (!isMultipleOfStepSize && this.stepSize !== 0) {
+      const range = Math.abs(max - min);
+
+      // Find the smallest divisor that minimizes the difference
+      const divisorForIntegers = findSmallestDivisor(
+        value,
+        this.stepSize,
+        range
+      );
+
+      // Find the smallest decimal place for floats
+      const divisorForDecimals = findSmallestDecimalPlace(value);
+
+      // Ensure the step size is a positive value and choose the smaller divisor
+      const newStepSize = Math.max(
+        0.0001,
+        Math.min(divisorForIntegers, divisorForDecimals)
+      );
+
+      this.set('stepSize', newStepSize);
+    }
   }
 
   // force the min/max/stepSize to make sure the defaultValue
@@ -255,10 +304,6 @@ export default class TrackControlModel extends Model {
     if (this.defaultValue < this.min) {
       this.set('min', this.defaultValue);
     }
-
-    if (this.stepSize > this.max - this.min) {
-      this.set('stepSize', this.stepSize / 10);
-    }
   }
 
   /**
@@ -269,7 +314,7 @@ export default class TrackControlModel extends Model {
    */
   setDefault() {
     this.setMinMaxByDefault();
-    this.set('controlValue', this.defaultValue);
+    this.setValue(this.defaultValue);
     this.set(
       'controlArrayValue',
       Array.from(
