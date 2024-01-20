@@ -12,6 +12,8 @@ go live list:
 ### Scripts
 BUG; if possible clear the "cmd-z"  undo state when changing tracks, since code mirror doesn't get re-initialized
 
+Bug: sometimes updating a script (master specificall) re-initializes all the channelStrip node params (not the sliders)
+
 
 
 #### Sampler / filepath
@@ -32,6 +34,22 @@ but for other nodes you can do  `__.adsr()` to select only the adsr on that trac
 - consider "applyTrackControls" as a public function so users can customize order in onstep scripts
 
 - add a CMD+Click on valid cracked methods that opens the docs in a new tab
+
+- consider refactoring the this.select() method to be a convenience method for 
+
+```
+// shorthand
+exec('sine', {frequency: 440})
+ 
+// instead of
+
+cracked.exec(
+  "frequency",
+  200,
+  cracked.filter("sine")
+);
+
+```
 
 
 **Implement public api for controls + sequence in the scripts**
@@ -73,6 +91,9 @@ but for other nodes you can do  `__.adsr()` to select only the adsr on that trac
   - - create an array structure for segmenting an audio sample
   - - implement an onset detection + sample chopper
   the add a namespace for array of timestamps for slice points, 
+
+  Source tab should have a toggle to sync to loop (proxy to speed track control with LOOPSTEPS function)
+
   ```
   __this.select('sampler')__.attr({start: this.slices[0], end: this.slices[1]})
   or 

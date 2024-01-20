@@ -43,7 +43,8 @@ const AMP = 'Amplitude';
 const CURVE = 'Curve';
 const BOOL = 'Boolean';
 const PRCNT = '% Sample';
-const LOOPSTEPS = 'Tempo Relative';
+const LOOPSYNC = 'Loop Sync';
+const LOOPSTEPS = 'Loop Steps';
 const RATIO = 'Ratio';
 const PAN = 'Pan';
 const PATH = 'Path';
@@ -82,7 +83,7 @@ const seconds = {
     func: (b, { intervalMs }) => (b * intervalMs) / 1000,
     min: 0,
     max: 4, // TODO dynamically set from sequence length
-    stepSize: 0.25,
+    stepSize: 1,
     defaultValue: 0,
   },
 };
@@ -182,18 +183,27 @@ const speed = {
     stepSize: 10,
     defaultValue: 0,
   },
-  [LOOPSTEPS]: {
+  [LOOPSYNC]: {
     // the loopsteps function fro rate should look at the intervalMs and the sampleLenSec which is the milliseconds per beat of the loop.
     // when the input is 1, the loop should last 1 beat, when the input is 2 the loop should last 2 beats (ie. it should be slower, lower rate)
-    func: (steps, intervalMs, sampleLenSec) => {
-      const newDuration = (intervalMs * steps) / 1000; // Convert interval to seconds
-      const playbackRate = sampleLenSec / newDuration;
+    func: (input, { intervalMs, sampleLenSec, seqSteps }) => {
+      if (!sampleLenSec) {
+        console.warn(
+          'Warning: attempted to set loop-relative playback rate but no sample length provided'
+        );
+        return 1;
+      }
+      const sequenceDuration = (intervalMs / 1000) * seqSteps;
+
+      // Inverse proportional calculation
+      const playbackRate = (sampleLenSec / sequenceDuration) * input;
+
       return playbackRate;
     },
 
-    min: 0,
-    max: 16, // TODO dynamically set from sequence length
-    stepSize: 1,
+    min: 0.5,
+    max: 2, // TODO dynamically set from sequence length
+    stepSize: 0.5,
     defaultValue: 1,
   },
 };
@@ -258,7 +268,7 @@ const filterFrequency = dm(frequency, {
     min: 0,
     max: 127,
     stepSize: 1,
-    defaultValue: 10,
+    defaultValue: 36,
   },
   [CENTS]: {
     min: 0,
@@ -311,43 +321,22 @@ const loopStepToS = {
   func: (b, { intervalMs }) => (b * intervalMs) / 1000,
 };
 
-// The first element of each array is the default parameter
-// so there should be no transform function to that one.
+const channels = {
+  label: 'Channels',
+  func: (channels) => channels,
+};
 
-// NOTE: track controls will save `currentUnitTransformIdx` based on the index
-// of these arrays so don't change the order of the elements!
-// export const unitTransformsForNodeAttr = {
-//   attack: [sToS, msToS, loopstepsToS],
-//   release: [sToS, msToS, loopstepsToS],
-//   gain: [aToa, dbToa],
-//   speed: [rateToRate, halfstepsToRate, centToRate, loopstepsToRate],
-//   frequency: [hzToHz, halfstepsToHz, centToHz],
-//   detune: [{ label: CENTS }],
-//   q: [{ label: Q }],
-//   decay: [sToS, msToS, loopstepsToS],
-//   delay: [sToS, msToS, loopstepsToS],
-//   damping: [aToa],
-//   feedback: [aToa],
-//   cutoff: [hzToHz, halfstepsToHz, centToHz],
-//   drive: [aToa],
-//   color: [hzToHz, halfstepsToHz, centToHz],
-//   postCut: [hzToHz, halfstepsToHz, centToHz],
-//   distortion: [{ label: CURVE }],
-//   knee: [{ label: DB }],
-//   start: [sToS, msToS, pctToS, loopStepToS],
-//   threshold: [{ label: DB }],
-//   ratio: [{ label: RATIO }],
-//   end: [sToS, msToS, pctToS, loopStepToS],
-//   reverse: [{ label: BOOL }],
-//   loop: [{ label: BOOL }],
-// };
+const length = {
+  label: 'Length',
+  func: (length) => length,
+};
 
 // This just ensures the order of unit dropdown menu where the first item is the default
 export const unitOptionsForNode = {
   attack: [S, MS, LOOPSTEPS],
   release: [S, MS, LOOPSTEPS],
   gain: [AMP, DB],
-  speed: [RATE, HALFSTEPS, CENTS, LOOPSTEPS],
+  speed: [RATE, HALFSTEPS, CENTS, LOOPSYNC],
   frequency: [HZ, HALFSTEPS, CENTS],
   detune: [CENTS],
   q: [Q],
@@ -441,7 +430,8 @@ export const defaultNodeParamsByUnit = {
     pan: amplitude,
   },
   peaking: {
-    frequency,
+    frequency: filterFrequency,
+    q: q,
   },
   reverb: {
     decay: seconds,
@@ -472,5 +462,21 @@ export const defaultNodeParamsByUnit = {
   },
   waveshaper: {
     drive: amplitude,
+  },
+  noise: {
+    channels: channels,
+    length: length,
+  },
+  pink: {
+    channels: channels,
+    length: length,
+  },
+  white: {
+    channels: channels,
+    length: length,
+  },
+  brown: {
+    channels: channels,
+    length: length,
   },
 };

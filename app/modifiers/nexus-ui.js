@@ -35,6 +35,9 @@ export default class NexusUi extends Modifier {
     // by using number box and slider with same value
     next(this, () => {
       this.setValue(options);
+      if (options.node) {
+        this.nexusElement.connect(options.node, 2);
+      }
       this._options = options;
     });
   }
@@ -120,6 +123,10 @@ export default class NexusUi extends Modifier {
 
     if (this.nexusElement instanceof Nexus.Select) {
       this.nexusElement.colorize('fill', '#ffce55');
+    }
+
+    if (this.nexusElement instanceof Nexus.Meter) {
+      this.nexusElement.element.style.pointerEvents = 'none';
     }
   }
 }

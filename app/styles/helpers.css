@@ -81,8 +81,6 @@
 }
 
 /* Sizing */
-
-
 .w6 {
   width: var(--width-6);
 }
@@ -229,4 +227,8 @@
 .no-bottom {
   border-bottom: none;
   transform: translateY(0.125rem);
+}
+
+.pointer-none {
+  pointer-events: none;
 }

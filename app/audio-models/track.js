@@ -42,6 +42,11 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     this.nodeToVisualize = (node && node[0]) || node; // get the gain node of the channelSTrip
   }
 
+  // REFACTOR: samples should be downloaded to a trackNode, or potentially their own new model.
+  //  a sampler might want to download several filepaths
+  // then the user can sequence multiple samples on a given track by dynamically setting track.filepathUrl
+  // from the pre-downloaded AudioFileModel. 
+
   async downloadSample() {
     if (this.filepathUrl) {
       return await fetch(this.filepathUrl)
@@ -271,7 +276,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       if (
         TrackNodeModel.validateControls(matchingControls, trackNode.nodeType)
       ) {
-
         matchingControls.forEach((trackControl) => {
           // set the relation on the control to keep ember-data happy
           trackControl.set('trackNode', trackNode);
@@ -356,7 +360,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       index
     );
 
-
     // TODO:
     // what if there was a public method "applyControls"
     // that came default in the onstep script?
@@ -365,7 +368,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // or `controls.
     // makes sense for step controls but confusing for
     // sliders which are instantaneous.
-
     this.onstepScript.invokeFunctionRef(index, data, array);
     this.trackNodes.forEach((trackNode) => {
       const attrs = attrsForNodes[trackNode.uniqueSelector];
@@ -388,16 +390,16 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // this is not an issue for non sampler nodes.
     const sourceNodes = this.sourceNodeRecords;
     const adsrNodes = this.adsrNodes;
-    // const controls = TrackControlModel.serializeForScript(
-    //   this.trackNodes,
-    //   this.stepIndex
-    // );
+    const controls = TrackControlModel.serializeForScript(
+      this.trackNodes,
+      this.stepIndex
+    );
 
     return {
       filepath: this.localFilePath || this.filepathUrl,
       id: this.id,
       trackSelector: this.classSelector,
-      // controls: controls, // the value of the controls at this current step
+      controls: controls, // the value of the controls at this current step
       sliders: this.trackControlData,
       select() {
         let selector = typeof arguments[0] === 'string' ? arguments[0] : null;
@@ -413,7 +415,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
             __(sourceNode.uniqueSelector)
               .stop()
               .attr({
-                // ...controls.findBy('nodeUUID', sourceNode.nodeUUID), //NOTE: explicitly using the key nodeUUID instead of `uuid` because the latter will mess up the native audio node when attrs applied
+                ...controls.findBy('nodeUUID', sourceNode.nodeUUID), //NOTE: explicitly using the key nodeUUID instead of `uuid` because the latter will mess up the native audio node when attrs applied
                 ...attrs,
               })
               .start();

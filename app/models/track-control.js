@@ -162,24 +162,19 @@ export default class TrackControlModel extends Model {
       );
       return value;
     }
+
     const paramsForUnit = this.unitParamsForAttr[this.currentParamUnitLabel];
 
     if (!paramsForUnit?.func) {
       return value;
     }
-    // if trackNode isSampler and has downloaded file
-    // buffer.getChannelData(0); and convert to seconds
 
-    const sampleLenSec =
-      this.trackNode.isSampler &&
-      this.trackNode.sampleIsLoaded &&
-      this.trackNode.nativeNode
-        ? this.trackNode.nativeNode.buffer.duration
-        : 1;
+    const sampleLenSec = this.trackNode.bufferDuration || 0;
 
     const ret = paramsForUnit.func(value, {
       intervalMs: this.track.project.loopInterval,
       sampleLenSec: sampleLenSec,
+      seqSteps: this.track.currentSequence?.steps || 1,
     });
 
     if (isNaN(ret)) {
@@ -233,6 +228,11 @@ export default class TrackControlModel extends Model {
   // customization. till then it will seem buggy
   // Move this to
   setSamplerControlsToBuffer(nativeBuffer) {
+
+    // unit transforms will handle their own min/max/defaults
+    // so only set them below if it's the default unit in seconds
+    if (this.currentUnitTransformIdx > 0) return;
+
     // set the track control for the `end` controlAttr to the audio buffer's length
     // unless the user has already set a value
     // convert buffer len to seconds
@@ -257,6 +257,10 @@ export default class TrackControlModel extends Model {
   // if value is not a number, or is outside of min/max, or is not a multiple of stepSize,
   // then update those values on the trackControl accordingly (and save)
   beforeUpdateValue(value) {
+    if (cracked.isUndef(value)) {
+      console.warn('WARNING: track control value is undefined', this);
+      return;
+    }
     const min = this.min;
     const max = this.max;
     const isNumber = !isNaN(value);
@@ -391,16 +395,20 @@ export default class TrackControlModel extends Model {
    * to munge the values of track-controls before they get set on the audio nodes
    */
 
+  // FIXME:
+  // decouple script scopes for init and onstep scripts because
+  // the use of attrValuesForType will potentially try to use the sampleLen unit param to get 
+  // the control value before the trackNode.crackedNode exists, causing it to fail.
   static serializeForScript(trackNodes, stepIndex) {
     // TODO: add in here a property for the track `scriptScope` to determine
     // the sampler source node since that is a special case
     return trackNodes.map((trackNode) => {
       const attrs = {};
       attrs.nodeUUID = trackNode.nodeUUID;
+
       trackNode.trackControls.map((trackControl) => {
-        (attrs.node = trackNode.nodeType),
-          (attrs[trackControl.nodeAttr] =
-            trackControl.attrValueForType(stepIndex));
+        attrs.node = trackNode.nodeType;
+        attrs[trackControl.nodeAttr] = trackControl.attrValueForType(stepIndex);
       });
       return attrs;
     });

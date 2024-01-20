@@ -1,34 +1,55 @@
 <div
-  class='channel-strip-w flex flex-column justify-between shrink-0 items-center ba pv3 tc ph2'
+  class='flex spaced-text ttu f7 fw3 channel-strip-w flex-column shrink-0 tc bg-dark-yellow bl'
   ...attributes
 >
-  <h4 class='f7 mv0'>channel strip</h4>
-  <span class='fw7 w3'>gain</span>
-  <div
-    {{nexus-ui
-      'Slider'
-      min=@channelStripGainControl.min
-      max=@channelStripGainControl.max
-      value=@channelStripGainControl.controlValue
-      onChange=(fn @updateValue @channelStripGainControl)
-      step=@channelStripGainControl.step
-      size=(array 20 130)
-    }}
-  >
+  <div class='w-100 mb1 pa2 bg-dark-gray white'>
+    <span class='fw7 w3'>channel strip</span>
   </div>
-  <span class='fw7 w3'>pan</span>
-  <div
-    {{nexus-ui
-      'Slider'
-      min=@channelStripPannerControl.min
-      max=@channelStripPannerControl.max
-      value=@channelStripPannerControl.controlValue
-      onChange=(fn @updateValue @channelStripPannerControl)
-      step=@channelStripPannerControl.step
-      size=(array 80 20)
-    }}
-  >
+  <div class='flex items-center justify-between grow-1 flex-column pa2'>
+    <div class='relative flex items-center flex-column'>
+      <span class='fw7 w3 pb2'>gain</span>
+      <div class='flex'>
+        <div
+          {{nexus-ui
+            'Slider'
+            min=@channelStripGainControl.min
+            max=@channelStripGainControl.max
+            value=@channelStripGainControl.controlValue
+            onChange=(fn @updateValue @channelStripGainControl)
+            step=@channelStripGainControl.step
+            size=(array 20 160)
+          }}
+        >
+        </div>
+
+        {{#if @channelStripPannerControl.trackNode.nativeNode}}
+          <div
+            {{nexus-ui
+              'Meter'
+              class='pointer-none'
+              size=(array 10 160)
+              node=@channelStripPannerControl.trackNode.nativeNode
+            }}
+          >
+          </div>
+        {{/if}}
+      </div>
+    </div>
+    <div class='flex items-center flex-column'>
+      <span class='fw7 w3 pb2'>pan</span>
+      <div
+        {{nexus-ui
+          'Slider'
+          min=@channelStripPannerControl.min
+          max=@channelStripPannerControl.max
+          value=@channelStripPannerControl.controlValue
+          onChange=(fn @updateValue @channelStripPannerControl)
+          step=@channelStripPannerControl.step
+          size=(array 80 20)
+        }}
+      >
+      </div>
+    </div>
 
   </div>
-
 </div>

@@ -70,7 +70,13 @@ export default class TrackNodeModel extends Model {
   }
 
   get nativeNode() {
-    const [nativeNode] = this.crackedNode.getNativeNode();
+    if (!this.crackedNode) return null;
+    let nativeNode = this.crackedNode.getNativeNode();
+
+    // will be an array if the cracked node is a macro;
+    if (nativeNode instanceof Array) {
+      [nativeNode] = nativeNode;
+    }
     return nativeNode;
   }
 
@@ -93,7 +99,14 @@ export default class TrackNodeModel extends Model {
     );
   }
 
+  // TODO: simulate throwing an error from the method
+  // and try to load a project from the /my-projects route
+  // handle error better so it doesnt get stuck
   static validateControls(trackControls, nodeType) {
+    const attrs = AudioNodeConfig[nodeType]?.attrs;
+    // no attrs provided
+    if (!attrs) return true;
+
     const controlAttrs = Object.keys(AudioNodeConfig[nodeType]?.attrs);
     return controlAttrs.every((controlAttr) =>
       trackControls.find(
@@ -196,6 +209,11 @@ export default class TrackNodeModel extends Model {
   }
 
   async setSamplerControlsToBuffer(buffer) {
+    // stash the duration here when the buffer is created because the AudioBuffer object
+    // gets destroyed after each play and may not always be available when we want it  (eg. for track-control functions)
+    // see note about creating an AudioFileModel to separate the TrackNodeModel and downloaded
+    this.bufferDuration = buffer.duration;
+
     // set the track control for the `end` controlAttr to the audio buffer's length
     // unless the user has already set a value
     // convert buffer len to seconds

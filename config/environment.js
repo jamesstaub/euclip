@@ -54,6 +54,10 @@ module.exports = function (environment) {
         'sawtooth',
         'triangle',
         'waveshaper',
+        'noise',
+        'pink',
+        'white',
+        'brown',
       ],
     },
   };

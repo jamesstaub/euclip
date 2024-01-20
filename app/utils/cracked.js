@@ -73,8 +73,8 @@ export function resetLoop() {
 }
 
 export function stopDelays() {
-  __('delay').ramp(0, 0.1, 'feedback');
-  __('delay').ramp(0, 0.5, 'gain');
+  __('delay,comb').ramp(0, 0.1, 'feedback');
+  __('delay,comb').ramp(0, 0.5, 'gain');
 }
 
 /**

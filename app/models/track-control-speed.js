@@ -1,7 +1,6 @@
 import TrackControlModel from './track-control';
 
 export default class TrackControlSpeedModel extends TrackControlModel {
-
   constructor() {
     super(...arguments);
     console.log('TrackControlSpeedModel');

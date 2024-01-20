@@ -4,17 +4,6 @@
       class='relative flex justify-between flex-column bg-yellow footer-height'
     >
       <div class='flex overflow-hidden w-100 h-100'>
-        {{#if
-          (and this.channelStripGainControl this.channelStripPannerControl)
-        }}
-
-          <ChannelStrip
-            @channelStripGainControl={{this.channelStripGainControl}}
-            @channelStripPannerControl={{this.channelStripPannerControl}}
-            @updateValue={{this.updateControl}}
-          />
-
-        {{/if}}
         {{! TODO:
           when filepath sidebar opens, set this menu
           to "source"
@@ -82,7 +71,7 @@
           </SourceContainer>
         {{/if}}
         {{#if this.showControls}}
-          <div class='flex justify-between overflow-hidden grow-1 shrink-1 bt z-0'>
+          <div class='z-0 flex justify-between overflow-hidden grow-1 shrink-1 bt'>
             <div
               class='flex overflow-hidden overflow-x-scroll flex-column flex-grow-1 shrink-1 bl'
             >
@@ -123,6 +112,17 @@
               </div>
             </div>
           </div>
+        {{/if}}
+        {{#if
+          (and this.channelStripGainControl this.channelStripPannerControl)
+        }}
+
+          <ChannelStrip
+            @channelStripGainControl={{this.channelStripGainControl}}
+            @channelStripPannerControl={{this.channelStripPannerControl}}
+            @updateValue={{this.updateControl}}
+          />
+
         {{/if}}
       </div>
     </div>
