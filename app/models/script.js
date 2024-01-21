@@ -70,8 +70,9 @@ export default class ScriptModel extends Model {
   @keepLatestTask
   *runCode() {
     this.alert = null;
+    yield waitForProperty(this, 'updateScriptTask.isIdle');
     this.code = this.editorContent;
-    yield this.updateScriptTask.perform('code', this.editorContent);
+    yield this.save();
     if (this.name === 'init-script') {
       if (this.track.localFilePath) {
         // no need to wait if we alrea have an existing one,
@@ -90,7 +91,7 @@ export default class ScriptModel extends Model {
         this.track.setupAudioFromScripts();
       }
     }
-    yield timeout(1000);
+    yield timeout(500);
   }
 
   @restartableTask

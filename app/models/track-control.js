@@ -177,10 +177,11 @@ export default class TrackControlModel extends Model {
       seqSteps: this.track.currentSequence?.steps || 1,
     });
 
-    if (isNaN(ret)) {
-      console.error('ERROR: passed a NAN attribute from track control');
+    if (isFinite(ret)) {
+      return ret;
+    } else {
+      console.error(`ERROR: passed a ${ret} attribute from track control`);
     }
-    return ret;
   }
 
   /**
@@ -188,10 +189,14 @@ export default class TrackControlModel extends Model {
   attrValueForType(index) {
     if (this.isMultislider) {
       const stepValue = this.controlArrayComputed[index];
-      if (stepValue) return this.transformCurrentUnit(stepValue);
+      if (!isNaN(stepValue)) return this.transformCurrentUnit(stepValue);
     } else {
-      if (this.controlValue)
+      if (this.controlStringValue) {
+        return this.controlStringValue;
+      }
+      if (!isNaN(this.controlValue)) {
         return this.transformCurrentUnit(this.controlValue);
+      }
     }
   }
 

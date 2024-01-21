@@ -189,6 +189,11 @@ export const AudioNodeConfig = {
       ...oscillatorAttrs,
     },
   },
+  saw: {
+    attrs: {
+      ...oscillatorAttrs,
+    },
+  },
   sine: {
     attrs: {
       ...oscillatorAttrs,
@@ -339,6 +344,7 @@ export const defaultParams = {
   },
   frequency: {
     sine: oscillatorDefaults,
+    saw: oscillatorDefaults,
     sawtooth: oscillatorDefaults,
     square: oscillatorDefaults,
     triangle: oscillatorDefaults,

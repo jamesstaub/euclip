@@ -21,10 +21,9 @@
   {{/let}}
 </div>
 
-{{#if (not (eq @value @transformedValue))}}
-  <span class="f7 dark-gray">{{@transformedValue}}</span>
-{{/if}}
 
+
+<p class="f7 dark-gray">{{display-float @transformedValue}}</p>
 {{!-- multislider controls:
   apply on: every step, only steps with beat
  --}}

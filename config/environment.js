@@ -51,6 +51,7 @@ module.exports = function (environment) {
         'sampler',
         'sine',
         'square',
+        'saw',
         'sawtooth',
         'triangle',
         'waveshaper',

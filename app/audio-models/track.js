@@ -75,7 +75,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // cracked.onCreateNode was added to the Cracked library to give access to the AudioNode object upon creation
     // this callback gets called when a user creates cracked audio nodes in the script editor ui
     // macro components should not get individual ui controls
+    console.log('setupAudioFromScripts');
     __.onCreateNode = async (node, type, creationParams, userSettings) => {
+      console.log('onCreateNode', node);
       const nodeSettings = {};
 
       const uuid = node.getUUID();
@@ -133,6 +135,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     }
 
     // run script to create audio nodes
+    console.log('invoke init')
     initScript.invokeFunctionRef();
     // nullify this callback after creating track nodes to prevent it from getting called outside of this track
     __.onCreateNode = null;
@@ -336,6 +339,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   }
 
   unbindAndRemoveCrackedNodes() {
+    console.log('unbindAndRemoveCrackedNodes', this.classSelector)
     unbindFromSequencer(this.classSelector);
     __(`${this.classSelector}`).remove();
   }

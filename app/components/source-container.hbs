@@ -19,6 +19,9 @@
     {{#if @showReference}}
       {{yield}}
     {{else}}
+
+      {{log 'sourcenodes' @track.sourceNodeRecords}}
+
       {{#if @track.sourceNodeRecords.length}}
         <ul class='flex items-center mv0 ml2 pa0 list f7'>
           {{#each @track.samplerFilepathControl.pathSegments as |directory|}}
@@ -39,8 +42,14 @@
         <p>There are no source nodes defined on this track</p>
       {{/if}}
       {{#each @track.samplerNativeBuffers as |buffer|}}
+        
+        {{log 'buffer' buffer}}
+        
         {{#if buffer}}
-          <canvas class='ba bw1 ml3 w6 h-50' {{audio-waveform buffer}}></canvas>
+          <canvas
+            class='ba bw1 ml3 w6 h-50 pointer-none'
+            {{audio-waveform buffer}}
+          ></canvas>
           <span class='ml3'>{{display-float buffer.duration}} sec</span>
         {{/if}}
       {{/each}}

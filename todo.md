@@ -93,6 +93,8 @@ cracked.exec(
   the add a namespace for array of timestamps for slice points, 
 
   Source tab should have a toggle to sync to loop (proxy to speed track control with LOOPSTEPS function)
+  A macro controller with speed, start, end and loop should be able to switch from absolute to tempo relative
+  for all controls with one setting, by default it detects if a sample has multiple transients
 
   ```
   __this.select('sampler')__.attr({start: this.slices[0], end: this.slices[1]})

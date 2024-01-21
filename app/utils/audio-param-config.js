@@ -93,6 +93,8 @@ const delaySeconds = dm(seconds, {
     defaultValue: 0.25,
   },
   [MS]: {
+    min: 10,
+    max: 1000,
     defaultValue: 250,
   },
   [LOOPSTEPS]: {
@@ -278,6 +280,13 @@ const filterFrequency = dm(frequency, {
   },
 });
 
+const delayFeedback = dm(amplitude, {
+  [AMP]: {
+    defaultValue: 0.5,
+  },
+});
+
+
 const q = {
   [Q]: {
     func: (q) => q,
@@ -397,7 +406,7 @@ export const defaultNodeParamsByUnit = {
   delay: {
     delay: delaySeconds,
     damping: damping,
-    feedback: amplitude,
+    feedback: delayFeedback,
     cutoff: filterFrequency,
   },
   gain: {
@@ -455,6 +464,9 @@ export const defaultNodeParamsByUnit = {
     frequency: oscillatorFrequency,
   },
   sawtooth: {
+    frequency: oscillatorFrequency,
+  },
+  saw: {
     frequency: oscillatorFrequency,
   },
   triangle: {
