@@ -82,10 +82,17 @@ export default class TrackFooterContainerComponent extends Component {
   }
 
   @action
-  updateControl(trackControl, value) {
+  setControlValue(trackControl, value) {
     if (trackControl.isToggle) {
       value = value ? 1 : 0;
     }
     trackControl.setValue(value);
+  }
+
+  @action
+  async updateControlAttr(trackControl, key, event) {
+    const value = event.target.value === 'true';
+    trackControl[key] = value;
+    await trackControl.save();
   }
 }

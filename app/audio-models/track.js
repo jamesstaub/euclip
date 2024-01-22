@@ -1,4 +1,4 @@
-import Model from '@ember-data/model';
+import Model, { attr } from '@ember-data/model';
 import Evented from '@ember/object/evented';
 
 import ENV from '../config/environment';
@@ -18,6 +18,7 @@ import TrackNodeModel, { FILE_LOAD_STATES } from '../models/track-node';
 
 import { isPresent } from '@ember/utils';
 import TrackControlModel from '../models/track-control';
+import SoundFileModel from '../models/sound-file';
 
 export default class TrackAudioModel extends Model.extend(Evented) {
   @service store;
@@ -42,22 +43,14 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     this.nodeToVisualize = (node && node[0]) || node; // get the gain node of the channelSTrip
   }
 
-  // REFACTOR: samples should be downloaded to a trackNode, or potentially their own new model.
-  //  a sampler might want to download several filepaths
-  // then the user can sequence multiple samples on a given track by dynamically setting track.filepathUrl
-  // from the pre-downloaded AudioFileModel. 
+  async findOrDownloadSoundFile() {
+    // if there is a sound-file record matching this.filePathRelative, use it
+    // then make sure its assoicated to this track
+    // else create a new sound-file record
+    // track nodes will look for a matching sound-file record to associate to
 
-  async downloadSample() {
-    if (this.filepathUrl) {
-      return await fetch(this.filepathUrl)
-        .then((res) => res.blob()) // Gets the response and returns it as a blob
-        .then((blob) => {
-          this.localFilePath = URL.createObjectURL(blob);
-        })
-        .catch((err) => {
-          throw err;
-        });
-    }
+    if (!this.filePathRelative) return;
+    await SoundFileModel.findOrDownload(this.filePathRelative, this.store);
   }
 
   setupAudioFromScripts(unbindBeforeCreate = true) {
@@ -75,11 +68,13 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // cracked.onCreateNode was added to the Cracked library to give access to the AudioNode object upon creation
     // this callback gets called when a user creates cracked audio nodes in the script editor ui
     // macro components should not get individual ui controls
-    console.log('setupAudioFromScripts');
     __.onCreateNode = async (node, type, creationParams, userSettings) => {
-      console.log('onCreateNode', node);
-      const nodeSettings = {};
+      // TODO:
+      // if the user creates a sampler with a filepath different than this.filepath
+      // then try to dynamically set the filepath track-control to match
+      // this will ensure it gets downloaded at the right time
 
+      const nodeSettings = {};
       const uuid = node.getUUID();
       nodeSettings[uuid] = type;
       nodeSettings.nodeType = type; // used to find orphaned nodes
@@ -116,6 +111,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
               }
               if (error) {
                 console.error('File Load Error:', error);
+                this.initScript.alert = `File Load Error: ${error}`;
                 trackNode.fileLoadState = FILE_LOAD_STATES.ERROR;
               }
             }
@@ -135,7 +131,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     }
 
     // run script to create audio nodes
-    console.log('invoke init')
     initScript.invokeFunctionRef();
     // nullify this callback after creating track nodes to prevent it from getting called outside of this track
     __.onCreateNode = null;
@@ -339,7 +334,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   }
 
   unbindAndRemoveCrackedNodes() {
-    console.log('unbindAndRemoveCrackedNodes', this.classSelector)
     unbindFromSequencer(this.classSelector);
     __(`${this.classSelector}`).remove();
   }
@@ -361,24 +355,17 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // rebuilt on each play, so they need to be passed their params in the .start() call (see below).
     const attrsForNodes = TrackControlModel.getAttrsForNodes(
       this.trackControls,
-      index
+      index,
+      this.currentSequence.sequence
     );
 
-    // TODO:
-    // what if there was a public method "applyControls"
-    // that came default in the onstep script?
-    // then users could decide to use it or not
-    // the API could be `controls.apply()`
-    // or `controls.
-    // makes sense for step controls but confusing for
-    // sliders which are instantaneous.
-    this.onstepScript.invokeFunctionRef(index, data, array);
     this.trackNodes.forEach((trackNode) => {
       const attrs = attrsForNodes[trackNode.uniqueSelector];
       if (attrs) {
         applyAttrs(trackNode.uniqueSelector, attrs);
       }
     });
+    this.onstepScript.invokeFunctionRef(index, data, array);
   }
 
   // TODO: create property "trackCreatedOrder" and use that here
@@ -400,7 +387,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     );
 
     return {
-      filepath: this.localFilePath || this.filepathUrl,
+      filepath: this.downloadedFilepath,
       id: this.id,
       trackSelector: this.classSelector,
       controls: controls, // the value of the controls at this current step

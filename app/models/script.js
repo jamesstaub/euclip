@@ -74,21 +74,13 @@ export default class ScriptModel extends Model {
     this.code = this.editorContent;
     yield this.save();
     if (this.name === 'init-script') {
-      if (this.track.localFilePath) {
-        // no need to wait if we alrea have an existing one,
-        // otherwise it will interrupt the loops
-        this.track.downloadSample();
-      } else {
-        yield this.track.downloadSample();
-      }
-
       if (this.track.project.isPlaying) {
         // clean reset on delete to prevent the _loopListeners array gets cleared out in cracked
         this.track.project.stopLoop();
         yield this.track.project.initSignalChain();
         this.track.project.startLoop();
       } else {
-        this.track.setupAudioFromScripts();
+        yield this.track.project.initSignalChain();
       }
     }
     yield timeout(500);

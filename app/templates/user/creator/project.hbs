@@ -49,17 +49,17 @@
         </div>
       </div>
       <div class='flex ml3'>
-        <ButtonPrimary @label={{'New Track'}} {{on 'click' this.addTrack}} />
+        <ButtonPrimary @label={{'New Track'}} {{on 'click' this.createTrack}} />
         <DropdownMenu
           class='h-100 grow-1 bg-dark-gray ba bl-0 bw1 b--yellow ph2'
           @icon='fi-play'
           @iconClass='yellow-fill rotate-90'
           @items={{array
-            (hash label='Sampler' select=(fn this.addTrack 'samplerPreset'))
-            (hash label='Synth' select=(fn this.addTrack 'synthPreset'))
+            (hash label='Sampler' select=(fn this.createTrack 'samplerPreset'))
+            (hash label='Synth' select=(fn this.createTrack 'synthPreset'))
             (hash label='New From Preset')
             (hash label='Drum Machine')
-            (hash label='Blank Track' select=(fn this.addTrack 'signalChainGui'))
+            (hash label='Blank Track' select=(fn this.createTrack 'signalChainGui'))
           }}
         />
       </div>

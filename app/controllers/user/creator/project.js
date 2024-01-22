@@ -53,7 +53,7 @@ export default class UserCreatorProjectController extends Controller {
   }
 
   @action
-  async addTrack() {
+  async createTrack() {
     let track = this.model.tracks.createRecord({ hits: 1 });
     this.sortedTracks = [...this.sortedTracks, track];
     try {
@@ -63,7 +63,7 @@ export default class UserCreatorProjectController extends Controller {
       // indicate with a global "saved" state to allow local changes
       // useful for mutliperson editing scenarios + modifying other users' projects
       track.deleteRecord();
-      console.error('ERROR in addTrack:');
+      console.error('ERROR in createTrack:');
       console.error(error);
     }
   }

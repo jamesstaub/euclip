@@ -3,11 +3,10 @@
 import { attr, belongsTo, hasMany } from '@ember-data/model';
 import TrackAudioModel from '../audio-models/track';
 import { keepLatestTask, timeout } from 'ember-concurrency';
-import { resetLoop, unbindFromSequencer } from '../utils/cracked';
-import ENV from 'euclip/config/environment';
+import { unbindFromSequencer } from '../utils/cracked';
 import { inject as service } from '@ember/service';
-import TrackNodeModel from './track-node';
 import { action } from '@ember/object';
+import { cached } from '@glimmer/tracking';
 
 export default class TrackModel extends TrackAudioModel {
   @service store;
@@ -110,33 +109,30 @@ export default class TrackModel extends TrackAudioModel {
     );
   }
 
+  // TODO: Eventually move away from teh 1:1 track to filepath relationship
+  //  a better interface would clearly indicate that each file corresponds to a sampler, not
+  // the track itself
   get filePathRelative() {
-    // TOODO create and ENV var to set drum filepath location
-
-    // in cracked, sampler nodes must be initialized with a filepath,
-    // which happens before TrackNode and subsequent TrackControl models
-    // can be created, so without this default, we'll never be able to apply
-    // the server-rendered default filepath
-
-    // TODO refactor loadin order so nodes + controls are ready before initializing audio nodes
-    // let defaultFile =
-    //   '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CR8KBASS.mp3';
-
-    // for the same resons, there's a bad UX where if a user manually enters a filepath string
-    // in the code, the file picker shows a default drumfile (which corresponds to the this.filepath variable)
-    // improve the ui by allowing a manual URL in the file tree.
-    return this.samplerFilepathControl?.controlStringValue;
+    // silent.mp3 is used as a fallback so the sampler node is created successfully
+    // it will have already been downloaded on project load
+    return (
+      this.samplerFilepathControl?.controlStringValue ||
+      '/assets/audio/silent.mp3'
+    );
   }
 
-  get filepathUrl() {
-    if (!this.filePathRelative) {
-      return '/assets/audio/silent.mp3'; // if there's no track-control for filepath yet, we still want to create a sampler node
-    }
-    return `${ENV.APP.DRUMMACHINES_PATH}${this.filePathRelative}`;
+  // This getter is called on every beat of the sequencer
+  @cached
+  get downloadedFilepath() {
+    const sf = this.store
+      .peekAll('sound-file')
+      .findBy('filePathRelative', this.filePathRelative);
+
+    return sf.downloadedURI;
   }
 
   get validTrackNodes() {
-    // TODO: if there are still orphaned nodes, then implement a filter here
+    // TODO: check if there are still orphaned nodes, then implement a filter here
     // otherwise remove this method
     return this.trackNodes;
   }
@@ -184,7 +180,7 @@ export default class TrackModel extends TrackAudioModel {
     try {
       this.set(key, value);
       if (reInit) {
-        yield this.downloadSample();
+        yield this.findOrDownloadSoundFile();
         this.setupAudioFromScripts();
       }
       yield this.save();

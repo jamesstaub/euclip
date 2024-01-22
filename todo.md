@@ -17,9 +17,7 @@ Bug: sometimes updating a script (master specificall) re-initializes all the cha
 
 
 #### Sampler / filepath
-Problem: if filepath not provided, the sampler will not call the onCreateNode callback.
-potentially monkey patch it in cracked lib so it uses silent.mp3 if no filepath is provided, then the onCreateNode can check for the absence of `path: this.filepath` and
-manually set it to `this.localFilePath || this.filepathUrl`s
+
 
 currently the selected filepath will occasionally get lost and revert to a default sound
 
@@ -83,6 +81,14 @@ cracked.exec(
   - the preset menu should overlay the scripts sidebar and use a material ui table with checkboxes indicating which scripts
   - a toggle should default to "replace existing script"
   - users can save their own scripts to their "collections"
+
+  give an example of why this doesn't work:
+    ```setTimeout(()=>{
+        this.play();
+        }, 50)
+    ```
+  Proves that the callback is quantized to the loop,
+  TODO: look into how to schedule different times around the step for nudging or alternative sequences
 
 
 ### Track Footer
@@ -228,7 +234,8 @@ Implement `hasMany` sequence relationship on tracks, add UI to manage sequences.
 
 
 ### Files
-  bug: selecting an audio file tearsdown and recreates all track-controls
+  bug: url parse error for path https://localhost:4200/v1/files/WAV%20hh+filterloops
+
   
   - drag and drop UI for local sounds
   

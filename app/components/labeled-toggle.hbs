@@ -1,0 +1,13 @@
+<div class='flex justify-start flex-column f7'>
+  <p>Apply value:</p>
+  <label class="flex fw7">
+    <span>
+      {{if @value @on @off}}
+    </span>
+    <Controls::Toggle
+      @size={{array 40 15}}
+      @value={{@value}}
+      @onChange={{@onChange}}
+    />
+  </label>
+</div>

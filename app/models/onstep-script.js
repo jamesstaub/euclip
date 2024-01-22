@@ -3,7 +3,7 @@ import ScriptModel from './script';
 
 export default class OnstepScriptModel extends ScriptModel {
   name = 'onstep-script';
-  
+
   @attr('number') applyControlsSetting;
 
   @belongsTo('track', { async: false, inverse: 'onstepScript' }) track;

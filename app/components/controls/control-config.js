@@ -9,7 +9,7 @@ export default class ControlsControlConfigComponent extends Component {
     this.args.trackControl.set(key, val);
 
     // TODO: more robust rules for each attributes update
-    if (key !== 'stepSize') {
+    if (['min', 'max', 'defaultValue'].includes(key)) {
       this.args.trackControl.beforeUpdateValue();
       this.args.trackControl.setMinMaxByDefault();
     }

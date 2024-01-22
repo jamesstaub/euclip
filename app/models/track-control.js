@@ -5,12 +5,13 @@ import {
   waitForProperty,
   keepLatestTask,
   task,
+  restartableTask,
 } from 'ember-concurrency';
 
 import { isPresent } from '@ember/utils';
 
 import { setProperties } from '@ember/object';
-import { defaultKit } from './track-node';
+
 import {
   defaultNodeParamsByUnit,
   unitOptionsForNode,
@@ -64,8 +65,11 @@ export default class TrackControlModel extends Model {
   @attr('number') stepSize;
   @attr('number') defaultValue;
   @attr('number') controlValue; // number value of control
+  @attr('boolean') applyHitsOnly; // TODO: move to a MultisliderControl subclass
 
-  @attr('string') controlStringValue; // value of control for string attributes
+  // TODO: move this to a subclass for FilepathControl
+  @attr('string')
+  controlStringValue; // value of control for string attributes
 
   @attr() controlArrayValue;
 
@@ -153,6 +157,23 @@ export default class TrackControlModel extends Model {
     return defaultNodeParamsByUnit[this.nodeType][this.nodeAttr];
   }
 
+  get sortOrder() {
+    // add more track control attrs here as needed for
+    // more intuitive sort order
+    switch (this.nodeAttr) {
+      case 'speed':
+        return 0;
+      case 'start':
+        return 1;
+      case 'end':
+        return 2;
+      case 'loop':
+        return 3;
+      default:
+        return this.nodeAttr;
+    }
+  }
+
   transformCurrentUnit(value) {
     if (!this.unitParamsForAttr) {
       console.warn(
@@ -233,7 +254,6 @@ export default class TrackControlModel extends Model {
   // customization. till then it will seem buggy
   // Move this to
   setSamplerControlsToBuffer(nativeBuffer) {
-
     // unit transforms will handle their own min/max/defaults
     // so only set them below if it's the default unit in seconds
     if (this.currentUnitTransformIdx > 0) return;
@@ -369,17 +389,15 @@ export default class TrackControlModel extends Model {
     this.saveTrackControl.perform();
   }
 
-  @keepLatestTask
+  @restartableTask
   *saveTrackControl() {
-    // // FIXME: need a better strategy to prevent the last save response from coming in
-    // // out of sync with current UI state. (occurs when lots of rapid changes are made to nexus-multislider)
-    // See codemirror implementation, needs a modifier class that tracks attr updatate
-    yield timeout(1000);
-    const project = yield this.track.get('project');
+    const project = this.track.get('project');
     // dont save if project was deleted during task timeout
     if (project) {
-      // this.save not working for saome reason
+      yield timeout(1000);
       yield this.store.saveRecord(this);
+    } else {
+      console.error('Tried to save track control with missing project');
     }
   }
 
@@ -402,7 +420,7 @@ export default class TrackControlModel extends Model {
 
   // FIXME:
   // decouple script scopes for init and onstep scripts because
-  // the use of attrValuesForType will potentially try to use the sampleLen unit param to get 
+  // the use of attrValuesForType will potentially try to use the sampleLen unit param to get
   // the control value before the trackNode.crackedNode exists, causing it to fail.
   static serializeForScript(trackNodes, stepIndex) {
     // TODO: add in here a property for the track `scriptScope` to determine
@@ -420,7 +438,9 @@ export default class TrackControlModel extends Model {
   }
 
   // Loop over a list of trackControls an return an array of
-  static getAttrsForNodes(trackControls, index) {
+  // attr objects for each trackNode.
+
+  static getAttrsForNodes(trackControls, index, sequence) {
     return trackControls
       .filter((trackControl) => {
         // TODO: if trackControl.disabled skip
@@ -429,9 +449,9 @@ export default class TrackControlModel extends Model {
           return false;
         }
 
-        // if (trackControl.get('trackNode.nodeType') == 'channelStrip') {
-        //   return false;
-        // }
+        if (trackControl.get('trackNode.nodeType') == 'channelStrip') {
+          return false;
+        }
 
         if (trackControl.nodeType !== trackControl.trackNode.nodeType) {
           // if this case happens, it is hopefully just because trackControls are in the process of deleting in a non-blocking way,
@@ -440,6 +460,14 @@ export default class TrackControlModel extends Model {
           // it could also be a default filepath control on a track with no sampler node
           return false;
         }
+
+        // if the trackControl is a multislider, and this update is called
+        // from the onstepcallback, only apply the value if the stepIndex has a value
+        if (sequence && trackControl.isMultislider && sequence[index] == 0) {
+          // FIXME, thios seems to cause a bug and not work in
+          return !trackControl.applyHitsOnly;
+        }
+
         return true;
       })
       .reduce((acc, trackControl) => {
@@ -476,10 +504,8 @@ export default class TrackControlModel extends Model {
       nodeType: 'sampler',
       nodeOrder: -1,
       interfaceName: 'filepath',
-      // set default drum sample before so it's ready synchronously
-      controlStringValue: defaultKit[track.get('order') % defaultKit.length],
     });
-    await trackControl.save();
+    await trackControl.saveTrackControl.perform();
     return trackControl;
   }
 }

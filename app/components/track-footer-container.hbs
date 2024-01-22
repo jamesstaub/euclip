@@ -7,7 +7,7 @@
         <ChannelStrip
           @channelStripGainControl={{this.channelStripGainControl}}
           @channelStripPannerControl={{this.channelStripPannerControl}}
-          @updateValue={{this.updateControl}}
+          @updateValue={{this.setControlValue}}
         />
         {{! TODO:
           when filepath sidebar opens, set this menu
@@ -84,13 +84,15 @@
             >
               <div class='flex flex-wrap items-center justify-between mh3 mv2'>
                 <h3 class='mv1'>Audio Node Controls</h3>
-                <ButtonText
-                  class='ph1 pa2 f7 yellow-fill w4 mr2 mt2 flex-0'
-                  {{on 'click' this.toggleReference}}
-                  @label='Toggle Reference'
-                >
-                  {{if this.showReference 'show controls' 'show reference'}}
-                </ButtonText>
+                {{#unless (media 'isMobile')}}
+                  <ButtonText
+                    class='ph1 pa2 f7 yellow-fill w4 mr2 mt2 flex-0'
+                    {{on 'click' this.toggleReference}}
+                    @label='Toggle Reference'
+                  >
+                    {{if this.showReference 'show controls' 'show reference'}}
+                  </ButtonText>
+                {{/unless}}
               </div>
               <div
                 class='flex overflow-y-hidden h-100 flex-column grow-1 shrink-1'
@@ -115,7 +117,8 @@
                     @track={{@track}}
                     @trackNodesForControls={{@track.trackNodesForControls}}
                     @visibleNodeIdx={{this.visibleNodeIdx}}
-                    @updateControl={{this.updateControl}}
+                    @updateControl={{this.setControlValue}}
+                    @updateControlAttr={{this.updateControlAttr}}
                   />
                 {{/if}}
               </div>

@@ -286,7 +286,6 @@ const delayFeedback = dm(amplitude, {
   },
 });
 
-
 const q = {
   [Q]: {
     func: (q) => q,

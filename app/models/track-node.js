@@ -15,6 +15,7 @@ export const defaultKit = [
   '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CRLOWTOM.mp3',
 ];
 
+// TODO deprecate this and use the SoundFile instead
 export const FILE_LOAD_STATES = {
   EMPTY: 'empty',
   LOADING: 'loading',
@@ -28,10 +29,6 @@ export default class TrackNodeModel extends Model {
   @hasMany('track-control', { async: false, inverse: 'trackNode' })
   trackControls;
 
-  /**
-   * this attr is used to catch any user-defined UI preferences such as { ui: 'multislider'}
-   * exceptions need to be made for attrs such as filepath
-   */
   @attr('string') userDefinedInterfaceName;
   @attr('string') userSettingsForControl;
 
@@ -97,6 +94,13 @@ export default class TrackNodeModel extends Model {
     return this.trackControls.filter(
       (trackControl) => trackControl.isMultislider
     );
+  }
+
+  get sortedTrackControls() {
+    if (!this.trackControls) {
+      return [];
+    }
+    return [...this.trackControls.sortBy('sortOrder')];
   }
 
   // TODO: simulate throwing an error from the method
@@ -304,7 +308,7 @@ export default class TrackNodeModel extends Model {
       // TODO: dont save in the loop
       // implement a batch-save to do it all in one request
       // maybe use the new ember-data Handler/RequestManager system
-      trackControl.save();
+      trackControl.saveTrackControl.perform();
       return trackControl;
     });
   }

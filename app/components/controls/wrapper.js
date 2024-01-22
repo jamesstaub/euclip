@@ -16,7 +16,7 @@ export default class ControlsWrapperComponent extends Component {
     ][Number(!val)];
     this.args.trackControl.set('interfaceName', interfaceName);
     try {
-      this.args.trackControl.save();
+      this.args.trackControl.saveTrackControl.perform();
     } catch (error) {
       console.error('TOGG', error);
       this.notifications.push({

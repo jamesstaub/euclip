@@ -21,8 +21,8 @@ export default class ProjectModel extends ProjectAudioModel {
     if (!track.get('trackControls').findBy('interfaceName', 'filepath')) {
       await TrackControlModel.createDefaultFilepathControl(track);
     }
-
     this.tracks.pushObject(track);
+    await track.findOrDownloadSoundFile();
 
     await track.setupAudioFromScripts(false);
     track.createAudioFileTree(); // not required to start playing, just filetree UI

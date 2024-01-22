@@ -15,6 +15,7 @@ Router.map(function () {
         this.route('track', { path: 'track/:track_id' });
       });
       this.route('projects');
+      this.route('project-error');
     });
   });
   this.route('login');

@@ -76,6 +76,11 @@ export default class NexusUi extends Modifier {
   }
 
   valueChanged(options) {
+    // check boolean first
+    if (options?.value === this._options?.value) {
+      return false;
+    }
+
     return roundFloat(options?.value) != roundFloat(this._options?.value);
   }
 
