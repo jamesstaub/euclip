@@ -1,6 +1,7 @@
 class V1::ProjectsController < V1::BaseController
   before_action :set_project_from_id, only: %i[update destroy]
 
+  # Get a list of records
   def index
     @pagy, @projects = pagy(Project
                                   .includes(
@@ -21,6 +22,7 @@ class V1::ProjectsController < V1::BaseController
     ), status: :ok
   end
 
+  # Get a single record
   def show
     # TODO: this will get refactored to support multiple users
     # needs a permissions model manage multiple users access to projects
