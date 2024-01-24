@@ -6,8 +6,10 @@ class Project < ApplicationRecord
   attribute :bpm, :integer, default: 120
   validates :creator, presence: true
 
+  validates :title, length: { minimum: 3 }
   validates :slug, uniqueness: { scope: :creator_id, on: :create }
   validate :allow_current_slug_update, on: :update
+
 
   def ordered_tracks
     tracks.where(:is_master => false).order(:id)

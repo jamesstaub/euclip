@@ -58,7 +58,8 @@ class V1::TrackControlsController < V1::BaseController
                                :step_size,
                                :default_value, 
                                :control_value, 
-                               :interface_name, 
+                               :interface_name,
+                               :apply_hits_only,
                                :node_type, 
                                :node_attr, 
                                :node_order,
@@ -68,6 +69,6 @@ class V1::TrackControlsController < V1::BaseController
                               )
 
     
-    attrs.merge(track_id: @track.id).to_h.reject{|_, v| v.blank?}
+    attrs.merge(track_id: @track.id).to_h.reject{|_, v| v.nil?}
   end
 end
