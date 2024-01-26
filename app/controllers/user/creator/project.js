@@ -31,10 +31,24 @@ export default class UserCreatorProjectController extends Controller {
     );
   }
 
-  @keepLatestTask
+  @action
+  async updateName() {
+    if (this.model.hasDirtyAttributes) {
+      // TODO: in the response, change the slug
+      // if successfull, transition to new slug
+      await this.model.save();
+    }
+  }
+
+  @action
+  revertName() {
+    this.model.rollbackAttributes();
+    debugger
+  }
 
   // TODO:
   // on update BPM, set relative tempo values on track controls
+  @keepLatestTask
   *updateProject(key, value) {
     if (this.model[key] === value) return;
 

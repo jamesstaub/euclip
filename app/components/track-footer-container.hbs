@@ -84,7 +84,7 @@
             >
               <div class='flex flex-wrap items-center justify-between mh3 mv2'>
                 <h3 class='mv1'>Audio Node Controls</h3>
-                {{#unless (media 'isMobile')}}
+                {{#if (not (media 'isMobile'))}}
                   <ButtonText
                     class='ph1 pa2 f7 yellow-fill w4 mr2 mt2 flex-0'
                     {{on 'click' this.toggleReference}}
@@ -92,7 +92,7 @@
                   >
                     {{if this.showReference 'show controls' 'show reference'}}
                   </ButtonText>
-                {{/unless}}
+                {{/if}}
               </div>
               <div
                 class='flex overflow-y-hidden h-100 flex-column grow-1 shrink-1'

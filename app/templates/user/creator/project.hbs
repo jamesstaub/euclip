@@ -1,7 +1,15 @@
+{{page-title this.model.title}}
 <div class="flex flex-column grow-1 shrink-0">
   <nav class='flex items-center justify-between ph3 pv2'>
     <div class='flex flex-wrap items-center justify-between w-100'>
-      <h1 class='ma0 f3'>{{this.model.displayTitle}}</h1>
+      <EditableText 
+        class='truncate ma0 f4 mw5'
+        @label="Project Title"
+        @value={{this.model.title}}
+        @onSave={{this.updateName}}
+        @onCancel={{this.revertName}}
+      />
+
       <div class='flex'>
         {{#if this.model.isPlaying}}
           <IconButton

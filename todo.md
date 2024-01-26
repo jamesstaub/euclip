@@ -3,37 +3,37 @@
 go live list:
   - attempt to automatically use sampler filepath if not supplied
 
+Mobile UI:
+-  on phones, the verticle view should be simple play controls
+  and message to rotate phone to horizontal. there it should be a minimal track list and
+  footer view
 - ember-responsive fixes for small + touch screen
   - sidebar service to auto open-close when small
   - collapse track list items
 
+- Current Track selection could be a native dropdown menu
 
 
 ### Scripts
 BUG; if possible clear the "cmd-z"  undo state when changing tracks, since code mirror doesn't get re-initialized
 
-Bug: sometimes updating a script (master specificall) re-initializes all the channelStrip node params (not the sliders)
-
-
-
-#### Sampler / filepath
-
-
-currently the selected filepath will occasionally get lost and revert to a default sound
 
 #### scope + variables
- access to slider value in functions would effectively allow non-linear sliders
+access to slider value in functions would effectively allow non-linear sliders
 
 refactor docs and preset scripts once the loop.bind(selector) is fixed and working properly.
 for samplers you still need to do `__('sampler').stop().start()` because `__.stop().start()` doesnt work correctly
+
+
 but for other nodes you can do  `__.adsr()` to select only the adsr on that track etc
 
 - add examples of __.ms2freq using the track tempo to control LFO speeds
 - consider "applyTrackControls" as a public function so users can customize order in onstep scripts
 
 - add a CMD+Click on valid cracked methods that opens the docs in a new tab
-
 - consider refactoring the this.select() method to be a convenience method for 
+
+
 
 ```
 // shorthand
@@ -270,11 +270,6 @@ Implement `hasMany` sequence relationship on tracks, add UI to manage sequences.
       and add an option to the track controls for that track to be sample-relative (as well as bpm relative)
   
 
-### Misc featurs:
-  - multiplayer websocket editing
-  - contributor chat box
-  - "assistant" in chat window suggesting next steps with actions
-
 
 ### bugs
 
@@ -284,32 +279,18 @@ Implement `hasMany` sequence relationship on tracks, add UI to manage sequences.
 
 -- when deleting a track, the script sidebar closes but property is not re-set so the button to re-open sidebar disappears
 
-#### Initialize nodes with attrs
-when a node is initialized with attributes eg.
-  ```
-  .filter({
-    frequency: 440,
-    q: 20
-  })
-  ```
-  then the track-controls should also be initialized with those as the default values
 
 
 ## Platform improvements
 
-implement a Forum with Threaded
+- multiplayer websocket editing
+- - realtime contributor chat box?
 
-optimize with dynamic imports https://github.com/embroider-build/ember-auto-import
+- implement a Forum with Threaded
+- add a proper tutorials section
+- - optimize pages with dynamic imports https://github.com/embroider-build/ember-auto-import
+- also look at Kofi https://ko-fi.com/gold?ref=home
 
-
-also look at Kofi https://ko-fi.com/gold?ref=home
-
-Mobile UI:
-on phones, the verticle view should be simple play controls 
-and message to rotate phone to horizontal. there it should be a minimal track list and
-footer view
-
-Current Track selection could be a native dropdown menu
 
 ### USER Roles/premium plan
 given DB row limit, must enforce project and track limitations per user
@@ -323,6 +304,7 @@ and https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/#kbd_roving_tab
 - implement "undo delete"
 - - use ember-concurrency to wait before calling save on the deleted record, show a "toast" with restore button
 
+- could add an "undoable" decorator to the save methods on models
 
 - create a "mixer view" for mixing all tracks that have a `channelStrip` macro
 
