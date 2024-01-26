@@ -41,6 +41,8 @@ gem 'devise-argon2' # https://github.com/erdostom/devise-argon2
 gem 'devise-encryptable'
 gem 'devise-jwt' # https://github.com/waiting-for-dev/devise-jwt
 
+# ------ AUTHORIZATION -------------------
+gem 'cancancan'
 
 group :development do
   gem 'html2haml'

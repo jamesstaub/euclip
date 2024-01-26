@@ -1,15 +1,20 @@
 class Project < ApplicationRecord
+  before_create :set_defaults
+
+  # TODO: move BPM to "Pattern" model
+  attribute :bpm, :integer, default: 120
   belongs_to :creator, class_name: "User"
   has_many :tracks, :dependent => :destroy
+  
+  has_many :user_roles
+  has_many :users, through: :user_roles
 
-  before_create :set_defaults
-  attribute :bpm, :integer, default: 120
+  # NOTE the key "private" can't be used due to name conflict, hence :hidden
+  enum access_level: { hidden: 0, public_viewable: 1, public_editable: 2 }
+
   validates :creator, presence: true
-
-  validates :title, length: { minimum: 3 }
   validates :slug, uniqueness: { scope: :creator_id, on: :create }
   validate :allow_current_slug_update, on: :update
-
 
   def ordered_tracks
     tracks.where(:is_master => false).order(:id)
@@ -22,10 +27,29 @@ class Project < ApplicationRecord
   end
   
   def self.create_with_relations!(params)
-    project = Project.create!(params)
-    first_track = Track.create_with_relations!(project: project)
-    master_track = Track.create_with_relations!(project: project, is_master: true)
+    project = nil
+    transaction do
+      project = Project.create!(params)
+      first_track = Track.create_with_relations!(project: project)
+      master_track = Track.create_with_relations!(project: project, is_master: true)
+      UserRole.create!(user_id: params[:creator_id], project_id: project.id, role: :creator)
+    end
     project
+  end
+
+
+  def self.find_by_slug(slug, creator_id)
+    project = Project.includes(
+                            :user_roles,
+                            :tracks,
+                            :tracks => :init_script, 
+                            :tracks => :onstep_script, 
+                            :tracks => :sequences)
+                      .find_by(
+                               slug: slug, 
+                               creator_id: creator_id
+                              )
+            
   end
 
   private 

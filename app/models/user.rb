@@ -3,6 +3,8 @@
 class User < ApplicationRecord
   include Devise::JWT::RevocationStrategies::Allowlist
   include Discard::Model
+
+  # TODO: this is application-level role, not to be confused with Project-level roles
   store_accessor :settings, :roles
   attr_accessor :anonymous
 

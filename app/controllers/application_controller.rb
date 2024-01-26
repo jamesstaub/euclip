@@ -4,7 +4,7 @@ class ApplicationController < ActionController::API
 
   respond_to :json
 
-  rescue_from ActiveRecord::RecordNotFound, with: :record_not_found
+  rescue_from ActiveRecord::RecordNotFound, with: :render_not_found
 
   private
 
@@ -23,7 +23,11 @@ class ApplicationController < ActionController::API
   end
 
 
-  def record_not_found(exception)
+  def render_not_found(exception = nil)
     render json: { error: exception.to_s }, status: :not_found
+  end
+
+  def render_unauthorized
+    render json: { error: 'Unauthorized' }, status: :unauthorized
   end
 end

@@ -24,20 +24,17 @@ class V1::ProjectsController < V1::BaseController
 
   # Get a single record
   def show
-    # TODO: this will get refactored to support multiple users
-    # needs a permissions model manage multiple users access to projects
-    # then can get the creator_id from the params instead of current_user
-    @project = Project.includes(
-                                :tracks,
-                                :tracks => :init_script, 
-                                :tracks => :onstep_script, 
-                                :tracks => :sequences)
-                      .find_by(slug: params["slug"], creator_id: current_user.id)
-
-    render json: ProjectSerializer.new(
-      @project,
-      include: included_relations
-    ), status: :ok
+    # TODO: check routes, is this being called?
+    binding.pry
+    @project = Project.find_by_slug(params[:slug], params[:creator_id])
+    if can? :read, @project
+      render json: ProjectSerializer.new(
+        @project,
+        include: included_relations
+      ), status: :ok
+    else
+      render_unauthorized
+    end
   end
 
   def create
@@ -53,14 +50,18 @@ class V1::ProjectsController < V1::BaseController
   end
 
   def update
-    @project.update(clean_params)
-    if @project.save
-      render json: ProjectSerializer.new(
-        @project,
-        include: included_relations
-      ), status: :ok
+    if can? :update, @project
+      @project.update(clean_params)
+      if @project.save
+        render json: ProjectSerializer.new(
+          @project,
+          include: included_relations
+        ), status: :ok
+      else
+        render_unprocessable_entity(@project.errors)
+      end
     else
-      render_unprocessable_entity(@project.errors)
+      render_unauthorized
     end
   end
 
