@@ -11,14 +11,19 @@ class V1::ScriptsController < V1::BaseController
         include: included_relations
       ), status: :ok
     else
-      render json: { errors: @script.errors.full_messages.join(', ') }, status: :unprocessable_entity
+      render_unprocessable_entity(@script.errors)
     end
   end
 
   private
   
   def set_script
-    @script = Script.find(params[:id])
+    script = Script.includes({:track => :project})
+                    .find(params[:id])
+
+    raise ActiveRecord::RecordNotFound unless script.present?
+    return render_unauthorized unless can? :update, script.track.project
+    @script = script
   end
 
   # The client sends the 'code' attribute which represents the currently saved 

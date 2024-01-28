@@ -24,9 +24,11 @@ class V1::ProjectsController < V1::BaseController
 
   # Get a single record
   def show
-    # TODO: check routes, is this being called?
-    binding.pry
-    @project = Project.find_by_slug(params[:slug], params[:creator_id])
+    permitted = params.permit(:creator_id, :slug)
+    @project = Project.find_by({slug: permitted[:slug], creator_id: permitted[:creator_id]})
+    
+    return render_not_found unless @project
+    
     if can? :read, @project
       render json: ProjectSerializer.new(
         @project,
@@ -66,8 +68,10 @@ class V1::ProjectsController < V1::BaseController
   end
 
   def destroy
-    @project.destroy
-    render json: { meta: {} }, status: :ok
+    if can? :manage, @project
+      @project.destroy
+      render json: { meta: {} }, status: :ok
+    end
   end
 
   private
@@ -81,8 +85,8 @@ class V1::ProjectsController < V1::BaseController
     @project = Project.find(project_id)
   end
   
-  
+  # create/update parans
   def clean_params
-    @attributes.permit(:title, :slug, :bpm)
+    @attributes.permit(:title, :slug, :bpm, :access_level)
   end
 end

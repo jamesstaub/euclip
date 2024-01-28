@@ -1,6 +1,18 @@
 class V1::SequencesController < V1::BaseController
-  before_action :set_sequence, only: %i[show update]
-  
+  before_action :set_models, only: %i[show update]
+  before_action :authorize_writes, only: %i[create update destroy]
+
+  def create
+    @sequence = Sequence.new(clean_params)
+    if @sequence.save
+      render json: SequenceSerializer.new(
+        @sequence
+      ), status: :ok
+    else
+      render_unprocessable_entity(@sequence.errors)
+    end
+  end
+
   def update
     # TODO: if updating euclidean hit while there is a custom sequence, revert to euclidean mode (clear seq)
     # TODO: implement rotation of custom_seq
@@ -10,14 +22,23 @@ class V1::SequencesController < V1::BaseController
         @sequence,
       ), status: :ok
     else
-      render json: { errors: @sequence.errors.full_messages.join(', ') }, status: :unprocessable_entity
+      render_unprocessable_entity(@sequence.errors)
     end
   end
 
   private
 
-  def set_sequence
-    @sequence = Sequence.find(params[:id])
+  def set_models
+    sequence = Sequence.includes(:track => :project).find(params[:id])
+    raise ActiveRecord::RecordNotFound unless sequence.present?
+    # bare minimum permissions check before setting @sequence attribute
+    return render_unauthorized unless can? :view, sequence.track.project
+    @sequence = sequence
+    @project = sequence.track.project
+  end
+
+  def authorize_writes
+    return render_unauthorized unless can? :update, @project
   end
 
   def cleaned_params

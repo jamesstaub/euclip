@@ -19,7 +19,6 @@ class ApplicationController < ActionController::API
     end
 
     render json: { errors: errors }, status: :unprocessable_entity
-
   end
 
 

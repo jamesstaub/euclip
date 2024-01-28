@@ -1,9 +1,7 @@
 class V1::TrackControlsController < V1::BaseController
-  before_action :set_track, only: %i[create update]
-  before_action :set_track_control, only: %i[show update destroy]
-
-  # TODO:
-  # enforce proper permissions for these endpoints
+  before_action :set_models, only: %i[show update destroy]
+  before_action :set_relations, only: %i[create]
+  before_action :authorize_writes, only: %i[create update destroy]
 
   def show
     render json: TrackControlSerializer.new(@track_control), status: :ok
@@ -40,13 +38,30 @@ class V1::TrackControlsController < V1::BaseController
   
   private
 
-  def set_track_control
-    @track_control = TrackControl.find(params[:id])
+  def set_models
+    track_control = TrackControl.includes(:track => :project).find(params[:id])
+
+    raise ActiveRecord::RecordNotFound unless track_control.present? && 
+                                                track_control.track.present? && 
+                                                track_control.track.project.present?
+
+    # bare minimum permissions check before setting track attribute
+    return render_unauthorized unless can? :view, track_control.track.project
+    @track_control = track_control
+    @track = track_control.track
+    @project = track_control.track.project
+  end
+  
+  def set_relations
+    track = Track.includes(:project).find(@relationships[:track][:data][:id])
+    raise ActiveRecord::RecordNotFound unless track.present?
+    return render_unauthorized unless can? :view, track.project
+    @track = track
+    @project = track.project
   end
 
-  def set_track
-    # TODO validate track
-    @track = Track.find(@relationships.require(:track)[:data][:id])
+  def authorize_writes
+    return render_unauthorized unless can? :update, @project
   end
 
   def clean_params

@@ -24,7 +24,7 @@ Rails.application.routes.draw do
   namespace :v1 do
     resources :users, only: %i[index show] do
       get :avatar, on: :member
-      resources :projects, only: %i[index]
+      resources :projects, param: :slug, only: %i[index show]
     end
     
     resources :preset_collections, only: %i[index], :path => '/preset-collections'
