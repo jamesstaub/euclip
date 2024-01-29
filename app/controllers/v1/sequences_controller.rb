@@ -32,13 +32,13 @@ class V1::SequencesController < V1::BaseController
     sequence = Sequence.includes(:track => :project).find(params[:id])
     raise ActiveRecord::RecordNotFound unless sequence.present?
     # bare minimum permissions check before setting @sequence attribute
-    return render_unauthorized unless can? :view, sequence.track.project
+    return render_forbidden unless can? :view, sequence.track.project
     @sequence = sequence
     @project = sequence.track.project
   end
 
   def authorize_writes
-    return render_unauthorized unless can? :update, @project
+    return render_forbidden unless can? :update, @project
   end
 
   def cleaned_params

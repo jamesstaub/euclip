@@ -22,7 +22,7 @@ class V1::ScriptsController < V1::BaseController
                     .find(params[:id])
 
     raise ActiveRecord::RecordNotFound unless script.present?
-    return render_unauthorized unless can? :update, script.track.project
+    return render_forbidden unless can? :update, script.track.project
     @script = script
   end
 

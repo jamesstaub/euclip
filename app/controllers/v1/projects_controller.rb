@@ -35,7 +35,7 @@ class V1::ProjectsController < V1::BaseController
         include: included_relations
       ), status: :ok
     else
-      render_unauthorized
+      render_forbidden
     end
   end
 
@@ -63,7 +63,7 @@ class V1::ProjectsController < V1::BaseController
         render_unprocessable_entity(@project.errors)
       end
     else
-      render_unauthorized
+      render_forbidden
     end
   end
 
@@ -71,6 +71,8 @@ class V1::ProjectsController < V1::BaseController
     if can? :manage, @project
       @project.destroy
       render json: { meta: {} }, status: :ok
+    else
+      render_forbidden
     end
   end
 

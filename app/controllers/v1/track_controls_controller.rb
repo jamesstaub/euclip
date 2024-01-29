@@ -46,7 +46,7 @@ class V1::TrackControlsController < V1::BaseController
                                                 track_control.track.project.present?
 
     # bare minimum permissions check before setting track attribute
-    return render_unauthorized unless can? :view, track_control.track.project
+    return render_forbidden unless can? :view, track_control.track.project
     @track_control = track_control
     @track = track_control.track
     @project = track_control.track.project
@@ -55,13 +55,13 @@ class V1::TrackControlsController < V1::BaseController
   def set_relations
     track = Track.includes(:project).find(@relationships[:track][:data][:id])
     raise ActiveRecord::RecordNotFound unless track.present?
-    return render_unauthorized unless can? :view, track.project
+    return render_forbidden unless can? :view, track.project
     @track = track
     @project = track.project
   end
 
   def authorize_writes
-    return render_unauthorized unless can? :update, @project
+    return render_forbidden unless can? :update, @project
   end
 
   def clean_params

@@ -2,16 +2,16 @@ class V1::FilesController < ApplicationController
   respond_to :json
 
   def index
-    path = URI.decode_www_form_component(request.path.gsub("/v1/files", ""))
+    path = CGI.unescape(request.path.gsub("/v1/files", ""))
     parts = path.split('/').reject(&:empty?)
+
     root_dir = SearchableDirectory.get_root
     top_dir = SearchableDirectory.find_by(name: parts.first, parent: root_dir)
 
-    if parts.empty? || top_dir.nil?
-      message = {
-        error: "Error: Could not find any Directories"
-      }
-      render json: message, status: :internal_server_error and return
+    if parts.empty?
+      response = create_response(root_dir, [], path)
+    elsif parts.present? && top_dir.nil?
+      return render_not_found
     else
       response = create_response(top_dir, parts, path)
     end

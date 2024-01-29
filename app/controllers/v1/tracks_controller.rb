@@ -1,7 +1,7 @@
 class V1::TracksController < V1::BaseController
   respond_to :json
   before_action :set_track, only: %i[show update destroy]
-  before_action :set_project, only: %i[create]
+  before_action :set_project, only: %i[create update destroy]
   
   def show
     render json: TrackSerializer.new(@track), status: :ok
@@ -22,7 +22,7 @@ class V1::TracksController < V1::BaseController
         render_unprocessable_entity(@track.errors)
       end
     else
-      render_unauthorized
+      render_forbidden
     end
   end
 
@@ -74,7 +74,7 @@ class V1::TracksController < V1::BaseController
         project.tracks
       )
     else
-      render_unauthorized
+      render_forbidden
     end
   end
 
@@ -88,7 +88,7 @@ class V1::TracksController < V1::BaseController
     track = Track.find(params[:id])
     raise ActiveRecord::RecordNotFound unless track.present?
     # bare minimum permissions check before setting track attribute
-    return render_unauthorized unless can? :view, track.project
+    return render_forbidden unless can? :view, track.project
     @track = track
   end
 
@@ -96,7 +96,7 @@ class V1::TracksController < V1::BaseController
     project_slug = params.require(:project_slug)
     project = Project.includes(:tracks).find_by(slug: project_slug)
     raise ActiveRecord::RecordNotFound unless project.present?
-    return render_unauthorized unless can? :view, project
+    return render_forbidden unless can? :view, project
     @project = project
   end
 end

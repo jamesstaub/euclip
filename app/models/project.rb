@@ -6,7 +6,7 @@ class Project < ApplicationRecord
   belongs_to :creator, class_name: "User"
   has_many :tracks, :dependent => :destroy
   
-  has_many :user_roles
+  has_many :user_roles, :dependent => :destroy
   has_many :users, through: :user_roles
 
   # NOTE the key "private" can't be used due to name conflict, hence :hidden

@@ -46,6 +46,7 @@ Rails.application.routes.draw do
 
     get '/files/search', to: 'files#search', format: :json
     get '/files/*path', to: 'files#index', format: :json
+    get '/files/', to: 'files#index', format: :json
 
   end
 
