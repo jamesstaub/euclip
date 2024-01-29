@@ -1,7 +1,7 @@
 import Service from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 
-interface Notification {
+export interface Notification {
   type: 'warning' | 'error' | 'info' | 'success';
   message: string;
   action?: () => void;

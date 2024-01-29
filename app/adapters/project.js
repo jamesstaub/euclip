@@ -4,10 +4,8 @@ export default class ProjectAdapter extends ApplicationAdapter {
   static projectIncludeParams =
     'creator,tracks,tracks.sequences,tracks.track-controls,tracks.init-script,tracks.onstep-script';
 
-  urlForQueryRecord(params) {
-    const slug = params.slug;
-    delete params.slug;
-    return `/projects/${encodeURIComponent(slug)}`;
+  urlForQueryRecord({ creatorId, slug }) {
+    return `/users/${creatorId}/projects/${encodeURIComponent(slug)}`;
   }
 
   urlForFindAll(modelName, snapshot) {

@@ -1,8 +1,17 @@
-{{page-title "Oops, problem"}}
+{{page-title 'Oops, problem'}}
 
-<div class="ma3 max-w-50 center">
-  <h1 class="tc">Sorry, something went wrong while trying to load this project.</h1>
-  <p class="mv3 center tc">
-    See the console for more info.
-  </p>
+<div class='ma3 max-w-50 center tc'>
+  {{#if (eq this.model.errors.firstObject.status '401')}}
+    <h1>
+      You do not have permission to open this project.
+    </h1>
+  {{else if (eq this.model.errors.firstObject.status '404')}}
+    <h1> Project Not Found </h1>
+  {{else}}
+    <h1>
+      Sorry, something went wrong while trying to load this project.
+    </h1>
+    <p>{{this.model.errors.firstObject.title}}</p>
+  {{/if}}
+
 </div>

@@ -62,6 +62,7 @@
           class='h-100 grow-1 bg-dark-gray ba bl-0 bw1 b--yellow ph2'
           @icon='fi-play'
           @iconClass='yellow-fill rotate-90'
+          @closeOnSelect={{true}}
           @items={{array
             (hash label='Sampler' select=(fn this.createTrack 'samplerPreset'))
             (hash label='Synth' select=(fn this.createTrack 'synthPreset'))
@@ -99,6 +100,7 @@
           </InfoBox>
         </div>
         {{#if (and this.activeTrack this.activeTrack.audioFileTreeModel)}}
+          {{log this.activeTrack.audioFileTreeModel}}
           <DrumFilePicker
             @audioFileTreeModel={{this.activeTrack.audioFileTreeModel}}
             @track={{this.activeTrack}}
@@ -182,5 +184,4 @@
       </SidebarWrapper>
     {{/if}}
   </div>
-  <Toast/>
 </div>

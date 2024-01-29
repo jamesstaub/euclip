@@ -50,7 +50,8 @@ export default class AudioFileTreeModel extends Model {
   async appendDirectoriesData(path, item) {
     this.directoryTree = this.directoryTree.filter((dir) => dir.type == 'dir');
     try {
-      const response = await AudioFileTreeModel.fetchDirectory(path);
+      path = path || '/';
+      const response = await AudioFileTreeModel.fetchDirectory(path, {});
       if (response.ancestor_tree?.length) {
         response.ancestor_tree.pop(); // remove the current directory since it's added below
         this.directoryTree = [
@@ -67,15 +68,19 @@ export default class AudioFileTreeModel extends Model {
     }
   }
 
-  static async fetchDirectory(path) {
-    const url = `/v1/files${path}`;
+  static async fetchDirectory(path, { search, page }) {
+    const encodedPath = path
+      ? path.split('/').map(encodeURIComponent).join('/')
+      : '';
+
+    const searchQuery = search ? `/search?q=${search}&page=${page}` : '';
+
+    const url = `/v1/files${encodedPath}${searchQuery}`;
     const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
       },
     });
-    const json = await response.json();
-
-    return json;
+    return await response.json();
   }
 }

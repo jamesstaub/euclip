@@ -1,33 +1,46 @@
-<form class='flex items-end' {{on 'submit' this.save}}>
+<form class="project-form flex items-end" {{on 'submit' this.save}}>
   {{#if this.isEditing}}
     <div>
-      <label class='flex f7 flex-column'>
+      <label class="flex f7 flex-column">
         {{@label}}
         <Input
           autofocus={{true}}
-          class='f4'
+          class="project-input f4"
           name={{@key}}
-          placeholder='Enter a Project Title'
+          placeholder="Enter a Project Title"
           {{on 'keydown' this.onKey}}
           @value={{@value}}
+          aria-label="Project Title"
         />
       </label>
     </div>
   {{else}}
     <button
-      class='bg-transparent bn'
-      type='button'
+      class="project-button bg-transparent bn"
+      type="button"
       {{on 'click' this.toggleEdit}}
+      aria-label="Edit Project"
     >
       <p ...attributes>{{@value}}</p>
     </button>
   {{/if}}
 
   {{#if this.isEditing}}
-    <button
-      class='bg-transparent ml1 mb1 bn'
-      type='button'
-      {{on 'click' this.save}}
-    >✔</button>
+    <div class="flex">
+      <button
+        class="bg-transparent ml1 mb1 bn"
+        type="button"
+        {{on 'click' this.save}}
+        aria-label="Save Changes"
+      >✔</button>
+
+      <IconButton 
+        class="bg-transparent ml1 mb1 bn"
+        type="button"
+        {{on 'click' this.toggleEdit}}
+        aria-label="Cancel Editing"
+        @icon="fi-cancel" {{on "click" @onCloseSidebar}} 
+      />
+    </div>
   {{/if}}
 </form>

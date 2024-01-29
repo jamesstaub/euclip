@@ -48,7 +48,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // then make sure its assoicated to this track
     // else create a new sound-file record
     // track nodes will look for a matching sound-file record to associate to
-
     if (!this.filePathRelative) return;
     await SoundFileModel.findOrDownload(this.filePathRelative, this.store);
   }

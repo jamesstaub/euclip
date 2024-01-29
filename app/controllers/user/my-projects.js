@@ -6,6 +6,7 @@ export default class UserMyProjectsController extends Controller {
   // De-dupe this from project controller play actions.
   //
   @service router;
+  @service notifications;
 
   @action
   async play(project) {
@@ -22,9 +23,20 @@ export default class UserMyProjectsController extends Controller {
   }
 
   @action
-  deleteProject(project) {
+  async deleteProject(project) {
     project.stopLoop();
-    project.destroyRecord();
-    this.router.transitionTo('user.my-projects');
+    try {
+      await project.destroyRecord();
+      this.router.transitionTo('user.my-projects');
+    } catch (error) {
+      let message = 'There was an error deleting this project';
+      if (error.errors[0].status === '403') {
+        message = 'You do not have permission to delete this project';
+      }
+      this.notifications.push({
+        message,
+        type: 'error',
+      });
+    }
   }
 }

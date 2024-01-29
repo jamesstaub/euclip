@@ -71,3 +71,7 @@ table .name {
 .spaced-text {
   letter-spacing: 0.1rem;
 }
+
+.hover-underline:hover {
+  text-decoration: underline;
+}

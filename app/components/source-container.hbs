@@ -16,11 +16,12 @@
         {{/if}}
       {{/each}}
     </h3>
+    <span class="">
+      Coming soon: slicing and more playback control! 
+    </span>
     {{#if @showReference}}
       {{yield}}
     {{else}}
-
-      {{log 'sourcenodes' @track.sourceNodeRecords}}
 
       {{#if @track.sourceNodeRecords.length}}
         <ul class='flex items-center mv0 ml2 pa0 list f7'>

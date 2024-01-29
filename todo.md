@@ -108,10 +108,23 @@ cracked.exec(
   __.attr({speed: .1}) 
 
   ```
+    
   
- 
-implement a "uiState" object on track models which hold currentTabIdx values for various tabs
-to keep recent state in tact when returning to a track
+  implement a "uiState" object on track models which hold currentTabIdx values for various tabs
+  to keep recent state in tact when returning to a track
+
+  - implement a "collapse" view on the track-controls tab of the footer
+  - - horizontally layout a track-control for each node side by side.
+  - - each node's column has a single track control and a vertical radio selector to choose which track-control is displayed
+
+  ```
+
+  [sampler]  [filter]   [lfo  ]    [adsr] 
+  [.][speed] [.][freq]  [.][freq] [.][attack] 
+  ```
+  - - The state of these views should be saved by the uiState object on the track model
+  - -  could be tricky to re-initiate a uiState when a user changes nodes. use node-order property to approximate
+
 
 ### Track Nodes
   - hover over node tabs to show cracked uuid and selectors
@@ -251,7 +264,7 @@ Implement `hasMany` sequence relationship on tracks, add UI to manage sequences.
   
   
   - custom url for files
-  - support a dropbox folder of samples
+  - support a dropbox folder of samples, or simply drag and drop into the source tab
   - need a pipeline to ingest new audio files:
     - create a SearchableFile record
     - upload to cloud storage (manage access permissions to gcloud storage)

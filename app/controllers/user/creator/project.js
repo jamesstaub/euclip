@@ -43,7 +43,6 @@ export default class UserCreatorProjectController extends Controller {
   @action
   revertName() {
     this.model.rollbackAttributes();
-    debugger
   }
 
   // TODO:

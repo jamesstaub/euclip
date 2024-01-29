@@ -31,7 +31,7 @@
         </div>
         <DropdownMenu
           class='flex-grow bg-transparent h-100 dark-fill bn'
-          @offsetY={{15}}
+          @closeOnSelect={{true}}
           @items={{array
             (hash label='delete' select=(fn this.deleteProject project))
           }}

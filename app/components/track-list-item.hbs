@@ -59,6 +59,7 @@
         {{#unless @track.isMaster}}
           <DropdownMenu 
             class="h-100 grow-1 {{if @isActive "dark-fill" "yellow-fill"}} bn bg-transparent"
+            @closeOnSelect={{true}}
             @items={{array 
               (hash label="delete" select=this.deleteTrack) 
               (hash label="duplicate" select=this.duplicateTrack) 

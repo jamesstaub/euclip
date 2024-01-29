@@ -9,7 +9,6 @@
 @import 'components/tab-menu.css';
 @import 'components/signal-chain.css';
 
-
 /* Custom properties */
 :root {
   --app-header-height: 4.2rem;

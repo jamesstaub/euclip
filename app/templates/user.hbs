@@ -2,8 +2,7 @@
   {{#if this.session.isAuthenticated}}
     <DropdownMenu
       class='pv2 bg-transparent bn'
-      @offsetX={{-18}}
-      @offsetY={{16}}
+      @closeOnSelect={{true}}
       @items={{array (hash label='logout' select=(action 'invalidateSession'))}}
     >
       <span class='white mh2'>{{this.currentUser.user.username}}</span>

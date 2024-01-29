@@ -1,11 +1,21 @@
-{{!-- Example toast component --}}
-{{log "TOASTY"}}
-{{log this.notifications.notifications }}
-{{#each this.notifications.notifications as |notification|}}
-  <div class="{{notification.type}}">
+{{#each this.notifications.notifications as |notification idx|}}
+  <div
+    role='alert'
+    class='max-w-100 relative ph3 pv2 mb2 mw5
+      {{style-for-notification notification.type}}'
+  >
+
+    <IconButton
+      aria-label='Dismiss Notification'
+      class='dark-fill absolute top-0 right-0 bg-transparent light-fill bn z-2 pa2'
+      @icon='fi-cancel'
+      @iconWidth='12px'
+      @iconHeight='12px'
+      {{on 'click' (fn this.dismiss idx)}}
+    />
     <p>{{notification.message}}</p>
     {{#if notification.action}}
-      <IconButton class="bg-transparent light-fill bn z-2 pa3" @icon="fi-cancel" {{on "click" notification.action}} />
+      {{! TODO }}
     {{/if}}
   </div>
 {{/each}}

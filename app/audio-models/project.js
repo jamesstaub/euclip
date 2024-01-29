@@ -21,7 +21,6 @@ export default class ProjectAudioModel extends Model {
     this.disconnectAll();
     defineChannelStripMacro();
     this.masterTrack.setupAudioFromScripts();
-
     await this.downloadTrackSamples();
     this.orderedTracks.map((track) => track.setupAudioFromScripts());
     return this;

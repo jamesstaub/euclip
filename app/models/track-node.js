@@ -4,16 +4,8 @@ import { getCrackedNode, noiseNodes, synthNodes } from '../utils/cracked';
 import { computed } from '@ember/object';
 import { inject as service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
-import sampsToSecs from '../utils/samps-to-secs';
-import { isPresent } from '@ember/utils';
 
-export const defaultKit = [
-  '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CR8KBASS.mp3',
-  '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CRSNARE.mp3',
-  '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CROHH.mp3',
-  '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CR8KCLAV.mp3',
-  '/Roland/Roland%20CR-8000%20CompuRhythm/CR-8000%20Kit%2001/CRLOWTOM.mp3',
-];
+import { isPresent } from '@ember/utils';
 
 // TODO deprecate this and use the SoundFile instead
 export const FILE_LOAD_STATES = {
@@ -277,9 +269,7 @@ export default class TrackNodeModel extends Model {
         interfaceName: interfaceName[0],
         controlValue: defaultValue,
         // set default drum sample before so it's ready synchronously
-        controlStringValue:
-          interfaceName[0] == 'filepath' &&
-          defaultKit[this.track.get('order') % defaultKit.length],
+        controlStringValue: '',
         defaultValue,
         min,
         max,

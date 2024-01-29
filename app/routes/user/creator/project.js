@@ -1,7 +1,6 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import ProjectAdapter from '../../../adapters/project';
-import SoundFileModel from '../../../models/sound-file';
 
 export default class UserCreatorProjectRoute extends Route {
   @service store;
@@ -9,14 +8,18 @@ export default class UserCreatorProjectRoute extends Route {
 
   model({ slug }) {
     return this.store.queryRecord('project', {
-      slug,
+      slug: slug,
+      creatorId: this.paramsFor('user.creator').user_id,
       include: ProjectAdapter.projectIncludeParams,
     });
   }
 
+  // TODO: there was a bug where initSignalChain hung forever.
+  // add a loading indicator that resolves with afterModel
   async afterModel(project) {
     await this.downloadSilent();
-    return project.initSignalChain();
+    await project.initSignalChain();
+    return project;
   }
 
   setupController(controller, project) {
