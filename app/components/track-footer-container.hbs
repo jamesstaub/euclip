@@ -4,11 +4,13 @@
       class='relative flex justify-between flex-column bg-yellow footer-height'
     >
       <div class='flex overflow-hidden w-100 h-100'>
-        <ChannelStrip
-          @channelStripGainControl={{this.channelStripGainControl}}
-          @channelStripPannerControl={{this.channelStripPannerControl}}
-          @updateValue={{this.setControlValue}}
-        />
+        {{#if this.channelStripNode}}
+          <ChannelStrip
+            @channelStripGainControl={{this.channelStripGainControl}}
+            @channelStripPannerControl={{this.channelStripPannerControl}}
+            @updateValue={{this.setControlValue}}
+          />
+        {{/if}}
         {{! TODO:
           when filepath sidebar opens, set this menu
           to "source"

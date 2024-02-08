@@ -75,6 +75,9 @@ export default class NexusUi extends Modifier {
     }
   }
 
+  // TODO maybe it would be useful to use `this.clicked` in the event handler to determine if the value changed from
+  // user or set from the model
+  // https://github.com/nexus-js/ui/issues/218
   valueChanged(options) {
     // check boolean first
     if (options?.value === this._options?.value) {

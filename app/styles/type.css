@@ -75,3 +75,7 @@ table .name {
 .hover-underline:hover {
   text-decoration: underline;
 }
+
+.italic {
+  font-style: italic;
+}

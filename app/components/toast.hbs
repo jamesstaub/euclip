@@ -1,4 +1,6 @@
 {{#each this.notifications.notifications as |notification idx|}}
+  {{!-- FIXME: without this log the toast doesnt render :-(  --}}
+  {{log notification}} 
   <div
     role='alert'
     class='max-w-100 relative ph3 pv2 mb2 mw5
@@ -14,6 +16,7 @@
       {{on 'click' (fn this.dismiss idx)}}
     />
     <p>{{notification.message}}</p>
+
     {{#if notification.action}}
       {{! TODO }}
     {{/if}}

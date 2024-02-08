@@ -17,6 +17,7 @@ Mobile UI:
 ### Scripts
 BUG; if possible clear the "cmd-z"  undo state when changing tracks, since code mirror doesn't get re-initialized
 
+TODO: clear mouse_move handler on init signal chain
 
 #### scope + variables
 access to slider value in functions would effectively allow non-linear sliders
@@ -133,6 +134,51 @@ cracked.exec(
   - if an audio node fails to create (passed in bad parameters), it causes the whole track to disappear.
    there should be some instrumentation in place to check that intended nodes were created properly and if not handle it gracefully
 
+  - detect if the first node on a track is a source, a modulator or a processor and show a different track UI for each.
+  - - the "source" tab could change to "modulator" for LFOs
+
+
+  - investigate polysynth, maybe modify it to support multiple instantiations (currently trips on voice allocation)
+
+  ```
+  SETUP:::
+    __().polysynth({
+    lfo_type:"sine",
+    lfo_intensity:26,
+    lfo_speed:2,
+    osc_type:"sine",
+    osc_frequency:840,
+    osc_detune:0,
+    lp_q:0,
+    lp_frequency:1000,
+    adsr_envelope:.5,
+    gain_volume:1
+  })
+
+    .channelStrip()
+    .connect('#main-output')
+    .play() // important
+
+PLAY:::
+    let note = __.scales('minor')[(index) % 7] + 60\
+    const make = (n) => {
+      __.polysynth("noteOn", n); 
+      // DONOT call .play() in the loop step
+      // it will isntantiate new synth and mess up
+      // voice allocator
+      setTimeout(() => {
+        __.polysynth("noteOff", n, .1);
+      },100);
+    }
+
+    if (data) {
+      make(note);
+
+    } else {
+
+    }
+
+  ```
 ### Track Controls
 
 ## Model
@@ -201,6 +247,8 @@ cracked.exec(
 
 ### Sequences
 
+Master sequence should show pages for multisliders 
+
 Implement `hasMany` sequence relationship on tracks, add UI to manage sequences.
 
 - Refactor MultiSliderArray on The track control to be a new related model `ControlSequence`
@@ -249,7 +297,12 @@ Implement `hasMany` sequence relationship on tracks, add UI to manage sequences.
 ### Files
   bug: url parse error for path https://localhost:4200/v1/files/WAV%20hh+filterloops
 
-  
+  bug: API allows multiple filepath TrackControls for a given track, there's a race condition that results in 
+  the saved sound changing unexpectedly. the larger refactor of SoundFiles decoupled from tracks and implementation of AudioPool
+  should address this. (could potentially allow it but UI would need to make it clear and order them to prevent race condition)
+
+
+
   - drag and drop UI for local sounds
   
   - recently +  favorites used menus for files
@@ -286,6 +339,7 @@ Implement `hasMany` sequence relationship on tracks, add UI to manage sequences.
 
 ### bugs
 
+- channelStrip gain gets reset on play
 - Sequencer UI bug:
   stepIdx displays on the last step first when starts playing.
   refactor the stepIndex that gets passed into Control::Multislider and SequencePagination. should be logic in those components to not render the current step if the value is -1 and had just started playing

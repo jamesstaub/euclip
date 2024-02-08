@@ -1,10 +1,5 @@
 import Model from '@ember-data/model';
-import {
-  defineChannelStripMacro,
-  resetLoop,
-  startLoop,
-  stopLoop,
-} from '../utils/cracked';
+import { resetLoop, startLoop, stopLoop } from '../utils/cracked';
 
 /*
  *  base class for the project model
@@ -19,7 +14,6 @@ export default class ProjectAudioModel extends Model {
 
   async initSignalChain() {
     this.disconnectAll();
-    defineChannelStripMacro();
     this.masterTrack.setupAudioFromScripts();
     await this.downloadTrackSamples();
     this.orderedTracks.map((track) => track.setupAudioFromScripts());

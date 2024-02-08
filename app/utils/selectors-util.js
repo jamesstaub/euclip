@@ -1,4 +1,5 @@
-import ENV from 'euclip/config/environment';
+
+import { supportedAudioNodes } from './audio-node-config';
 
 export function selectorType(selector) {
   if (selector.startsWith('.')) {
@@ -9,7 +10,7 @@ export function selectorType(selector) {
     return 'id';
   }
 
-  if (ENV.APP.supportedAudioNodes.includes(selector)) {
+  if (supportedAudioNodes.includes(selector)) {
     return 'element';
   }
 

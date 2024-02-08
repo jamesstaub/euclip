@@ -3,10 +3,12 @@ import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import { inject as service } from '@ember/service';
 import { keepLatestTask, restartableTask, timeout } from 'ember-concurrency';
+import { defineChannelStripMacro } from '../../../utils/cracked';
 
 export default class UserCreatorProjectController extends Controller {
   @service router;
   @service media;
+  @service notifications;
   @tracked activeTrack;
   @tracked leftSidebarOpen;
   @tracked rightSidebarOpen;
@@ -15,6 +17,7 @@ export default class UserCreatorProjectController extends Controller {
   constructor() {
     super(...arguments);
     this.rightSidebarOpen = this.media.isDesktop;
+    defineChannelStripMacro();
   }
 
   async fetchAudioFileTrees(project) {
@@ -23,12 +26,31 @@ export default class UserCreatorProjectController extends Controller {
     tracks.forEach((track) => track.createAudioFileTree());
   }
 
+  async deleteTrack(track) {
+    const idx = this.sortedTracks.indexOf(track);
+
+    const isCurrentRoute =
+      this.router.currentRoute.name === 'user.creator.project.track' &&
+      this.router.currentRoute.params?.track_id === track.id;
+
+    if (isCurrentRoute && this.sortedTracks.length > 1) {
+      const nextRoute =
+        this.sortedTracks[idx - 1] || this.sortedTracks[idx + 1];
+      this.router.transitionTo('user.creator.project.track', nextRoute.id);
+    }
+
+    await track.destroyAndCleanup();
+
+    this.sortedTracks = [
+      ...this.sortedTracks.filter((t) => !t.isDeleted),
+    ].sortBy('order');
+  }
+
   @action
   transitionToTrack(id) {
-    this.router.transitionTo(
-      'user.creator.project.track',
-      this.model.tracks.findBy('id', id)
-    );
+    const trackTo = this.model.tracks.findBy('id', id);
+
+    trackTo && this.router.transitionTo('user.creator.project.track', trackTo);
   }
 
   @action
@@ -75,8 +97,11 @@ export default class UserCreatorProjectController extends Controller {
       // TODO: implement offline track creation if save fails
       // indicate with a global "saved" state to allow local changes
       // useful for mutliperson editing scenarios + modifying other users' projects
-      track.deleteRecord();
-      console.error('ERROR in createTrack:');
+      this.deleteTrack(track);
+      this.notifications.push({
+        type: 'error',
+        message: 'Error Creating Track',
+      });
       console.error(error);
     }
   }

@@ -7,6 +7,7 @@ import { unbindFromSequencer } from '../utils/cracked';
 import { inject as service } from '@ember/service';
 import { action } from '@ember/object';
 import { cached } from '@glimmer/tracking';
+import { SoundFileStates } from './sound-file';
 
 export default class TrackModel extends TrackAudioModel {
   @service store;
@@ -107,25 +108,31 @@ export default class TrackModel extends TrackAudioModel {
     );
   }
 
+  get fileDownloadError() {
+    const sf = this.store
+      .peekAll('sound-file')
+      .findBy('filePathRelative', this.filePathRelative);
+
+    return sf?.errorMessage;
+  }
+
   // TODO: Eventually move away from teh 1:1 track to filepath relationship
   //  a better interface would clearly indicate that each file corresponds to a sampler, not
   // the track itself
   get filePathRelative() {
     // silent.mp3 is used as a fallback so the sampler node is created successfully
     // it will have already been downloaded on project load
-    return (
-      this.samplerFilepathControl?.controlStringValue ||
-      '/assets/audio/silent.mp3'
-    );
+    return this.samplerFilepathControl?.controlStringValue;
   }
 
   // This getter is called on every beat of the sequencer
   @cached
   get downloadedFilepath() {
-    const sf = this.store
-      .peekAll('sound-file')
-      .findBy('filePathRelative', this.filePathRelative);
-
+    const soundFiles = this.store.peekAll('sound-file');
+    let sf = soundFiles.findBy('filePathRelative', this.filePathRelative);
+    if (!sf || sf.state === SoundFileStates.ERROR) {
+      sf = soundFiles.findBy('filePathRelative', '/assets/audio/silent.mp3');
+    }
     return sf.downloadedURI;
   }
 

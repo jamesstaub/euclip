@@ -449,8 +449,12 @@ export default class TrackControlModel extends Model {
           return false;
         }
 
-        if (trackControl.get('trackNode.nodeType') == 'channelStrip') {
-          return false;
+        // TODO: separate this method due to different use cases for
+        // the onstep process vs interaction setting sliders
+        if (sequence) {
+          if (trackControl.get('trackNode.nodeType') == 'channelStrip') {
+            return false;
+          }
         }
 
         if (trackControl.nodeType !== trackControl.trackNode.nodeType) {
@@ -464,7 +468,6 @@ export default class TrackControlModel extends Model {
         // if the trackControl is a multislider, and this update is called
         // from the onstepcallback, only apply the value if the stepIndex has a value
         if (sequence && trackControl.isMultislider && sequence[index] == 0) {
-          // FIXME, thios seems to cause a bug and not work in
           return !trackControl.applyHitsOnly;
         }
 

@@ -53,10 +53,12 @@
 
   <div class='flex'>
     {{#if @scriptModel.alert}}
-      <p
-        class='bg-dark-red pa3 mv2 white w-100'
-        data-track={{@scriptModel.track.order}}
-      >{{@scriptModel.alert}}</p>
+      <div class='bg-dark-red pa3 mv2 white w-100'>
+        <p
+          data-track={{@scriptModel.track.order}}
+        >{{@scriptModel.alert}}</p>
+        <p class="f7">see console for more</p>
+      </div>
     {{/if}}
 
     {{#if this.illegalTokens}}

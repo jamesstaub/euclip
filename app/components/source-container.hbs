@@ -16,13 +16,12 @@
         {{/if}}
       {{/each}}
     </h3>
-    <span class="">
-      Coming soon: slicing and more playback control! 
+    <span class='mh3'>
+      Coming soon: slicing and more playback control!
     </span>
     {{#if @showReference}}
       {{yield}}
     {{else}}
-
       {{#if @track.sourceNodeRecords.length}}
         <ul class='flex items-center mv0 ml2 pa0 list f7'>
           {{#each @track.samplerFilepathControl.pathSegments as |directory|}}
@@ -39,13 +38,16 @@
             {{/if}}
           {{/each}}
         </ul>
+        {{#if @track.fileDownloadError}}
+          <div class="red bg-dark-gray pa3 mh3">
+            <p>Error Downloading {{@track.samplerFilepathControl.pathSegments.lastObject}}</p>
+            <p>{{@track.fileDownloadError}}</p>
+          </div>
+        {{/if}}
       {{else}}
-        <p>There are no source nodes defined on this track</p>
+        <p class="light-gray bg-dark-gray pa3 mh3 mv0">There are no source nodes defined on this track</p>
       {{/if}}
       {{#each @track.samplerNativeBuffers as |buffer|}}
-        
-        {{log 'buffer' buffer}}
-        
         {{#if buffer}}
           <canvas
             class='ba bw1 ml3 w6 h-50 pointer-none'

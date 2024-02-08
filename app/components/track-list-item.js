@@ -5,23 +5,25 @@ import { inject as controller } from '@ember/controller';
 
 export default class TrackListItemComponent extends Component {
   @service router;
-  @controller('user.creator.project') project;
+  @service store;
+  @controller('user.creator.project') projectController;
 
   get showFilePicker() {
     return !!this.args.track.samplerNodes?.length;
   }
 
   @action
-  deleteTrack() {
-    this.args.track.destroyAndCleanup();
+  async deleteTrack() {
+    this.projectController.deleteTrack(this.args.track);
   }
 
   @action
   async duplicateTrack() {
     const track = await this.args.track.duplicate();
-    this.project.sortedTracks = [...this.project.sortedTracks, track].sortBy(
-      'order'
-    );
+    this.projectController.sortedTracks = [
+      ...this.projectController.sortedTracks,
+      track,
+    ].sortBy('order');
   }
 
   @action

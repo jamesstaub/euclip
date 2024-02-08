@@ -1,9 +1,11 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import ProjectAdapter from '../../../adapters/project';
+import { SoundFileStates } from '../../../models/sound-file';
 
 export default class UserCreatorProjectRoute extends Route {
   @service store;
+  @service notifications;
   @service router;
 
   model({ slug }) {
@@ -24,6 +26,7 @@ export default class UserCreatorProjectRoute extends Route {
 
   setupController(controller, project) {
     controller.fetchAudioFileTrees(project);
+
     controller.setProperties({
       activeTrack: project.tracks[0],
       model: project,
@@ -55,5 +58,13 @@ export default class UserCreatorProjectRoute extends Route {
       filePathRelative: '/assets/audio/silent.mp3',
     });
     await sf.afterCreate();
+
+    if (sf.state === SoundFileStates.ERROR) {
+      this.notifications.push({
+        message:
+          'Failed to download fallback audio. Samplers may not work as expected.',
+        type: 'error',
+      });
+    }
   }
 }

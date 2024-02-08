@@ -3,7 +3,7 @@ import { tracked } from '@glimmer/tracking';
 import { waitForProperty } from 'ember-concurrency';
 import ENV from 'euclip/config/environment';
 
-const SoundFileStates = {
+export const SoundFileStates = {
   INIT: 'init',
   DOWNLOADING: 'downloading',
   DOWNLOADED: 'downloaded',
@@ -22,7 +22,11 @@ export default class SoundFileModel extends Model {
   @attr('string')
   filePathRelative; // the path without a root, matching the search endpoint results
 
-  @attr('string') downloadedURI; // the local url of the downloaded file
+  @attr('string')
+  errorMessage;
+
+  @attr('string')
+  downloadedURI; // the local url of the downloaded file
 
   @attr('number', {
     defaultValue() {
@@ -48,8 +52,8 @@ export default class SoundFileModel extends Model {
       this.downloadedURI = uri;
       this.transitionToState(SoundFileStates.DOWNLOADED);
     } catch (error) {
-      console.error(error);
-      this.transitionToState(SoundFileStates.ERROR);
+      // TOOD: trace where to pass the download error to user
+      this.transitionToState(SoundFileStates.ERROR, { error });
     }
   }
 
@@ -62,20 +66,20 @@ export default class SoundFileModel extends Model {
     // some other input from the user.
     // the API can provide different roots for development vs production
     // the sound file record should have unique root/filepath pairs
+
     const url = filePathRelative?.startsWith('/assets/')
       ? filePathRelative
       : `${ENV.APP.DRUMMACHINES_PATH}${filePathRelative}`;
 
     if (!url) throw new Error('No url provided to create sound file');
 
-    return await fetch(url)
-      .then((res) => res.blob()) // Gets the response and returns it as a blob
-      .then((blob) => {
-        return URL.createObjectURL(blob);
-      })
-      .catch((err) => {
-        throw err;
-      });
+    const response = await fetch(url);
+    const blob = await response.blob();
+    if (blob.type === 'audio/mpeg') {
+      return URL.createObjectURL(blob);
+    } else {
+      throw `Audio File Not Found at ${url}`;
+    }
   }
 
   static async findOrDownload(filePathRelative, store) {
@@ -96,6 +100,8 @@ export default class SoundFileModel extends Model {
       });
       await soundFile.afterCreate();
     }
+
+    return soundFile;
   }
 
   // TODO:
@@ -109,7 +115,8 @@ export default class SoundFileModel extends Model {
     }
   }
 
-  transitionToState(newState) {
+  transitionToState(newState, data) {
     this.state = newState;
+    this.errorMessage = data?.error;
   }
 }

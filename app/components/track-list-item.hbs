@@ -1,72 +1,71 @@
 {{!-- template-lint-disable no-invalid-interactive --}}
-{{#if @track.trackNodes}}
-  <div 
-    class="pointer {{if @track.isMaster "pl4 pr2" "pl3"}} bb b--silver {{if @isActive "bg-yellow" "bg-dark-gray hover-bg-near-black"}}" 
-    {{on "click" @selectActiveTrack}}
-    ...attributes
-  >
-    <div class="relative flex items-center justify-between overflow-hidden pr3">
-      <span class="f3 code {{unless @isActive "yellow"}}">{{@track.order}}</span>
-      <div class="flex items-center justify-between overflow-hidden grow-0 shrink-0">
-        {{#if @track.isMaster}}
-          <p class="truncate tc pv2 ph3 ml2 f6 ttu bg-dark-gray yellow ba bw1 b--yellow w4 f7">Main Output</p>
-          {{#if @track.nodeToVisualize}}
-            <div class="overflow-hidden">
-              <Oscilloscope class="ml3 pl1" @id={{concat @track.id 'scope'}} @isActive={{@isActive}} @node={{@track.nodeToVisualize}} @fill="#333333" @accent="#52ebff" />
-            </div>
-          {{/if}}
-        {{/if}}
-        
-        {{#if this.showFilePicker}}
-          <SourceSelectButton
-            @samplerFilepathControl={{@track.samplerFilepathControl}} 
-            @onToggleFilePicker={{@onToggleFilePicker}} 
-          />
-        {{else}}
-          {{#unless @track.isMaster}}
-            <p class="tc w4 ma2 {{unless @isActive "light-gray"}}">
-              {{#if @track.sourceNodeRecords.firstObject}}
-                {{@track.sourceNodeRecords.firstObject.nodeType}}
-              {{else}}
-                <span {{on "click" @onToggleScripts}} class="f6 pa1">No Source Node</span>
-              {{/if}}
-            </p>
-          {{/unless}}
-        {{/if}}
-        
-      </div>
 
-      {{yield}}
-
-      <div class="overflow-hidden grow-1 basis-auto">
-        {{#if (and (not @track.isMaster) @track.currentSequence.sequence)}}
-          <TrackSequencer 
-            @sequence={{@track.currentSequence.sequence}}
-            @stepIndex={{@track.stepIndex}}
-            @onClickStep={{this.updateTrackSequence}}
-            @isCurrentTrack={{@isActive}}
-          />
+<div 
+  class="pointer {{if @track.isMaster "pl4 pr2" "pl3"}} bb b--silver {{if @isActive "bg-yellow" "bg-dark-gray hover-bg-near-black"}}" 
+  {{on "click" @selectActiveTrack}}
+  ...attributes
+>
+  <div class="relative flex items-center justify-between overflow-hidden pr3">
+    <span class="f3 code {{unless @isActive "yellow"}}">{{@track.order}}</span>
+    <div class="flex items-center justify-between overflow-hidden grow-0 shrink-0">
+      {{#if @track.isMaster}}
+        <p class="truncate tc pv2 ph3 ml2 f6 ttu bg-dark-gray yellow ba bw1 b--yellow w4 f7">Main Output</p>
+        {{#if @track.nodeToVisualize}}
+          <div class="overflow-hidden">
+            <Oscilloscope class="ml3 pl1" @id={{concat @track.id 'scope'}} @isActive={{@isActive}} @node={{@track.nodeToVisualize}} @fill="#333333" @accent="#52ebff" />
+          </div>
         {{/if}}
-      </div>
-      <div class="grow-0 shrink-0 flex items-center h-100 {{if @rightSidebarOpen "absolute right-0"}}">
-        <ShowScriptBtn
-          @rightSidebarOpen={{@rightSidebarOpen}}
-          @isActive={{@isActive}}
-          @onToggleScripts={{@onToggleScripts}}
-          @track={{@track}}
+      {{/if}}
+      
+      {{#if this.showFilePicker}}
+        <SourceSelectButton
+          @samplerFilepathControl={{@track.samplerFilepathControl}} 
+          @fileError={{@track.fileDownloadError}}
+          @onToggleFilePicker={{@onToggleFilePicker}}
         />
-
+      {{else}}
         {{#unless @track.isMaster}}
-          <DropdownMenu 
-            class="h-100 grow-1 {{if @isActive "dark-fill" "yellow-fill"}} bn bg-transparent"
-            @closeOnSelect={{true}}
-            @items={{array 
-              (hash label="delete" select=this.deleteTrack) 
-              (hash label="duplicate" select=this.duplicateTrack) 
-            }}
-          />
+          <p class="tc w4 ma2 {{unless @isActive "light-gray"}}">
+            {{#if @track.sourceNodeRecords.firstObject}}
+              {{@track.sourceNodeRecords.firstObject.nodeType}}
+            {{else}}
+              <span {{on "click" @onToggleScripts}} class="f6 pa1">No Source Node</span>
+            {{/if}}
+          </p>
         {{/unless}}
-      </div>
+      {{/if}}
+    </div>
+
+    {{yield}}
+
+    <div class="overflow-hidden grow-1 basis-auto">
+      {{#if (and (not @track.isMaster) @track.currentSequence.sequence)}}
+        <TrackSequencer 
+          @sequence={{@track.currentSequence.sequence}}
+          @stepIndex={{@track.stepIndex}}
+          @onClickStep={{this.updateTrackSequence}}
+          @isCurrentTrack={{@isActive}}
+        />
+      {{/if}}
+    </div>
+    <div class="grow-0 shrink-0 flex items-center h-100 {{if @rightSidebarOpen "absolute right-0"}}">
+      <ShowScriptBtn
+        @rightSidebarOpen={{@rightSidebarOpen}}
+        @isActive={{@isActive}}
+        @onToggleScripts={{@onToggleScripts}}
+        @track={{@track}}
+      />
+
+      {{#if (not (or @track.isSaving @track.isDestroying))}}
+        <DropdownMenu 
+          class="h-100 grow-1 {{if @isActive "dark-fill" "yellow-fill"}} bn bg-transparent"
+          @closeOnSelect={{true}}
+          @items={{array 
+            (hash label="delete" select=this.deleteTrack) 
+            (hash label="duplicate" select=this.duplicateTrack) 
+          }}
+        />
+      {{/if}}
     </div>
   </div>
-{{/if}}
+</div>

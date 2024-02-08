@@ -42,7 +42,8 @@
       }}
       type='button'
       {{on 'click' this.toggleConfig}}
-      {{on-key 'Escape' this.close event='keydown'}}
+      {{!-- TODO: create an on-escape-if-focused modifier --}}
+      {{!-- {{on-key 'Escape' this.close event='keydown'}} --}}
     >
       {{svg-jar 'fi-dots' class='h2 scale-7' width='16px' height='40px'}}
 

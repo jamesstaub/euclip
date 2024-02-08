@@ -19,6 +19,7 @@ import TrackNodeModel, { FILE_LOAD_STATES } from '../models/track-node';
 import { isPresent } from '@ember/utils';
 import TrackControlModel from '../models/track-control';
 import SoundFileModel from '../models/sound-file';
+import { supportedAudioNodes } from '../utils/audio-node-config';
 
 export default class TrackAudioModel extends Model.extend(Evented) {
   @service store;
@@ -49,7 +50,10 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // else create a new sound-file record
     // track nodes will look for a matching sound-file record to associate to
     if (!this.filePathRelative) return;
-    await SoundFileModel.findOrDownload(this.filePathRelative, this.store);
+    return await SoundFileModel.findOrDownload(
+      this.filePathRelative,
+      this.store
+    );
   }
 
   setupAudioFromScripts(unbindBeforeCreate = true) {
@@ -72,7 +76,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       // if the user creates a sampler with a filepath different than this.filepath
       // then try to dynamically set the filepath track-control to match
       // this will ensure it gets downloaded at the right time
-
       const nodeSettings = {};
       const uuid = node.getUUID();
       nodeSettings[uuid] = type;
@@ -83,7 +86,12 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         ? __._getNode(node.getMacroContainerUUID())
         : null;
 
-      if (ENV.APP.supportedAudioNodes.indexOf(type) > -1) {
+
+
+      const shouldCreateTrackNode =
+        __.isFun(cracked[type]) && !node.getMacroContainerUUID();
+
+      if (shouldCreateTrackNode) {
         // add a track-specific class to every node created so it can be
         // easily selected and properly cleaned up. addCustomSelector sets these in
         // the Cracked store
@@ -105,7 +113,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
             if (this.trackNodes && trackNode) {
               if (buffer) {
                 trackNode.fileLoadState = FILE_LOAD_STATES.SUCCESS;
-
                 trackNode.setSamplerControlsToBuffer(buffer);
               }
               if (error) {
@@ -137,7 +144,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // Destroy all TrackNode records for this track, they'll be recreated from the latest update to the AudioNode tree
     this.trackNodes.forEach((trackNode) => this.store.unloadRecord(trackNode));
 
-    let trackNodes = this.findOrCreateTrackNodeRecords();
+    let trackNodes = this.createTrackNodeRecords();
 
     trackNodes = this.applyOrderOfType(trackNodes);
 
@@ -190,7 +197,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
   }
 
   /**
-   * find-or-create TrackNode records for each audio node object
+   * create TrackNode records for each audio node object
    * created on this track
    *
    * this method assumes that cracked audio nodes (which are wrappers around web audio AudioNode objects) were created by the script,
@@ -200,7 +207,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
    * TrackControls however, get created on the server, and returned to the client where they are associated with the TrackNode records
    
    */
-  findOrCreateTrackNodeRecords() {
+  createTrackNodeRecords() {
     // map over audio node objects created in this track's script
     // to create corresponding trackNode model records
     this.settingsForNodes
@@ -214,6 +221,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         if (getCrackedNode(uuid)) {
           // grab the attributes passed in to the initialization of a cracked node that will be used to set default state of track controls (eg. frequency, gain, speed etc.)
           const userSettingsForControl = filterNumericAttrs(node.userSettings);
+
           let trackNodeAttrs = {
             nodeUUID: uuid, // always update uuid since the audio nodes will be new every time
             nodeType: type,

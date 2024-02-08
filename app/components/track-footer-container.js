@@ -36,15 +36,19 @@ export default class TrackFooterContainerComponent extends Component {
    * Optimize: these getters get called on every step of sequence
    * In all likelyhood they only need to be re-fetched when the script is updated
    * */
+  get channelStripNode() {
+    return TrackNodeModel.channelStripNode(this.args.track);
+  }
+
   get channelStripGainControl() {
-    return TrackNodeModel.channelStripNode(this.args.track)
-      ?.trackControls.toArray()
+    return this.channelStripNode?.trackControls
+      .toArray()
       .findBy('nodeAttr', 'gain');
   }
 
   get channelStripPannerControl() {
-    return TrackNodeModel.channelStripNode(this.args.track)
-      ?.trackControls.toArray()
+    return this.channelStripNode?.trackControls
+      .toArray()
       .findBy('nodeAttr', 'pan');
   }
 

@@ -45,6 +45,7 @@ export default class ScriptModel extends Model {
       this.alert = null;
       this.functionRef(...arguments);
     } catch (e) {
+      console.error(`Problem Running Script on Track ${this.track.order}`, e);
       this.onScriptError(e, 'Problem Running Script:');
     }
   }
@@ -57,7 +58,7 @@ export default class ScriptModel extends Model {
     project.stopLoop().resetLoop();
 
     await timeout(100); // hack to avoid double render
-    this.alert = `${type} ${e.message || e}`;
+    this.alert = `${type} ${e.message || e}`; // ${e.stack}`;
   }
 
   /**
@@ -91,6 +92,10 @@ export default class ScriptModel extends Model {
     this[property] = value;
     if (property === 'editorContent') {
       yield timeout(1000); // debounce while typing, not other updates
+    }
+
+    if (this.isDeleted) {
+      return;
     }
     yield this.save();
   }

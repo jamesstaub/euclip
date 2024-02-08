@@ -54,6 +54,9 @@ export default class TrackNodeModel extends Model {
     return getCrackedNode(this.nodeUUID);
   }
 
+  // TODO/INFO rename and clarify this: 
+  // fileloadstate is a property on the track node that indeicates the buffer was initialized with a file
+  // different than state of file downloading
   get sampleIsLoaded() {
     return this.fileLoadState == FILE_LOAD_STATES.SUCCESS;
   }

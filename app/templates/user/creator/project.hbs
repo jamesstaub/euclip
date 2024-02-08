@@ -82,7 +82,7 @@
       (and this.leftSidebarOpen this.activeTrack (not this.activeTrack.isDeleted))
     }}
       <SidebarWrapper
-        class='h-100 bw2 br b--yellow'
+        class='bw2 br b--yellow'
         @direction='left'
         @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id 'left'}}
       >
@@ -100,7 +100,6 @@
           </InfoBox>
         </div>
         {{#if (and this.activeTrack this.activeTrack.audioFileTreeModel)}}
-          {{log this.activeTrack.audioFileTreeModel}}
           <DrumFilePicker
             @audioFileTreeModel={{this.activeTrack.audioFileTreeModel}}
             @track={{this.activeTrack}}

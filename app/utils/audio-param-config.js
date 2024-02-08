@@ -52,17 +52,6 @@ const PATH = 'Path';
 const boolean = { [BOOL]: {} };
 
 /* Seconds */
-const sToS = {
-  label: S,
-};
-const msToS = {
-  label: MS,
-  func: (ms) => ms / 1000,
-};
-const loopstepsToS = {
-  label: LOOPSTEPS,
-  func: (b, { intervalMs }) => (b * intervalMs) / 1000,
-};
 
 const seconds = {
   [S]: {
@@ -82,8 +71,8 @@ const seconds = {
   [LOOPSTEPS]: {
     func: (b, { intervalMs }) => (b * intervalMs) / 1000,
     min: 0,
-    max: 4, // TODO dynamically set from sequence length
-    stepSize: 1,
+    max: 2, // TODO dynamically set from sequence length
+    stepSize: 0.25,
     defaultValue: 0,
   },
 };
@@ -103,15 +92,6 @@ const delaySeconds = dm(seconds, {
 });
 
 /* Amplitude */
-const aToa = {
-  label: AMP,
-};
-
-const dbToa = {
-  label: DB,
-  func: (db) => Math.pow(10, db / 20),
-};
-
 const amplitude = {
   [AMP]: {
     func: (a) => a,
@@ -144,24 +124,6 @@ const damping = dm(amplitude, {
 });
 
 /* Speed / PlaybackRate */
-const rateToRate = {
-  label: RATE,
-};
-
-const halfstepsToRate = {
-  label: HALFSTEPS,
-  func: (steps) => Math.pow(2, steps / 12),
-};
-
-const centToRate = {
-  label: CENTS,
-  func: (cents) => Math.pow(2, cents / 1200),
-};
-
-const loopstepsToRate = {
-  label: LOOPSTEPS,
-  func: (b, { intervalMs }) => Math.pow(2, (b * intervalMs) / 1200),
-};
 
 const speed = {
   [RATE]: {
@@ -186,8 +148,6 @@ const speed = {
     defaultValue: 0,
   },
   [LOOPSYNC]: {
-    // the loopsteps function fro rate should look at the intervalMs and the sampleLenSec which is the milliseconds per beat of the loop.
-    // when the input is 1, the loop should last 1 beat, when the input is 2 the loop should last 2 beats (ie. it should be slower, lower rate)
     func: (input, { intervalMs, sampleLenSec, seqSteps }) => {
       if (!sampleLenSec) {
         console.warn(
@@ -211,19 +171,6 @@ const speed = {
 };
 
 /* Frequency */
-const hzToHz = {
-  label: HZ,
-};
-
-const halfstepsToHz = {
-  label: HALFSTEPS,
-  func: (steps) => cracked.pitch2freq(steps),
-};
-
-const centToHz = {
-  label: CENTS,
-  func: (cents) => cracked.pitch2freq(cents / 100),
-};
 
 const frequency = {
   [HZ]: {
@@ -303,9 +250,10 @@ const lfoFrequency = dm(frequency, {
     stepSize: 0.1,
     defaultValue: 1,
   },
+  // TODO replace halfsteps with LOOPSTEPS for LFO
   [HALFSTEPS]: {
     min: 0,
-    max: 127,
+    max: 24,
     stepSize: 1,
     defaultValue: 10,
   },
@@ -319,15 +267,6 @@ const lfoFrequency = dm(frequency, {
 
 /* Time */
 // percent of current sample length to seconds
-const pctToS = {
-  label: PRCNT,
-  func: (pct, { sampleLenSec }) => pct * sampleLenSec,
-};
-
-const loopStepToS = {
-  label: LOOPSTEPS,
-  func: (b, { intervalMs }) => (b * intervalMs) / 1000,
-};
 
 const channels = {
   label: 'Channels',
@@ -368,10 +307,6 @@ export const unitOptionsForNode = {
   path: [PATH],
   pan: [PAN],
 };
-
-// TODO finish this datastructure and phase out the above unitTransformsForNodeAttr
-// use defaultNodeParamsByUnit for track-control creation as well as assignments
-// when toggling unit type.
 
 // each of these node params should have a merge object with specific min/max/step/default values
 export const defaultNodeParamsByUnit = {
