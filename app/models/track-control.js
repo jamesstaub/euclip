@@ -3,13 +3,11 @@ import { isArray } from '@ember/array';
 import {
   timeout,
   waitForProperty,
-  keepLatestTask,
   task,
   restartableTask,
 } from 'ember-concurrency';
 
 import { isPresent } from '@ember/utils';
-
 import { setProperties } from '@ember/object';
 
 import {
@@ -67,10 +65,6 @@ export default class TrackControlModel extends Model {
   @attr('number') controlValue; // number value of control
   @attr('boolean') applyHitsOnly; // TODO: move to a MultisliderControl subclass
 
-  // TODO: move this to a subclass for FilepathControl
-  @attr('string')
-  controlStringValue; // value of control for string attributes
-
   @attr() controlArrayValue;
 
   get controlArrayComputed() {
@@ -117,27 +111,6 @@ export default class TrackControlModel extends Model {
       return false;
     }
     return this.interfaceName === 'multislider';
-  }
-
-  // TODO these getters could maybe be on a subclass since everything is mostly built for float and float array controls
-  // strings are a special case for sampler file paths only
-
-  get isFilepath() {
-    return this.nodeType === 'sampler' && this.nodeAttr === 'path';
-  }
-
-  get pathSegments() {
-    if (this.isFilepath && this.controlStringValue) {
-      return this.controlStringValue.replace(/%20/g, ' ').split('/');
-    }
-    return [];
-  }
-
-  get filename() {
-    if (this.pathSegments?.length) {
-      return this.pathSegments[this.pathSegments.length - 1].split('.')[0];
-    }
-    return '';
   }
 
   // Ordered array if unit names for this control
@@ -212,9 +185,6 @@ export default class TrackControlModel extends Model {
       const stepValue = this.controlArrayComputed[index];
       if (!isNaN(stepValue)) return this.transformCurrentUnit(stepValue);
     } else {
-      if (this.controlStringValue) {
-        return this.controlStringValue;
-      }
       if (!isNaN(this.controlValue)) {
         return this.transformCurrentUnit(this.controlValue);
       }
@@ -291,8 +261,8 @@ export default class TrackControlModel extends Model {
     const isNumber = !isNaN(value);
 
     if (isNumber) {
-      this.set('min', Math.min(min, value));
-      this.set('max', Math.max(max, value));
+      this.min = Math.min(min, value);
+      this.max = Math.max(max, value);
     }
 
     // if the value is not evenly divisible by the step size, update the step size
@@ -320,7 +290,7 @@ export default class TrackControlModel extends Model {
         Math.min(divisorForIntegers, divisorForDecimals)
       );
 
-      this.set('stepSize', newStepSize);
+      this.stepSize = newStepSize;
     }
   }
 
@@ -328,10 +298,10 @@ export default class TrackControlModel extends Model {
   // is within their range.
   setMinMaxByDefault() {
     if (this.defaultValue > this.max) {
-      this.set('max', this.defaultValue);
+      this.max = this.defaultValue;
     }
     if (this.defaultValue < this.min) {
-      this.set('min', this.defaultValue);
+      this.min = this.defaultValue;
     }
   }
 
@@ -439,7 +409,6 @@ export default class TrackControlModel extends Model {
 
   // Loop over a list of trackControls an return an array of
   // attr objects for each trackNode.
-
   static getAttrsForNodes(trackControls, index, sequence) {
     return trackControls
       .filter((trackControl) => {
@@ -495,20 +464,6 @@ export default class TrackControlModel extends Model {
   }
 
   get defaultInterfaceName() {
-    if (this.nodeAttr === 'path') return 'filepath';
     return 'slider';
-  }
-
-  static async createDefaultFilepathControl(track) {
-    const trackControl = track.store.createRecord('track-control', {
-      nodeAttr: 'path',
-      track: track,
-      trackNode: null,
-      nodeType: 'sampler',
-      nodeOrder: -1,
-      interfaceName: 'filepath',
-    });
-    await trackControl.saveTrackControl.perform();
-    return trackControl;
   }
 }

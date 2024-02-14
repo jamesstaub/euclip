@@ -6,6 +6,7 @@ import { inject as service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 
 import { isPresent } from '@ember/utils';
+import FilepathControlModel from './filepath-control';
 
 // TODO deprecate this and use the SoundFile instead
 export const FILE_LOAD_STATES = {
@@ -20,6 +21,8 @@ export default class TrackNodeModel extends Model {
   @belongsTo('track', { async: false, inverse: 'trackNode' }) track;
   @hasMany('track-control', { async: false, inverse: 'trackNode' })
   trackControls;
+  @hasMany('filepath-control', { async: false, inverse: 'trackNode' })
+  filepathControls;
 
   @attr('string') userDefinedInterfaceName;
   @attr('string') userSettingsForControl;
@@ -54,7 +57,7 @@ export default class TrackNodeModel extends Model {
     return getCrackedNode(this.nodeUUID);
   }
 
-  // TODO/INFO rename and clarify this: 
+  // TODO/INFO rename and clarify this:
   // fileloadstate is a property on the track node that indeicates the buffer was initialized with a file
   // different than state of file downloading
   get sampleIsLoaded() {
@@ -76,12 +79,12 @@ export default class TrackNodeModel extends Model {
    * Convenience getter to find the TrackControl record for a sampler node's path attribute
    */
   get samplerFilepathControl() {
-    return this.trackControls.find((trackControl) => trackControl.isFilepath);
+    return this.filepathControls.sortBy('nodeOrder')[0];
   }
 
   get oneDimensionalControls() {
     return this.trackControls.filter(
-      (trackControl) => !(trackControl.isMultislider || trackControl.isFilepath)
+      (trackControl) => !trackControl.isMultislider
     );
   }
 
@@ -101,17 +104,25 @@ export default class TrackNodeModel extends Model {
   // TODO: simulate throwing an error from the method
   // and try to load a project from the /my-projects route
   // handle error better so it doesnt get stuck
-  static validateControls(trackControls, nodeType) {
+  static validateControls(nodeControlRecords, nodeType) {
     const attrs = AudioNodeConfig[nodeType]?.attrs;
     // no attrs provided
     if (!attrs) return true;
-
     const controlAttrs = Object.keys(AudioNodeConfig[nodeType]?.attrs);
-    return controlAttrs.every((controlAttr) =>
-      trackControls.find(
+
+    return controlAttrs.every((controlAttr) => {
+      if (controlAttr === 'path') {
+        return nodeControlRecords.find((nodeControlRecord) => {
+          return (
+            nodeControlRecord instanceof FilepathControlModel &&
+            isPresent(nodeControlRecord.controlValue)
+          );
+        });
+      }
+      return nodeControlRecords.find(
         (trackControl) => trackControl.nodeAttr === controlAttr
-      )
-    );
+      );
+    });
   }
 
   static channelStripNode(track) {
@@ -235,6 +246,20 @@ export default class TrackNodeModel extends Model {
   findOrCreateTrackControls() {
     // get default attributes for node
     const controlAttrs = Object.keys(AudioNodeConfig[this.nodeType]?.attrs);
+
+    // first handle `path` attr, the only string-valued control
+    if (controlAttrs.indexOf('path') > -1) {
+      // if it doesn't exist in the store, create and push to track model.
+      // doesn't get saved to server until a filepath is actually selected
+      FilepathControlModel.findOrCreateWith({
+        track: this.track,
+        trackNode: this,
+      });
+
+      // remove it from the list so the controlAttrs loop is for numeric track controls only
+      controlAttrs.splice(controlAttrs.indexOf('path'), 1);
+    }
+
     if (!controlAttrs.map) {
       console.error('Node type not supported');
       return;
@@ -244,6 +269,8 @@ export default class TrackNodeModel extends Model {
     //  before the script runs because we want it to be ready to go
     // so it gets special treatment here
     const existingTrackControls = this.track.get('trackControls').toArray();
+    // TODO: MOve this to a static method on track control
+    // and use audio-param-config instead of `defaultParams`
     return controlAttrs.map((controlAttr) => {
       let defaultForAttr = {};
 
@@ -271,8 +298,6 @@ export default class TrackNodeModel extends Model {
         nodeOrder: this.order,
         interfaceName: interfaceName[0],
         controlValue: defaultValue,
-        // set default drum sample before so it's ready synchronously
-        controlStringValue: '',
         defaultValue,
         min,
         max,

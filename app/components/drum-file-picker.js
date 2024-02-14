@@ -8,6 +8,7 @@ import AudioFileTreeModel from '../models/audio-file-tree';
 import { tracked } from '@glimmer/tracking';
 import { restartableTask, timeout } from 'ember-concurrency';
 import SoundFileModel from '../models/sound-file';
+import FilepathControlModel from '../models/filepath-control';
 
 export default class DrumFilePicker extends Component {
   @service store;
@@ -36,19 +37,20 @@ export default class DrumFilePicker extends Component {
 
   async saveFilepathControl(filepath) {
     await SoundFileModel.findOrDownload(filepath, this.store);
-
     const track = await this.args.track;
-    // TODO find a betterplace to createDefaultFilepathControl if it doersn' exist
-    const filepathControl = track.get('samplerFilepathControl');
-    if (!filepathControl) {
-      console.error(
-        'Tried to save a file but no TrackControl exists for filepath'
-      );
+    const filepathControl = FilepathControlModel.findOrCreateWith({
+      track,
+      trackNode: track.samplerNodes[0],
+      controlValue: filepath,
+    });
+
+    try {
+      await filepathControl.save();
+    } catch (error) {
+      console.error('Error saving filepath control: ', error);
     }
 
-    filepathControl.set('controlStringValue', filepath);
     track.setupAudioFromScripts();
-    filepathControl.save();
   }
 
   @action

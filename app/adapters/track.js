@@ -11,7 +11,7 @@ export default class TrackAdapter extends ApplicationAdapter {
     )}/tracks?include=${this.trackIncludeParams}`;
     if (snapshot.adapterOptions?.duplicateId) {
       // when duplicating a track, we'll need to include the duplicated track-controls in the response
-      let includes = `track-controls`;
+      let includes = `track-controls,filepath-controls`;
       url = `${url},${includes}&duplicateId=${snapshot.adapterOptions?.duplicateId}`;
     }
     return url;

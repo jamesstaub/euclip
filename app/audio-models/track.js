@@ -19,7 +19,7 @@ import TrackNodeModel, { FILE_LOAD_STATES } from '../models/track-node';
 import { isPresent } from '@ember/utils';
 import TrackControlModel from '../models/track-control';
 import SoundFileModel from '../models/sound-file';
-import { supportedAudioNodes } from '../utils/audio-node-config';
+import FilepathControlModel from '../models/filepath-control';
 
 export default class TrackAudioModel extends Model.extend(Evented) {
   @service store;
@@ -85,8 +85,6 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       nodeSettings.parentMacro = node.isMacroComponent()
         ? __._getNode(node.getMacroContainerUUID())
         : null;
-
-
 
       const shouldCreateTrackNode =
         __.isFun(cracked[type]) && !node.getMacroContainerUUID();
@@ -170,7 +168,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     this.setNodeToVisualize();
   }
 
-  // can take array of trackNodes or trackControls
+  // can take array of trackNodes or trackControls or filepathControls
   // compares keys to determine where in the order of creation
   // this trackNode or trackControl is positioned. used to
   // match existing trackControls to newly re-created trackNodes
@@ -183,6 +181,8 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         key = nodeType;
       } else if (record instanceof TrackControlModel) {
         key = `${nodeType}-${nodeAttr}`;
+      } else if (record instanceof FilepathControlModel) {
+        key = 'sampler-filepath';
       }
 
       if (isPresent(acc[key])) {
@@ -267,27 +267,46 @@ export default class TrackAudioModel extends Model.extend(Evented) {
    * Then apply the values from the track controls to the audio nodes
    */
   setupTrackControls(trackNodes) {
-    let trackControls = this.trackControls.toArray();
-    trackControls = this.applyOrderOfType(this.trackControls);
+    let nodeControlRecords = [
+      ...this.trackControls.toArray(),
+      ...this.filepathControls.toArray(),
+    ];
+
+    nodeControlRecords = this.applyOrderOfType(nodeControlRecords);
+
     let nodesWithoutTrackControls = [];
 
     trackNodes.forEach((trackNode) => {
-      const matchingControls = trackControls.filter((trackControl) => {
+      const matchingControls = nodeControlRecords.filter((trackControl) => {
+        if (trackControl instanceof FilepathControlModel) {
+          return trackNode.orderOfType == trackControl.orderOfType;
+        }
+
         return (
           trackNode.nodeType == trackControl.nodeType &&
           trackNode.orderOfType == trackControl.orderOfType
         );
       });
+
       if (
         TrackNodeModel.validateControls(matchingControls, trackNode.nodeType)
       ) {
-        matchingControls.forEach((trackControl) => {
+        matchingControls.forEach((nodeControlRecord) => {
           // set the relation on the control to keep ember-data happy
-          trackControl.set('trackNode', trackNode);
-          // then push the control to the node's relation array
-          trackNode?.trackControls.pushObject(trackControl);
+          nodeControlRecord.set('trackNode', trackNode);
+          if (nodeControlRecord instanceof FilepathControlModel) {
+            trackNode?.filepathControls.pushObject(nodeControlRecord);
+          }
+
+          if (nodeControlRecord instanceof TrackControlModel) {
+            trackNode?.trackControls.pushObject(nodeControlRecord);
+          }
+
           // remove from list after assigning
-          trackControls = trackControls.rejectBy('id', trackControl.id);
+          nodeControlRecords = nodeControlRecords.rejectBy(
+            'id',
+            nodeControlRecord.id
+          );
         });
       } else {
         nodesWithoutTrackControls.push(trackNode);
@@ -296,13 +315,9 @@ export default class TrackAudioModel extends Model.extend(Evented) {
       trackNode.updateDefaultValue();
     });
 
-    trackControls.forEach((trackControl) => {
-      // except we allow a filepath control to remain even if the node
-      // doesn't exist because it ensures that a path value can be provided
-      // immediately when a sampler gets created and not need to wait for trackControls
-      // to be created
-      if (trackControl.interfaceName !== 'filepath') {
-        trackControl.destroyRecord();
+    nodeControlRecords.forEach((nodeControlRecord) => {
+      if (!(nodeControlRecord instanceof FilepathControlModel)) {
+        nodeControlRecord.destroyRecord();
       }
     });
 
@@ -314,6 +329,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     const attrsForNodes = TrackControlModel.getAttrsForNodes(
       this.trackControls
     );
+
     this.trackNodes.forEach((trackNode) => {
       trackNode.delinkControlsForDeadNodes();
       const attrs = attrsForNodes[trackNode.uniqueSelector];

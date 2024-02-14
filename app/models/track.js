@@ -21,6 +21,8 @@ export default class TrackModel extends TrackAudioModel {
 
   @hasMany('track-node', { async: false, inverse: 'track' }) trackNodes;
   @hasMany('track-control', { async: false, inverse: 'track' }) trackControls;
+  @hasMany('filepath-control', { async: false, inverse: 'track' })
+  filepathControls;
   @hasMany('sequence', { async: false, inverse: 'track' }) sequences;
 
   @attr('number') order;
@@ -34,7 +36,7 @@ export default class TrackModel extends TrackAudioModel {
     });
     // load the file tree to show the audio file path saved on the sampler track control
     // eslint-disable-next-line ember/no-get, ember/classic-decorator-no-classic-methods
-    let path = this.get('samplerFilepathControl.controlStringValue') || '';
+    let path = this.get('samplerFilepathControl.controlValue') || '';
     path = path.split('/');
     const item = path.pop();
     audioFileTreeModel.appendDirectoriesData(path.join('/'), item);
@@ -83,11 +85,13 @@ export default class TrackModel extends TrackAudioModel {
   }
 
   get samplerNodes() {
-    return this.sourceNodeRecords.filterBy('nodeType', 'sampler');
+    return this.sourceNodeRecords
+      .filterBy('nodeType', 'sampler')
+      .sortBy('order');
   }
 
   get adsrNodes() {
-    return this.sourceNodeRecords.filterBy('nodeType', 'adsr');
+    return this.sourceNodeRecords.filterBy('nodeType', 'adsr').sortBy('order');
   }
 
   get samplerNativeBuffers() {
@@ -101,11 +105,16 @@ export default class TrackModel extends TrackAudioModel {
 
   // trackControl for audio file path string
   // (duplicate getter as on trackNodes for convenience)
-
   get samplerFilepathControl() {
-    return this.trackControls.find((trackControl) =>
-      trackControl.get('isFilepath')
-    );
+    let controls = this.filepathControls.sortBy('nodeOrder');
+
+    // the find/orcreate is not quite right so we need to filter out the empty ones
+    // but if ther's onlye one control and it's empty, that's better than returning null
+    if (controls.length > 1) {
+      controls = controls.filter((control) => control.controlValue);
+    }
+
+    return controls[0];
   }
 
   get fileDownloadError() {
@@ -122,7 +131,7 @@ export default class TrackModel extends TrackAudioModel {
   get filePathRelative() {
     // silent.mp3 is used as a fallback so the sampler node is created successfully
     // it will have already been downloaded on project load
-    return this.samplerFilepathControl?.controlStringValue;
+    return this.samplerFilepathControl?.controlValue;
   }
 
   // This getter is called on every beat of the sequencer
