@@ -5,6 +5,7 @@ class Track < ApplicationRecord
   has_one :init_script, :dependent => :destroy
   has_one :onstep_script, :dependent => :destroy
   has_many :track_controls, :dependent => :destroy
+  has_many :filepath_controls, :dependent => :destroy
   has_many :sequences, :dependent => :destroy
 
   attribute :is_master, :boolean

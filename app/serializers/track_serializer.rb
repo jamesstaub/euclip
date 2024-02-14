@@ -11,5 +11,6 @@ class TrackSerializer
   has_one :init_script, if: Proc.new { |record, params| !params[:relations_only_for] || (params[:relations_only_for] && record == params[:relations_only_for]) } 
   has_one :onstep_script, if: Proc.new { |record, params| !params[:relations_only_for] || (params[:relations_only_for] && record == params[:relations_only_for]) } 
   has_many :track_controls, if: Proc.new { |record, params| !params[:relations_only_for] || (params[:relations_only_for] && record == params[:relations_only_for]) } 
+  has_many :filepath_controls, if: Proc.new { |record, params| !params[:relations_only_for] || (params[:relations_only_for] && record == params[:relations_only_for]) } 
   has_many :sequences, if: Proc.new { |record, params| !params[:relations_only_for] || (params[:relations_only_for] && record == params[:relations_only_for]) } 
 end

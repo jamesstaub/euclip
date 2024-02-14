@@ -6,7 +6,7 @@ class V1::ProjectsController < V1::BaseController
     @pagy, @projects = pagy(Project
                                   .includes(
                                     :tracks, 
-                                    :tracks => :init_script, 
+                                    :tracks => :init_script,
                                     :tracks => :onstep_script, 
                                     :tracks => :sequences
                                   )
@@ -28,7 +28,7 @@ class V1::ProjectsController < V1::BaseController
     @project = Project.find_by({slug: permitted[:slug], creator_id: permitted[:creator_id]})
     
     return render_not_found unless @project
-    
+
     if can? :read, @project
       render json: ProjectSerializer.new(
         @project,

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_01_24_232213) do
+ActiveRecord::Schema[7.0].define(version: 2024_02_10_014847) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -52,6 +52,15 @@ ActiveRecord::Schema[7.0].define(version: 2024_01_24_232213) do
     t.datetime "updated_at", null: false
     t.index ["jti"], name: "index_allowlisted_jwts_on_jti", unique: true
     t.index ["user_id"], name: "index_allowlisted_jwts_on_user_id"
+  end
+
+  create_table "filepath_controls", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "control_value"
+    t.integer "node_order"
+    t.bigint "track_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["track_id"], name: "index_filepath_controls_on_track_id"
   end
 
   create_table "preset_collections", force: :cascade do |t|
@@ -207,6 +216,7 @@ ActiveRecord::Schema[7.0].define(version: 2024_01_24_232213) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "allowlisted_jwts", "users", on_delete: :cascade
+  add_foreign_key "filepath_controls", "tracks"
   add_foreign_key "preset_collections", "users", column: "creator_id", on_delete: :cascade
   add_foreign_key "projects", "users", column: "creator_id", on_delete: :cascade
   add_foreign_key "scripts", "presets"

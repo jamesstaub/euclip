@@ -37,6 +37,7 @@ Rails.application.routes.draw do
 
     resources :tracks, only: %i[update destroy]
     resources :track_controls, :path => '/track-controls'
+    resources :filepath_controls, :path => '/filepath-controls'
 
     resources :init_scripts, :controller => 'scripts', :path => '/init-scripts'
     resources :onstep_scripts, :controller => 'scripts', :path => '/onstep-scripts'
