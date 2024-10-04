@@ -9,7 +9,7 @@ class CreateFilepathControls < ActiveRecord::Migration[7.0]
 
     TrackControl.transaction do
       TrackControl.where(node_attr: 'path', node_type: 'sampler').each do |track_control|
-        FilepathControl.create!(control_value: track_control.control_string_value, track: track_control.track)
+        FilepathControl.create!(control_value: track_control.control_string_value, track: track_control.track) if track_control.control_string_value.present?
         track_control.destroy
       end
     end
