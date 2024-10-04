@@ -7,6 +7,14 @@
 <div class='flex justify-between w-auto bl grow-1'>
   <div class='flex w-auto mh2 flex-column'>
     <h3 class='ma3 ttc'>
+      {{!-- REFACTOR/REDESIGN: 
+        this UI should represent filepath controls, sound-files and sampler track nodes
+
+        Sample Pool: downloaded sound-files
+        Buffer Waveforms: Sampler Nodes that are loaded with a waveform
+        filepath-controls: UI connecting file selection to the wave form
+
+      --}}
       {{#each @track.sourceNodeRecords as |source|}}
         {{! TODO: better UI if there are multiple source on a track }}
         {{source.nodeType}}

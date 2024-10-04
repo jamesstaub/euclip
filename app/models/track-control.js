@@ -232,6 +232,7 @@ export default class TrackControlModel extends Model {
     // unless the user has already set a value
     // convert buffer len to seconds
     const bufferLen = nativeBuffer.duration;
+
     if (this.nodeAttr === 'start') {
       setProperties(this, {
         min: 0,

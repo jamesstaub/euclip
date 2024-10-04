@@ -1,8 +1,5 @@
 # TODO LIST
 
-go live list:
-  - attempt to automatically use sampler filepath if not supplied
-
 Mobile UI:
 -  on phones, the verticle view should be simple play controls
   and message to rotate phone to horizontal. there it should be a minimal track list and
@@ -15,7 +12,7 @@ Mobile UI:
 
 
 ### Scripts
-BUG; if possible clear the "cmd-z"  undo state when changing tracks, since code mirror doesn't get re-initialized
+
 
 TODO: clear mouse_move handler on init signal chain
 

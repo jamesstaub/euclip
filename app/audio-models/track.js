@@ -288,6 +288,28 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         );
       });
 
+
+      // HACK: in the case where many samplers are created on a track
+      // they dont get saved until the drum file picker assigns them
+      // but currently the UI only lets you save one filepath control,
+      // so by this point, there may not be filepath control records for track nodes that
+      // accept them and they fail the "validatecontrols" check.
+      // so for now we just band-aid it by using the one saved filepath control for all 
+      // sampler nodes. eventually need a UI to manage multiple filepath controls and a cleaner
+      // way to fallback when one is missing
+
+      // still not working right when creating many samplers in a loop
+      if (trackNode.nodeType == 'sampler') {
+        if (
+          !matchingControls.find(
+            (control) => control instanceof FilepathControlModel
+          )
+        ) {
+          this.filepathControls[0] &&
+            matchingControls.push(this.filepathControls[0]);
+        }
+      }
+
       if (
         TrackNodeModel.validateControls(matchingControls, trackNode.nodeType)
       ) {
@@ -316,9 +338,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     });
 
     nodeControlRecords.forEach((nodeControlRecord) => {
-      if (!(nodeControlRecord instanceof FilepathControlModel)) {
-        nodeControlRecord.destroyRecord();
-      }
+      nodeControlRecord.destroyRecord();
     });
 
     nodesWithoutTrackControls.map((trackNode) =>

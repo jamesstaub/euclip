@@ -106,9 +106,10 @@ export default class TrackNodeModel extends Model {
   // handle error better so it doesnt get stuck
   static validateControls(nodeControlRecords, nodeType) {
     const attrs = AudioNodeConfig[nodeType]?.attrs;
+
     // no attrs provided
     if (!attrs) return true;
-    const controlAttrs = Object.keys(AudioNodeConfig[nodeType]?.attrs);
+    const controlAttrs = Object.keys(attrs);
 
     return controlAttrs.every((controlAttr) => {
       if (controlAttr === 'path') {
@@ -118,10 +119,11 @@ export default class TrackNodeModel extends Model {
             isPresent(nodeControlRecord.controlValue)
           );
         });
+      } else {
+        return nodeControlRecords.find(
+          (trackControl) => trackControl.nodeAttr === controlAttr
+        );
       }
-      return nodeControlRecords.find(
-        (trackControl) => trackControl.nodeAttr === controlAttr
-      );
     });
   }
 
@@ -186,11 +188,7 @@ export default class TrackNodeModel extends Model {
   updateDefaultValue() {
     this.trackControls.forEach((trackControl) => {
       const userDefault = this.userSettingsForControl[trackControl.nodeAttr];
-
-      if (
-        isPresent(trackControl._defaultValue) &&
-        trackControl._defaultValue !== userDefault
-      ) {
+      if (trackControl._defaultValue !== userDefault) {
         trackControl.set('currentUnitTransformIdx', 0); // userDefault attrs entered in the script will always be in the default unit
         trackControl.setValue(userDefault); // make sure to use setValue setter for specific side effects
         trackControl.set('defaultValue', userDefault);
@@ -227,7 +225,10 @@ export default class TrackNodeModel extends Model {
     // set the track control for the `end` controlAttr to the audio buffer's length
     // unless the user has already set a value
     // convert buffer len to seconds
-    const trackControls = await this.store.peekAll('track-control');
+    const trackControls = await this.store
+      .peekAll('track-control')
+      .filter((tc) => !tc.isDeleted);
+
     trackControls
       .filterBy('nodeType', 'sampler')
       .map(

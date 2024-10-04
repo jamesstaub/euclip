@@ -43,7 +43,6 @@ export default class FilepathControlModel extends Model {
           nodeOrder: trackNode.orderOfType || 0,
           controlValue,
         });
-        console.log('created filepath control: ', filepathControl);
         track.filepathControls.pushObject(filepathControl);
       } catch (error) {
         console.error('Error creating default filepath control: ', error);

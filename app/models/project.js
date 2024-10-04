@@ -18,13 +18,6 @@ export default class ProjectModel extends ProjectAudioModel {
   async setupAndSaveNewTrack(track, saveOptions) {
     // need to wait to for save because orders may change
     await track.save(saveOptions);
-    // if (track.get('filepathControls').length === 0) {
-    //   const filepathControl = track.store.createRecord('filepath-control', {
-    //     track,
-    //     nodeOrder: 0
-    //   });
-    //   await filepathControl.save();
-    // }
     this.tracks.pushObject(track);
     await track.findOrDownloadSoundFile();
 
