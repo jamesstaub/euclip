@@ -54,7 +54,7 @@ ActiveRecord::Schema[7.0].define(version: 2024_02_10_014847) do
     t.index ["user_id"], name: "index_allowlisted_jwts_on_user_id"
   end
 
-  create_table "filepath_controls", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+  create_table "filepath_controls", force: :cascade do |t|
     t.string "control_value"
     t.integer "node_order"
     t.bigint "track_id", null: false
