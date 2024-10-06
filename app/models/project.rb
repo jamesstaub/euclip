@@ -40,15 +40,14 @@ class Project < ApplicationRecord
 
   def self.find_by_slug(slug, creator_id)
     project = Project.includes(
-                            :user_roles,
-                            :tracks,
-                            :tracks => :init_script, 
-                            :tracks => :onstep_script, 
-                            :tracks => :sequences)
-                      .find_by(
-                               slug: slug, 
-                               creator_id: creator_id
-                              )
+      :user_roles,
+      :tracks,
+      tracks: [:init_script, :onstep_script, :sequences]
+    )
+    .find_by(
+              slug: slug, 
+              creator_id: creator_id
+            )
             
   end
 

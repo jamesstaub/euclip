@@ -30,7 +30,9 @@ class ApplicationController < ActionController::API
     render json: { error: 'Unauthorized' }, status: :unauthorized
   end
 
-  def render_forbidden
-    render json: { error: 'Forbidden' }, status: :forbidden
+  def render_forbidden(msg = nil)
+    error = "Forbidden"
+    error = "#{error}: #{msg} " if msg
+    render json: { error: error }, status: :forbidden
   end
 end

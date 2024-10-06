@@ -8,6 +8,7 @@ class V1::TracksController < V1::BaseController
   end
 
   def create
+    
     if can? :update, @project
       if params[:duplicate_id]
         return duplicate
@@ -22,7 +23,7 @@ class V1::TracksController < V1::BaseController
         render_unprocessable_entity(@track.errors)
       end
     else
-      render_forbidden
+      render_forbidden("user: #{current_user.id} cannot create track for project: #{@project.slug}")
     end
   end
 
