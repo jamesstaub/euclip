@@ -88,16 +88,16 @@ class V1::TracksController < V1::BaseController
     track = Track.includes(:project).find(params[:id])
     raise ActiveRecord::RecordNotFound unless track.present?
     # bare minimum permissions check before setting track attribute
-    return render_forbidden("set_track: user: #{current_user.id}  track_id: #{track.id} project #{track.project&.id}") unless can? :view, track.project
+    return render_forbidden() unless can? :view, track.project
     @track = track
     @project = track.project
   end
 
   def set_project
     project_slug = params.require(:project_slug)
-    project = Project.includes(:tracks).find_by(slug: project_slug)
+    project = Project.includes(:tracks).find_by(slug: project_slug, creator_id: current_user.id)
     raise ActiveRecord::RecordNotFound unless project.present?
-    return render_forbidden("set_project: user: #{current_user.id}  project_id: #{project.id}") unless can? :view, project
+    return render_forbidden() unless can? :view, project
     @project = project
   end
 end
