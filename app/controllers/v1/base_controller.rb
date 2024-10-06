@@ -3,8 +3,6 @@ class V1::BaseController < ApplicationController
   before_action :check_authorization, only: %i[create update destroy]
   before_action :set_params, only: %i[create update]
 
-
-  
   def check_authorization
     return render_unauthorized unless current_user
   end
