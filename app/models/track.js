@@ -107,7 +107,6 @@ export default class TrackModel extends TrackAudioModel {
   // (duplicate getter as on trackNodes for convenience)
   get samplerFilepathControl() {
     let controls = this.filepathControls.sortBy('nodeOrder');
-    
     // // the find/orcreate is not quite right so we need to filter out the empty ones
     // // but if ther's onlye one control and it's empty, that's better than returning null
     // if (controls.length > 1) {

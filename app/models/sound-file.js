@@ -75,7 +75,7 @@ export default class SoundFileModel extends Model {
 
     const response = await fetch(url);
     const blob = await response.blob();
-    console.log('blob type', blob.type);
+
     const mimeTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav'];
     if (mimeTypes.includes(blob.type)) {
       return URL.createObjectURL(blob);
