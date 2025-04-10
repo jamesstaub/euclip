@@ -55,6 +55,8 @@ Rails.application.configure do
 
   config.log_level = :debug
 
+  # Allow requests from the backend service hostname
+  config.hosts << "euclip_backend"
 
   # Raises error for missing translations.
   # config.i18n.raise_on_missing_translations = true

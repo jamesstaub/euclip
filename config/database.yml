@@ -2,15 +2,18 @@ default: &default
   adapter: postgresql
   encoding: utf8
   pool: 5
+  host: <%= ENV['POSTGRES_HOST'] %>
+  username: <%= ENV['POSTGRES_USER'] %>
+  password: <%= ENV['POSTGRES_PASSWORD'] %>
+  port: <%= ENV['POSTGRES_PORT'] %>
 
 development:
   <<: *default
-  database: euclip_api_development
-  host: localhost
+  database: <%= ENV['POSTGRES_DB'] %>
 
 test:
   <<: *default
-  database: euclip_api_test
+  database: euclip_test
 
 production:
   <<: *default
