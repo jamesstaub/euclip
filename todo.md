@@ -1,5 +1,11 @@
 # TODO LIST
 
+
+## Versioning
+- implement a ProjectState model that takes a serialized snapshot of the whole project 
+- add the ability to snapshot, restore from version, sequence snapshots
+
+
 Mobile UI:
 -  on phones, the verticle view should be simple play controls
   and message to rotate phone to horizontal. there it should be a minimal track list and
@@ -12,6 +18,8 @@ Mobile UI:
 
 
 ### Scripts
+
+
 
 
 TODO: clear mouse_move handler on init signal chain
@@ -200,6 +208,14 @@ PLAY:::
 
 
 ## UI
+  - custom loop time prefilled buttons instead of slider when in Loop Sync mode. half, quarter, double, quadruple etc. or the slider just snaps to prefilled list
+    - in the code implement helper functions that perform the unit scaling and take either an integer or a 0 - 1 value such as 
+    ```
+      __('sampler').attr({speed: loopSync(2)})
+      rate()
+      
+    ```
+
   - fix bugs in min/max/default/stepSize settings. they wonky.
   - design error states for project/track/controls/script/sequence components that use
      the built in error states like "model.isValid" and "model.errors"
