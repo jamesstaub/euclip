@@ -18,7 +18,7 @@ export default class ScriptEditorComponent extends Component {
 
   get canRevert() {
     const { safeCode, editorContent } = this.args.scriptModel;
-    return safeCode !== editorContent;
+    return safeCode !== editorContent && this.args.scriptModel.runCode.isIdle;
   }
 
   @action

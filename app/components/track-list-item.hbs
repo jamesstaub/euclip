@@ -1,8 +1,10 @@
 {{!-- template-lint-disable no-invalid-interactive --}}
 
 <div 
-  class="pointer {{if @track.isMaster "pl4 pr2" "pl3"}} bb b--silver {{if @isActive "bg-yellow" "bg-dark-gray hover-bg-near-black"}}" 
+  class="pointer no-outline {{if @track.isMaster "pl4 " "pl3"}} bb b--silver {{if @isActive "bg-yellow" "bg-dark-gray hover-bg-near-black"}}" 
+  tabindex="0"
   {{on "click" @selectActiveTrack}}
+  {{focus @isActive}}
   ...attributes
 >
   <div class="relative flex items-center justify-between overflow-hidden pr3">
@@ -12,7 +14,7 @@
         <p class="truncate tc pv2 ph3 ml2 f6 ttu bg-dark-gray yellow ba bw1 b--yellow w4 f7">Main Output</p>
         {{#if @track.nodeToVisualize}}
           <div class="overflow-hidden">
-            <Oscilloscope class="ml3 pl1" @id={{concat @track.id 'scope'}} @isActive={{@isActive}} @node={{@track.nodeToVisualize}} @fill="#333333" @accent="#52ebff" />
+            <Oscilloscope class="ml3 pl1" @id={{concat @track.id '-scope'}} @isActive={{@isActive}} @node={{@track.nodeToVisualize}} @fill="#333333" @accent="#52ebff" />
           </div>
         {{/if}}
       {{/if}}

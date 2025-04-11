@@ -1,4 +1,4 @@
-<div class='relative flex grow-1' ...attributes>
+<div class='relative flex grow-1' ...attributes {{shortcut 'Command+Shift+Enter' (perform @scriptModel.runCode)}}>
   <div
     class='grow-1 sidebar-inner-max-height max-w-100'
     {{codemirror
@@ -12,29 +12,29 @@
 <div class='flex flex-column'>
   <div class='flex justify-between grow-1 mb3'>
     <div>
-      <SidebarSubmitButton
-        class='mt3 f4 w4'
-        title={{if
-          this.functionIsLoaded
-          'This script is loaded and running'
-          'Click to load this script'
-        }}
-        @disabled={{this.functionIsLoaded}}
-        {{on 'click' (perform @scriptModel.runCode)}}
-      >
-        {{#if (or this.functionIsLoaded this.runCode.isRunning)}}
-          Running
-        {{else}}
-          Run
-        {{/if}}
-      </SidebarSubmitButton>
+      {{#if (or this.functionIsLoaded @scriptModel.runCode.isRunning)}}
+        <p class='mt3 mb0 ba b--white b f4 w4 white pv2 ph3 ttc bw1'>Running...</p>
+      {{else}}
+        <SidebarSubmitButton
+          class='mt3 f4 w4'
+          title={{if
+            this.functionIsLoaded
+            'This script is loaded and running'
+            'Click to load this script (Command + Shift + Enter)'
+          }}
+          @disabled={{this.functionIsLoaded}}
+          {{on 'click' (perform @scriptModel.runCode)}}          
+        >
+            Run
+        </SidebarSubmitButton>
+      {{/if}}
       {{#if this.functionIsLoaded}}
-        <ButtonPrimary
+        {{!-- <ButtonPrimary
           {{on 'click' this.disableScript}}
           class='dark-red b--dark-red bg-dark-gray mt3 f4'
           @restyle={{true}}
           title='Disable this script. Nodes will be removed and disconnected from the sequencer.'
-        >disable</ButtonPrimary>
+        >disable</ButtonPrimary> --}}
       {{else}}
         {{#if this.canRevert}}
           <ButtonPrimary
@@ -43,7 +43,7 @@
             {{on 'click' this.discardChanges}}
             title='Revert editor to currently running code'
           >
-            revert
+            Revert
           </ButtonPrimary>
         {{/if}}
       {{/if}}

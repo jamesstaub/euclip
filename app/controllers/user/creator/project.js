@@ -47,9 +47,13 @@ export default class UserCreatorProjectController extends Controller {
   }
 
   @action
+  // FIXME: refactor current track so it doesn't require a fetch. doesnt need to be a route
   transitionToTrack(id) {
     const trackTo = this.model.tracks.findBy('id', id);
+    // optimisitically set the active track
+    this.activeTrack = trackTo
 
+    // then transition the router to the track 
     trackTo && this.router.transitionTo('user.creator.project.track', trackTo);
   }
 
@@ -141,5 +145,19 @@ export default class UserCreatorProjectController extends Controller {
     if (shouldToggle) {
       this[sidebarProps[direction]] = !this[sidebarProps[direction]];
     }
+  }
+
+  @action
+  selectNextTrack() {
+    const idx = this.sortedTracks.indexOf(this.activeTrack);
+    const nextTrack = this.sortedTracks[idx + 1] || this.sortedTracks[0];
+    return this.transitionToTrack(nextTrack.id);
+  }
+
+  @action
+  selectPrevTrack() {
+    const idx = this.sortedTracks.indexOf(this.activeTrack);
+    const prevTrack = this.sortedTracks[idx - 1] || this.sortedTracks.lastObject;
+    return this.transitionToTrack(prevTrack.id);
   }
 }

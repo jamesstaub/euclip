@@ -156,3 +156,7 @@ a {
     width: 100%;
   }
 }
+
+.no-outline:focus-visible {
+  outline: none;
+}

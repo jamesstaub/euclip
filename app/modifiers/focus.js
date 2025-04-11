@@ -1,8 +1,10 @@
 import { modifier } from 'ember-modifier';
 
 export default modifier(
-  (element) => {
-    element.focus();
+  (element, [condition]) => {
+    if (condition) {
+      element.focus();
+    }
   },
   { eager: false }
 );
