@@ -30,3 +30,4 @@ config/master.key
 coverage
 .env
 .credentials.yml
+public/assets/audio/drum-machines

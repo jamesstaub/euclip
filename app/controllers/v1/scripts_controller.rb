@@ -33,7 +33,7 @@ class V1::ScriptsController < V1::BaseController
     # TODO implement the javascript code cleaning solution implemented in a google 
     # function script to strip out potentially malicious code
     attrs = @attributes.permit(:code, :editor_content).to_h
-    attrs[:safe_code] = attrs[:code] if attrs[:code].present?
+    attrs[:safe_code] = attrs[:code]
     @clean_attrs = attrs.except(:code)
   end
 

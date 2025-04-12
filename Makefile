@@ -27,6 +27,10 @@ logs:
 console:
 	$(DOCKER_COMPOSE) exec euclip_backend rails console
 
+# Run Rails commands in the backend container and print output to stdout
+rails:
+	$(DOCKER_COMPOSE) exec -T euclip_backend rails $(filter-out $@,$(MAKECMDGOALS))
+
 # Run Ember server manually (if needed)
 frontend:
 	$(DOCKER_COMPOSE) exec euclip_frontend ember serve --host 0.0.0.0
@@ -101,3 +105,15 @@ edit-credentials:
 # Full setup (generate credentials, start services, generate SSL, setup DB, etc.)
 setup: generate-credentials up generate-ssl db-setup
 	@echo "Application setup complete!"
+
+# Run Rake commands in the backend container
+rake:
+	$(DOCKER_COMPOSE) exec euclip_backend rake $(filter-out $@,$(MAKECMDGOALS))
+
+# Run bundle install in the backend container
+bundle:
+	$(DOCKER_COMPOSE) exec euclip_backend bundle install
+
+# Prevent Make from interpreting additional arguments as targets
+%:
+	@:
