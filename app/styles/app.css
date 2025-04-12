@@ -160,3 +160,46 @@ a {
 .no-outline:focus-visible {
   outline: none;
 }
+
+
+.animated-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: repeating-linear-gradient(
+      45deg,
+      var(--yellow) 0,
+      var(--yellow) 25px,
+      var(--near-white) 25px,
+      var(--near-white) 50px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      var(--yellow) 0,
+      var(--yellow) 25px,
+      var(--near-white) 25px,
+      var(--near-white) 50px
+    );
+  background-size: 100px 100px;
+  animation: tessellate 10s linear infinite;
+  
+  z-index: -1;
+}
+
+@keyframes tessellate {
+  0% {
+    background-position: 0 0, 0 0;
+
+  }
+  50% {
+    background-position: 100px 100px, -100px -100px;
+  }
+  100% {
+    background-position: 0 0, 0 0;
+  }
+}
+
+
+/* now rotate the  */

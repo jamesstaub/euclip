@@ -1,7 +1,10 @@
 /*Tachyons-style helpers */
 :root {
+
+  --height-7: 28rem;
+
   --width-3: 4.5rem;
-  
+
   --width-6: 32rem;
   --breakpoint-not-small: screen and (min-width: 40em);
   --breakpoint-medium: screen and (min-width: 40em) and (max-width: 60em);

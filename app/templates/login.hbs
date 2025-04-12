@@ -1,5 +1,5 @@
 <NavBar @logoWidth='220px' />
-<div class='mt4 center'>
+<div class='mt4 center ba bw2 w5 h7 max-w-100 bg-white'>
   {{#if this.session.isAuthenticated}}
     <div class='mw5 center'>
       <p>Logged in as {{this.currentUser.user.username}}</p>
@@ -8,14 +8,14 @@
       </ButtonPrimary>
     </div>
   {{else}}
-    <main class='pa4 black-80'>
+    <main class='pa4 h7 black-80'>
       <form class='measure center' {{on 'submit' this.submitAuth}}>
         <fieldset id='sign_up' class='ba b--transparent ph0 mh0'>
-          <legend class='f4 fw6 ph0 mh0'>Sign In</legend>
+          <legend class='f4 fw4 ph0 mh0 center'>Sign In</legend>
           <div class='mt3'>            
-            <label class='db fw6 lh-copy f6' for='username'>Username</label>
+            <label class='db lh-copy f6' for='username'>Username</label>
             <Input
-              class='pa2 input-reset ba bg-transparent w-100'
+              class='pa2  b--dark-gray bw1 input-reset ba bg-transparent w-100'
               id='username'
               name='username'
               autocomplete='username'
@@ -24,9 +24,9 @@
             />
           </div>
           <div class='mv3'>
-            <label class='db fw6 lh-copy f6' for='password'>Password</label>
+            <label class='db lh-copy f6' for='password'>Password</label>
             <Input
-              class='pa2 input-reset ba bg-transparent w-100'
+              class='pa2  b--dark-gray bw1 input-reset ba bg-transparent w-100'
               id='password'
               name='password'
               placeholder='Enter Password'
@@ -43,12 +43,12 @@
         {{/if}}
         <div class=''>
           <button
-            class='b ph3 pv2 input-reset ba b--black bg-transparent grow pointer f6 dib'
+            class='b bw2 bg-yellow ph3 pv2 w-100 input-reset ba b--black  pointer f6 dib'
             type='submit'
           >Sign in</button>
         </div>
         <div class='lh-copy mt3'>
-          <LinkTo class='f6 link dim black db' @route='signup'>
+          <LinkTo class='f6 tc w-100 link black db' @route='signup'>
             Sign up
           </LinkTo>
           {{!-- <a href='#0' class='f6 link dim black db'>Forgot your password?</a> --}}
