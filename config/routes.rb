@@ -52,4 +52,6 @@ Rails.application.routes.draw do
   end
 
   get '/*ember_path', to: 'ember#index', constraints: -> (req) { !(req.fullpath =~ /^\/v1\/.*/) }
+  get '/embed/*ember_path', to: 'ember#index', constraints: -> (req) { !(req.fullpath =~ /^\/v1\/.*/) }
+  get '/embed', to: 'ember#index'
 end

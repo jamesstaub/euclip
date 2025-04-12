@@ -13,7 +13,7 @@ class Project < ApplicationRecord
   enum access_level: { hidden: 0, public_viewable: 1, public_editable: 2 }
 
   validates :creator, presence: true
-  validates :slug, uniqueness: { scope: :creator_id, on: :create }
+
   validate :allow_current_slug_update, on: :update
 
   def ordered_tracks

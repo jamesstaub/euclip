@@ -89,6 +89,9 @@ generate-credentials:
 		echo "Generating config/credentials.yml.enc..."; \
 		EDITOR="nano" rails credentials:edit; \
 	fi
+# note you may need to run heroku config:set RAILS_MASTER_KEY=$(cat config/master.key) to set the master key in Heroku
+
+
 
 # Edit Rails credentials
 edit-credentials:

@@ -3,14 +3,46 @@ button {
   border-style: solid;
 }
 
+/* .btn-animated {
+  border: 1px solid var(--moon-gray);
+  border-radius: 4px;
+
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
+  transition: all 0.1s ease-in-out;
+}
+
+.btn-animated:active {
+  background-color: var(--moon-gray);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  transform: translateY(1px);
+}
+
+button:hover {
+  background-color: var(--light-gray);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+button:focus {
+  outline: 2px solid var(--light-gray);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(173, 216, 230, 0.5); 
+} 
+*/
+
+
+
+button:disabled {
+  cursor: not-allowed;
+  background-color: var(--light-gray);
+  box-shadow: none;
+  opacity: 0.6;
+}
+
 .textbutton {
   background: transparent;
   border-color: transparent;
 }
 
-input:focus, button:focus {
-  outline-color: var(--light-blue);
-}
 
 .light-yellow-button {
   @extend .dark-fill;
@@ -61,5 +93,27 @@ button:not([disabled]):active {
   }
   &.bg-transparent {
     background-color: rgba(255, 255, 255, .25);
+  }
+}
+
+button:not([disabled]):focus {
+  &.bg-dark-gray {
+    outline-color: var(--dark-yellow);
+  }
+  &.bg-light-gray {
+    outline-color: var(--moon-gray);
+  }
+  &.bg-light-yellow, &.light-yellow-button {
+    outline-color: var(--dark-yellow);
+    backdrop-filter: brightness(1.2);
+  }
+  &.bg-yellow {
+    outline-color: var(--dark-yellow);
+  }
+  &.bg-light-blue {
+    outline-color: var(--dark-blue);
+  }
+  &.bg-transparent {
+    outline-color: var(--dark-blue);
   }
 }

@@ -24,7 +24,7 @@
 }
 
 .hover-bg-dark-yellow:hover {
-  background-color: var(--dark-yellow);
+  background-color: rgba(var(--dark-yellow), 0.5);
 }
 
 /* Fonts */
@@ -81,6 +81,11 @@
 }
 
 /* Sizing */
+
+.h7 {
+  height: var(--height-7);
+}
+
 .w6 {
   width: var(--width-6);
 }
