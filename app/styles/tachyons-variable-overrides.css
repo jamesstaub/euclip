@@ -5,7 +5,7 @@
 
   --width-3: 4.5rem;
 
-  --width-6: 32rem;
+  --width-6: 28rem;
   --breakpoint-not-small: screen and (min-width: 40em);
   --breakpoint-medium: screen and (min-width: 40em) and (max-width: 60em);
   --breakpoint-large: screen and (min-width: 60em);

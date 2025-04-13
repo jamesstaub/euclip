@@ -1,24 +1,28 @@
-{{#each this.notifications.notifications as |notification idx|}}
-  {{!-- FIXME: without this log the toast doesnt render :-(  --}}
-  {{log notification}} 
-  <div
-    role='alert'
-    class='max-w-100 relative ph3 pv2 mb2 mw5
-      {{style-for-notification notification.type}}'
-  >
+<div >
 
-    <IconButton
-      aria-label='Dismiss Notification'
-      class='dark-fill absolute top-0 right-0 bg-transparent light-fill bn z-2 pa2'
-      @icon='fi-cancel'
-      @iconWidth='12px'
-      @iconHeight='12px'
-      {{on 'click' (fn this.dismiss idx)}}
-    />
-    <p>{{notification.message}}</p>
+  {{#each this.notifications.notifications as |notification idx|}}
+    {{!-- FIXME: without this log the toast doesnt render :-(  --}}
+    {{log notification}} 
+    <div
+      role='alert'
+      {{shortcut "Escape" (fn this.dismiss idx)}}
+      class='max-w-100 relative ph3 pv2 ba bw1 mb2 mw5
+        {{style-for-notification notification.type}}'
+    >
 
-    {{#if notification.action}}
-      {{! TODO }}
-    {{/if}}
-  </div>
-{{/each}}
+      <IconButton
+        aria-label='Dismiss Notification'
+        class='dark-fill absolute top-0 right-0 bg-transparent light-fill bn z-2 pa2'
+        @icon='fi-cancel'
+        @iconWidth='12px'
+        @iconHeight='12px'
+        {{on 'click' (fn this.dismiss idx)}}
+      />
+      <p>{{notification.message}}</p>
+
+      {{#if notification.action}}
+        {{! TODO }}
+      {{/if}}
+    </div>
+  {{/each}}
+</div>

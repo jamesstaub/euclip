@@ -60,7 +60,7 @@ export default class DrumFilePicker extends Component {
 
   @action
   async onSelectItem(directory, item) {
-    const fileTree = await this.args.audioFileTreeModel;
+    const fileTree = await this.args.audioFileTree;
     const selection = `${directory.path}${item}`;
     if (directory.type === 'dir') {
       fileTree.appendDirectoriesData(selection);
@@ -80,7 +80,7 @@ export default class DrumFilePicker extends Component {
     const directoryItems = searchResult.split('/');
     const item = directoryItems.pop();
     const ancestorPath = `${directoryItems.join('/')}/`;
-    const fileTree = await this.args.audioFileTreeModel;
+    const fileTree = await this.args.audioFileTree;
     fileTree.appendDirectoriesData(ancestorPath, item);
     this.saveFilepathControl(searchResult);
   }

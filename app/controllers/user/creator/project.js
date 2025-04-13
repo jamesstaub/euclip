@@ -51,9 +51,9 @@ export default class UserCreatorProjectController extends Controller {
   transitionToTrack(id) {
     const trackTo = this.model.tracks.findBy('id', id);
     // optimisitically set the active track
-    this.activeTrack = trackTo
+    this.activeTrack = trackTo;
 
-    // then transition the router to the track 
+    // then transition the router to the track
     trackTo && this.router.transitionTo('user.creator.project.track', trackTo);
   }
 
@@ -157,7 +157,8 @@ export default class UserCreatorProjectController extends Controller {
   @action
   selectPrevTrack() {
     const idx = this.sortedTracks.indexOf(this.activeTrack);
-    const prevTrack = this.sortedTracks[idx - 1] || this.sortedTracks.lastObject;
+    const prevTrack =
+      this.sortedTracks[idx - 1] || this.sortedTracks.lastObject;
     return this.transitionToTrack(prevTrack.id);
   }
 }

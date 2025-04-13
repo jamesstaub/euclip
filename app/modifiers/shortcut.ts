@@ -1,59 +1,82 @@
-
 import { modifier } from 'ember-modifier';
 
-/**
- * 
- * modifier to handle keyboard shortcuts
- * 
- * should be used on the highest focused element that you'd want to capture the shortcut on
- * 
- */
 
-export default modifier((element, [shortcut, handler]: [string, () => void], { global }: { global: boolean }) => {
-  const platformKey = navigator.platform.includes('Mac') ? 'Meta' : 'Control';
+type ModifierKey = 'meta' | 'control' | 'shift' | 'alt';
+type ArrowKey = 'arrowup' | 'arrowdown' | 'arrowleft' | 'arrowright';
+type LiteralKey =
+  | 'escape'
+  | 'enter'
+  | 'tab'
+  | 'space'
+  | 'backspace'
+  | 'delete'
+  | 'capslock'
+  | 'home'
+  | 'end'
+  | 'pagedown'
+  | 'pageup';
 
-  const parseShortcut = (shortcut: string) => {
-    return shortcut
-      .replace(/Command/g, platformKey)
-      .replace(/Ctrl/g, 'Control')
-      .replace(/ArrowUp/g, 'ArrowUp')
-      .replace(/ArrowDown/g, 'ArrowDown')
-      .replace(/ArrowLeft/g, 'ArrowLeft')
-      .replace(/ArrowRight/g, 'ArrowRight')
-      .split('+')
-      .map((key) => key.trim().toLowerCase());
-  };
+type AlphaKey = Lowercase<
+  | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L'
+  | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
+>;
 
-  const shortcutKeys = parseShortcut(shortcut);
-  
-  const handleKeydown = (event: KeyboardEvent) => {
-    
-    if (!global && !element.contains(document.activeElement)) {
-      return;
-    }
+type DigitKey = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9';
 
-    const pressedKeys = new Set<string>();
-    if (event.metaKey) pressedKeys.add('meta');
-    if (event.ctrlKey) pressedKeys.add('control');
-    if (event.shiftKey) pressedKeys.add('shift');
-    if (event.altKey) pressedKeys.add('alt');
-    // escape
-    if (event.key === 'Escape') pressedKeys.add('escape');
-    pressedKeys.add(event.key.toLowerCase());
+export type ValidKey = ModifierKey | ArrowKey | LiteralKey | AlphaKey | DigitKey;
 
-    const normalizedKey = event.key.startsWith('Arrow') ? event.key : event.key.toLowerCase();
-    pressedKeys.add(normalizedKey);
 
-    const isMatch = shortcutKeys.every((key) => pressedKeys.has(key));
-    if (isMatch) {
-      event.preventDefault();
-      handler();
-    }
-  };
 
-  window.addEventListener('keydown', handleKeydown);
+type ShortcutHandlerArgs = [shortcut: string, handler: () => void];
+type ShortcutHandlerNamedArgs = { global: boolean };
 
-  return () => {
-    window.removeEventListener('keydown', handleKeydown);
-  };
-});
+
+const platformKey = navigator.platform.includes('Mac') ? 'Meta' : 'Control';
+
+const keyMap: Record<string, string> = {
+  Command: platformKey,
+  Ctrl: 'Control',
+};
+
+const normalizeKey = (key: string): string =>
+  key.startsWith('Arrow') ? key : key.toLowerCase();
+
+const parseShortcut = (shortcut: string): ValidKey[] => {
+  return shortcut
+    .split('+')
+    .map((key) => key.trim())
+    .map((key) => keyMap[key] || key)
+    .map(normalizeKey) as ValidKey[];
+};
+
+
+export default modifier(
+  (element, [shortcut, handler]: ShortcutHandlerArgs, { global }: ShortcutHandlerNamedArgs) => {
+    const shortcutKeys = parseShortcut(shortcut);
+
+    const handleKeydown = (event: KeyboardEvent) => {
+      if (!global && !element.contains(document.activeElement)) return;
+
+      const pressedKeys = new Set<ValidKey>();
+
+      if (event.metaKey) pressedKeys.add('meta');
+      if (event.ctrlKey) pressedKeys.add('control');
+      if (event.shiftKey) pressedKeys.add('shift');
+      if (event.altKey) pressedKeys.add('alt');
+
+      pressedKeys.add(normalizeKey(event.key) as ValidKey);
+
+      const isMatch = shortcutKeys.every((key) => pressedKeys.has(key));
+      if (isMatch) {
+        event.preventDefault();
+        handler();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeydown);
+
+    return (): void => {
+      window.removeEventListener('keydown', handleKeydown);
+    };
+  }
+);

@@ -2,7 +2,7 @@
     (if (media 'isMobile') 'absolute top-0 w-100 max-w-100 ' (if (media 'isTablet') 'max-w-50' 'max-w-33'))
   }} 
   ...attributes
-  {{shortcut "Escape" (fn @onCloseSidebar) global=true}}
+  {{shortcut "Escape" @onCloseSidebar global=true}}
 >
   <div class="relative flex bg-dark-gray w-100 flex-column">
     <IconButton class="absolute top-0 right-0 bg-transparent light-fill bn z-2 pa3" @icon="fi-cancel" 

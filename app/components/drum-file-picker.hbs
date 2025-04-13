@@ -39,7 +39,7 @@
   </div>
 {{else}}
   <div class='flex overflow-x-scroll w-100 pa3 sidebar-inner-max-height'>
-    {{#each @audioFileTreeModel.directoryTree as |directory idx|}}
+    {{#each @audioFileTree.directoryTree as |directory idx|}}
       <div class='flex w-auto flex-column mr2'>
         <h4 class='black w-100 mv3 mb0 pl1 yellow'>
           {{if (eq directory.type 'audio') 'Sounds' 'Drum Machine'}}

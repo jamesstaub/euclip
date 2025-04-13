@@ -99,9 +99,9 @@
             <p class='f6 mb3 mt0'><code>__().sampler({path: this.filepath})</code></p>
           </InfoBox>
         </div>
-        {{#if (and this.activeTrack this.activeTrack.audioFileTreeModel)}}
+        {{#if (and this.activeTrack this.activeTrack.audioFileTree)}}
           <DrumFilePicker
-            @audioFileTreeModel={{this.activeTrack.audioFileTreeModel}}
+            @audioFileTree={{this.activeTrack.audioFileTree}}
             @track={{this.activeTrack}}
           />
         {{/if}}
@@ -110,8 +110,8 @@
     <TrackListWrapper
       @rightSidebarOpen={{this.rightSidebarOpen}}
       @leftSidebarOpen={{this.leftSidebarOpen}}
-      {{shortcut 'ArrowUp' (fn this.selectPrevTrack)}}
-      {{shortcut 'ArrowDown' (fn this.selectNextTrack)}}
+      {{shortcut 'ArrowUp' this.selectPrevTrack}}
+      {{shortcut 'ArrowDown' this.selectNextTrack}}
     >
       <div class='overflow-scroll track-list-max-height'>
         {{#each this.sortedTracks key='order' as |track|}}
