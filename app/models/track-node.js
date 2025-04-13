@@ -18,10 +18,10 @@ export const FILE_LOAD_STATES = {
 
 export default class TrackNodeModel extends Model {
   @service store;
-  @belongsTo('track', { async: false, inverse: 'trackNode' }) track;
-  @hasMany('track-control', { async: false, inverse: 'trackNode' })
+  @belongsTo('track', { async: false, inverse: 'track-node' }) track;
+  @hasMany('track-control', { async: false, inverse: 'track-node' })
   trackControls;
-  @hasMany('filepath-control', { async: false, inverse: 'trackNode' })
+  @hasMany('filepath-control', { async: false, inverse: 'track-node' })
   filepathControls;
 
   @attr('string') userDefinedInterfaceName;

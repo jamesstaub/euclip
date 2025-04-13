@@ -17,7 +17,7 @@ export default class TrackModel extends TrackAudioModel {
   @belongsTo('init-script', { async: false, inverse: 'track' }) initScript;
   @belongsTo('onstep-script', { async: false, inverse: 'track' }) onstepScript;
   @belongsTo('audio-file-tree', { async: false, inverse: 'track' })
-  audioFileTreeModel;
+  audioFileTree;
 
   @hasMany('track-node', { async: false, inverse: 'track' }) trackNodes;
   @hasMany('track-control', { async: false, inverse: 'track' }) trackControls;
@@ -31,7 +31,7 @@ export default class TrackModel extends TrackAudioModel {
 
   async createAudioFileTree() {
     await this.trackControls; // audio-tree relies on the filepath track control
-    const audioFileTreeModel = this.store.createRecord('audioFileTree', {
+    const audioFileTree = this.store.createRecord('audio-file-tree', {
       track: this,
     });
     // load the file tree to show the audio file path saved on the sampler track control
@@ -39,7 +39,7 @@ export default class TrackModel extends TrackAudioModel {
     let path = this.get('samplerFilepathControl.controlValue') || '';
     path = path.split('/');
     const item = path.pop();
-    audioFileTreeModel.appendDirectoriesData(path.join('/'), item);
+    audioFileTree.appendDirectoriesData(path.join('/'), item);
   }
 
   async destroyAndCleanup() {

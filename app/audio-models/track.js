@@ -288,13 +288,12 @@ export default class TrackAudioModel extends Model.extend(Evented) {
         );
       });
 
-
       // HACK: in the case where many samplers are created on a track
       // they dont get saved until the drum file picker assigns them
       // but currently the UI only lets you save one filepath control,
       // so by this point, there may not be filepath control records for track nodes that
       // accept them and they fail the "validatecontrols" check.
-      // so for now we just band-aid it by using the one saved filepath control for all 
+      // so for now we just band-aid it by using the one saved filepath control for all
       // sampler nodes. eventually need a UI to manage multiple filepath controls and a cleaner
       // way to fallback when one is missing
 

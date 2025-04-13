@@ -3,7 +3,7 @@ import Model, { attr, belongsTo } from '@ember-data/model';
 // holds a filepath string value to pass to sampler (or convolution) nodes
 export default class FilepathControlModel extends Model {
   @belongsTo('track', { async: false, inverse: 'filepathControls' }) track;
-  @belongsTo('trackNode', { async: false, inverse: 'filepathControls' })
+  @belongsTo('track-node', { async: false, inverse: 'filepathControls' })
   trackNode;
   @attr('number') nodeOrder;
   @attr('string') controlValue; // value of control for string attributes

@@ -40,7 +40,7 @@ class Directory {
  * on a given Track
  */
 export default class AudioFileTreeModel extends Model {
-  @belongsTo('track', { async: false, inverse: 'audioFileTreeModel' }) track;
+  @belongsTo('track', { async: false, inverse: 'audioFileTree' }) track;
   @tracked directoryTree = [];
 
   // TODO:
