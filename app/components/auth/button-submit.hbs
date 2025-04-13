@@ -1,0 +1,14 @@
+<button
+  type="submit"
+  class="b bw2 ph3 pv2 w-100 input-reset ba pointer f6 dib b--dark-gray bg-yellow"
+
+  disabled={{@isLoading}}
+  {{on "click" @onClick}}
+>
+  {{#if @isLoading}}
+    <span class="spinner mr2"></span>
+    {{@loadingLabel}}
+  {{else}}
+    {{@label}}
+  {{/if}}
+</button>

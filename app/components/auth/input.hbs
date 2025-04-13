@@ -1,0 +1,18 @@
+<div class="auth-input-wrapper mv3 w-100">
+  <label for={{@id}} class="db lh-copy f7 fw6 ttu">
+    {{@label}}
+  </label>
+  <Input
+    id={{@id}}
+    name={{@name}}
+    autocomplete={{@autocomplete}}
+    class="pa2 b--dark-gray ba bw1 input-reset ba w-100 border-box bg-light-gray"
+    @type={{@type}}
+    @value={{@value}}
+    aria-required={{if @required "true" "false"}}
+    aria-invalid={{if @isInvalid "true" "false"}}
+  />
+  {{#if @errorMessage}}
+    <p class="red f7 mt1">{{@errorMessage}}</p>
+  {{/if}}
+</div>
