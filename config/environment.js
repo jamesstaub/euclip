@@ -28,12 +28,14 @@ module.exports = function (environment) {
     },
   };
 
+  ENV.APP.DISCORD_CLIENT_ID = '1360670663660278031';
+
   if (environment === 'development') {
     // ENV.APP.LOG_RESOLVER = true;
     // ENV.APP.LOG_ACTIVE_GENERATION = true;
     // ENV.APP.LOG_TRANSITIONS = true;
     // ENV.APP.LOG_TRANSITIONS_INTERNAL = true;
-    ENV.APP.DRUMMACHINES_PATH = '/assets/audio/drum-machines';
+    // ENV.APP.DRUMMACHINES_PATH = '/assets/audio/drum-machines';
   }
 
   if (environment === 'test') {
@@ -48,10 +50,9 @@ module.exports = function (environment) {
     ENV.APP.autoboot = false;
   }
 
-  if (environment === 'production') {
-    ENV.APP.DRUMMACHINES_PATH =
-      'https://storage.googleapis.com/euclidean-cracked.appspot.com/Drum%20Machines%20mp3';
-  }
+  ENV.APP.DRUMMACHINES_PATH =
+    'https://storage.googleapis.com/euclidean-cracked.appspot.com/Drum%20Machines%20mp3';
+  
 
   return ENV;
 };

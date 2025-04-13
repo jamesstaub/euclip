@@ -22,4 +22,5 @@ Router.map(function () {
   this.route('signup');
   this.route('about');
   this.route('user-error');
+  this.route('embed');
 });
