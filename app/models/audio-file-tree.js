@@ -75,7 +75,7 @@ export default class AudioFileTreeModel extends Model {
 
     const searchQuery = search ? `/search?q=${search}&page=${page}` : '';
 
-    const url = `/v1/files${encodedPath}${searchQuery}`;
+    const url = `${ENV.APP.PROXY_PREFIX}/v1/files${encodedPath}${searchQuery}`;
     const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',

@@ -55,7 +55,7 @@ export default class UserCreatorProjectRoute extends Route {
       return;
 
     const sf = this.store.createRecord('sound-file', {
-      filePathRelative: '/assets/audio/silent.mp3',
+      filePathRelative: '/.proxy/assets/audio/silent.mp3',
     });
     await sf.afterCreate();
 

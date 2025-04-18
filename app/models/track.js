@@ -138,7 +138,7 @@ export default class TrackModel extends TrackAudioModel {
     const soundFiles = this.store.peekAll('sound-file');
     let sf = soundFiles.findBy('filePathRelative', this.filePathRelative);
     if (!sf || sf.state === SoundFileStates.ERROR) {
-      sf = soundFiles.findBy('filePathRelative', '/assets/audio/silent.mp3');
+      sf = soundFiles.findBy('filePathRelative', '/.proxy/assets/audio/silent.mp3');
     }
     return sf.downloadedURI;
   }

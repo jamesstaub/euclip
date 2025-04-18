@@ -93,8 +93,11 @@ export default class UserCreatorProjectController extends Controller {
 
   @action
   async createTrack() {
+    console.log('create track');
     let track = this.model.tracks.createRecord({ hits: 1 });
     this.sortedTracks = [...this.sortedTracks, track];
+    console.log(track);
+    
     try {
       track = await this.model.setupAndSaveNewTrack(track);
     } catch (error) {

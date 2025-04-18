@@ -20,7 +20,7 @@
           title={{if
             this.functionIsLoaded
             'This script is loaded and running'
-            'Click to load this script (Meta+Shift+Enter)'
+            'Click to load this script (Command+Shift+Enter)'
           }}
           @disabled={{this.functionIsLoaded}}
           {{on 'click' (perform @scriptModel.runCode)}}          

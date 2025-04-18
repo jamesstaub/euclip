@@ -1,5 +1,8 @@
 FROM node:18
 
+# used by the backend's makefile to copy assets over
+RUN apt-get update && apt-get install -y rsync && apt-get clean
+
 # Set the working directory to /app
 WORKDIR /app
 

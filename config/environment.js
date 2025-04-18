@@ -22,13 +22,14 @@ module.exports = function (environment) {
     },
 
     APP: {
-      userEndpoint: '/login',
+      userEndpoint: '/.proxy/login',
       invalidateEndpoint: '/logout',
       registrationEndpoint: '/registration',
     },
   };
 
   ENV.APP.DISCORD_CLIENT_ID = '1360670663660278031';
+  ENV.APP.PROXY_PREFIX = '/.proxy';
 
   if (environment === 'development') {
     // ENV.APP.LOG_RESOLVER = true;
@@ -50,9 +51,12 @@ module.exports = function (environment) {
     ENV.APP.autoboot = false;
   }
 
-  ENV.APP.DRUMMACHINES_PATH =
-    'https://storage.googleapis.com/euclidean-cracked.appspot.com/Drum%20Machines%20mp3';
-  
+  ENV.APP.DRUMMACHINES_ROOT = 'https://storage.googleapis.com/euclidean-cracked.appspot.com'
+  ENV.APP.DRUMMACHINES_PATH = `Drum%20Machines%20mp3`;
+
+  // when running inside discord iframe 3rd party requests  get proxied
+  // https://discord.com/developers/applications/1360670663660278031/embedded/url-mappings
+  ENV.APP.DRUMMACHINES_PROXY_PATH = '/drum-machines';
 
   return ENV;
 };

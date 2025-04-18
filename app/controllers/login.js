@@ -22,7 +22,13 @@ export default class LoginController extends Controller {
 
       response;
     } catch (error) {
-      this.errorMessage = 'Username or password incorrect';
+      if (error.status === 401) {
+        this.errorMessage = 'Invalid username or password. Please try again.';
+      } else if (error.status === 500) {
+        this.errorMessage = 'Server error. Please try again later.';
+      } else {
+        this.errorMessage = 'An unexpected error occurred. Please try again.';
+      }
     }
 
     if (this.session.isAuthenticated) {
