@@ -1,43 +1,45 @@
-<NavBar @logoWidth="220px" />
-<Auth::Form
-  @fieldsetId="log_in"
-  @legend="Log In"
-  @buttonLabel="Log In"
-  @loadingLabel="Logging in..."
-  @isLoading={{this.isSubmitting}}
-  @onSubmit={{this.submitAuth}}
-  @errorMessage={{this.errorMessage}}
->
-  <:inputs>
-  <Auth::Input
-    @id="username"
-    @name="username"
-    @label="Username"
-    @placeholder="Enter Username"
-    @autocomplete="username"
-    @value={{this.username}}
-    @required={{true}}
-  />
-  <Auth::Input
-    @id="password"
-    @name="password"
-    @label="Password"
-    @placeholder="Enter Password"
-    @type="password"
-    @autocomplete="current-password"
-    @value={{this.password}}
-    @required={{true}}
-  />
-  </:inputs>
-  <:footer>
-    <div class='lh-copy mt3'>
-      <LinkTo class='f6 tc link black db' @route='signup'>
-        Create Account
-      </LinkTo>
-    </div>
-  </:footer>
+<div class="gray-blue-radial-bg ">
+  <NavBar @logoWidth="220px" />
+  <Auth::Form
+    @fieldsetId="log_in"
+    @legend="Log In"
+    @buttonLabel="Log In"
+    @loadingLabel="Logging in..."
+    @isLoading={{this.isSubmitting}}
+    @onSubmit={{this.submitAuth}}
+    @errorMessage={{this.errorMessage}}
+  >
+    <:inputs>
+    <Auth::Input
+      @id="username"
+      @name="username"
+      @label="Username"
+      @placeholder="Enter Username"
+      @autocomplete="username"
+      @value={{this.username}}
+      @required={{true}}
+    />
+    <Auth::Input
+      @id="password"
+      @name="password"
+      @label="Password"
+      @placeholder="Enter Password"
+      @type="password"
+      @autocomplete="current-password"
+      @value={{this.password}}
+      @required={{true}}
+    />
+    </:inputs>
+    <:footer>
+      <div class='lh-copy mt3'>
+        <LinkTo class='f6 tc link dark-gray underline db' @route='signup'>
+          Create Account
+        </LinkTo>
+      </div>
+    </:footer>
 
-</Auth::Form>
+  </Auth::Form>
 
 
-{{outlet}}
+  {{outlet}}
+</div>

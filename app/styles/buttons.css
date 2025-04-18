@@ -57,7 +57,7 @@ button:not([disabled]):not(.selected):hover {
     background-color: var(--dark-gray);
   }
   &.bg-light-gray {
-    background-color: var(--moon-gray);
+    background-color: var(--near-white);
   }
   &.bg-light-yellow, &.light-yellow-button {
     background-color: var(--light-yellow);
@@ -78,7 +78,7 @@ button:not([disabled]):active {
     background-color: var(--dark-gray);
   }
   &.bg-light-gray {
-    background-color: var(--moon-gray);
+    background-color: var(--mid-gray);
   }
   &.bg-light-yellow, &.light-yellow-button {
     background-color: var(--light-yellow);

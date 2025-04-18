@@ -113,7 +113,7 @@
       {{shortcut 'ArrowUp' this.selectPrevTrack}}
       {{shortcut 'ArrowDown' this.selectNextTrack}}
     >
-      <div class='overflow-scroll track-list-max-height'>
+      <div class='overflow-scroll track-list-height min-height-5'>
         {{#each this.sortedTracks key='order' as |track|}}
           {{#unless track.isMaster}}
             <TrackListItem

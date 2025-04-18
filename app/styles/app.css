@@ -92,8 +92,9 @@ a {
   max-height: calc(100vh - 19rem);
 }
 
-.track-list-max-height {
+.track-list-height {
   max-height: calc(100vh - 30rem);
+  min-height: 10rem;
 }
 
 /* Drum file picker */
@@ -160,3 +161,14 @@ a {
 .no-outline:focus-visible {
   outline: none;
 }
+
+
+.gray-blue-radial-bg {
+  background: radial-gradient(circle, var(--dark-blue) 0%, var(--dark-gray) 100%);
+  background-size: cover;
+  background-position: center;
+  height: 100vh;
+}
+
+
+

@@ -1,8 +1,8 @@
-<div class="auth-form-wrapper mt4 center bg-near-white ba bw2 w6 max-w-100">
-  <main class="pa4 shadow-3">
+<div class="auth-form-wrapper mt4 center bg-near-white ba bw2 b--dark-gray w6 max-w-100">
+  <main class="ph4-ns pv4 ph2 shadow-3">
     <form class="measure center" {{on "submit" @onSubmit}}>
       <fieldset id={{@fieldsetId}} class="ba b--transparent ph0 mh0">
-        <legend class="f4 fw4 ph0 mh0 center fw6">{{@legend}}</legend>
+        <legend class="f4 fw4 ph0 mh0 center fw6 dark-gray">{{@legend}}</legend>
         {{yield to='inputs'}}
       </fieldset>
       {{#if @errorMessage}}

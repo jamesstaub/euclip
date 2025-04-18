@@ -31,6 +31,12 @@
   background-color: rgba(var(--dark-yellow), 0.5);
 }
 
+/* Text Color */
+
+.dark-blue {
+  color: var(--dark-blue);
+}
+
 /* Fonts */
 .f8 {
   font-size: 0.065rem;
@@ -85,6 +91,7 @@
 }
 
 /* Sizing */
+
 
 .h7 {
   height: var(--height-7);
