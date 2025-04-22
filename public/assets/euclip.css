@@ -92,8 +92,9 @@ a {
   max-height: calc(100vh - 19rem);
 }
 
-.track-list-max-height {
+.track-list-height {
   max-height: calc(100vh - 30rem);
+  min-height: 10rem;
 }
 
 /* Drum file picker */
@@ -162,44 +163,8 @@ a {
 }
 
 
-.animated-background {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: repeating-linear-gradient(
-      45deg,
-      var(--yellow) 0,
-      var(--yellow) 25px,
-      var(--near-white) 25px,
-      var(--near-white) 50px
-    ),
-    repeating-linear-gradient(
-      -45deg,
-      var(--yellow) 0,
-      var(--yellow) 25px,
-      var(--near-white) 25px,
-      var(--near-white) 50px
-    );
-  background-size: 100px 100px;
-  animation: tessellate 10s linear infinite;
-  
-  z-index: -1;
+.gray-blue-radial-bg {
+  background: radial-gradient(circle, var(--dark-blue) 0%, var(--dark-gray) 100%);
+  background-size: cover;
+  background-position: center;
 }
-
-@keyframes tessellate {
-  0% {
-    background-position: 0 0, 0 0;
-
-  }
-  50% {
-    background-position: 100px 100px, -100px -100px;
-  }
-  100% {
-    background-position: 0 0, 0 0;
-  }
-}
-
-
-/* now rotate the  */

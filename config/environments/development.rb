@@ -3,6 +3,8 @@ require "active_support/core_ext/integer/time"
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
+  # config.force_ssl = true
+
   # In the development environment your application's code is reloaded any time
   # it changes. This slows down response time but is perfect for development
   # since you don't have to restart the web server when you make code changes.
@@ -57,7 +59,11 @@ Rails.application.configure do
 
   # Allow requests from the backend service hostname
   config.hosts << "euclip_backend"
+  config.hosts << "trycloudflare.com"
+  config.hosts << "freely-showtimes-symphony-concentrations.trycloudflare.com"
+  config.hosts << "1360670663660278031.discordsays.com"
 
+  
   # Raises error for missing translations.
   # config.i18n.raise_on_missing_translations = true
 

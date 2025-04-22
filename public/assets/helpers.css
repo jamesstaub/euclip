@@ -19,12 +19,22 @@
   background-color: var(--dark-yellow);
 }
 
+.bg-dark-yellow {
+  background-color: var(--dark-yellow);
+}
+
 .hover-bg-near-black:hover {
   background-color: var(--near-black);
 }
 
 .hover-bg-dark-yellow:hover {
   background-color: rgba(var(--dark-yellow), 0.5);
+}
+
+/* Text Color */
+
+.dark-blue {
+  color: var(--dark-blue);
 }
 
 /* Fonts */
@@ -82,9 +92,11 @@
 
 /* Sizing */
 
+
 .h7 {
   height: var(--height-7);
 }
+
 
 .w6 {
   width: var(--width-6);

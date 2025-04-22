@@ -3,6 +3,9 @@ PROJECT_NAME=euclip
 DOCKER_COMPOSE=docker-compose
 CONTAINERS=euclip_backend euclip_frontend euclip_db
 
+# Define the path to the Euclip ember.js repository
+EMBER_REPO_PATH ?= ../euclip
+
 # Start the services
 up:
 	$(DOCKER_COMPOSE) up --build -d
@@ -116,6 +119,13 @@ rake:
 # Run bundle install in the backend container
 bundle:
 	$(DOCKER_COMPOSE) exec euclip_backend bundle install
+
+# Build the frontend inside the container and sync files locally to the backend's public directory
+build-frontend:
+	$(DOCKER_COMPOSE) exec euclip_frontend bash -c "ember build --environment production"
+	rm -rf public
+	mkdir public
+	rsync -av --progress $(EMBER_REPO_PATH)/dist/* public --exclude audio/drum-machines
 
 # Prevent Make from interpreting additional arguments as targets
 %:

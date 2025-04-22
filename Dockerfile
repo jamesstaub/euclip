@@ -12,10 +12,9 @@ RUN bundle install
 # Copy app files  
 COPY . .  
 
-# Set an environment variable to skip credentials check
-ENV SKIP_CREDENTIALS_CHECK=true
 
 # Expose port & start server  
 EXPOSE 3000  
 ENV RAILS_ENV=development
-CMD ["rails", "server", "-b", "0.0.0.0"]
+
+

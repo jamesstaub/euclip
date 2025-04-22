@@ -20,12 +20,6 @@ james = User.create!({
   password_confirmation: "3uCl1p#",
 })
 
-puts "CREATE Project!"
-project = Project.create_with_relations!({
-  title: "Euclip Intro",
-  slug: 'euclip-intro',
-  creator: admin,
-})
 
 sample_collection = PresetCollection.create!(title: "Sampler", creator: admin)
 sample_collection = PresetCollection.create!(title: "Filters", creator: admin)

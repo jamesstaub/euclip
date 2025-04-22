@@ -51,7 +51,11 @@ Rails.application.routes.draw do
 
   end
 
-  get '/*ember_path', to: 'ember#index', constraints: -> (req) { !(req.fullpath =~ /^\/v1\/.*/) }
-  get '/embed/*ember_path', to: 'ember#index', constraints: -> (req) { !(req.fullpath =~ /^\/v1\/.*/) }
-  get '/embed', to: 'ember#index'
+  post '/oauth/token', to: 'oauth#token'
+  
+  # Rails (in dev) or Nginx(in prod) will serve the index.html file by default when we hit /
+  # but for all other paths, we want to serve the ember app and let the frontend router handle the rest
+  # NOTE: this is a catch-all route, so it should be the last one in the file
+  get '/*ember_path', to: 'ember#index', constraints: -> (req) { req.format.html? }
+
 end
