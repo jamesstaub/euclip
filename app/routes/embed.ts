@@ -1,7 +1,7 @@
 import Route from '@ember/routing/route';
 import { DiscordSDK } from '@discord/embedded-app-sdk';
 import ENV from 'euclip/config/environment';
-import { inject as service } from '@ember/service';
+import { service } from '@ember/service';
 import type RouterService from '@ember/routing/router-service';
 import type SessionService from 'ember-simple-auth/services/session';
 

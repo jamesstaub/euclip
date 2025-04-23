@@ -1,6 +1,6 @@
 import Controller from '@ember/controller';
 import { action } from '@ember/object';
-import { inject as service } from '@ember/service';
+import { service } from '@ember/service';
 export default class UserMyProjectsController extends Controller {
   // TODO:
   // De-dupe this from project controller play actions.

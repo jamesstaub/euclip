@@ -4,7 +4,7 @@ import { attr, belongsTo, hasMany } from '@ember-data/model';
 import TrackAudioModel from '../audio-models/track';
 import { keepLatestTask, timeout } from 'ember-concurrency';
 import { unbindFromSequencer } from '../utils/cracked';
-import { inject as service } from '@ember/service';
+import { service } from '@ember/service';
 import { action } from '@ember/object';
 import { cached } from '@glimmer/tracking';
 import { SoundFileStates } from './sound-file';

@@ -1,7 +1,7 @@
 import Component from '@glimmer/component';
 import { action } from '@ember/object';
 
-import { inject as service } from '@ember/service';
+import { service } from '@ember/service';
 
 import { typeOf } from '@ember/utils';
 import AudioFileTreeModel from '../models/audio-file-tree';

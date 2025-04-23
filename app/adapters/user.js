@@ -1,4 +1,4 @@
-import { inject as service } from '@ember/service';
+import { service } from '@ember/service';
 import ENV from 'euclip/config/environment';
 import ApplicationAdapter from './application';
 

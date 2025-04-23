@@ -13,7 +13,7 @@ import {
 import filterNumericAttrs from '../utils/filter-numeric-attrs';
 import { tracked } from '@glimmer/tracking';
 
-import { inject as service } from '@ember/service';
+import { service } from '@ember/service';
 import TrackNodeModel, { FILE_LOAD_STATES } from '../models/track-node';
 
 import { isPresent } from '@ember/utils';

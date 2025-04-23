@@ -1,5 +1,5 @@
 import Route from '@ember/routing/route';
-import { inject as service } from '@ember/service';
+import { service } from '@ember/service';
 import ProjectAdapter from '../../../adapters/project';
 import { SoundFileStates } from '../../../models/sound-file';
 import ENV from 'euclip/config/environment';

@@ -5,6 +5,10 @@ const { Webpack } = require('@embroider/webpack');
 
 module.exports = function (defaults) {
   let app = new EmberApp(defaults, {
+    fingerprint: {
+      prepend: '/',
+    },
+
     'ember-cli-babel': {
       enableTypeScriptTransform: true,
       throwUnlessParallelizable: true,

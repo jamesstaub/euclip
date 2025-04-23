@@ -1,5 +1,5 @@
 import JSONAPIAdapter from '@ember-data/adapter/json-api';
-import { inject as service } from '@ember/service';
+import { service } from '@ember/service';
 import { computed } from '@ember/object';
 import config from 'euclip/config/environment';
 

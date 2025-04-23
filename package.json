@@ -97,7 +97,7 @@
     "ember-resolver": "^11.0.1",
     "ember-responsive": "^5.0.0",
     "ember-set-helper": "^2.0.1",
-    "ember-simple-auth": "^8.0.0",
+    "ember-simple-auth": "^6.0.0",
     "ember-source": "~5.5.0",
     "ember-statecharts": "^0.16.1",
     "ember-svg-jar": "^2.3.4",
