@@ -1,30 +1,210 @@
-import Model, { attr } from '@ember-data/model';
-import Evented from '@ember/object/evented';
+// app/models/track.ts
+import Model, { attr, belongsTo, hasMany  } from '@ember-data/model';
+import { service } from '@ember/service';
+import { action } from '@ember/object';
+import { cached } from '@glimmer/tracking';
+import { keepLatestTask, timeout } from 'ember-concurrency';
+import { unbindFromSequencer } from 'euclip/utils/cracked';
+import { SoundFileStates } from 'euclip/models/sound-file';
+import ENV from 'euclip/config/environment';
 
-import ENV from '../config/environment';
+import type Store from '@ember-data/store';
+import type ProjectModel from './project';
+import type InitScriptModel from 'euclip/models/init-script';
+import type OnstepScriptModel from 'euclip/models/onstep-script';
+import type AudioFileTreeModel from 'euclip/models/audio-file-tree';
+import TrackNodeModel from 'euclip/models/track-node';
+import TrackControlModel from 'euclip/models/track-control';
+import FilepathControlModel from 'euclip/models/filepath-control';
+import type SequenceModel from 'euclip/models/sequence';
+import SoundFileModel from 'euclip/models/sound-file';
+
+
+import Evented from '@ember/object/evented';
 
 import {
   addCustomSelector,
   applyAttrs,
   bindToLoopStep,
   getCrackedNode,
-  unbindFromSequencer,
 } from '../utils/cracked';
-import filterNumericAttrs from '../utils/filter-numeric-attrs';
+import filterNumericAttrs from 'euclip/utils/filter-numeric-attrs';
 import { tracked } from '@glimmer/tracking';
 
-import { service } from '@ember/service';
-import TrackNodeModel, { FILE_LOAD_STATES } from '../models/track-node';
-
 import { isPresent } from '@ember/utils';
-import TrackControlModel from '../models/track-control';
-import SoundFileModel from '../models/sound-file';
-import FilepathControlModel from '../models/filepath-control';
 
-export default class TrackAudioModel extends Model.extend(Evented) {
-  @service store;
+
+import type StoreService from '@ember-data/store';
+import { extendOnCreateNode } from 'euclip/utils/cracked';
+import { FILE_LOAD_STATES } from './track-node';
+
+export default class TrackModel extends Model.extend(Evented) {
+
+  @service declare store: Store;
+
+  @attr('boolean') declare isMaster: boolean;
+  @attr('number') declare order: number;
+  @attr('number', { defaultValue: -1 }) declare stepIndex: number;
+
+  @belongsTo('project', { async: false, inverse: 'tracks' }) declare project: ProjectModel;
+  @belongsTo('init-script', { async: false, inverse: 'track' }) declare initScript: InitScriptModel;
+  @belongsTo('onstep-script', { async: false, inverse: 'track' }) declare onstepScript: OnstepScriptModel;
+  @belongsTo('audio-file-tree', { async: false, inverse: 'track' }) declare audioFileTree: AudioFileTreeModel;
+
+  @hasMany('track-node', { async: false, inverse: 'track' }) declare trackNodes: TrackNodeModel[];
+  @hasMany('track-control', { async: false, inverse: 'track' }) declare trackControls: TrackControlModel[];
+  @hasMany('filepath-control', { async: false, inverse: 'track' }) declare filepathControls: FilepathControlModel[];
+  @hasMany('sequence', { async: false, inverse: 'track' }) declare sequences: SequenceModel[];
+
   @tracked nodeToVisualize;
-  // serialize 2d array of track control values to use in scripts
+
+  async createAudioFileTree(): Promise<void> {
+    await this.trackControls;
+    const audioFileTree = this.store.createRecord('audio-file-tree', {
+      track: this,
+    });
+    let path = this.samplerFilepathControl?.controlValue || '';
+    path = path.split('/');
+    const item = path.pop();
+    audioFileTree.appendDirectoriesData(path.join('/'), item);
+  }
+
+  async destroyAndCleanup(): Promise<void> {
+    const project = await this.project;
+    this.unbindAndRemoveCrackedNodes();
+    this.trackNodes.forEach((trackNode) => {
+      if (trackNode && trackNode.isLoaded) {
+        this.store.unloadRecord(trackNode);
+      }
+    });
+    this.trackControls.forEach((trackControl) => {
+      if (trackControl && trackControl.isLoaded) {
+        this.store.unloadRecord(trackControl);
+      }
+    });
+    await this.destroyRecord();
+
+    if (project?.isPlaying) {
+      // TODO: Hook to remove callback from loopListeners
+    }
+  }
+
+  get currentSequence(): SequenceModel | undefined {
+    return this.sequences?.[0];
+  }
+
+  get scriptAlert(): string | null {
+    return this.initScript?.alert || this.onstepScript?.alert;
+  }
+
+  get sourceNodeRecords(): TrackNodeModel[] {
+    return this.trackNodes?.filter((tn) => tn).filterBy('isSourceNode', true);
+  }
+
+  get samplerNodes(): TrackNodeModel[] {
+    return this.sourceNodeRecords.filterBy('nodeType', 'sampler').sortBy('order');
+  }
+
+  get adsrNodes(): TrackNodeModel[] {
+    return this.sourceNodeRecords.filterBy('nodeType', 'adsr').sortBy('order');
+  }
+
+  get samplerNativeBuffers(): AudioBuffer[] {
+    return this.samplerNodes
+      .map((samplerNode) => samplerNode.sampleIsLoaded && samplerNode.nativeNode?.buffer)
+      .filter(Boolean) as AudioBuffer[];
+  }
+
+  get samplerFilepathControl(): FilepathControlModel | undefined {
+    const controls = this.filepathControls.sortBy('nodeOrder');
+    return controls[0];
+  }
+
+  get fileDownloadError(): string | undefined {
+    const sf = this.store
+      .peekAll('sound-file')
+      .findBy('filePathRelative', this.filePathRelative);
+    return sf?.errorMessage;
+  }
+
+  get filePathRelative(): string | undefined {
+    return this.samplerFilepathControl?.controlValue;
+  }
+
+  @cached
+  get downloadedFilepath(): string | undefined {
+    const soundFiles = this.store.peekAll('sound-file') as SoundFileModel[];
+    let sf = soundFiles.findBy('filePathRelative', this.filePathRelative);
+    if (!sf || sf.state === SoundFileStates.ERROR) {
+      sf = soundFiles.findBy(
+        'filePathRelative',
+        `${ENV.APP.ASSETS_PATH}/audio/silent.mp3`
+      );
+    }
+    return sf?.downloadedURI;
+  }
+
+  get validTrackNodes(): TrackNodeModel[] {
+    return this.trackNodes;
+  }
+
+  get trackNodesForControls(): TrackNodeModel[] {
+    return this.validTrackNodes.filter(
+      ({ nodeType, parentMacro }) => nodeType !== 'channelStrip' && parentMacro == null
+    );
+  }
+
+  @action
+  updateTrackSequence(sequenceRecord: SequenceModel, key: string, value: any): void {
+    if (sequenceRecord.get(key) === value) return;
+
+    if (key === 'hits') {
+      sequenceRecord.set('customSequence', []);
+    }
+    if (key === 'steps' && value < sequenceRecord.hits) {
+      sequenceRecord.set('hits', value);
+    }
+
+    sequenceRecord.set(key, value);
+    unbindFromSequencer(this.classSelector);
+    this.bindToSequencer();
+    this.saveTrackSequence.perform(sequenceRecord);
+  }
+
+  @keepLatestTask
+  *saveTrackSequence(sequenceRecord: SequenceModel): Generator<Promise<void>, void, unknown> {
+    yield timeout(1000);
+    yield sequenceRecord.save();
+  }
+
+  @keepLatestTask
+  *updateTrackTask(key: string, value: any, reInit = true): Generator<Promise<void>, void, unknown> {
+    try {
+      this.set(key, value);
+      if (reInit) {
+        yield this.findOrDownloadSoundFile();
+        this.setupAudioFromScripts();
+      }
+      yield this.save();
+    } catch {
+      this.rollbackAttributes();
+    }
+  }
+
+  async duplicate(): Promise<TrackModel> {
+    const project = await this.project;
+    const newTrack = project.tracks.createRecord() as TrackModel;
+    return await project.setupAndSaveNewTrack(newTrack, {
+      adapterOptions: { duplicateId: this.id },
+    });
+  }
+
+
+
+  /**
+   * Audio stuff
+   */
+
   get trackControlData() {
     return this.trackControls.map((trackControl) => {
       // FIXME when user switches a control from single to multi, both values will be truthy/
@@ -71,7 +251,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // cracked.onCreateNode was added to the Cracked library to give access to the AudioNode object upon creation
     // this callback gets called when a user creates cracked audio nodes in the script editor ui
     // macro components should not get individual ui controls
-    __.onCreateNode = async (node, type, creationParams, userSettings) => {
+    extendOnCreateNode(async (node, type, creationParams, userSettings) => {
       // TODO:
       // if the user creates a sampler with a filepath different than this.filepath
       // then try to dynamically set the filepath track-control to match
@@ -128,7 +308,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
           node.ui = userSettings.ui;
         }
       }
-    };
+    });
 
     if (unbindBeforeCreate) {
       this.unbindAndRemoveCrackedNodes();
@@ -137,7 +317,7 @@ export default class TrackAudioModel extends Model.extend(Evented) {
     // run script to create audio nodes
     initScript.invokeFunctionRef();
     // nullify this callback after creating track nodes to prevent it from getting called outside of this track
-    __.onCreateNode = null;
+    extendOnCreateNode(null);
 
     // Destroy all TrackNode records for this track, they'll be recreated from the latest update to the AudioNode tree
     this.trackNodes.forEach((trackNode) => this.store.unloadRecord(trackNode));

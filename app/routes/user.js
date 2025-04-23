@@ -7,14 +7,12 @@ export default class UserRoute extends Route {
   @service router
 
   beforeModel() {
-    console.log('user route BM');
-
-    // TODO: if !authenticated
+       
     // rename /embed to /oauth or discord route then send them back here once logged in
-    if (window.isEmbed) {
+    if (window.isEmbed && !this.session.isAuthenticated) {
       return this.router.transitionTo('embed');
     }
-    
+
     return this._loadCurrentUser();
   }
 

@@ -30,7 +30,6 @@ export default class UserAdapter extends ApplicationAdapter {
   @service session;
 
   urlForQueryRecord() {
-    debugger
     return `${ENV.APP.userEndpoint}`;
   }
 
