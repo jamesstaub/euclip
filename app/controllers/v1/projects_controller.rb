@@ -5,10 +5,7 @@ class V1::ProjectsController < V1::BaseController
   def index
     @pagy, @projects = pagy(Project
                                   .includes(
-                                    :tracks, 
-                                    :tracks => :init_script,
-                                    :tracks => :onstep_script, 
-                                    :tracks => :sequences
+                                    tracks: [:init_script, :onstep_script, :sequences]
                                   )
                                   .where(creator_id: current_user.id)
                                   .order(created_at: :asc)
