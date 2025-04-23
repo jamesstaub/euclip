@@ -59,8 +59,7 @@ Rails.application.configure do
   config.log_level = :debug
 
   # Allow requests from the backend service hostname
-  config.hosts << "euclip_backend"
-  config.hosts << "trycloudflare.com"
+  config.hosts << "euclip_backend" # Allow requests from the backend hostname
   config.hosts << "localhost" # Allow requests from localhost
   config.hosts << "127.0.0.1" # Allow requests from 127.0.0.1
 

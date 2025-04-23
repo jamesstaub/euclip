@@ -137,3 +137,13 @@ SearchableDirectory.create(name: '/')
 file_names = File.readlines('db/seeds/mp3filepaths.txt').map(&:chomp)
 file_names.map{|file_path| FileService.create_record(file_path) }
 
+user = User.first
+jti = SecureRandom.uuid
+exp = 24.hours.from_now.to_i
+
+AllowlistedJwt.create!(
+  user: user,
+  jti: jti,
+  exp: Time.at(exp)
+)
+
