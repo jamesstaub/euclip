@@ -7,7 +7,11 @@ class SessionsController < Devise::SessionsController
   skip_before_action :verify_signed_out_user
 
   def destroy
-    current_user.allowlisted_jwts.destroy_all
+    # FIXME:
+    # see note in application config.
+    # we are using the cookie authentication in addition to JWT because rails 7
+    # upgrade began throwing an error when config.session_store :disabled
+    # so we manually cleanup the cookie here
     response.set_cookie('_euclip_session', {})
 
     signout_user

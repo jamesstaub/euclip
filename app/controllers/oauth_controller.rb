@@ -1,6 +1,5 @@
 class OauthController < ApplicationController
   require 'json'
-  include Devise::Controllers::Helpers
 
   def token
     access_token = fetch_token(params[:code])
@@ -14,25 +13,25 @@ class OauthController < ApplicationController
   end
 
   def authenticate
-    # Extract the access token from the Authorization header
     access_token = request.headers['Authorization']&.split(' ')&.last
     raise ArgumentError, "Missing access token" unless access_token.present?
 
-    # Fetch user info from Discord and create or update the user
     user_info = fetch_discord_user_info(access_token)
     user = DiscordUserService.create_or_update_user(user_info, access_token)
 
     if user.persisted?
-      # Generate a JWT token using Devise-JWT
-      token, _payload = Warden::JWTAuth::UserEncoder.new.call(user, :user, nil)
+      # Revoke all previous tokens for the user
+      AllowlistedJwt.where(user_id: user.id).delete_all
 
-      # Log the token and ensure it is added to the allowlist
-      Rails.logger.info("Generated JWT: #{token}")
-
-      # Set the current_user using Devise's sign_in method
+      # Generate and encode a new JWT
+      
+      # Devise sign in
       sign_in(user)
+      
+      token = request.env['warden-jwt_auth.token']
 
-      # Return the token and user info to the client
+      raise ArgumentError, "Failed to generate token" unless token.present?
+      
       render json: {
         token: token,
         user: UserSerializer.new(user).to_hash
@@ -58,7 +57,11 @@ class OauthController < ApplicationController
       code: code
     }
 
-    response_body = HttpService.post(uri, headers: { "Content-Type" => "application/x-www-form-urlencoded" }, form_data: form_data)
+    response_body = HttpService.post(
+      uri,
+      headers: { "Content-Type" => "application/x-www-form-urlencoded" },
+      form_data: form_data
+    )
 
     response_body["access_token"]
   end
@@ -71,6 +74,6 @@ class OauthController < ApplicationController
     response_body
   rescue StandardError => e
     Rails.logger.error("Error fetching Discord user info: #{e.message}")
-    render_not_found("Failed to fetch Discord user info")
+    raise "Failed to fetch Discord user info"
   end
 end

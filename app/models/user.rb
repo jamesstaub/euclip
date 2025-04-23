@@ -12,10 +12,11 @@ class User < ApplicationRecord
   # Include default devise modules. Others available are:
   # :confirmable, :timeoutable, :lockable, and :omniauthable
   devise :database_authenticatable, :registerable,
-         :recoverable, :rememberable, :validatable, :trackable,
-         :encryptable, :jwt_authenticatable,
-         jwt_revocation_strategy: self, stretches: 20,
-         authentication_keys: [:login]
+    :recoverable, :rememberable, :validatable, :trackable,
+    :encryptable, :jwt_authenticatable,
+    jwt_revocation_strategy: AllowlistedJwt,
+    stretches: 20,
+    authentication_keys: [:login]
 
   has_many :projects, foreign_key: "creator_id"
   

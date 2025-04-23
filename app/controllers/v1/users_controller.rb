@@ -3,6 +3,7 @@
 class V1::UsersController < ApplicationController
   include Avatarable
 
+  before_action :log_headers
   before_action :authenticate_user!
   before_action :set_user, only: %i[avatar show]
 
@@ -31,5 +32,12 @@ class V1::UsersController < ApplicationController
 
   def set_user
     @user = User.find(params[:id])
+  end
+
+  def log_headers
+    Rails.logger.info("TOKENEXISTS? ")
+    token = request.headers['Authorization']&.split(' ')&.last
+    decoded_token = JWT.decode(token, Rails.application.credentials.devise[:jwt_secret_key], true, { algorithm: 'HS256' })
+    Rails.logger.info("Decoded token: #{decoded_token}")
   end
 end
