@@ -2,6 +2,7 @@ import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import ProjectAdapter from '../../../adapters/project';
 import { SoundFileStates } from '../../../models/sound-file';
+import ENV from 'euclip/config/environment';
 
 export default class UserCreatorProjectRoute extends Route {
   @service store;
@@ -55,7 +56,7 @@ export default class UserCreatorProjectRoute extends Route {
       return;
 
     const sf = this.store.createRecord('sound-file', {
-      filePathRelative: '/.proxy/assets/audio/silent.mp3',
+      filePathRelative: `${ENV.APP.ASSETS_PATH}/audio/silent.mp3`,
     });
     await sf.afterCreate();
 

@@ -8,6 +8,7 @@ import { inject as service } from '@ember/service';
 import { action } from '@ember/object';
 import { cached } from '@glimmer/tracking';
 import { SoundFileStates } from './sound-file';
+import ENV from 'euclip/config/environment';
 
 export default class TrackModel extends TrackAudioModel {
   @service store;
@@ -138,7 +139,10 @@ export default class TrackModel extends TrackAudioModel {
     const soundFiles = this.store.peekAll('sound-file');
     let sf = soundFiles.findBy('filePathRelative', this.filePathRelative);
     if (!sf || sf.state === SoundFileStates.ERROR) {
-      sf = soundFiles.findBy('filePathRelative', '/.proxy/assets/audio/silent.mp3');
+      sf = soundFiles.findBy(
+        'filePathRelative',
+        `${ENV.APP.ASSETS_PATH}/audio/silent.mp3`
+      );
     }
     return sf.downloadedURI;
   }

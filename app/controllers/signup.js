@@ -16,7 +16,7 @@ export default class SignupController extends Controller {
     this.isSubmitting = true;
     try {
       console.log(this.username, this.email, this.password);
-      
+
       const user = this.store.createRecord('user', {
         username: this.username,
         email: this.email,

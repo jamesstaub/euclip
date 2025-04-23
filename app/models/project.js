@@ -17,16 +17,10 @@ export default class ProjectModel extends ProjectAudioModel {
   // maybe move this to track?
   async setupAndSaveNewTrack(track, saveOptions) {
     // need to wait to for save because orders may change
-    console.log(1 );
-    
     await track.save(saveOptions);
-    console.log(2); 
     this.tracks.pushObject(track);
-    console.log(3);
     await track.findOrDownloadSoundFile();
-    console.log(4);
     await track.setupAudioFromScripts(false);
-    console.log(5);
     track.createAudioFileTree(); // not required to start playing, just filetree UI
     return track;
   }

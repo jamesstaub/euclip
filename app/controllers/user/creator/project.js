@@ -97,7 +97,7 @@ export default class UserCreatorProjectController extends Controller {
     let track = this.model.tracks.createRecord({ hits: 1 });
     this.sortedTracks = [...this.sortedTracks, track];
     console.log(track);
-    
+
     try {
       track = await this.model.setupAndSaveNewTrack(track);
     } catch (error) {

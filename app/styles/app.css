@@ -167,8 +167,4 @@ a {
   background: radial-gradient(circle, var(--dark-blue) 0%, var(--dark-gray) 100%);
   background-size: cover;
   background-position: center;
-  height: 100vh;
 }
-
-
-

@@ -48,7 +48,8 @@ function findSmallestDecimalPlace(value) {
 // add param-specific validations like time bounding start/end params on sample
 export default class TrackControlModel extends Model {
   @belongsTo('track', { async: false, inverse: 'trackControls' }) track;
-  @belongsTo('track-node', { async: false, inverse: 'trackControls' }) trackNode;
+  @belongsTo('track-node', { async: false, inverse: 'trackControls' })
+  trackNode;
 
   // while redundant, nodeType and trackNodeOrder are needed here when POSTing
   // because TrackNode models do not exist in the back end

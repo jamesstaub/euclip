@@ -19,7 +19,8 @@ export default class UserMyProjectsRoute extends Route {
         include: ProjectAdapter.projectIncludeParams,
       });
     } else {
-      this.router.transitionTo('login');
+      // TODO: figure out why we are hitting this when loading from /embed route
+      // this.router.transitionTo('login');
     }
   }
 

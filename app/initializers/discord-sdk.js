@@ -3,8 +3,14 @@ import config from 'euclip/config/environment';
 
 const applyProxyPrefix = () => {
   const proxyPrefix = config.APP.PROXY_PREFIX;
-  config.APP.DRUMMACHINES_PROXY_PATH = `${proxyPrefix}${config.APP.DRUMMACHINES_PROXY_PATH}`;
-  config.APP.API_PREFIX = `${proxyPrefix}/v1`;
+  config.APP.API_PREFIX = `${proxyPrefix}${config.APP.API_PREFIX}`;
+  config.APP.ASSETS_PATH = `${proxyPrefix}${config.APP.ASSETS_PATH}`;
+  config.APP.DRUMMACHINES_CDN_PATH = `${proxyPrefix}${config.APP.DRUMMACHINES_CDN_PATH}`;
+
+  config.APP.registrationEndpoint = `${proxyPrefix}${config.APP.registrationEndpoint}`;
+  config.APP.userEndpoint = `${proxyPrefix}${config.APP.userEndpoint}`;
+  config.APP.invalidateEndpoint = `${proxyPrefix}${config.APP.invalidateEndpoint}`;
+  
 };
 
 const patchExternalUrls = () => {
@@ -13,16 +19,25 @@ const patchExternalUrls = () => {
   patchUrlMappings([
     {
       prefix: config.APP.DRUMMACHINES_PROXY_PATH,
-      target: config.APP.DRUMMACHINES_ROOT,
+      target: config.APP.AUDIO_CDN_ROOT,
     },
   ]);
 };
 
 export function initialize() {
-  const isEmbed = window.location.pathname === '/embed';
-  if (isEmbed) {
+  // look in query params for frame_id param 
+  window.isEmbed = window.location.search.includes('frame_id');
+  
+  // if host is localhost
+  if (window.location.hostname === 'localhost') {
+    config.APP.PROXY_PREFIX = '';
+  }
+
+  if (window.isEmbed) {
     applyProxyPrefix();
     patchExternalUrls();
+  } else {
+    config.APP.PROXY_PREFIX = '';
   }
 }
 

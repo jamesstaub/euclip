@@ -1,15 +1,16 @@
-<NavBar @logoWidth='180px'>
-  {{#if this.session.isAuthenticated}}
-    <DropdownMenu
-      class='pv2 bg-transparent bn'
-      @closeOnSelect={{true}}
-      @items={{array (hash label='logout' select=(action 'invalidateSession'))}}
-    >
-      <span class='white mh2'>{{this.currentUser.user.username}}</span>
-    </DropdownMenu>
-  {{else}}
-    <LinkTo class='yellow' @route='login'>login</LinkTo>
-  {{/if}}
-</NavBar>
+
+  <NavBar @logoWidth='180px'>
+    {{#if this.session.isAuthenticated}}
+      <DropdownMenu
+        class='pv2 bg-transparent bn'
+        @closeOnSelect={{true}}
+        @items={{array (hash label='logout' select=(action 'invalidateSession'))}}
+      >
+        <span class='white mh2'>{{this.currentUser.user.username}}</span>
+      </DropdownMenu>
+    {{else}}
+      <LinkTo class='yellow' @route='login'>login</LinkTo>
+    {{/if}}
+  </NavBar>
 
 {{outlet}}

@@ -19,6 +19,9 @@ export default class SoundFileModel extends Model {
   @tracked state = SoundFileStates.INIT;
   state;
 
+  @tracked errorMessage = null;
+  errorMessage;
+
   @attr('string')
   filePathRelative; // the path without a root, matching the search endpoint results
 
@@ -58,14 +61,18 @@ export default class SoundFileModel extends Model {
   }
 
   get filepathUrl() {
-    return `${ENV.APP.DRUMMACHINES_PROXY_PATH}/${ENV.APP.DRUMMACHINES_PATH}/${this.filePathRelative}`;
+    return `${ENV.APP.DRUMMACHINES_CDN_PATH}/${this.filePathRelative}`;
   }
 
   static async downloadSoundFile(filePathRelative) {
-    const url = filePathRelative?.startsWith(`${ENV.APP.PROXY_PREFIX}/assets/`)
+    // TODO: this should get a root path from the caller, eg the Search API vs
+    // some other input from the user.
+    // the API can provide different roots for development vs production
+    // the sound file record should have unique root/filepath pairs
+    const url = filePathRelative?.startsWith(`${ENV.APP.ASSETS_PATH}`)
       ? filePathRelative
-      : `${ENV.APP.DRUMMACHINES_PROXY_PATH}/${ENV.APP.DRUMMACHINES_PATH}${filePathRelative}`;
-
+      : `${ENV.APP.DRUMMACHINES_CDN_PATH}${filePathRelative}`;
+    
     if (!url) throw new Error('No url provided to create sound file');
 
     const response = await fetch(url);
@@ -115,6 +122,5 @@ export default class SoundFileModel extends Model {
   transitionToState(newState, data) {
     this.state = newState;
     this.errorMessage = data?.error;
-    console.log(this.errorMessage)
   }
 }

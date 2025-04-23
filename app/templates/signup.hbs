@@ -1,6 +1,8 @@
 {{page-title "Sign up"}}
-<div class="gray-blue-radial-bg ">
-  <NavBar @logoWidth="220px" />
+
+<NavBar @logoWidth="220px" />
+<Page::Wrapper>
+
       <Auth::Form
         @fieldsetId="sign_up"
         @legend="Create Account"
@@ -50,4 +52,4 @@
         </div>
       </:footer>
   </Auth::Form>
-</div>
+</Page::Wrapper>
