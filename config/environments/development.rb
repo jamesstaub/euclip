@@ -55,13 +55,14 @@ Rails.application.configure do
   # Highlight code that triggered database queries in logs.
   config.active_record.verbose_query_logs = true
 
+  config.logger = ActiveSupport::Logger.new(STDOUT)
   config.log_level = :debug
 
   # Allow requests from the backend service hostname
   config.hosts << "euclip_backend"
   config.hosts << "trycloudflare.com"
-  config.hosts << "freely-showtimes-symphony-concentrations.trycloudflare.com"
-  config.hosts << "1360670663660278031.discordsays.com"
+  config.hosts << "localhost" # Allow requests from localhost
+  config.hosts << "127.0.0.1" # Allow requests from 127.0.0.1
 
   
   # Raises error for missing translations.

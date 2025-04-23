@@ -19,4 +19,20 @@ Rails.application.config.middleware.insert_before 0, Rack::Cors do
       expose: %w(Authorization),
       methods: %i(get patch put post delete options head)
   end
+
+  allow do
+    origins 'discord.com', 'discordapp.com', /.*\.discordsays\.com/ # Add Discord origins
+    resource '*',
+             headers: :any,
+             methods: [:get, :post, :put, :patch, :delete, :options, :head],
+             credentials: true # Allow cookies or Authorization headers
+  end
+
+  allow do
+    origins 'localhost:4200' # Allow requests from the Ember app
+    resource '*',
+             headers: :any,
+             expose: %w(Authorization),
+             methods: %i[get post put patch delete options head]
+  end
 end
