@@ -1,6 +1,7 @@
 'use strict';
 
 const EmberApp = require('ember-cli/lib/broccoli/ember-app');
+const { Webpack } = require('@embroider/webpack');
 
 module.exports = function (defaults) {
   let app = new EmberApp(defaults, {
@@ -55,24 +56,16 @@ module.exports = function (defaults) {
   // please specify an object with the list of modules as keys
   // along with the exports of each module as its value.
 
-  const { Webpack } = require('@embroider/webpack');
   return require('@embroider/compat').compatBuild(app, Webpack, {
-    splitAtRoutes: ['user'],
+    staticAddonTestSupportTrees: true,
+    staticAddonTrees: true,
+    staticHelpers: true,
+    staticModifiers: true,
+    staticComponents: true,
+    splitAtRoutes: ['route.name'], // Adjust as needed
     packagerOptions: {
       webpackConfig: {
-        module: {
-          rules: [
-            {
-              test: /\.css$i/,
-              loader: 'postcss-loader',
-              options: {
-                postcssOptions: {
-                  plugins: ['postcss-import'],
-                },
-              },
-            },
-          ],
-        },
+        devtool: 'source-map',
       },
     },
   });
