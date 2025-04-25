@@ -49,11 +49,13 @@ export default class DiscordAuthenticator extends BaseAuthenticator {
   }
 
   async getAccessToken(code) {
-    console.log('euclip; Fetching access token...');
-    const response = await fetch(this.oauthTokenEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code }),
+
+    const url = new URL(this.oauthTokenEndpoint);
+    url.searchParams.set('code', code);
+  
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
     });
 
     if (!response.ok) {
@@ -61,7 +63,7 @@ export default class DiscordAuthenticator extends BaseAuthenticator {
     }
 
     const { access_token } = await response.json();
-    console.log('euclip; Access token received');
+
     return access_token;
   }
 
