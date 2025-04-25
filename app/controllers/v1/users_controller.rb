@@ -38,9 +38,7 @@ class V1::UsersController < ApplicationController
   end
 
   def log_headers
-    Rails.logger.info("TOKENEXISTS? ")
     token = request.headers['Authorization']&.split(' ')&.last
     decoded_token = JWT.decode(token, Rails.application.credentials.devise[:jwt_secret_key], true, { algorithm: 'HS256' })
-    Rails.logger.info("Decoded token: #{decoded_token}")
   end
 end
