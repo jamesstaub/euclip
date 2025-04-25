@@ -1,3 +1,13 @@
+
+
+.sidebar-inner-max-height {
+  max-height: calc(100vh - 16.5rem);
+}
+
+.script-max-height {
+  max-height: calc(100vh - 18rem);
+}
+
 .right-sidebar-width,
 .left-sidebar-width {
   width: var(--sidebar-width);
