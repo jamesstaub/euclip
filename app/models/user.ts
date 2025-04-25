@@ -1,7 +1,8 @@
 // app/models/user.ts
-import Model, { attr, hasMany } from '@ember-data/model';
+import Model, { attr, belongsTo, hasMany } from '@ember-data/model';
 import type ProjectModel from './project';
 import type { Collection } from '@ember-data/store/-private';
+import type UserAuthModel from './user-auth';
 
 export default class UserModel extends Model {
   @attr('string') declare username: string;
@@ -12,5 +13,6 @@ export default class UserModel extends Model {
   @attr('string') declare password: string;
 
   @hasMany('project', { async: false }) declare projects: Collection<ProjectModel>;
+  @belongsTo('user-auth', { async: false, inverse: 'user' }) declare userAuth: UserAuthModel
 }
 

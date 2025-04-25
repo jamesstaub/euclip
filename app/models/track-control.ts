@@ -15,6 +15,8 @@ import {
   unitOptionsForNode,
 } from '../utils/audio-param-config';
 import { applyAttrs } from '../utils/cracked';
+import type TrackModel from './track';
+import type TrackNodeModel from './track-node';
 
 function findSmallestDivisor(value, stepSize, range) {
   let minDifference = Math.abs(value - Math.round(value / stepSize) * stepSize);
@@ -47,26 +49,43 @@ function findSmallestDecimalPlace(value) {
 // move configurations into the model
 // add param-specific validations like time bounding start/end params on sample
 export default class TrackControlModel extends Model {
-  @belongsTo('track', { async: false, inverse: 'trackControls' }) track;
-  @belongsTo('track-node', { async: false, inverse: 'trackControls' })
-  trackNode;
+  // @belongsTo('track', { async: false, inverse: 'trackControls' }) track;
+  // @belongsTo('track-node', { async: false, inverse: 'trackControls' })
+  // trackNode;
 
-  // while redundant, nodeType and trackNodeOrder are needed here when POSTing
-  // because TrackNode models do not exist in the back end
-  @attr('number') nodeOrder;
-  @attr('string') nodeType;
-  @attr('string') nodeAttr; // the audio attr that will be controlled
+  
+  // @attr('number') nodeOrder;
+  // @attr('string') nodeType;
+  // @attr('string') nodeAttr; 
 
-  @attr('string') interfaceName; // type of nexus ui element
-  @attr('number', { defaultValue: 0 }) currentUnitTransformIdx; // index of the unit transform function applied to this control (see audio-param-config.js)
-  @attr('number') min;
-  @attr('number') max;
-  @attr('number') stepSize;
-  @attr('number') defaultValue;
-  @attr('number') controlValue; // number value of control
-  @attr('boolean') applyHitsOnly; // TODO: move to a MultisliderControl subclass
+  // @attr('string') interfaceName; // type of nexus ui element
+  // @attr('number', { defaultValue: 0 }) currentUnitTransformIdx; 
+  // @attr('number') min;
+  // @attr('number') max;
+  // @attr('number') stepSize;
+  // @attr('number') defaultValue;
+  // @attr('number') controlValue; // number value of control
+  // @attr('boolean') applyHitsOnly; 
 
-  @attr() controlArrayValue;
+  // @attr() controlArrayValue;
+
+  @belongsTo('track', { async: false, inverse: 'trackControls' }) declare track: TrackModel;
+  @belongsTo('track-node', { async: false, inverse: 'trackControls' }) declare trackNode: TrackNodeModel;
+
+  // // while redundant to trackNode model, nodeType and trackNodeOrder are needed here when POSTing
+  // // because TrackNode models do not exist in the back end
+  @attr('number') declare nodeOrder: number;
+  @attr('string') declare nodeType: string;
+  @attr('string') declare nodeAttr: string; // the audio attr that will be controlled
+
+  @attr('string') declare interfaceName: string;
+  @attr('number', { defaultValue: 0 }) declare currentUnitTransformIdx: number; // index of the unit transform function applied to this control (see audio-param-config.js)
+  @attr('number') declare min: number;
+  @attr('number') declare max: number;
+  @attr('number') declare stepSize: number;
+  @attr('number') declare defaultValue: number;
+  @attr('number') declare controlValue: number;
+  @attr('boolean') declare applyHitsOnly: boolean; // TODO: move to a MultisliderControl subclass
 
   get controlArrayComputed() {
     // fill the trackControl model's array with defaul value if it is not the correct length

@@ -6,7 +6,12 @@
         @closeOnSelect={{true}}
         @items={{array (hash label='logout' select=(action 'invalidateSession'))}}
       >
-        <span class='white mh2'>{{this.currentUser.user.username}}</span>
+        <img
+          class='h2 w2 br-100'
+          src={{this.currentUser.user.userAuth.avatarUrl}}
+          alt={{this.currentUser.user.username}}
+          title={{this.currentUser.user.username}}
+        />
       </DropdownMenu>
     {{else}}
       <LinkTo class='yellow' @route='login'>login</LinkTo>
