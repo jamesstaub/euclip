@@ -2,8 +2,8 @@ import BaseAuthenticator from 'ember-simple-auth/authenticators/base';
 import ENV from 'euclip/config/environment';
 
 export default class DiscordAuthenticator extends BaseAuthenticator {
-  oauthTokenEndpoint = `${ENV.APP.PROXY_PREFIX}/oauth/token`;
-  oauthAuthEndpoint = `${ENV.APP.PROXY_PREFIX}/oauth/auth`;
+  oauthTokenEndpoint = `/oauth/token`;
+  oauthAuthEndpoint = `/oauth/auth`;
 
   identificationAttributeName = 'login';
   

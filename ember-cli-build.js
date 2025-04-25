@@ -22,10 +22,22 @@ module.exports = function (defaults) {
       plugins: [require.resolve('ember-auto-import/babel-plugin')],
     },
 
-    sourcemaps: { enabled: true },
+    sourcemaps: {
+      enabled: false, // Disable sourcemaps for production
+    },
 
     minifyCSS: {
+      enabled: true, // Minify and concatenate CSS
       options: { processImport: true },
+    },
+
+    minifyJS: {
+      enabled: true,
+      options: {
+        output: {
+          comments: false, // Remove comments from JS
+        },
+      },
     },
 
     ace: {
