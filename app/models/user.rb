@@ -64,7 +64,7 @@ class User < ApplicationRecord
     content_type: [:png, :jpg, :jpeg],
     size: { less_than: 1.megabyte , message: 'file size should be less than 1mb' }
 
-  validates :user_auth, presence: true
+
 
   # account that publishes site-wide content
   def self.ADMIN_PUBLISHER
