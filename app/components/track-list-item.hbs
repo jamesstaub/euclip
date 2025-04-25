@@ -1,7 +1,7 @@
 {{!-- template-lint-disable no-invalid-interactive --}}
 
 <div 
-  class="pointer no-outline {{if @track.isMaster "pl4 " "pl3"}} bb b--silver {{if @isActive "bg-yellow" "bg-dark-gray hover-bg-near-black"}}" 
+  class="pointer no-outline {{if @track.isMaster "pl4 " "pl3"}} bb b--silver {{if @isActive "bg-yellow" "bg-dark-gray hover-bg-gray"}}" 
   tabindex="0"
   {{on "click" @selectActiveTrack}}
   {{focus @isActive}}

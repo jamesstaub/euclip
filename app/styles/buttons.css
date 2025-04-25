@@ -71,6 +71,9 @@ button:not([disabled]):not(.selected):hover {
   &.bg-transparent {
     background-color: rgba(255, 255, 255, .25);
   }
+  &.bg-near-black {
+    background-color: var(--dark-gray);
+  }
 }
 
 button:not([disabled]):active {

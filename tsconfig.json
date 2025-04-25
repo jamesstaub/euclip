@@ -10,7 +10,8 @@
       "euclip/tests/*": ["tests/*"],
       "euclip/*": ["app/*"],
       "*": ["types/*"]
-    }
+    },
+    "typeRoots": ["types", "node_modules/@types"]
     
   },
   "glint": {

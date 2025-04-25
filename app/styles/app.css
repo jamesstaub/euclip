@@ -88,10 +88,6 @@ a {
 }
 
 
-.sidebar-inner-max-height {
-  max-height: calc(100vh - 19rem);
-}
-
 .track-list-height {
   max-height: calc(100vh - 30rem);
   min-height: 10rem;
@@ -129,7 +125,6 @@ a {
   height: calc(100%);
   border: solid 0.125rem var(--light-gray);
 }
-
 
 
 .progress-container {

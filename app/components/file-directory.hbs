@@ -1,5 +1,5 @@
-<div class='relative' ...attributes>
-  <ul class='list ph0 mt0 mr3 h-100'>
+<div class='relative bg-semi-transparent-dark-gray' ...attributes>
+  <ul class='list ph0 mt0 mr0 h-100'>
     {{#each @directory.choices as |choice idx|}}
       <ListItem @scrollBehavior={{this.scrollBehavior}} @selected={{eq @directory.currentDirIdx idx}}>
         <ListItemLink {{on 'click' (fn this.selectItem @directory choice)}}>

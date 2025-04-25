@@ -1,6 +1,6 @@
 <div class='relative flex grow-1' ...attributes {{shortcut 'Command+Shift+Enter' (perform @scriptModel.runCode)}}>
   <div
-    class='grow-1 sidebar-inner-max-height max-w-100'
+    class='grow-1 max-w-100 script-max-height'
     {{codemirror
       (add @scriptModel.id this.renderFlag)
       @scriptModel.editorContent
@@ -13,7 +13,7 @@
   <div class='flex justify-between grow-1 mb3'>
     <div>
       {{#if (or this.functionIsLoaded @scriptModel.runCode.isRunning)}}
-        <p class='mt3 mb0 ba b--white b f4 w4 white pv2 ph3 ttc bw1'>Running...</p>
+        <p class='mt2 mb0 ba b--gray b f4 w4 gray pv2 ph3 ttc bw1'>Loaded...</p>
       {{else}}
         <SidebarSubmitButton
           class='mt3 f4 w4'
@@ -25,7 +25,7 @@
           @disabled={{this.functionIsLoaded}}
           {{on 'click' (perform @scriptModel.runCode)}}          
         >
-            Run
+            Load
         </SidebarSubmitButton>
       {{/if}}
       {{#if this.functionIsLoaded}}
@@ -38,7 +38,7 @@
       {{else}}
         {{#if this.canRevert}}
           <ButtonPrimary
-            class='light-gray b--light-gray bg-dark-gray mt3 f4'
+            class='dark-gray b--light-gray bg-light-gray mt3 f4'
             @restyle={{true}}
             {{on 'click' this.discardChanges}}
             title='Revert editor to currently running code'

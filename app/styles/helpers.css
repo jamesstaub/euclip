@@ -3,6 +3,14 @@
   background-color: var(--dark-gray);
 }
 
+.bg-semi-transparent-dark-gray {
+  background-color: rgba(20, 20, 20, 0.5);
+}
+
+.bg-near-black {
+  background-color: var(--near-black);
+}
+
 .bg-dark-blue {
   background-color: var(--dark-blue);
 }
@@ -25,6 +33,10 @@
 
 .hover-bg-near-black:hover {
   background-color: var(--near-black);
+}
+
+.hover-bg-gray:hover {
+  background-color: var(--medium-gray);
 }
 
 .hover-bg-dark-yellow:hover {

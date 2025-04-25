@@ -1,10 +1,8 @@
-<div class={{concat "z-2 flex shrink-1 basis-auto grow-1 h-auto "
-    (if (media 'isMobile') 'absolute top-0 w-100 max-w-100 ' (if (media 'isTablet') 'max-w-50' 'max-w-33'))
-  }} 
+<div class={{concat "z-2 flex shrink-1 basis-auto grow-1 gray-blue-radial-bg " this.responsiveClass}} 
   ...attributes
   {{shortcut "Escape" @onCloseSidebar global=true}}
 >
-  <div class="relative flex bg-dark-gray w-100 flex-column">
+  <div class="relative flex w-100 flex-column">
     <IconButton class="absolute top-0 right-0 bg-transparent light-fill bn z-2 pa3" @icon="fi-cancel" 
       {{on "click" @onCloseSidebar}} 
       title="Close Sidebar (ESC)"

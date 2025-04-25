@@ -113,7 +113,7 @@ export default class SoundFileModel extends Model {
       // Wait until the file has finished downloading or errored out
       await waitForProperty(soundFile, 'isDownloading', false);
     }
-
+    
     if (!soundFile?.isDownloaded) {
       soundFile = store.createRecord('sound-file', {
         filePathRelative: filePathRelative,

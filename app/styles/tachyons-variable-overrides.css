@@ -4,9 +4,11 @@
   --height-7: 28rem;
 
   --width-3: 4.5rem;
+  --width-5: 20rem;
 
   --width-6: 28rem;
   --breakpoint-not-small: screen and (min-width: 40em);
   --breakpoint-medium: screen and (min-width: 40em) and (max-width: 60em);
   --breakpoint-large: screen and (min-width: 60em);
+  --medium-gray: #404040;
 }

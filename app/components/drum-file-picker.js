@@ -38,11 +38,28 @@ export default class DrumFilePicker extends Component {
   async saveFilepathControl(filepath) {
     await SoundFileModel.findOrDownload(filepath, this.store);
     const track = await this.args.track;
-    const filepathControl = FilepathControlModel.findOrCreateWith({
-      track,
-      trackNode: track.samplerNodes[0],
-      controlValue: filepath,
-    });
+
+    // Ensure filepathControls is an array and handle proxies
+    const filepathControls = Array.isArray(track.filepathControls)
+      ? track.filepathControls
+      : [];
+
+    // Check if a filepathControl already exists for the track
+    let filepathControl = filepathControls.find(
+      (control) => control.trackNode === track.samplerNodes[0]
+    );
+
+    if (filepathControl) {
+      // Update the existing filepathControl
+      filepathControl.controlValue = filepath;
+    } else {
+      // Create a new filepathControl if none exists
+      filepathControl = FilepathControlModel.findOrCreateWith({
+        track,
+        trackNode: track.samplerNodes[0],
+        controlValue: filepath,
+      });
+    }
 
     try {
       await filepathControl.save();
@@ -79,9 +96,12 @@ export default class DrumFilePicker extends Component {
   async onSelectSearchResult(searchResult) {
     const directoryItems = searchResult.split('/');
     const item = directoryItems.pop();
+    console.log('item')
     const ancestorPath = `${directoryItems.join('/')}/`;
     const fileTree = await this.args.audioFileTree;
+    console.log('fileTree', fileTree);  
     fileTree.appendDirectoriesData(ancestorPath, item);
+    
     this.saveFilepathControl(searchResult);
   }
 }

@@ -2,13 +2,13 @@
   {{yield}}
   <Input
     aria-label='Search for Drum Sounds'
-    class='ba bw1 b--yellow grow-1 white bg-dark-gray f5 pa3'
+    class='ba bw1 b--yellow grow-1 light-gray bg-transparent f5 pa3'
     placeholder='Search for drums sounds'
     @value={{this.searchQuery}}
      {{on 'keyup' this.search}} 
   />
   {{#if this.searchResults.length}}
-    <ButtonPrimary class="bl0" {{on 'click' this.backToBrowse}} @label='← browse' />
+    <ButtonPrimary class="bl0 mt3" {{on 'click' this.backToBrowse}} @label='← browse' />
   {{/if}}
 </div>
 {{#if this.searchTask.isRunning}}
@@ -17,7 +17,7 @@
 
 {{#if this.searchResults.length}}
   <div
-    class='flex justify-between flex-column mv3 sidebar-inner-max-height overflow-scroll'
+    class='flex justify-between flex-column mv3 overflow-scroll'
   >
     <ul
       class='flex flex-column shrink-1 grow-1 list ma0 ph3'
@@ -40,8 +40,8 @@
 {{else}}
   <div class='flex overflow-x-scroll w-100 pa3 sidebar-inner-max-height'>
     {{#each @audioFileTree.directoryTree as |directory idx|}}
-      <div class='flex w-auto flex-column mr2'>
-        <h4 class='black w-100 mv3 mb0 pl1 yellow'>
+      <div class='flex w-auto flex-column mr2 min-w-5'>
+        <h4 class='black w-100 pv3 mb0 pl2 yellow bg-semi-transparent-dark-gray'>
           {{if (eq directory.type 'audio') 'Sounds' 'Drum Machine'}}
         </h4>
         <FileDirectory

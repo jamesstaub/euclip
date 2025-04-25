@@ -1,7 +1,7 @@
 import Service, { inject as service } from '@ember/service';
 import type SessionService from 'ember-simple-auth/services/session';
 import type Store from '@ember-data/store';
-import type ModelRegistry from 'ember-data/registries/model';
+import type ModelRegistry from 'euclip/types/model';
 import type UserModel from 'euclip/models/user';
 
 export default class CurrentUserService extends Service {
