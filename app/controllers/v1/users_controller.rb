@@ -25,13 +25,16 @@ class V1::UsersController < ApplicationController
   end
 
   def show
-    render json: UserSerializer.new(@user).to_hash, status: :ok
+    render json: UserSerializer.new(
+      @user,
+      { include: [:user_auth] }
+    ).to_hash, status: :ok
   end
 
   private
 
   def set_user
-    @user = User.find(params[:id])
+    @user = User.includes(:user_auth).find(params[:id])
   end
 
   def log_headers

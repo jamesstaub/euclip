@@ -19,6 +19,7 @@ class User < ApplicationRecord
     authentication_keys: [:login]
 
   has_many :projects, foreign_key: "creator_id"
+  has_one :user_auth
   
   has_one_attached :avatar
 
@@ -62,6 +63,8 @@ class User < ApplicationRecord
   validates :avatar,
     content_type: [:png, :jpg, :jpeg],
     size: { less_than: 1.megabyte , message: 'file size should be less than 1mb' }
+
+  validates :user_auth, presence: true
 
   # account that publishes site-wide content
   def self.ADMIN_PUBLISHER
