@@ -9,7 +9,7 @@ export default class DiscordAuthenticator extends BaseAuthenticator {
   
   async authenticate() {
     console.log('euclip; Authenticating with Discord...');
-
+    console.log('oauthTokenEndpoint:', this.oauthTokenEndpoint);
     if (!window.isEmbed) {
       throw new Error('Discord SDK can only be initialized inside the Discord embed environment.');
     }
