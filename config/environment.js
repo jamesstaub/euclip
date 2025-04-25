@@ -30,7 +30,8 @@ module.exports = function (environment) {
   };
 
   ENV.APP.DISCORD_CLIENT_ID = '1360670663660278031';
-  ENV.APP.PROXY_PREFIX = '/.proxy';
+  // ENV.APP.PROXY_PREFIX = '/.proxy';
+  ENV.APP.PROXY_PREFIX = '';
   ENV.APP.API_PREFIX = '/v1'; // this gets dynamically overwritten in discord initialzier
   ENV.APP.ASSETS_PATH = '/assets';
 
