@@ -4,16 +4,12 @@ class OauthController < ApplicationController
   def token
     ## Problem: discord proxy seems to strip out queryparams AND seems to convert POSTs to GETs
     ## so how do we pass the tok  en to the endpoint?
-
-    Rails.logger.info("Received token request with params: #{params.inspect}")
-    Rails.logger.info("Request URL is: #{request.url}")
     access_token = fetch_token(params[:code])
     render json: { access_token: access_token }, status: :ok
   rescue Net::OpenTimeout, Net::ReadTimeout => e
     Rails.logger.error("Request to Discord timed out: #{e.message}")
     render_gateway_timeout("Request to Discord timed out: #{e.message}")
   rescue StandardError => e
-    Rails.logger.error("Error in token endpoint: #{e.message} param code: #{params[:code]}")
     render json: { errors: e.message }, status: :unprocessable_entity
   end
 
