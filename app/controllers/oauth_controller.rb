@@ -37,6 +37,7 @@ class OauthController < ApplicationController
         user: UserSerializer.new(user).to_hash
       }, status: :ok
     else
+      Rails.logger.error("Failed to create or update user: #{user.errors.full_messages.join(', ')}")
       render json: { error: 'Failed to authenticate user with Discord.' }, status: :unauthorized
     end
   rescue ArgumentError => e

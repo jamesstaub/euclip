@@ -52,7 +52,7 @@ Rails.application.routes.draw do
   end
 
   get '/oauth/token', to: 'oauth#token'
-  get '/oauth/auth', to: 'oauth#authenticate'
+  post '/oauth/auth', to: 'oauth#authenticate'
   
   # Rails (in dev) or Nginx(in prod) will serve the index.html file by default when we hit /
   # but for all other paths, we want to serve the ember app and let the frontend router handle the rest
