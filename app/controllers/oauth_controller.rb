@@ -8,7 +8,7 @@ class OauthController < ApplicationController
     Rails.logger.error("Request to Discord timed out: #{e.message}")
     render_gateway_timeout("Request to Discord timed out: #{e.message}")
   rescue StandardError => e
-    Rails.logger.error("Error in token endpoint: #{e.message}")
+    Rails.logger.error("Error in token endpoint: #{e.message} param code: #{params[:code]}")
     render json: { errors: e.message }, status: :unprocessable_entity
   end
 
