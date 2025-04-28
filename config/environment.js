@@ -31,11 +31,13 @@ module.exports = function (environment) {
 
   ENV.APP.DISCORD_CLIENT_ID = '1360670663660278031';
   
-  ENV.APP.PROXY_PREFIX = '';
+  ENV.APP.PROXY_PREFIX = '/.proxy';
+  ENV.APP.API_HOST = 'https://euclip.app';
   ENV.APP.API_PREFIX = '/v1'; // this gets dynamically overwritten in discord initialzier
   ENV.APP.ASSETS_PATH = '/assets';
 
   if (environment === 'development') {
+    ENV.APP.API_HOST = 'http://localhost:4200';
     // ENV.APP.LOG_RESOLVER = true;
     // ENV.APP.LOG_ACTIVE_GENERATION = true;
     // ENV.APP.LOG_TRANSITIONS = true;

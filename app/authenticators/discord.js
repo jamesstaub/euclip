@@ -9,7 +9,7 @@ export default class DiscordAuthenticator extends BaseAuthenticator {
   
   async authenticate() {
     console.log('euclip; Authenticating with Discord...');
-    console.log('oauthTokenEndpoint:', this.oauthTokenEndpoint);
+
     if (!window.isEmbed) {
       throw new Error('Discord SDK can only be initialized inside the Discord embed environment.');
     }
@@ -49,13 +49,11 @@ export default class DiscordAuthenticator extends BaseAuthenticator {
   }
 
   async getAccessToken(code) {
-
-    const url = new URL(this.oauthTokenEndpoint);
-    url.searchParams.set('code', code);
-  
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' },
+    console.log('euclip; Fetching access token...');
+    const response = await fetch(this.oauthTokenEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
     });
 
     if (!response.ok) {
@@ -63,7 +61,7 @@ export default class DiscordAuthenticator extends BaseAuthenticator {
     }
 
     const { access_token } = await response.json();
-
+    console.log('euclip; Access token received');
     return access_token;
   }
 

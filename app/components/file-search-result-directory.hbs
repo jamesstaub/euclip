@@ -15,10 +15,15 @@
     </button>
   {{/if}}
 </div>
-{{#each (if this.truncated this.truncatedFiles @result.files) as |file|}}
-  <FileSearchResult
-    @selected={{eq @track.filePathRelative file.path}}
-    @file={{file}}
-    @onSelect={{fn @onSelect file.path}}
-  />
-{{/each}}
+
+<div class='relative bg-semi-transparent-dark-gray' ...attributes>
+  <ul class='list ph0 mt0 mr0 h-100'>
+  {{#each (if this.truncated this.truncatedFiles @result.files) as |file|}}
+    <FileSearchResult
+      @selected={{eq @track.filePathRelative file.path}}
+      @file={{file}}
+      @onSelect={{fn @onSelect file.path}}
+    />
+  {{/each}}
+  </ul>
+</div>
