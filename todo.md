@@ -3,11 +3,12 @@
 
 ## Versioning
 - implement a ProjectState model that takes a serialized snapshot of the whole project 
-- add the ability to snapshot, restore from version, sequence snapshots
+- add the ability to snapshot, restore from version, sequence snapshots\
+- research: is it necessary to build 2 simultaneous project's web audio trees to do preset sequencing? or can we get away with instant switch?
 
 
 Mobile UI:
--  on phones, the verticle view should be simple play controls
+-  on phones, the vertical view should be simple play controls
   and message to rotate phone to horizontal. there it should be a minimal track list and
   footer view
 - ember-responsive fixes for small + touch screen
@@ -18,8 +19,6 @@ Mobile UI:
 
 
 ### Scripts
-
-
 
 
 TODO: clear mouse_move handler on init signal chain

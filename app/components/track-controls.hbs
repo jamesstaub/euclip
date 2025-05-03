@@ -1,7 +1,7 @@
 {{#each @trackNodesForControls as |trackNode idx|}}
   {{#if (eq @visibleNodeIdx idx)}}
     <div class='flex overflow-hidden ml3 h-100'>
-      <div class='flex justify-start overflow-x-scroll overflow-y-hidden h-100 mw-100'>
+      <div class='flex justify-start overflow-x-scroll bg-yellow overflow-y-hidden h-100 mw-100'>
         {{#each trackNode.sortedTrackControls as |trackControl|}}
           {{#if trackControl.isMultislider}}
             <Controls::Wrapper

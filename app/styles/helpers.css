@@ -27,9 +27,6 @@
   background-color: var(--dark-yellow);
 }
 
-.bg-dark-yellow {
-  background-color: var(--dark-yellow);
-}
 
 .hover-bg-near-black:hover {
   background-color: var(--near-black);
@@ -255,7 +252,7 @@
 
 .no-bottom {
   border-bottom: none;
-  transform: translateY(0.125rem);
+  transform: translateY(0.4rem);
 }
 
 .pointer-none {

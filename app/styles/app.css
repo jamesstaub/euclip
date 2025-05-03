@@ -6,6 +6,7 @@
 @import 'nexus.css';
 @import 'track.css';
 @import 'sidebars.css';
+@import 'scrollbars.css';
 @import 'components/tab-menu.css';
 @import 'components/signal-chain.css';
 
@@ -87,11 +88,6 @@ a {
   height: var(--footer-height);
 }
 
-
-.track-list-height {
-  max-height: calc(100vh - 30rem);
-  min-height: 10rem;
-}
 
 /* Drum file picker */
 .drum-file-picker a {

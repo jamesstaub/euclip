@@ -1,6 +1,13 @@
-.tab-menu {
-  /* button:not([disabled]):hover,
-  button:not([disabled]):active {
-    background-color: $dark-gray;
-    /* border-bottom: $light-gray; */
+.tab-btn.vertical {
+  flex: 0 0 calc(33% - 0.15rem);
+}
+
+hr .nodes {
+  display: block;
+  height: 1px;
+  border: 0;
+  width: 100%;
+  border-top: 1px solid #ccc;
+  margin: 1em 0;
+  padding: 0;
 }

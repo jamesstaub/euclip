@@ -6,6 +6,11 @@
   margin-bottom: 2.6rem;
 }
 
+.track-list-height {
+  max-height: calc(100vh - 30rem);
+  min-height: 10rem;
+}
+
 .variables-overlay table {
   border-collapse: separate;
   border-spacing: 0 0.5rem;
@@ -62,3 +67,9 @@
   background-color: var(--yellow);
   padding: 1rem 0;
 }
+
+
+.controls-wrapper:last-of-type {
+  margin-right: 0;
+}
+

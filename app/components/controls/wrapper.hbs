@@ -1,6 +1,6 @@
 <div
   class={{concat
-    'relative tc flex flex-column items-center mr2 ba b--dark-gray bw1'
+    'controls-wrapper relative tc flex flex-column items-center mr2 ba b--dark-gray bw1'
     ' '
     (if this.isShowingConfig 'bg-moon-gray' 'bg-dark-yellow')
   }}
@@ -67,7 +67,7 @@
       ></div>
     {{/if}}
   </div>
-  <div class='flex items-start justify-between overflow-scroll flex-column h-100'>
+  <div class='flex items-start justify-between flex-column h-100'>
     {{#if this.isShowingConfig}}
       <Controls::ControlConfig @trackControl={{@trackControl}} />
     {{else}}

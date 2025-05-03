@@ -8,7 +8,7 @@
      {{on 'keyup' this.search}} 
   />
   {{#if this.searchResults.length}}
-    <ButtonPrimary class="bl0 mt3" {{on 'click' this.backToBrowse}} @label='← browse' />
+    <ButtonPrimary class="bl-0 mt3" {{on 'click' this.backToBrowse}} @label='← browse' />
   {{/if}}
 </div>
 {{#if this.searchTask.isRunning}}

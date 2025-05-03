@@ -3,7 +3,7 @@ import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import { isPresent } from '@ember/utils';
 
-export default class TabMenuComponent extends Component {
+export default class ConsoleTabMenuComponent extends Component {
   @tracked selectedValue;
 
   get val() {

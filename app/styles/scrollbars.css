@@ -1,0 +1,58 @@
+
+.overflow-y-scroll {
+  overflow-y: scroll;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+}
+
+.overflow-y-scroll::-webkit-scrollbar {
+  width: 0.5rem;
+  height: 0; /* Hides horizontal scrollbar */
+}
+
+.overflow-y-scroll::-webkit-scrollbar-thumb {
+  border-radius: 0.25rem;
+}
+
+
+.overflow-x-scroll {
+  overflow-x: scroll;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.overflow-x-scroll::-webkit-scrollbar {
+  height: 0.5rem;
+  width: 0;
+}
+
+.overflow-x-scroll::-webkit-scrollbar-thumb {
+  border-radius: 0.25rem;
+}
+ 
+
+/* bg-dark-gray */
+.bg-dark-gray.overflow-y-scroll, .bg-dark-gray.overflow-x-scroll {
+  scrollbar-color: var(--yellow) var(--dark-gray);
+}
+
+.bg-dark-gray.overflow-y-scroll::-webkit-scrollbar-thumb,.bg-dark-gray.overflow-x-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--yellow);
+}
+
+.bg-dark-gray.overflow-y-scroll::-webkit-scrollbar-track,.bg-dark-gray.overflow-x-scroll::-webkit-scrollbar-track {
+  background-color: var(--dark-gray);
+}
+
+/* bg-yellow */
+.bg-yellow.overflow-y-scroll, .bg-yellow.overflow-x-scroll {
+  scrollbar-color: var(--dark-gray) var(--yellow);
+}
+
+.bg-yellow.overflow-y-scroll::-webkit-scrollbar-thumb,.bg-yellow.overflow-x-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--dark-gray);
+}
+
+.bg-yellow.overflow-y-scroll::-webkit-scrollbar-track,.bg-yellow.overflow-x-scroll::-webkit-scrollbar-track {
+  background-color: var(--yellow);
+}

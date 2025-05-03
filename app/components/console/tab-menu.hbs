@@ -1,14 +1,15 @@
 <div
-  class='tab-menu relative flex f7 tc flex-wrap
-    {{if @verticle "verticle flex-column h-100"}}'
+  class='tab-menu pv1 bw1 b--dark-gray relative flex f7 tc flex-wrap
+    {{if @vertical "flex-column h-100 justify-around"}}'
   {{did-update this.setSelected @selectedValue}}
   ...attributes
 >
+
   {{#each @items key='order' as |item|}}
-    {{#if @verticle}}
+    {{#if @vertical}}
       <button
         type='button'
-        class='flex flex-column items-center ba b--dark-gray br0 h-auto grow-1
+        class='tab-btn vertical flex flex-column items-center ba b--dark-gray bw1 h-auto grow-1
           {{if
             (eq this.val item.value)
             "bg-light-blue black"
@@ -25,12 +26,14 @@
     {{else}}
       <button
         type='button'
-        class='tab-btn w4 pa2 f6 ttu 
+        class='tab-btn horizontal w4 f7 ttu br4
           {{if
             (eq this.val item.value)
             (concat "selected" " " @selectedClass)
             (concat " " @buttonClass)
-          }}'
+          }}
+          '
+
         title={{item.label}}
         {{on 'click' (fn this.select item.value)}}
       >
@@ -41,4 +44,5 @@
       </button>
     {{/if}}
   {{/each}}
+  {{yield}}
 </div>

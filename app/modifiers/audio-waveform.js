@@ -36,7 +36,7 @@ function drawBuffer(canvas, buffer, color) {
   }
 }
 
-// draw a thin verticle line that moves from left to right across the canvas
+// draw a thin vertical line that moves from left to right across the canvas
 // taking up the full height of the canvas
 function drawCursor(canvas, x) {
   var ctx = canvas.getContext('2d');
