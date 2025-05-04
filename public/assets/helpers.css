@@ -27,9 +27,6 @@
   background-color: var(--dark-yellow);
 }
 
-.bg-dark-yellow {
-  background-color: var(--dark-yellow);
-}
 
 .hover-bg-near-black:hover {
   background-color: var(--near-black);
@@ -100,6 +97,10 @@
 .small-icon-btn {
   transform: scale(0.5);
   transform-origin: top right;
+}
+
+.hidden {
+  visibility: hidden;
 }
 
 /* Sizing */
@@ -255,7 +256,7 @@
 
 .no-bottom {
   border-bottom: none;
-  transform: translateY(0.125rem);
+  transform: translateY(0.28rem);
 }
 
 .pointer-none {

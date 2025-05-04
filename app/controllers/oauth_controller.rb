@@ -2,8 +2,6 @@ class OauthController < ApplicationController
   require 'json'
 
   def token
-    ## Problem: discord proxy seems to strip out queryparams AND seems to convert POSTs to GETs
-    ## so how do we pass the tok  en to the endpoint?
     access_token = fetch_token(params[:code])
     render json: { access_token: access_token }, status: :ok
   rescue Net::OpenTimeout, Net::ReadTimeout => e

@@ -6,6 +6,7 @@
 @import 'nexus.css';
 @import 'track.css';
 @import 'sidebars.css';
+@import 'scrollbars.css';
 @import 'components/tab-menu.css';
 @import 'components/signal-chain.css';
 
@@ -88,11 +89,6 @@ a {
 }
 
 
-.track-list-height {
-  max-height: calc(100vh - 30rem);
-  min-height: 10rem;
-}
-
 /* Drum file picker */
 .drum-file-picker a {
   color: var(--yellow);
@@ -137,7 +133,7 @@ a {
 .progress-bar {
   height: 100%;
   width: 0;
-  background-color: var(--light-blue); /* Color of the progress bar */
+  background-color: var(--light-yellow); /* Color of the progress bar */
   position: absolute;
   top: 0;
   left: 0;

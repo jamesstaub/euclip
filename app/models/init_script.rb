@@ -24,7 +24,7 @@ class InitScript < Script
   def track_default_init
     self.safe_code = %{__()
   .sampler({
-    path: this.filepath,
+    path: this.files[0],
   })
   .gain()
   .channelStrip()

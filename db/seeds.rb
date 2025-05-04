@@ -44,7 +44,7 @@ macro_collection = PresetCollection.create!(title: "Macros", creator: admin)
     title: "Basic Oneshot",
     init_script: InitScript.create!(safe_code: <<-EOS
 __().sampler({
-    path: this.filepath,
+    path: this.files[0],
   })
   .channelStrip()
   .connect('#main-output')
@@ -79,7 +79,7 @@ the adsr can be triggered in the Play script
 **/ 
 __()
   .sampler({
-    path: this.filepath,
+    path: this.files[0],
     speed: 4, // play at 4x speed
     loop: true,
   })
@@ -110,7 +110,7 @@ EOS
     title: "Reverse",
     init_script: InitScript.create!(safe_code: <<-EOS
 __().sampler({
-  path: this.filepath,
+  path: this.files[0],
   reverse: true
 })
 .channelStrip()
