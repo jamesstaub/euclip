@@ -99,7 +99,7 @@ export default class SequencePaginationComponent extends Component {
   // takes the pageValues array, which is a subset of the total trackControl.values array
   // and updates the trackControl.values array with the new pageValues in place
   updateSequencePage(trackControl, pageValues) {
-    const sequence = trackControl.controlArrayValue.map((val, idx) => {
+    const sequence = trackControl.controlArrayComputed.map((val, idx) => {
       if (idx >= this.pageOffset && idx < this.pageOffset + this.pageSize) {
         return pageValues[idx - this.pageOffset];
       }

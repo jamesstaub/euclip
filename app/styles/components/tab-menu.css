@@ -1,3 +1,11 @@
+.tab-menu {
+  padding: 2px 0;
+}
+
+.nodes-wrapper.tab-menu {
+  max-width: calc(100% - 8rem);
+}
+
 .tab-btn.vertical {
   flex: 0 0 calc(33% - 0.15rem);
 }

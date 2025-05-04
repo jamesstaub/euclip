@@ -45,7 +45,7 @@
           {{if (eq directory.type 'audio') 'Sounds' 'Drum Machine'}}
         </h4>
         <FileDirectory
-          class='overflow-scroll h-100'
+          class='overflow-y-scroll h-100'
           @onSelectItem={{this.onSelectItem}}
           @directory={{directory}}
           @filepath={{@track.filepath}}

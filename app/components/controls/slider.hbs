@@ -6,7 +6,7 @@
 />
 
 <div
-  class='mh3 center'
+  class='grow-1 mh3 center'
   {{nexus-ui
     'Slider'
     min=@min
@@ -14,10 +14,10 @@
     value=@value
     onChange=@onChange
     step=@stepSize
-    size=(array 20 110)
+    size=(array 20 140)
   }}
 ></div>
 
-{{#if (not (eq @value @transformedValue))}}
-  <span class="f7 dark-gray">{{@transformedValue}}</span>
-{{/if}}
+
+{{!-- show on tippy --}}
+{{!-- <span class="f7 dark-gray truncate w3">{{@transformedValue}}</span> --}}

@@ -56,3 +56,17 @@
 .bg-yellow.overflow-y-scroll::-webkit-scrollbar-track,.bg-yellow.overflow-x-scroll::-webkit-scrollbar-track {
   background-color: var(--yellow);
 }
+
+/* else */
+
+.overflow-y-scroll, .overflow-x-scroll {
+  scrollbar-color: var(--yellow) transparent;
+}
+
+.overflow-y-scroll::-webkit-scrollbar-thumb,.overflow-x-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--yellow);
+}
+
+.overflow-y-scroll::-webkit-scrollbar-track,.overflow-x-scroll::-webkit-scrollbar-track {
+  background-color: transparent;
+}
