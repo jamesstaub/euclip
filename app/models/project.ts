@@ -26,7 +26,7 @@ export default class ProjectModel extends Model {
   async setupAndSaveNewTrack(track: TrackModel, saveOptions?: Record<string, unknown>): Promise<TrackModel> {
     await track.save(saveOptions);
     this.tracks.pushObject(track);
-    await track.findOrDownloadSoundFile();
+    await track.findOrDownloadSoundFiles();
     await track.setupAudioFromScripts(false);
     track.createAudioFileTree();
     return track;
@@ -63,7 +63,7 @@ export default class ProjectModel extends Model {
 
   async downloadTrackSamples() {
     return await Promise.all(
-      this.orderedTracks.map((track) => track.findOrDownloadSoundFile())
+      this.orderedTracks.map((track) => track.findOrDownloadSoundFiles())
     );
   }
 

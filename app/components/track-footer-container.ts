@@ -8,18 +8,13 @@ import TrackControlModel from 'euclip/models/track-control';
 import type TrackModel from 'euclip/models/track';
 import { service } from '@ember/service';
 import type MediaService from 'ember-responsive';
+import type { Tab } from 'euclip/components/console/tab-menu';
 
 interface TrackFooterContainerArgs {
   track: TrackModel;
 }
 
 type ControlUiState = 'sequence' | 'source' | 'controls';
-
-interface TrackTab {
-  label: string;
-  order: number;
-  value: number;
-}
 
 export default class TrackFooterContainerComponent extends Component<TrackFooterContainerArgs> {
   @tracked controlUiState: ControlUiState = 'controls';
@@ -65,16 +60,6 @@ export default class TrackFooterContainerComponent extends Component<TrackFooter
     return this.channelStripNode?.trackControls
       .toArray()
       .find((control) => control.nodeAttr === 'pan');
-  }
-
-  get trackNodesTabs(): TrackTab[] {
-    return this.args.track.trackNodesForControls
-      .map((trackNode, idx): TrackTab => ({
-        label: trackNode.nodeType,
-        order: trackNode.order,
-        value: idx,
-      }))
-      .sort((a, b) => a.order - b.order);
   }
 
   @action

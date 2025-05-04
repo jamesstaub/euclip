@@ -133,7 +133,7 @@ a {
 .progress-bar {
   height: 100%;
   width: 0;
-  background-color: var(--light-blue); /* Color of the progress bar */
+  background-color: var(--light-yellow); /* Color of the progress bar */
   position: absolute;
   top: 0;
   left: 0;

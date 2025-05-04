@@ -65,7 +65,7 @@
           </SequenceContainer>
         {{/if}}
         {{#if this.showSource}}
-          <SourceContainer
+          <Source::Container
             @track={{@track}}
             @showReference={{this.showReference}}
             @showFilePath={{fn @toggleSidebar 'left'}}
@@ -75,16 +75,16 @@
               @validTrackNodes={{@track.validTrackNodes}}
               @controlUiState={{'source'}}
             />
-          </SourceContainer>
+          </Source::Container>
         {{/if}}
         {{#if this.showControls}}
           <div
-            class='z-0 justify-between overflow-hidden grow-1 shrink-1 '
+            class='z-0 justify-between overflow-hidden grow-1 shrink-1 ml1 '
           >
             <div
               class='flex flex-column flex-grow-1 shrink-1'
             >
-              <div class='flex flex-wrap items-center justify-between mh3'>
+              <div class='flex flex-wrap items-center justify-between'>
                 <Console::Header>Audio Node Controls</Console::Header>
                   <ButtonText
                     class={{concat 'ph1 pa2 f7 yellow-fill w4 flex-0 bg-yellow underline' (if this.media.isMobile '' ' absolute right-0 mr2 mt2' )}}
@@ -97,16 +97,12 @@
               <div
                 class='flex overflow-y-hidden h-100 flex-column grow-1 shrink-1'
               >
-                <Console::TabMenu
-                  class='nodes-wrapper mh3 mb2 flush flex-nowrap max-w-100 bg-yellow overflow-x-scroll overflow-y-hidden grow-0 shrink-0 basis-[34px]'
-                  @selectedClass='bn bg-dark-gray white z-2 mr2'
-                  @buttonClass='ba bw1 b--dark-gray bg-transparent dark-gray mr2'
+
+                <Source::NodeTabs
+                  @nodes={{@track.trackNodesForControls}}
                   @onSelect={{fn this.setUi 'visibleNodeIdx'}}
-                  @items={{this.trackNodesTabs}}
                   @selectedValue={{this.visibleNodeIdx}}
-                >
-                  <hr class="nodes" />
-                </Console::TabMenu>
+                />
                 {{#if this.showReference}}
                   <TrackReference
                     @track={{@track}}

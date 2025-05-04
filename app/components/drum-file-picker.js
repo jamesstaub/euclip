@@ -13,6 +13,11 @@ import FilepathControlModel from '../models/filepath-control';
 export default class DrumFilePicker extends Component {
   @service store;
   @tracked searchResults;
+  @tracked targetNodeIdx = 0;
+
+  get selectedNode() {
+    return this.args.track.samplerNodes[this.targetNodeIdx];
+  }
 
   @restartableTask
   *searchTask() {
@@ -32,6 +37,7 @@ export default class DrumFilePicker extends Component {
       this.searchResults = results.results;
       this.currentPage = results.page;
       // this.lastPage = results.last_page;
+      yield timeout(200);
     }
   }
 
@@ -39,28 +45,11 @@ export default class DrumFilePicker extends Component {
     await SoundFileModel.findOrDownload(filepath, this.store);
     const track = await this.args.track;
 
-    // Ensure filepathControls is an array and handle proxies
-    const filepathControls = Array.isArray(track.filepathControls)
-      ? track.filepathControls
-      : [];
-
-    // Check if a filepathControl already exists for the track
-    let filepathControl = filepathControls.find(
-      (control) => control.trackNode === track.samplerNodes[0]
-    );
-
-    if (filepathControl) {
-      // Update the existing filepathControl
-      filepathControl.controlValue = filepath;
-    } else {
-      // Create a new filepathControl if none exists
-      filepathControl = FilepathControlModel.findOrCreateWith({
-        track,
-        trackNode: track.samplerNodes[0],
-        controlValue: filepath,
-      });
-    }
-
+    let filepathControl = FilepathControlModel.findOrCreateWith({
+      track,
+      trackNode: this.selectedNode,
+      controlValue: filepath,
+    });
     try {
       await filepathControl.save();
     } catch (error) {
@@ -68,6 +57,12 @@ export default class DrumFilePicker extends Component {
     }
 
     track.setupAudioFromScripts();
+  }
+
+
+  @action
+  setUi(key, value) {
+    this[key] = value;
   }
 
   @action
@@ -96,12 +91,12 @@ export default class DrumFilePicker extends Component {
   async onSelectSearchResult(searchResult) {
     const directoryItems = searchResult.split('/');
     const item = directoryItems.pop();
-    console.log('item')
+
     const ancestorPath = `${directoryItems.join('/')}/`;
     const fileTree = await this.args.audioFileTree;
-    console.log('fileTree', fileTree);  
+
     fileTree.appendDirectoriesData(ancestorPath, item);
-    
+
     this.saveFilepathControl(searchResult);
   }
 }

@@ -1,10 +1,17 @@
 import Model, { attr, belongsTo } from '@ember-data/model';
+import { service } from '@ember/service';
+import type Store from '@ember-data/store';
 
-
-// holds a filepath string value to pass to sampler (or convolution) nodes
+/**
+ * holds a filepath string value to pass to sampler (or convolution) nodes
+ * NOTE: to support convolution or other non-sampler nodes we need a data migration to add a node type column to use in conjunction with nodeOrder
+ * 
+*/
 export default class FilepathControlModel extends Model {
+  @service store!: Store;
+
   @belongsTo('track', { async: false, inverse: 'filepathControls' }) track!: any;
-  @belongsTo('track-node', { async: false, inverse: 'filepathControls' }) trackNode!: any;
+  @belongsTo('track-node', { async: false, inverse: 'filepathControl' }) trackNode!: any;
   @attr('number') nodeOrder!: number;
   @attr('string') controlValue!: string; // value of control for string attributes
 
@@ -22,6 +29,14 @@ export default class FilepathControlModel extends Model {
     return '';
   }
 
+  get fileDownloadError(): string | undefined {
+    
+    const sf = this.store
+      .peekAll('sound-file')
+      .findBy('filePathRelative', this.controlValue);
+    return sf?.errorMessage;
+  }
+
   // explicitly does not call save to allow saving after restarting audio
   static findOrCreateWith({
     track,
@@ -33,18 +48,28 @@ export default class FilepathControlModel extends Model {
     controlValue: string;
   }): FilepathControlModel | undefined {
     // peek for existing filepath control matching trackNode.order with this node order
+
+// BUG: when there are 2 samplers, this gets called AFTER picking a file for the second sampler
+// thus replacing it with an undefined filepath control.
+// .find() is failing because the order is not set yet
+
+    console.log(trackNode.orderOfType)    
+
     let filepathControl = track.filepathControls.find(
       (control: FilepathControlModel) =>
-        control.nodeOrder !== undefined &&
-        control.nodeOrder === trackNode.nodeOrder
+        control.orderOfType !== undefined &&
+        control.orderOfType === trackNode.orderOfType
     );
 
     if (filepathControl && controlValue) {
       filepathControl.controlValue = controlValue;
     }
 
+    console.log('found filepath control', filepathControl);
+
     if (!filepathControl) {
       try {
+        console.log('create record', controlValue, trackNode.order);
         filepathControl = track.store.createRecord('filepath-control', {
           trackNode,
           track,
@@ -56,6 +81,8 @@ export default class FilepathControlModel extends Model {
         console.error('Error creating default filepath control: ', error);
       }
     }
+
+    track.applyOrderOfType(track.filepathControls);
 
     return filepathControl;
   }

@@ -4,10 +4,9 @@ import { service } from '@ember/service';
 export default class UserRoute extends Route {
   @service session;
   @service currentUser;
-  @service router
+  @service router;
 
   beforeModel() {
-       
     // rename /embed to /oauth or discord route then send them back here once logged in
     if (window.isEmbed && !this.session.isAuthenticated) {
       return this.router.transitionTo('embed');

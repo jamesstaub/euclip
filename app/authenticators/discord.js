@@ -6,17 +6,18 @@ export default class DiscordAuthenticator extends BaseAuthenticator {
   oauthAuthEndpoint = `/oauth/auth`;
 
   identificationAttributeName = 'login';
-  
+
   async authenticate() {
     console.log('euclip; Authenticating with Discord...');
 
     if (!window.isEmbed) {
-      throw new Error('Discord SDK can only be initialized inside the Discord embed environment.');
+      throw new Error(
+        'Discord SDK can only be initialized inside the Discord embed environment.'
+      );
     }
 
     const { DiscordSDK } = await import('@discord/embedded-app-sdk');
     const sdk = new DiscordSDK(ENV.APP.DISCORD_CLIENT_ID);
-
 
     await sdk.ready();
 
@@ -26,9 +27,9 @@ export default class DiscordAuthenticator extends BaseAuthenticator {
     const appAuth = await this.authenticateWithApp(token);
 
     return {
-        token: appAuth.token,
-        data: appAuth.user?.data,
-      };
+      token: appAuth.token,
+      data: appAuth.user?.data,
+    };
   }
 
   async getAuthCode(sdk) {

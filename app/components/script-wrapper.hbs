@@ -1,9 +1,9 @@
-<div class="relative flex overflow-hidden flex-column grow-1 mh3 script-wrapper-height">
+<div class="relative flex overflow-hidden flex-column grow-1 mh3-ns mh2 script-wrapper-height">
   {{#if this.showScripts}}
     <div class="flex flex-wrap justify-between">
       <Console::TabMenu
-        @selectedClass="bw1 bg-dark-gray b--light-gray light-gray z-2 no-bottom"
-        @buttonClass="bn bg-dark-gray moon-gray no-bottom no-bottom"
+        @selectedClass="bw1 pv1 bg-dark-gray b--light-gray light-gray z-2 no-bottom"
+        @buttonClass="bn pv1 bg-near-black moon-gray no-bottom no-bottom"
         @onSelect={{this.setScriptTypeTab}}
         @selectedValue={{"init"}}
         @items={{compact

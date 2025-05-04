@@ -13,7 +13,6 @@ export default class ApplicationRoute extends Route {
   }
 
   async beforeModel(transition) {
-
     return super.beforeModel(transition);
   }
 }

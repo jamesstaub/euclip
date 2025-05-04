@@ -10,7 +10,6 @@ const applyProxyPrefix = () => {
   config.APP.registrationEndpoint = `${proxyPrefix}${config.APP.registrationEndpoint}`;
   config.APP.userEndpoint = `${proxyPrefix}${config.APP.userEndpoint}`;
   config.APP.invalidateEndpoint = `${proxyPrefix}${config.APP.invalidateEndpoint}`;
-  
 };
 
 const patchExternalUrls = () => {
@@ -25,9 +24,9 @@ const patchExternalUrls = () => {
 };
 
 export function initialize() {
-  // look in query params for frame_id param 
+  // look in query params for frame_id param
   window.isEmbed = window.location.search.includes('frame_id');
-  
+
   // if host is localhost
   if (window.location.hostname === 'localhost') {
     config.APP.PROXY_PREFIX = '';

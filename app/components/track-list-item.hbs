@@ -20,11 +20,13 @@
       {{/if}}
       
       {{#if this.showFilePicker}}
-        <SourceSelectButton
-          @samplerFilepathControl={{@track.samplerFilepathControl}} 
-          @fileError={{@track.fileDownloadError}}
-          @onToggleFilePicker={{@onToggleFilePicker}}
-        />
+        {{#each @track.filepathControls as |filepathControl|}}  
+          <SourceSelectButton
+            @filename={{filepathControl.filename}} 
+            @fileError={{filepathControl.fileDownloadError}}
+            @onToggleFilePicker={{@onToggleFilePicker}}
+          />
+        {{/each}}
       {{else}}
         {{#unless @track.isMaster}}
           <p class="tc w4 ma2 {{unless @isActive "light-gray"}}">

@@ -9,10 +9,10 @@ export default class SidebarWrapperComponent extends Component {
 
   get responsiveClass() {
     if (this.media.isMobile) {
-      return 'absolute top-0 w-100 max-w-100';
+      return 'absolute top-0 w-100 max-w-100 mobile-sidebar-height';
     }
     if (this.media.isTablet) {
-      return 'absolute top-0 w-100 max-w-100 h-100';
+      return 'absolute top-0 w-100 max-w-50 h-100';
     }
 
     return 'w6 h-auto';

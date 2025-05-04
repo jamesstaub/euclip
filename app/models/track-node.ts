@@ -24,7 +24,7 @@ export default class TrackNodeModel extends Model {
 
   @belongsTo('track', { async: false, inverse: 'trackNode' }) track!: any;
   @hasMany('track-control', { async: false, inverse: 'trackNode' }) trackControls!: any[];
-  @hasMany('filepath-control', { async: false, inverse: 'trackNode' }) filepathControls!: FilepathControlModel[];
+  @belongsTo('filepath-control', { async: false, inverse: 'trackNode' }) filepathControl!: FilepathControlModel;
 
   @attr('string') userDefinedInterfaceName!: string;
   @attr('string') userSettingsForControl!: string;
@@ -74,11 +74,6 @@ export default class TrackNodeModel extends Model {
       [nativeNode] = nativeNode;
     }
     return nativeNode;
-  }
-
-  // Convenience getter to find the TrackControl record for a sampler node's path attribute
-  get samplerFilepathControl(): FilepathControlModel | undefined {
-    return this.filepathControls.sortBy('nodeOrder')[0];
   }
 
   // Filtered track controls for one-dimensional controls
@@ -199,9 +194,10 @@ export default class TrackNodeModel extends Model {
   // Find or create track controls for ephemeral TrackNodes
   findOrCreateTrackControls(): any[] {
     const controlAttrs = Object.keys(AudioNodeConfig[this.nodeType]?.attrs);
-
+    
     if (controlAttrs.indexOf('path') > -1) {
       // Create filepath control if it doesn't exist
+      console.log('create default FPC')
       FilepathControlModel.findOrCreateWith({
         track: this.track,
         trackNode: this,

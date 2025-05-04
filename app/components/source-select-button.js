@@ -6,7 +6,7 @@ export default class SourceSelectButtonComponent extends Component {
       return 'red b--red italic';
     }
 
-    return this.args.samplerFilepathControl.filename
+    return this.args.filename
       ? 'yellow b--yellow'
       : 'white b--white';
   }
@@ -15,6 +15,6 @@ export default class SourceSelectButtonComponent extends Component {
     if (this.args.fileError) {
       return `Error Downloading file ${this.args.fileError}`;
     }
-    return `Open Audio File Browser. Current Selection: ${this.args.samplerFilepathControl.filename}`;
+    return `Open Audio File Browser.`;
   }
 }

@@ -58,11 +58,14 @@ export default class TrackModel extends Model.extend(Evented) {
 
   @tracked nodeToVisualize;
 
+  // FIXME: move this to the filepathControl record? 
   async createAudioFileTree(): Promise<void> {
     await this.trackControls;
     const audioFileTree = this.store.createRecord('audio-file-tree', {
       track: this,
     });
+    // FIXME: probably need to do this once per filepathcontrol (since there can be multiple)
+
     let path = this.samplerFilepathControl?.controlValue || '';
     path = path.split('/');
     const item = path.pop();
@@ -111,38 +114,51 @@ export default class TrackModel extends Model.extend(Evented) {
 
   get samplerNativeBuffers(): AudioBuffer[] {
     return this.samplerNodes
-      .map((samplerNode) => samplerNode.sampleIsLoaded && samplerNode.nativeNode?.buffer)
+      .map((samplerNode: TrackNodeModel) => samplerNode.sampleIsLoaded && samplerNode.nativeNode?.buffer)
       .filter(Boolean) as AudioBuffer[];
   }
 
+  get sortedFilepathControls(): FilepathControlModel[] {
+    return this.filepathControls.sortBy('nodeOrder');
+  }
+
   get samplerFilepathControl(): FilepathControlModel | undefined {
-    const controls = this.filepathControls.sortBy('nodeOrder');
-    return controls[0];
+    console.log('CALLED ON TRACK')
+    return this.sortedFilepathControls[0];
   }
+  
 
-  get fileDownloadError(): string | undefined {
-    const sf = this.store
-      .peekAll('sound-file')
-      .findBy('filePathRelative', this.filePathRelative);
-    return sf?.errorMessage;
-  }
-
-  get filePathRelative(): string | undefined {
-    return this.samplerFilepathControl?.controlValue;
-  }
-
-  @cached
-  get downloadedFilepath(): string | undefined {
+  /**
+   * The array of downloaded files exposed to the user via `this.files` in the script.
+   * initialized with array of silent files to avoid errors when no files are downloaded
+  */
+//  TBD: investigate @cached here
+  // @cached
+  get downloadedFilepaths(): string[] {
     const soundFiles = this.store.peekAll('sound-file') as SoundFileModel[];
-    let sf = soundFiles.findBy('filePathRelative', this.filePathRelative);
-    if (!sf || sf.state === SoundFileStates.ERROR) {
-      sf = soundFiles.findBy(
-        'filePathRelative',
-        `${ENV.APP.ASSETS_PATH}/audio/silent.mp3`
-      );
-    }
-    return sf?.downloadedURI;
+
+    const silentSf = soundFiles.findBy(
+      'filePathRelative',
+      `${ENV.APP['ASSETS_PATH']}/audio/silent.mp3`
+    );
+    
+    const downloadedUris = Array.from(
+      new Array(16),
+      () => silentSf?.downloadedURI
+    );
+
+    this.sortedFilepathControls.forEach((filepathControl, i) => {
+      if (soundFiles[i] && !(soundFiles[i]?.state === SoundFileStates.ERROR)) {
+        let value = soundFiles.findBy('filePathRelative', filepathControl.controlValue);
+        if (value) {
+          downloadedUris[i] = value.downloadedURI;
+        }
+      }
+    })
+
+    return downloadedUris;
   }
+
 
   get validTrackNodes(): TrackNodeModel[] {
     return this.trackNodes;
@@ -182,7 +198,7 @@ export default class TrackModel extends Model.extend(Evented) {
     try {
       this.set(key, value);
       if (reInit) {
-        yield this.findOrDownloadSoundFile();
+        yield this.findOrDownloadSoundFiles();
         this.setupAudioFromScripts();
       }
       yield this.save();
@@ -224,16 +240,18 @@ export default class TrackModel extends Model.extend(Evented) {
     this.nodeToVisualize = (node && node[0]) || node; // get the gain node of the channelSTrip
   }
 
-  async findOrDownloadSoundFile() {
+  async findOrDownloadSoundFiles() {
     // if there is a sound-file record matching this.filePathRelative, use it
     // then make sure its assoicated to this track
     // else create a new sound-file record
     // track nodes will look for a matching sound-file record to associate to
-    if (!this.filePathRelative) return;
-    return await SoundFileModel.findOrDownload(
-      this.filePathRelative,
-      this.store
-    );
+    Promise.all(this.filepathControls.map((filepathControl) => {
+         return SoundFileModel.findOrDownload(
+          filepathControl.controlValue,
+          this.store
+        )
+      })
+    )
   }
 
   setupAudioFromScripts(unbindBeforeCreate = true) {
@@ -451,7 +469,7 @@ export default class TrackModel extends Model.extend(Evented) {
       ...this.trackControls.toArray(),
       ...this.filepathControls.toArray(),
     ];
-
+    console.log('setupTrackControls with', this.filepathControls)
     nodeControlRecords = this.applyOrderOfType(nodeControlRecords);
 
     let nodesWithoutTrackControls = [];
@@ -459,6 +477,7 @@ export default class TrackModel extends Model.extend(Evented) {
     trackNodes.forEach((trackNode) => {
       const matchingControls = nodeControlRecords.filter((trackControl) => {
         if (trackControl instanceof FilepathControlModel) {
+          debugger
           return trackNode.orderOfType == trackControl.orderOfType;
         }
 
@@ -468,24 +487,14 @@ export default class TrackModel extends Model.extend(Evented) {
         );
       });
 
-      // HACK: in the case where many samplers are created on a track
-      // they dont get saved until the drum file picker assigns them
-      // but currently the UI only lets you save one filepath control,
-      // so by this point, there may not be filepath control records for track nodes that
-      // accept them and they fail the "validatecontrols" check.
-      // so for now we just band-aid it by using the one saved filepath control for all
-      // sampler nodes. eventually need a UI to manage multiple filepath controls and a cleaner
-      // way to fallback when one is missing
-
-      // still not working right when creating many samplers in a loop
       if (trackNode.nodeType == 'sampler') {
         if (
           !matchingControls.find(
             (control) => control instanceof FilepathControlModel
           )
         ) {
-          this.filepathControls[0] &&
-            matchingControls.push(this.filepathControls[0]);
+          this.filepathControls[trackNode.orderOfType] &&
+            matchingControls.push(this.filepathControls[trackNode.orderOfType]);
         }
       }
 
@@ -496,7 +505,7 @@ export default class TrackModel extends Model.extend(Evented) {
           // set the relation on the control to keep ember-data happy
           nodeControlRecord.set('trackNode', trackNode);
           if (nodeControlRecord instanceof FilepathControlModel) {
-            trackNode?.filepathControls.pushObject(nodeControlRecord);
+            trackNode.filepathControl = nodeControlRecord;
           }
 
           if (nodeControlRecord instanceof TrackControlModel) {
@@ -609,7 +618,8 @@ export default class TrackModel extends Model.extend(Evented) {
     );
 
     return {
-      filepath: this.downloadedFilepath,
+      files: this.downloadedFilepaths,
+      filepath: this.downloadedFilepaths[0],
       id: this.id,
       trackSelector: this.classSelector,
       controls: controls, // the value of the controls at this current step

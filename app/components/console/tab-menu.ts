@@ -3,6 +3,12 @@ import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import { isPresent } from '@ember/utils';
 
+export interface Tab {
+  label: string;
+  order: number;
+  value: number;
+}
+
 export default class ConsoleTabMenuComponent extends Component {
   @tracked selectedValue;
 

@@ -4,6 +4,11 @@
   max-height: calc(100vh - 16.5rem);
 }
 
+
+.mobile-sidebar-height {
+  height: calc(100% - 22rem);
+}
+
 .script-max-height {
   max-height: calc(100vh - 18rem);
 }

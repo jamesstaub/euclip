@@ -82,12 +82,12 @@
       (and this.leftSidebarOpen this.activeTrack (not this.activeTrack.isDeleted))
     }}
       <SidebarWrapper
-        class='bw2 br b--yellow'
+        class='bw2 br b--yellow left-0'
         @direction='left'
         @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id 'left'}}
       >
-        <div class='relative flex mh3 yellow flex-column'>
-          <Console::Header class="light-gray">Drum Machines</Console::Header>
+        <div class='relative flex mh3-ns mh2 yellow flex-column'>
+          <Console::Header class="light-gray">Track {{this.activeTrack.order}} Drum Machines</Console::Header>
           <InfoBox class='absolute top-0 right-2'>
             <p class='f6 mb3 mt0'>When you select a sound file from this menu the
               sound's URL is available in the code as
@@ -146,12 +146,12 @@
       )
     }}
       <SidebarWrapper
-        class={{concat 'bw2 bl b--yellow'}}
+        class={{concat 'bw2 bl b--yellow right-0'}}
         @direction='right'
         @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id 'right'}}
       >
-        <div class='relative flex mh3 yellow flex-column'>
-          <Console::Header class="light-gray">Track {{this.activeTrack.order}}</Console::Header>
+        <div class='relative flex mh3-ns mh2 yellow flex-column'>
+          <Console::Header class="light-gray">Track {{this.activeTrack.order}} Scripts</Console::Header>
           <InfoBox class='absolute top-0 right-2'>
             <p class='f6 mb3 mt0'>Scripts are where you define the audio signal
               chain for each track.</p>
