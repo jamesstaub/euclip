@@ -1,0 +1,8 @@
+# .wasmignore
+target/
+*.rs.bk
+*.toml.bk
+Cargo.lock
+node_modules/
+.DS_Store
+package.json
