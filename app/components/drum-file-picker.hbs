@@ -1,9 +1,13 @@
 <div class='flex flex-column h-100'>
-  <Source::NodeTabs
-    @nodes={{@track.sourceNodeRecords}}
-    @onSelect={{fn this.setUi 'targetNodeIdx'}}
-    @selectedValue={{this.targetNodeIdx}}
-  />
+  {{#if (gt @track.sourceNodeRecords.length 1)}}
+    <Source::NodeTabs
+      class="ml3"
+      @yellow="true"
+      @nodes={{@track.sourceNodeRecords}}
+      @onSelect={{fn this.setUi 'targetNodeIdx'}}
+      @selectedValue={{this.targetNodeIdx}}
+    />
+  {{/if}}
 
   <div class='flex flex-wrap justify-between drum-file-picker ph2 ph3-ns'>
     {{yield}}

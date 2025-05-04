@@ -1,6 +1,7 @@
 <Console::TabMenu
-  class='nodes-wrapper mb2 flush flex-nowrap max-w-100 overflow-x-scroll overflow-y-hidden grow-0 shrink-0 basis-[34px]'
-  @selectedClass='bn br4 bg-dark-gray white mr2' @buttonClass='ba br4 bw1 b--dark-gray bg-transparent dark-gray mr2'
+  class='nodes-wrapper mb2 flush flex-nowrap max-w-100 overflow-x-scroll overflow-y-hidden grow-0 shrink-0'
+  @selectedClass={{concat 'bn br4 mr2 ' (if @yellow 'bg-yellow' 'bg-dark-gray light-gray')}}
+  @buttonClass={{concat 'ba br4 bw1 mr2 bg-transparent ' (if @yellow 'b--yellow yellow' 'b--dark-gray dark-gray')}}
   @onSelect={{@onSelect}} 
   @items={{this.nodeTabs}} 
   @selectedValue={{@selectedValue}} 

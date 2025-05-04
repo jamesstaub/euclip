@@ -127,36 +127,37 @@ export default class TrackModel extends Model.extend(Evented) {
     return this.sortedFilepathControls[0];
   }
   
+  /**
+   * the array of SoundFiles is populated by silent files first to avoid nulls
+   * then replaced by any real sound files related to the filepathcontrols
+   * 
+   */
+
+  get downloadedSoundFiles(): (SoundFileModel | null)[] {
+    const soundFiles = this.store.peekAll('sound-file') as SoundFileModel[];
+  
+    const silentPath = `${ENV.APP['ASSETS_PATH']}/audio/silent.mp3`;
+    const silentSf = soundFiles.findBy('filePathRelative', silentPath) ?? null;
+  
+    const files: (SoundFileModel | null)[] = Array.from({ length: 16 }, () => silentSf);
+  
+    this.sortedFilepathControls.forEach((filepathControl, i) => {
+      const match = soundFiles.findBy('filePathRelative', filepathControl.controlValue);
+      if (match) {
+        files[i] = match;
+      }
+    });
+  
+    return files;
+  }
 
   /**
    * The array of downloaded files exposed to the user via `this.files` in the script.
    * initialized with array of silent files to avoid errors when no files are downloaded
-  */
-//  TBD: investigate @cached here
-  // @cached
-  get downloadedFilepaths(): string[] {
-    const soundFiles = this.store.peekAll('sound-file') as SoundFileModel[];
-
-    const silentSf = soundFiles.findBy(
-      'filePathRelative',
-      `${ENV.APP['ASSETS_PATH']}/audio/silent.mp3`
-    );
-    
-    const downloadedUris = Array.from(
-      new Array(16),
-      () => silentSf?.downloadedURI
-    );
-
-    this.sortedFilepathControls.forEach((filepathControl, i) => {
-      if (soundFiles[i] && !(soundFiles[i]?.state === SoundFileStates.ERROR)) {
-        let value = soundFiles.findBy('filePathRelative', filepathControl.controlValue);
-        if (value) {
-          downloadedUris[i] = value.downloadedURI;
-        }
-      }
-    })
-
-    return downloadedUris;
+   
+  */  
+  get downloadedFilepaths(): (string | null)[] {
+    return this.downloadedSoundFiles.map(file => file?.downloadedURI ?? null);
   }
 
 
@@ -240,12 +241,12 @@ export default class TrackModel extends Model.extend(Evented) {
     this.nodeToVisualize = (node && node[0]) || node; // get the gain node of the channelSTrip
   }
 
-  async findOrDownloadSoundFiles() {
+  async findOrDownloadSoundFiles(): Promise<SoundFileModel[]> {
     // if there is a sound-file record matching this.filePathRelative, use it
     // then make sure its assoicated to this track
     // else create a new sound-file record
     // track nodes will look for a matching sound-file record to associate to
-    Promise.all(this.filepathControls.map((filepathControl) => {
+    return Promise.all(this.filepathControls.map((filepathControl) => {
          return SoundFileModel.findOrDownload(
           filepathControl.controlValue,
           this.store
@@ -270,10 +271,6 @@ export default class TrackModel extends Model.extend(Evented) {
     // this callback gets called when a user creates cracked audio nodes in the script editor ui
     // macro components should not get individual ui controls
     extendOnCreateNode(async (node, type, creationParams, userSettings) => {
-      // TODO:
-      // if the user creates a sampler with a filepath different than this.filepath
-      // then try to dynamically set the filepath track-control to match
-      // this will ensure it gets downloaded at the right time
       const nodeSettings = {};
       const uuid = node.getUUID();
       nodeSettings[uuid] = type;
@@ -334,6 +331,7 @@ export default class TrackModel extends Model.extend(Evented) {
 
     // run script to create audio nodes
     initScript.invokeFunctionRef();
+
     // nullify this callback after creating track nodes to prevent it from getting called outside of this track
     extendOnCreateNode(null);
 
@@ -371,13 +369,14 @@ export default class TrackModel extends Model.extend(Evented) {
   // this trackNode or trackControl is positioned. used to
   // match existing trackControls to newly re-created trackNodes
   // TODO: refactor to static method?
-  applyOrderOfType(recordsArray) {
+  applyOrderOfType(recordsArray: (TrackNodeModel | TrackControlModel | FilepathControlModel)[]): (TrackNodeModel | TrackControlModel | FilepathControlModel)[] {
     recordsArray.reduce((acc, record) => {
-      const { nodeType, nodeAttr } = record;
-      let key;
+      let key: string;
       if (record instanceof TrackNodeModel) {
+        const { nodeType } = record;
         key = nodeType;
       } else if (record instanceof TrackControlModel) {
+        const { nodeType, nodeAttr } = record;
         key = `${nodeType}-${nodeAttr}`;
       } else if (record instanceof FilepathControlModel) {
         key = 'sampler-filepath';
@@ -465,81 +464,75 @@ export default class TrackModel extends Model.extend(Evented) {
    * Then apply the values from the track controls to the audio nodes
    */
   setupTrackControls(trackNodes) {
-    let nodeControlRecords = [
+    let remainingControls = [
       ...this.trackControls.toArray(),
       ...this.filepathControls.toArray(),
     ];
-    console.log('setupTrackControls with', this.filepathControls)
-    nodeControlRecords = this.applyOrderOfType(nodeControlRecords);
-
-    let nodesWithoutTrackControls = [];
-
+    
+    remainingControls = this.applyOrderOfType(remainingControls);
+  
+    const unlinkedNodes: any[] = [];
+  
     trackNodes.forEach((trackNode) => {
-      const matchingControls = nodeControlRecords.filter((trackControl) => {
-        if (trackControl instanceof FilepathControlModel) {
-          debugger
-          return trackNode.orderOfType == trackControl.orderOfType;
+      // Find matching controls by type and order
+      const matchingControls = remainingControls.filter((control) => {
+        if (control instanceof FilepathControlModel) {
+          return trackNode.orderOfType === control.orderOfType;
         }
-
+  
         return (
-          trackNode.nodeType == trackControl.nodeType &&
-          trackNode.orderOfType == trackControl.orderOfType
+          trackNode.nodeType === control.nodeType &&
+          trackNode.orderOfType === control.orderOfType
         );
       });
+  
+      // For samplers, ensure a filepath control is always added
+      if (trackNode.nodeType === 'sampler') {
+        const hasFilepath = matchingControls.some(
+          (control) => control instanceof FilepathControlModel
+        );
+  
 
-      if (trackNode.nodeType == 'sampler') {
-        if (
-          !matchingControls.find(
-            (control) => control instanceof FilepathControlModel
-          )
-        ) {
-          this.filepathControls[trackNode.orderOfType] &&
-            matchingControls.push(this.filepathControls[trackNode.orderOfType]);
+        if (!hasFilepath && this.filepathControls[trackNode.orderOfType]) {
+          matchingControls.push(this.filepathControls[trackNode.orderOfType]);
         }
       }
 
-      if (
-        TrackNodeModel.validateControls(matchingControls, trackNode.nodeType)
-      ) {
-        matchingControls.forEach((nodeControlRecord) => {
-          // set the relation on the control to keep ember-data happy
-          nodeControlRecord.set('trackNode', trackNode);
-          if (nodeControlRecord instanceof FilepathControlModel) {
-            trackNode.filepathControl = nodeControlRecord;
+      // If matched controls are valid, assign them to the node
+      if (TrackNodeModel.validateControls(matchingControls, trackNode.nodeType)) {
+        matchingControls.forEach((control) => {
+          control.set('trackNode', trackNode);
+  
+          if (control instanceof FilepathControlModel) {
+            trackNode.filepathControl = control;
           }
-
-          if (nodeControlRecord instanceof TrackControlModel) {
-            trackNode?.trackControls.pushObject(nodeControlRecord);
+  
+          if (control instanceof TrackControlModel) {
+            trackNode.trackControls.pushObject(control);
           }
-
-          // remove from list after assigning
-          nodeControlRecords = nodeControlRecords.rejectBy(
-            'id',
-            nodeControlRecord.id
-          );
+  
+          // Remove assigned control from pool
+          remainingControls = remainingControls.rejectBy('id', control.id);
         });
       } else {
-        nodesWithoutTrackControls.push(trackNode);
+        unlinkedNodes.push(trackNode);
       }
-
+  
       trackNode.updateDefaultValue();
     });
-
-    nodeControlRecords.forEach((nodeControlRecord) => {
-      nodeControlRecord.destroyRecord();
-    });
-
-    nodesWithoutTrackControls.map((trackNode) =>
-      trackNode.findOrCreateTrackControls()
-    );
-
-    // now apply the value for all track controls old and new
-    const attrsForNodes = TrackControlModel.getAttrsForNodes(
-      this.trackControls
-    );
-
+  
+    // Clean up unused controls
+    remainingControls.forEach((control) => control.destroyRecord());
+  
+    // Create missing controls for unmatched nodes
+    unlinkedNodes.forEach((node) => node.findOrCreateTrackControls());
+  
+    // Apply attributes to all trackNodes
+    const attrsForNodes = TrackControlModel.getAttrsForNodes(this.trackControls);
+  
     this.trackNodes.forEach((trackNode) => {
       trackNode.delinkControlsForDeadNodes();
+  
       const attrs = attrsForNodes[trackNode.uniqueSelector];
       if (attrs) {
         applyAttrs(trackNode.uniqueSelector, attrs);

@@ -48,13 +48,6 @@ export default class FilepathControlModel extends Model {
     controlValue: string;
   }): FilepathControlModel | undefined {
     // peek for existing filepath control matching trackNode.order with this node order
-
-// BUG: when there are 2 samplers, this gets called AFTER picking a file for the second sampler
-// thus replacing it with an undefined filepath control.
-// .find() is failing because the order is not set yet
-
-    console.log(trackNode.orderOfType)    
-
     let filepathControl = track.filepathControls.find(
       (control: FilepathControlModel) =>
         control.orderOfType !== undefined &&
@@ -65,11 +58,8 @@ export default class FilepathControlModel extends Model {
       filepathControl.controlValue = controlValue;
     }
 
-    console.log('found filepath control', filepathControl);
-
     if (!filepathControl) {
       try {
-        console.log('create record', controlValue, trackNode.order);
         filepathControl = track.store.createRecord('filepath-control', {
           trackNode,
           track,
