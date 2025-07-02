@@ -7,6 +7,8 @@
   --width-5: 20rem;
 
   --width-6: 28rem;
+
+  /* FIXME cant use vars like this */
   --breakpoint-not-small: screen and (min-width: 40em);
   --breakpoint-medium: screen and (min-width: 40em) and (max-width: 60em);
   --breakpoint-large: screen and (min-width: 60em);

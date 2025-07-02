@@ -26,8 +26,8 @@ class ApplicationController < ActionController::API
     render json: { error: exception.to_s }, status: :not_found
   end
 
-  def render_unauthorized
-    render json: { error: 'Unauthorized' }, status: :unauthorized
+  def render_unauthorized(msg = nil)
+    render json: { error: msg || 'Unauthorized' }, status: :unauthorized
   end
 
   def render_forbidden(msg = nil)

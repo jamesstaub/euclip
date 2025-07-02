@@ -39,6 +39,12 @@ class V1::UsersController < ApplicationController
 
   def log_headers
     token = request.headers['Authorization']&.split(' ')&.last
-    decoded_token = JWT.decode(token, Rails.application.credentials.devise[:jwt_secret_key], true, { algorithm: 'HS256' })
+    begin
+      decoded_token = JWT.decode(token, Rails.application.credentials.devise[:jwt_secret_key], true, { algorithm: 'HS256' })
+    rescue JWT::ExpiredSignature
+      render_unauthorized('Token has expired')
+    rescue JWT::DecodeError
+      render_unauthorized('Invalid token')
+    end
   end
 end
