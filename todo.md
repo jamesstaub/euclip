@@ -95,6 +95,26 @@ cracked.exec(
   Proves that the callback is quantized to the loop,
   TODO: look into how to schedule different times around the step for nudging or alternative sequences
 
+Example using this.ramp to modulate nodes. 
+/// tODO add support for onstep script on master track bc using .each in this way will only work for tracks prior to the one it is called on
+  ```
+
+__('.mixer').each('gain', (node) => {
+  let g = __.random(1, 20) / 10
+  // node.attr({gain: g})
+  // target, time, paramToRamp, nodeParam, initial, type
+  node.ramp(g, 0.025, 'gain', node.getNativeNode(), prevG, 'exp')
+  prevG = g;
+})
+
+__('sampler').each('sampler', (node) => {
+  let s = __.random(1, 1000) 
+  // node.attr({gain: g})
+  // target, time, paramToRamp, nodeParam, initial, type
+  node.ramp(s, 0.015, 'detune', node.getNativeNode(), 1, 'exp')
+})
+```
+
 
 ### Track Footer
   
@@ -351,6 +371,7 @@ Implement `hasMany` sequence relationship on tracks, add UI to manage sequences.
 
 ### bugs
 
+-sometimes multislider state does not persist when > 16 steps in sequence (only keeps latest page)
 - channelStrip gain gets reset on play
 - Sequencer UI bug:
   stepIdx displays on the last step first when starts playing.

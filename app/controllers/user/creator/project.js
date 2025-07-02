@@ -5,6 +5,12 @@ import { service } from '@ember/service';
 import { keepLatestTask, restartableTask, timeout } from 'ember-concurrency';
 import { defineChannelStripMacro } from '../../../utils/cracked';
 
+/**
+ * FIXME: refactor all the ui state like sidebars etc into a separate project UI component
+ *
+ * the controller should focus on model state
+ */
+
 export default class UserCreatorProjectController extends Controller {
   @service router;
   @service media;
@@ -13,6 +19,7 @@ export default class UserCreatorProjectController extends Controller {
   @tracked leftSidebarOpen;
   @tracked rightSidebarOpen;
   @tracked sortedTracks;
+  @tracked createFromDirectory = false;
 
   constructor() {
     super(...arguments);
@@ -111,6 +118,16 @@ export default class UserCreatorProjectController extends Controller {
       });
       console.error(error);
     }
+  }
+
+  @action openCreateFromDirectory() {
+    this.createFromDirectory = true;
+    this.leftSidebarOpen = true;
+  }
+
+  @action
+  async createTracksFromFilepaths(filepathControls) {
+    //
   }
 
   @action

@@ -15,9 +15,15 @@ export default class UserRoute extends Route {
     return this._loadCurrentUser();
   }
 
+  afterModel() {
+    if (!this.session.isAuthenticated) {
+      this.router.transitionTo('login');
+    }
+  }
+
   async _loadCurrentUser() {
     try {
-      return this.currentUser.load();
+      return await this.currentUser.load();
     } catch (err) {
       console.error('Error Loading current user', err);
       this.session.invalidate();

@@ -21,6 +21,7 @@ export default class UserMyProjectsRoute extends Route {
     } else {
       // TODO: figure out why we are hitting this when loading from /embed route
       // this.router.transitionTo('login');
+      console.log('not authenticated');
     }
   }
 

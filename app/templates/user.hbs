@@ -13,6 +13,10 @@
             alt={{this.currentUser.user.username}}
             title={{this.currentUser.user.username}}
           />
+        {{else}}
+          <div class='h2 w2 br-100 bg-yellow flex items-center justify-center'>
+            <span class='f3 dark-gray'>{{this.currentUser.user.username.[0]}}</span>
+          </div>
         {{/if}}
       </DropdownMenu>
     {{else}}

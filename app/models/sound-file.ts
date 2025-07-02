@@ -3,7 +3,6 @@ import { tracked } from '@glimmer/tracking';
 import { waitForProperty } from 'ember-concurrency';
 import ENV from 'euclip/config/environment';
 
-// Enum-like object to represent the possible states of the sound file.
 export const SoundFileStates = {
   INIT: 'init',
   DOWNLOADING: 'downloading',
@@ -20,7 +19,6 @@ export default class SoundFileModel extends Model {
   // Static ID counter for each instance
   static ID = 0;
 
-  // The current state of the sound file
   @tracked state: SoundFileState = SoundFileStates.INIT;
 
   // Error message in case of download failure

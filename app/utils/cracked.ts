@@ -144,3 +144,7 @@ export const synthNodes: string[] = ['triangle', 'sine', 'square', 'saw'];
 
 /** List of available noise node types */
 export const noiseNodes: string[] = ['noise', 'pink', 'white', 'brown'];
+
+export const playAudioFile = (filePath: string): void => {
+  __().sampler({filepath: filePath}).play()
+}

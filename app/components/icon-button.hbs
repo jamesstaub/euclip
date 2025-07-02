@@ -1,10 +1,22 @@
 <button
-  class="bn f5 ttu flex items-center"
   type="button"
+  class="bn f5 ttu flex items-center gap-1"
   title={{@label}}
+  aria-label={{@label}}
   ...attributes
 >
-  {{svg-jar @icon class=@iconClass width=(or @iconWidth "20px") height=(or @iconHeight "20px")}}
-  {{yield}}
-</button>
+  {{svg-jar
+    @icon
+    class=@iconClass
+    width=(or @iconWidth "20px")
+    height=(or @iconHeight "20px")
+    aria-hidden="true"
+    focusable="false"
+  }}
 
+  {{#if (has-block)}}
+    {{yield}}
+  {{else if @label}}
+    <span class="sr-only">{{@label}}</span>
+  {{/if}}
+</button>

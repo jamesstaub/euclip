@@ -1,0 +1,13 @@
+<div class='flex overflow-x-scroll w-100 pv0 ph2 ph3-ns sidebar-inner-max-height'>
+  {{#each @directoryTree as |directory idx|}}
+    <div class='flex w-auto flex-column mr2 min-w-5 grow-1'>
+      <h4 class='dark-gray mt0 w-100 pv3 mb0 pl2 yellow bg-semi-transparent-dark-gray'>
+        {{if (eq directory.type 'audio') 'Sounds' 'Drum Machine'}}
+      </h4>
+      <FileDirectory class='overflow-y-scroll h-100' @onSelectItem={{@onSelectItem}} @directory={{directory}}
+        @filepath={{@track.filepath}} @idx={{idx}} />
+    </div>
+  {{/each}}
+</div>
+
+{{yield}}

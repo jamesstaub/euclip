@@ -1,0 +1,40 @@
+<div class='flex flex-wrap justify-between drum-file-picker ph2 ph3-ns'>
+  <Input
+    aria-label='Search for Drum Sounds'
+    class='ba bw1 b--yellow grow-1 light-gray bg-transparent f5 pa3'
+    placeholder='Search for drums sounds'
+    @value={{this.searchQuery}}
+    {{on 'keyup' this.search}} 
+  />
+  {{#if this.searchResults.length}}
+    <ButtonPrimary class="f6" {{on 'click' this.backToBrowse}} @label='← browse' />
+  {{/if}}
+</div>
+
+<ProgressBar class={{concat 'fixed top-0 mv1 mh3 ' (unless this.searchTask.isRunning 'hidden')}} />
+
+{{#if this.searchResults.length}}
+  <div
+    class='flex justify-between flex-column mv3 overflow-scroll sidebar-inner-max-height'
+  >
+    <ul
+      class='flex flex-column shrink-1 grow-1 list ma0 ph3'
+    >
+      {{#each this.searchResults as |result|}}
+        <FileSearchResultDirectory
+          @filePathRelative={{@filePathRelative}}
+          @result={{result}}
+          @onSelect={{this.onSelectSearchResult}}
+        />
+      {{/each}}
+    </ul>
+    <SearchPagination
+      class='pv2 grow-1'
+      @currentPage={{this.currentPage}}
+      @lastPage={{this.lastPage}}
+      @search={{fn this.search this.searchQuery}}
+    />
+  </div>
+{{else}}
+  {{yield}}
+{{/if}}

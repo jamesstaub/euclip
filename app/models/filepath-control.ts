@@ -46,7 +46,7 @@ export default class FilepathControlModel extends Model {
     track: any;
     trackNode: any;
     controlValue: string;
-  }): FilepathControlModel | undefined {
+  }): FilepathControlModel {
     // peek for existing filepath control matching trackNode.order with this node order
     let filepathControl = track.filepathControls.find(
       (control: FilepathControlModel) =>

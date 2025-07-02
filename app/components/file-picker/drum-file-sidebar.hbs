@@ -1,0 +1,45 @@
+<SidebarWrapper class='bw2 br b--yellow left-0' @direction='left' @onCloseSidebar={{@onCloseSidebar}}>
+  <div class='relative flex mh3-ns mh2 yellow flex-column'>
+    {{#if @createFromDirectory}}
+      <Console::Header class="light-gray">Select A Direcory</Console::Header>
+    {{else}}
+      <Console::Header class="light-gray">Track {{@activeTrack.order}} Drum Machines</Console::Header>
+    {{/if}}
+    <InfoBox class='absolute top-0 right-2'>
+      <p class='f6 mb3 mt0'>When you select a sound file from this menu the
+        sound's URL is available in the code as
+        <code>this.filepath</code>.
+      </p>
+      <p class='f6 mb3 mt0'>You pass the sound's URL to a
+        <code>sampler</code>
+        node in the Setup script like so:
+      </p>
+      <p class='f6 mb3 mt0'><code>__().sampler({path: this.filepath})</code></p>
+    </InfoBox>
+  </div>
+  {{#if (and @activeTrack @activeTrack.audioFileTree (not @createFromDirectory))}}
+    <div class='flex flex-column h-100'>
+      {{#if (gt @activeTrack.sourceNodeRecords.length 1)}}
+        <Source::NodeTabs
+          class="ml3"
+          @yellow="true"
+          @nodes={{@activeTrack.sourceNodeRecords}}
+          @onSelect={{fn this.setUi 'targetNodeIdx'}}
+          @selectedValue={{this.targetNodeIdx}}
+        />
+      {{/if}}
+      <FilePicker::Search 
+        @onSelectFile={{this.saveFilepathControl}}
+        @filePathRelative={{this.selectedNode.filepathControl.controlValue}}
+        @audioFileTree={{@activeTrack.audioFileTree}}
+      >
+        <FilePicker::Selection @onSelectItem={{this.onSelectItem}} @directoryTree={{@activeTrack.audioFileTree.directoryTree}}  />
+      </FilePicker::Search>
+    </div>
+
+  {{/if}}
+
+  {{#if @createFromDirectory}}
+    <FilePicker::Multiple/>
+  {{/if}}
+</SidebarWrapper>

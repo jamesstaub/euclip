@@ -15,9 +15,11 @@ import type TrackModel from 'euclip/models/track';
 import type UserAuthModel from 'euclip/models/user-auth';
 import type UserModel from 'euclip/models/user';
 import type TrackControlModel from 'euclip/models/track-control';
+import type { DirectoryModel } from 'euclip/models/audio-file-tree';
 
 export default interface ModelRegistry {
   'audio-file-tree': AudioFileTreeModel;
+  'directory': DirectoryModel
   'filepath-control': FilepathControlModel;
   'init-script': InitScriptModel;
   'onstep-script': OnstepScriptModel;

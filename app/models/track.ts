@@ -131,7 +131,13 @@ export default class TrackModel extends Model.extend(Evented) {
    * the array of SoundFiles is populated by silent files first to avoid nulls
    * then replaced by any real sound files related to the filepathcontrols
    * 
+   * FIXME: right now filepathcontrols are created if a sampler is initialized with one of these downloadedSoundFiles
+   * it doesnt work if you initialize many samplers using the same file (eg set this.files[0] to multiple samplers)
+   * 
+   * We'd either need to use the same filepath control for multiple nodes, or make multiple filepath controls 
+   * with the same value... hmmmm
    */
+
 
   get downloadedSoundFiles(): (SoundFileModel | null)[] {
     const soundFiles = this.store.peekAll('sound-file') as SoundFileModel[];
@@ -246,7 +252,16 @@ export default class TrackModel extends Model.extend(Evented) {
     // then make sure its assoicated to this track
     // else create a new sound-file record
     // track nodes will look for a matching sound-file record to associate to
-    return Promise.all(this.filepathControls.map((filepathControl) => {
+    
+    return Promise.all(this.filepathControls.filter((fpc) => fpc.controlValue).map((filepathControl) => {
+
+          // there can be leftover filepath controls from a previous project that had tracks 
+          // without files chosen. TODO: clear out dead filepath controls on project exit.
+          
+          // ALSO TODO: dont load all project assets on /projects index
+          // ALSO ensure that the fpcs are properly tied to the track (shouldnt bleed between projects)
+
+
          return SoundFileModel.findOrDownload(
           filepathControl.controlValue,
           this.store
