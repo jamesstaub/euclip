@@ -2,13 +2,13 @@
 import Model, { attr, belongsTo, hasMany  } from '@ember-data/model';
 import { service } from '@ember/service';
 import { action } from '@ember/object';
+import type StoreService from '@ember-data/store';
 import { cached } from '@glimmer/tracking';
 import { keepLatestTask, timeout } from 'ember-concurrency';
 import { unbindFromSequencer } from 'euclip/utils/cracked';
 import { SoundFileStates } from 'euclip/models/sound-file';
 import ENV from 'euclip/config/environment';
 
-import type Store from '@ember-data/store';
 import type ProjectModel from './project';
 import type InitScriptModel from 'euclip/models/init-script';
 import type OnstepScriptModel from 'euclip/models/onstep-script';
@@ -34,13 +34,12 @@ import { tracked } from '@glimmer/tracking';
 import { isPresent } from '@ember/utils';
 
 
-import type StoreService from '@ember-data/store';
 import { extendOnCreateNode } from 'euclip/utils/cracked';
 import { FILE_LOAD_STATES } from './track-node';
 
 export default class TrackModel extends Model.extend(Evented) {
 
-  @service declare store: Store;
+  @service declare store: StoreService;
 
   @attr('boolean') declare isMaster: boolean;
   @attr('number') declare order: number;

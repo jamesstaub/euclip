@@ -6,7 +6,7 @@ import { service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 import { isPresent } from '@ember/utils';
 import FilepathControlModel from 'euclip/models/filepath-control';
-import type Store from '@ember-data/store';
+import type StoreService from '@ember-data/store';
 
 // Enum for file load states
 export const FILE_LOAD_STATES = {
@@ -20,7 +20,7 @@ type FileLoadState = typeof FILE_LOAD_STATES[keyof typeof FILE_LOAD_STATES];
 
 // TrackNodeModel class definition
 export default class TrackNodeModel extends Model {
-  @service store!: Store;
+  @service store!: StoreService;
 
   @belongsTo('track', { async: false, inverse: 'trackNode' }) track!: any;
   @hasMany('track-control', { async: false, inverse: 'trackNode' }) trackControls!: any[];

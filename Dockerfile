@@ -1,10 +1,21 @@
 FROM node:18
 
+# Install Rust and wasm-pack
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+RUN cargo install wasm-pack
 
 WORKDIR /app
 
 # Copy only package files first for better caching
 COPY package.json package-lock.json ./
+
+# Copy the wasm directory explicitly
+COPY wasm ./wasm
+
+# Debug: List what was copied
+RUN ls -la && echo "Checking wasm directory:" && ls -la wasm/
+
 RUN cd /app && npm install -g ember-cli && npm install
 
 RUN npx update-browserslist-db@latest --update-db

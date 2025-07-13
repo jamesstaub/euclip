@@ -19,7 +19,7 @@ import type { DirectoryModel } from 'euclip/models/audio-file-tree';
 
 export default interface ModelRegistry {
   'audio-file-tree': AudioFileTreeModel;
-  'directory': DirectoryModel
+  'directory': DirectoryModel;
   'filepath-control': FilepathControlModel;
   'init-script': InitScriptModel;
   'onstep-script': OnstepScriptModel;
@@ -35,4 +35,26 @@ export default interface ModelRegistry {
   'track': TrackModel;
   'user-auth': UserAuthModel;
   'user': UserModel;
+}
+
+declare module '@ember-data/store' {
+  interface ModelRegistry {
+    'audio-file-tree': AudioFileTreeModel;
+    'directory': DirectoryModel;
+    'filepath-control': FilepathControlModel;
+    'init-script': InitScriptModel;
+    'onstep-script': OnstepScriptModel;
+    'preset-collection': PresetCollectionModel;
+    'preset': PresetModel;
+    'project': ProjectModel;
+    'script': ScriptModel;
+    'sequence': SequenceModel;
+    'sound-file': SoundFileModel;
+    'track-control-frequency': TrackControlFrequencyModel;
+    'track-control': TrackControlModel;
+    'track-node': TrackNodeModel;
+    'track': TrackModel;
+    'user-auth': UserAuthModel;
+    'user': UserModel;
+  }
 }
