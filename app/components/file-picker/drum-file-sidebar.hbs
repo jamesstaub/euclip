@@ -17,6 +17,11 @@
       <p class='f6 mb3 mt0'><code>__().sampler({path: this.filepath})</code></p>
     </InfoBox>
   </div>
+  
+  {{#if @createFromDirectory}}
+    <FilePicker::Multiple/>
+  {{/if}}
+
   {{#if (and @activeTrack @activeTrack.audioFileTree (not @createFromDirectory))}}
     <div class='flex flex-column h-100'>
       {{#if (gt @activeTrack.sourceNodeRecords.length 1)}}
@@ -37,9 +42,5 @@
       </FilePicker::Search>
     </div>
 
-  {{/if}}
-
-  {{#if @createFromDirectory}}
-    <FilePicker::Multiple/>
   {{/if}}
 </SidebarWrapper>

@@ -8,9 +8,9 @@ import type { Task } from 'ember-concurrency';
 import { typeOf } from '@ember/utils';
 
 import AudioFileTreeModel from 'euclip/models/audio-file-tree';
+import type StoreService from '@ember-data/store';
 
 
-import Store from '@ember-data/store';
 
 interface SamplerNode {
   // Define properties as needed
@@ -30,7 +30,7 @@ interface DrumFilePickerArgs {
 }
 
 export default class FilePickerSearchComponent extends Component<DrumFilePickerArgs> {
-  @service declare store: Store;
+  @service declare store: StoreService;
 
   @tracked searchResults: any[] | null = null;
   @tracked searchQuery: string = '';

@@ -2,7 +2,7 @@ import Component from '@glimmer/component';
 import SoundFileModel from 'euclip/models/sound-file';
 import FilepathControlModel from 'euclip/models/filepath-control';
 import { service } from '@ember/service';
-import type Store from '@ember-data/store';
+import type StoreService from '@ember-data/store';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import type TrackModel from 'euclip/models/track';
@@ -18,7 +18,7 @@ interface FilePickerDrumFileSidebarSignature {
 }
 
 export default class FilePickerDrumFileSidebarComponent extends Component<FilePickerDrumFileSidebarSignature> {
-  @service declare store: Store;
+  @service declare store: StoreService;
 
   @tracked targetNodeIdx = 0;
 
