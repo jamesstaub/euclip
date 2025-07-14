@@ -2,28 +2,23 @@ import Controller from '@ember/controller';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import { service } from '@ember/service';
-import { keepLatestTask, restartableTask, timeout } from 'ember-concurrency';
+import { keepLatestTask, timeout } from 'ember-concurrency';
 import { defineChannelStripMacro } from '../../../utils/cracked';
 
 /**
- * FIXME: refactor all the ui state like sidebars etc into a separate project UI component
- *
- * the controller should focus on model state
+ * Controller focused on model state and business logic.
+ * UI state has been refactored to the Project::UiState component.
  */
 
 export default class UserCreatorProjectController extends Controller {
   @service router;
-  @service media;
   @service notifications;
   @tracked activeTrack;
-  @tracked leftSidebarOpen;
-  @tracked rightSidebarOpen;
   @tracked sortedTracks;
-  @tracked createFromDirectory = false;
+  @tracked presetCollections;
 
   constructor() {
     super(...arguments);
-    this.rightSidebarOpen = this.media.isDesktop;
     defineChannelStripMacro();
   }
 
@@ -120,14 +115,9 @@ export default class UserCreatorProjectController extends Controller {
     }
   }
 
-  @action openCreateFromDirectory() {
-    this.createFromDirectory = true;
-    this.leftSidebarOpen = true;
-  }
-
   @action
-  async createTracksFromFilepaths(filepathControls) {
-    //
+  async createTracksFromFilepaths(/* filepathControls */) {
+    // TODO: Implement track creation from file paths
   }
 
   @action
@@ -152,19 +142,6 @@ export default class UserCreatorProjectController extends Controller {
   reset() {
     // this.model.resetLoop();
     // this.model.initSignalChain();
-  }
-
-  @action
-  toggleSidebar(trackId, direction) {
-    const sidebarProps = {
-      left: 'leftSidebarOpen',
-      right: 'rightSidebarOpen',
-    };
-    const shouldToggle =
-      trackId === this.activeTrack.id || !this[sidebarProps[direction]];
-    if (shouldToggle) {
-      this[sidebarProps[direction]] = !this[sidebarProps[direction]];
-    }
   }
 
   @action

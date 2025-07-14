@@ -63,17 +63,15 @@ export default class AudioFileTreeModel extends Model {
   @tracked directoryTree: DirectoryModel[] = [];
 
   /**
-   * Appends new directory data to the current tree based on a given path and selected item.
+   * Appends new directory data to the current tree based on a given path.
    * This clears any previously selected audio directories, fetches the tree from the server,
-   * and appends the updated tree + selected node.
+   * and appends the updated tree.
    */
   async appendDirectoriesData(
-    path: string | null,
-    item: string
+    path: string | null
   ): Promise<void> {
     // Retain only directory-type nodes
     this.directoryTree = this.directoryTree.filter((dir) => dir.type === 'dir');
-
     try {
       const safePath = path || '/';
       const response: DirectoryResponse =
@@ -86,9 +84,13 @@ export default class AudioFileTreeModel extends Model {
         ];
       }
 
+      // Extract the selected item from the path for currentSelection
+      const pathSegments = safePath.split('/').filter(segment => segment.length > 0);
+      const selectedItem = pathSegments[pathSegments.length - 1] || '';
+
       this.directoryTree = [
         ...this.directoryTree,
-        new DirectoryModel({ currentSelection: item, ...response }),
+        new DirectoryModel({ currentSelection: selectedItem, ...response }),
       ];
     } catch (error) {
       console.error('Error fetching directories:', error);

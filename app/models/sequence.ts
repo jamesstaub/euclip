@@ -1,5 +1,4 @@
 import Model, { attr, belongsTo } from '@ember-data/model';
-import { tracked } from '@glimmer/tracking';
 // @ts-ignore - Module resolution issues with mixed .js/.ts files
 import type TrackModel from 'euclip/models/track';
 // @ts-ignore - No type definitions available
@@ -15,7 +14,6 @@ export default class SequenceModel extends Model {
       return 0;
     },
   })
-  @tracked
   declare hits: number;
 
   @attr('number', {
@@ -23,7 +21,6 @@ export default class SequenceModel extends Model {
       return 8;
     },
   })
-  @tracked
   declare steps: number;
 
   @attr('number', {
@@ -31,7 +28,6 @@ export default class SequenceModel extends Model {
       return 0;
     },
   })
-  @tracked
   declare offset: number;
 
   @attr() declare customSequence: number[] | undefined;

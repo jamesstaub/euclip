@@ -2,7 +2,7 @@
   <dd.Trigger ...attributes>
     <span class='caret'></span>
     {{#if (has-block)}}
-      {{yield}}
+        {{yield dd}}
     {{else}}
       {{svg-jar
         (or @icon 'fi-dots')
@@ -14,11 +14,11 @@
   </dd.Trigger>
 
   <dd.Content class=''>
-    <ul class="list pl0 ma0 bg-light-gray ba bw2 b--dark-gray">
+    <ul class="list pl0 ma0 bg-dark-gray ba bw2 b--light-gray shadow-3">
       {{#each @items as |item|}}
         <li>
           <button
-            class='bg-transparent hover-underline bn w-100 ph3 pv2'
+            class='bg-transparent bn w-100 ph3 pv2 light-gray'
             type='button'
             title={{item.label}}
             {{on 'click' (fn this.onSelectItem item.select dd.actions.close)}}

@@ -10,8 +10,6 @@ import { typeOf } from '@ember/utils';
 import AudioFileTreeModel from 'euclip/models/audio-file-tree';
 import type StoreService from '@ember-data/store';
 
-
-
 interface SamplerNode {
   // Define properties as needed
 }
@@ -47,7 +45,7 @@ export default class FilePickerSearchComponent extends Component<DrumFilePickerA
     yield timeout(200);
 
     if (this.searchQuery.length > 2) {
-      const results = yield AudioFileTreeModel.fetchDirectory(null, {
+      const results = yield AudioFileTreeModel.fetchDirectory('', {
         search: this.searchQuery,
         page: pageToSearch,
       });

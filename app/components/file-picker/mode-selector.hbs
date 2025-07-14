@@ -1,0 +1,11 @@
+<DropdownMenu @closeOnSelect={{true}} @items={{array 
+  (hash label='Create Tracks From Folder' select=(fn @setAudioSelectMode "dir" )) 
+  (hash label='Select File For Track' select=(fn @setAudioSelectMode "file" )) 
+  }}
+>
+  {{#if (eq @audioSelectMode "dir")}}
+    <Console::Header class="light-gray">Select A Directory</Console::Header>
+  {{else}}
+  <Console::Header class="light-gray">Track {{@activeTrack.order}} Drum Machines</Console::Header>
+  {{/if}}
+</DropdownMenu>

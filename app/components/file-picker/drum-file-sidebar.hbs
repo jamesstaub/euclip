@@ -1,10 +1,11 @@
 <SidebarWrapper class='bw2 br b--yellow left-0' @direction='left' @onCloseSidebar={{@onCloseSidebar}}>
   <div class='relative flex mh3-ns mh2 yellow flex-column'>
-    {{#if @createFromDirectory}}
-      <Console::Header class="light-gray">Select A Direcory</Console::Header>
-    {{else}}
-      <Console::Header class="light-gray">Track {{@activeTrack.order}} Drum Machines</Console::Header>
-    {{/if}}
+    <FilePicker::ModeSelector 
+      @activeTrack={{@activeTrack}} 
+      @createFromDirectory={{@createFromDirectory}}
+      @audioSelectMode={{@audioSelectMode}}
+      @setAudioSelectMode={{@setAudioSelectMode}}
+    />
     <InfoBox class='absolute top-0 right-2'>
       <p class='f6 mb3 mt0'>When you select a sound file from this menu the
         sound's URL is available in the code as
@@ -18,11 +19,12 @@
     </InfoBox>
   </div>
   
-  {{#if @createFromDirectory}}
+  {{#if (eq @audioSelectMode "dir")}}
     <FilePicker::Multiple/>
   {{/if}}
 
-  {{#if (and @activeTrack @activeTrack.audioFileTree (not @createFromDirectory))}}
+  
+  {{#if (and @activeTrack @activeTrack.audioFileTree (eq @audioSelectMode "file"))}}
     <div class='flex flex-column h-100'>
       {{#if (gt @activeTrack.sourceNodeRecords.length 1)}}
         <Source::NodeTabs

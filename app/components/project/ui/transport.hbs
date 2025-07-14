@@ -1,0 +1,13 @@
+<div class='flex'>
+  {{#if @model.isPlaying}}
+    <IconButton class='bg-transparent mh1' @icon='fi-pause' @label='pause' {{on 'click' @pause}} />
+  {{else}}
+    <IconButton class='bg-transparent mh1' @icon='fi-play' @label='play' {{on 'click' @play}} />
+  {{/if}}
+
+  <IconButton class='bg-transparent mh1' @icon='fi-stop' @label='stop' {{on 'click' @stop}} />
+  <div class='flex items-center ba b--dark-gray bw1 ml2'>
+    <div {{nexus-ui 'Number' min=1 max=500 value=@model.bpm onChange=(perform @updateProject 'bpm') step=1 }}></div>
+    <div><span class='pr3 f7'>bpm</span></div>
+  </div>
+</div>

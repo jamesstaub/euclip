@@ -8,12 +8,17 @@ import { tracked } from '@glimmer/tracking';
 import type TrackModel from 'euclip/models/track';
 import type AudioFileTreeModel from 'euclip/models/audio-file-tree';
 import type { DirectoryModel } from 'euclip/models/audio-file-tree';
+import type { AudioSelectMode } from 'euclip/components/project/ui-state';
 import { playAudioFile } from 'euclip/utils/cracked';
 
 interface FilePickerDrumFileSidebarSignature {
   Args: {
     activeTrack: TrackModel;
-    audioFileTree: AudioFileTreeModel;
+    audioFileTree?: AudioFileTreeModel;
+    createFromDirectory?: boolean;
+    audioSelectMode?: AudioSelectMode;
+    setAudioSelectMode?: (mode: AudioSelectMode) => void;
+    onCloseSidebar?: () => void;
   };
 }
 
@@ -36,7 +41,8 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
   }
 
   @action
-  setUi(key, value) {
+  setUi(key: string, value: any) {
+    // @ts-ignore
     this[key] = value;
   }
 
@@ -49,10 +55,19 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
   @action
   async onSelectItem(directory: DirectoryModel, item: string) {
     const fileTree = await this.args.activeTrack.audioFileTree;
-    const selection = `${directory.path}${item}`;
+
     if (directory.type === 'dir') {
-      fileTree.appendDirectoriesData(selection);
+      // Construct the full path by appending the selected item to the current directory path
+      const selection = directory.path.endsWith('/')
+        ? `${directory.path}${item}`
+        : `${directory.path}/${item}`;
+
+      console.log('Calling appendDirectoriesData with selection:', selection);
+      await fileTree.appendDirectoriesData(selection);
     } else if (directory.type === 'audio') {
+      const selection = directory.path.endsWith('/')
+        ? `${directory.path}${item}`
+        : `${directory.path}/${item}`;
       return this.saveFilepathControl(selection);
     }
   }

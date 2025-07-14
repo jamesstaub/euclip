@@ -1,169 +1,138 @@
 {{page-title this.model.title}}
-<div class="flex flex-column grow-1 shrink-0">
-  <nav class='flex items-center justify-between ph3 pv2 bg-light-gray'>
-    <div class='flex flex-wrap items-center justify-between w-100'>
-      <EditableText 
-        class='truncate ma0 f4 mw5'
-        @label="Project Title"
-        @value={{this.model.title}}
-        @onSave={{this.updateName}}
-        @onCancel={{this.revertName}}
-      />
-
-      <div class='flex'>
-        {{#if this.model.isPlaying}}
-          <IconButton
-            class='bg-transparent mh1'
-            @icon='fi-pause'
-            @label='pause'
-            {{on 'click' this.pause}}
+<Project::UiState @activeTrack={{this.activeTrack}} @project={{this.model}}>
+  <:content as |uiState|>
+    <div class="flex flex-column grow-1 shrink-0">
+      <nav class='flex items-center justify-between ph3 pv2 bg-light-gray'>
+        <div class='flex flex-wrap items-center justify-between w-100'>
+          <EditableText 
+            class='truncate ma0 f4 mw5'
+            @label="Project Title"
+            @value={{this.model.title}}
+            @onSave={{this.updateName}}
+            @onCancel={{this.revertName}}
           />
-        {{else}}
-          <IconButton
-            class='bg-transparent mh1'
-            @icon='fi-play'
-            @label='play'
-            {{on 'click' this.play}}
+
+          <Project::Ui::Transport
+            @model={{this.model}}
+            @updateProject={{this.updateProject}}
+            @pause={{this.pause}}
+            @play={{this.play}}
+            @stop={{this.stop}}
+          />
+          <div class='flex ml3'>
+            <ButtonPrimary @label={{'New Track'}} {{on 'click' this.createTrack}} />
+            <DropdownMenu
+              class='h-100 grow-1 bg-dark-gray ba bl-0 bw1 b--yellow ph2'
+              @icon='fi-play'
+              @iconClass='yellow-fill rotate-90'
+              @closeOnSelect={{true}}
+              @items={{array
+                (hash label='Sampler' select=(fn this.createTrack 'samplerPreset'))
+                (hash label='Synth' select=(fn this.createTrack 'synthPreset'))
+                (hash label='New From Preset')
+                (hash label='Drum Machine' select=uiState.openCreateFromDirectory)
+                (hash label='Blank Track' select=(fn this.createTrack 'signalChainGui'))
+              }}
+            />
+          </div>
+        </div>
+      </nav>
+
+      <div
+        class='flex flex-wrap overflow-hidden grow-1 flex-nowrap-ns'
+      >
+        {{#if
+          (or 
+            uiState.createFromDirectory
+            (and uiState.leftSidebarOpen this.activeTrack (not this.activeTrack.isDeleted))
+          )
+        }}
+          <FilePicker::DrumFileSidebar
+            @activeTrack={{this.activeTrack}}
+            @createFromDirectory={{uiState.createFromDirectory}}
+            @audioSelectMode={{uiState.audioSelectMode}}
+            @setAudioSelectMode={{uiState.setAudioSelectMode}}
+            @onCloseSidebar={{fn uiState.closeSidebar 'left'}}        
           />
         {{/if}}
-
-        <IconButton
-          class='bg-transparent mh1'
-          @icon='fi-stop'
-          @label='stop'
-          {{on 'click' this.stop}}
-        />
-        {{!-- <IconButton
-          class='bg-transparent mh1'
-          @icon='fi-previous'
-          @label='reset'
-          {{on 'click' this.reset}}
-        /> --}}
-        <div class='flex items-center ba b--dark-gray bw1 ml2'>
-          <div
-            {{nexus-ui
-              'Number'
-              min=1
-              max=500
-              value=this.model.bpm
-              onChange=(perform this.updateProject 'bpm')
-              step=1
-            }}
-          >
+        <TrackListWrapper
+          @rightSidebarOpen={{uiState.rightSidebarOpen}}
+          @leftSidebarOpen={{uiState.leftSidebarOpen}}
+          {{shortcut 'ArrowUp' this.selectPrevTrack}}
+          {{shortcut 'ArrowDown' this.selectNextTrack}}
+        >
+          <div class='overflow-y-scroll bg-dark-gray track-list-height min-height-5 grow-1'>
+            {{#each this.sortedTracks key='order' as |track|}}
+              {{#unless track.isMaster}}
+                <TrackListItem
+                  @track={{track}}
+                  @isActive={{eq track.id this.activeTrack.id}}
+                  @selectActiveTrack={{fn this.transitionToTrack track.id}}
+                  @onToggleFilePicker={{fn uiState.toggleSidebar track.id 'left'}}
+                  @onToggleScripts={{fn uiState.toggleSidebar track.id 'right'}}
+                  @rightSidebarOpen={{uiState.rightSidebarOpen}}
+                />
+              {{/unless}}
+            {{/each}}
+            {{#each this.sortedTracks as |track|}}
+              {{#if track.isMaster}}
+                <TrackListItem
+                  @track={{track}}
+                  @isActive={{eq track.id this.activeTrack.id}}
+                  @selectActiveTrack={{fn this.transitionToTrack track.id}}
+                  @onToggleScripts={{fn uiState.toggleSidebar track.id 'right'}}
+                  @rightSidebarOpen={{uiState.rightSidebarOpen}}
+                />
+              {{/if}}
+            {{/each}}
           </div>
-          <span class='pr3'>bpm</span>
-        </div>
-      </div>
-      <div class='flex ml3'>
-        <ButtonPrimary @label={{'New Track'}} {{on 'click' this.createTrack}} />
-        <DropdownMenu
-          class='h-100 grow-1 bg-dark-gray ba bl-0 bw1 b--yellow ph2'
-          @icon='fi-play'
-          @iconClass='yellow-fill rotate-90'
-          @closeOnSelect={{true}}
-          @items={{array
-            (hash label='Sampler' select=(fn this.createTrack 'samplerPreset'))
-            (hash label='Synth' select=(fn this.createTrack 'synthPreset'))
-            (hash label='New From Preset')
-            (hash label='Drum Machine' select=this.openCreateFromDirectory)
-            (hash label='Blank Track' select=(fn this.createTrack 'signalChainGui'))
-          }}
-        />
+          {{outlet}}
+        </TrackListWrapper>
+        {{#if
+          (and
+            uiState.rightSidebarOpen this.activeTrack (not this.activeTrack.isDeleted)
+          )
+        }}
+          <SidebarWrapper
+            class={{concat 'bw2 bl b--yellow right-0'}}
+            @direction='right'
+            @onCloseSidebar={{fn uiState.closeSidebar 'right'}}
+          >
+            <div class='relative flex mh3-ns mh2 yellow flex-column'>
+              <Console::Header class="light-gray">Track {{this.activeTrack.order}} Scripts</Console::Header>
+              <InfoBox class='absolute top-0 right-2'>
+                <p class='f6 mb3 mt0'>Scripts are where you define the audio signal
+                  chain for each track.</p>
+                <p class='f6 mb3 mt0'><b class='ttu'>Setup</b>
+                  script runs once to create your audio signal chain. Audio Nodes can
+                  be defined with a
+                  <code>class</code>
+                  or
+                  <code>ID</code>, which are used to select and modify their
+                  parameters.</p>
+                <p class='f6 mb3 mt0'><b class='ttu'>Play</b>
+                  script runs on every step of the sequencer. This is where you
+                  trigger sound and modulate parameters.<br />
+                  Select node IDs with:
+                  <code>__('#someID')</code>
+                  <br />Select node classes with:
+                  <code>__('.someClass')</code>
+                </p>
+                <p class='mv0'><a
+                    class='blue fw6 ttu'
+                    href='https://billorcutt.github.io/i_dropped_my_phone_the_screen_cracked/cracked.html'
+                    target='_blank'
+                    rel='noopener noreferrer'
+                  >Read the Cracked docs</a></p>
+              </InfoBox>
+            </div>
+            <ScriptWrapper
+              @track={{this.activeTrack}}
+              @presetCollections={{this.presetCollections}}
+            />
+          </SidebarWrapper>
+        {{/if}}
       </div>
     </div>
-  </nav>
-
-  <div
-    class='flex flex-wrap overflow-hidden grow-1 flex-nowrap-ns'
-  >
-    {{#if
-      (or 
-        (this.createFromDirectory)
-        (and this.leftSidebarOpen this.activeTrack (not this.activeTrack.isDeleted))
-      )
-    }}
-      <FilePicker::DrumFileSidebar
-        @activeTrack={{this.activeTrack}}
-        @createFromDirectory={{this.createFromDirectory}}
-        @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id 'left'}}        
-      />
-    {{/if}}
-    <TrackListWrapper
-      @rightSidebarOpen={{this.rightSidebarOpen}}
-      @leftSidebarOpen={{this.leftSidebarOpen}}
-      {{shortcut 'ArrowUp' this.selectPrevTrack}}
-      {{shortcut 'ArrowDown' this.selectNextTrack}}
-    >
-      <div class='overflow-y-scroll bg-dark-gray track-list-height min-height-5 grow-1'>
-        {{#each this.sortedTracks key='order' as |track|}}
-          {{#unless track.isMaster}}
-            <TrackListItem
-              @track={{track}}
-              @isActive={{eq track.id this.activeTrack.id}}
-              @selectActiveTrack={{fn this.transitionToTrack track.id}}
-              @onToggleFilePicker={{fn this.toggleSidebar track.id 'left'}}
-              @onToggleScripts={{fn this.toggleSidebar track.id 'right'}}
-              @rightSidebarOpen={{this.rightSidebarOpen}}
-            />
-          {{/unless}}
-        {{/each}}
-        {{#each this.sortedTracks as |track|}}
-          {{#if track.isMaster}}
-            <TrackListItem
-              @track={{track}}
-              @isActive={{eq track.id this.activeTrack.id}}
-              @selectActiveTrack={{fn this.transitionToTrack track.id}}
-              @onToggleScripts={{fn this.toggleSidebar track.id 'right'}}
-              @rightSidebarOpen={{this.rightSidebarOpen}}
-            />
-          {{/if}}
-        {{/each}}
-      </div>
-      {{outlet}}
-    </TrackListWrapper>
-    {{#if
-      (and
-        this.rightSidebarOpen this.activeTrack (not this.activeTrack.isDeleted)
-      )
-    }}
-      <SidebarWrapper
-        class={{concat 'bw2 bl b--yellow right-0'}}
-        @direction='right'
-        @onCloseSidebar={{fn this.toggleSidebar this.activeTrack.id 'right'}}
-      >
-        <div class='relative flex mh3-ns mh2 yellow flex-column'>
-          <Console::Header class="light-gray">Track {{this.activeTrack.order}} Scripts</Console::Header>
-          <InfoBox class='absolute top-0 right-2'>
-            <p class='f6 mb3 mt0'>Scripts are where you define the audio signal
-              chain for each track.</p>
-            <p class='f6 mb3 mt0'><b class='ttu'>Setup</b>
-              script runs once to create your audio signal chain. Audio Nodes can
-              be defined with a
-              <code>class</code>
-              or
-              <code>ID</code>, which are used to select and modify their
-              parameters.</p>
-            <p class='f6 mb3 mt0'><b class='ttu'>Play</b>
-              script runs on every step of the sequencer. This is where you
-              trigger sound and modulate parameters.<br />
-              Select node IDs with:
-              <code>__('#someID')</code>
-              <br />Select node classes with:
-              <code>__('.someClass')</code>
-            </p>
-            <p class='mv0'><a
-                class='blue fw6 ttu'
-                href='https://billorcutt.github.io/i_dropped_my_phone_the_screen_cracked/cracked.html'
-                target='_blank'
-                rel='noopener noreferrer'
-              >Read the Cracked docs</a></p>
-          </InfoBox>
-        </div>
-        <ScriptWrapper
-          @track={{this.activeTrack}}
-          @presetCollections={{this.presetCollections}}
-        />
-      </SidebarWrapper>
-    {{/if}}
-  </div>
-</div>
+  </:content>
+</Project::UiState>
