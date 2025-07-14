@@ -48,8 +48,9 @@
           )
         }}
           <FilePicker::DrumFileSidebar
+            @project={{this.model}}
             @activeTrack={{this.activeTrack}}
-            @createFromDirectory={{uiState.createFromDirectory}}
+            @defaultAudioFileTree={{this.defaultAudioFileTree}}
             @audioSelectMode={{uiState.audioSelectMode}}
             @setAudioSelectMode={{uiState.setAudioSelectMode}}
             @onCloseSidebar={{fn uiState.closeSidebar 'left'}}        

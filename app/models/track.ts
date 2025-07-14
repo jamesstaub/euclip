@@ -3,7 +3,6 @@ import Model, { attr, belongsTo, hasMany  } from '@ember-data/model';
 import { service } from '@ember/service';
 import { action } from '@ember/object';
 import type StoreService from '@ember-data/store';
-import { cached } from '@glimmer/tracking';
 import { keepLatestTask, timeout } from 'ember-concurrency';
 import { unbindFromSequencer } from 'euclip/utils/cracked';
 import { SoundFileStates } from 'euclip/models/sound-file';
@@ -12,13 +11,12 @@ import ENV from 'euclip/config/environment';
 import type ProjectModel from './project';
 import type InitScriptModel from 'euclip/models/init-script';
 import type OnstepScriptModel from 'euclip/models/onstep-script';
-import type AudioFileTreeModel from 'euclip/models/audio-file-tree';
+import AudioFileTreeModel from 'euclip/models/audio-file-tree';
 import TrackNodeModel from 'euclip/models/track-node';
 import TrackControlModel from 'euclip/models/track-control';
 import FilepathControlModel from 'euclip/models/filepath-control';
 import type SequenceModel from 'euclip/models/sequence';
 import SoundFileModel from 'euclip/models/sound-file';
-
 
 import Evented from '@ember/object/evented';
 
@@ -37,6 +35,18 @@ import { isPresent } from '@ember/utils';
 import { extendOnCreateNode } from 'euclip/utils/cracked';
 import { FILE_LOAD_STATES } from './track-node';
 
+declare const __: any;
+declare const cracked: any;
+
+// Track state management
+export enum TrackState {
+  CREATED = 'created',
+  SAVED = 'saved',
+  SETUP = 'setup',
+  READY = 'ready',
+  ERROR = 'error'
+}
+
 export default class TrackModel extends Model.extend(Evented) {
 
   @service declare store: StoreService;
@@ -44,6 +54,9 @@ export default class TrackModel extends Model.extend(Evented) {
   @attr('boolean') declare isMaster: boolean;
   @attr('number') declare order: number;
   @attr('number', { defaultValue: -1 }) declare stepIndex: number;
+  @attr('string', { defaultValue: TrackState.CREATED }) declare state: TrackState;
+  @tracked declare nodeToVisualize: any;
+  @tracked declare settingsForNodes: any[];
 
   @belongsTo('project', { async: false, inverse: 'tracks' }) declare project: ProjectModel;
   @belongsTo('init-script', { async: false, inverse: 'track' }) declare initScript: InitScriptModel;
@@ -55,20 +68,15 @@ export default class TrackModel extends Model.extend(Evented) {
   @hasMany('filepath-control', { async: false, inverse: 'track' }) declare filepathControls: FilepathControlModel[];
   @hasMany('sequence', { async: false, inverse: 'track' }) declare sequences: SequenceModel[];
 
-  @tracked nodeToVisualize;
-
   // FIXME: move this to the filepathControl record? 
+  // FIXME: probably need to do this once per filepathcontrol (since there can be multiple)
   async createAudioFileTree(): Promise<void> {
     await this.trackControls;
-    const audioFileTree = this.store.createRecord('audio-file-tree', {
-      track: this,
-    });
-    // FIXME: probably need to do this once per filepathcontrol (since there can be multiple)
-
     let path = this.samplerFilepathControl?.controlValue || '';
-    path = path.split('/');
-    const item = path.pop();
-    audioFileTree.appendDirectoriesData(path.join('/'), item);
+    const record =  AudioFileTreeModel.createRecord(
+      this.store,{
+      track: this,
+    }, path);
   }
 
   async destroyAndCleanup(): Promise<void> {
@@ -122,7 +130,6 @@ export default class TrackModel extends Model.extend(Evented) {
   }
 
   get samplerFilepathControl(): FilepathControlModel | undefined {
-    console.log('CALLED ON TRACK')
     return this.sortedFilepathControls[0];
   }
   
@@ -159,7 +166,6 @@ export default class TrackModel extends Model.extend(Evented) {
   /**
    * The array of downloaded files exposed to the user via `this.files` in the script.
    * initialized with array of silent files to avoid errors when no files are downloaded
-   
   */  
   get downloadedFilepaths(): (string | null)[] {
     return this.downloadedSoundFiles.map(file => file?.downloadedURI ?? null);
@@ -202,13 +208,16 @@ export default class TrackModel extends Model.extend(Evented) {
   @keepLatestTask
   *updateTrackTask(key: string, value: any, reInit = true): Generator<Promise<void>, void, unknown> {
     try {
-      this.set(key, value);
+      (this as any).set(key, value);
       if (reInit) {
+        this.setState(TrackState.SETUP);
         yield this.findOrDownloadSoundFiles();
         this.setupAudioFromScripts();
+        this.setState(TrackState.READY);
       }
       yield this.save();
     } catch {
+      this.setState(TrackState.ERROR);
       this.rollbackAttributes();
     }
   }
@@ -669,4 +678,38 @@ export default class TrackModel extends Model.extend(Evented) {
       },
     };
   }
+
+  /**
+   * State management methods
+   */
+  
+  isInState(state: TrackState): boolean {
+    return this.state === state;
+  }
+  
+  setState(newState: TrackState): void {
+    this.state = newState;
+  }
+  
+  isCreated(): boolean {
+    return this.state === TrackState.CREATED;
+  }
+  
+  isSaved(): boolean {
+    return this.state === TrackState.SAVED;
+  }
+  
+  isSetup(): boolean {
+    return this.state === TrackState.SETUP;
+  }
+  
+  isReady(): boolean {
+    return this.state === TrackState.READY;
+  }
+  
+  hasError(): boolean {
+    return this.state === TrackState.ERROR;
+  }
+
+  // FIXME: move this to the filepathControl record?
 }

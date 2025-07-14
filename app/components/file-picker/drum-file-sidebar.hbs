@@ -19,12 +19,16 @@
     </InfoBox>
   </div>
   
-  {{#if (eq @audioSelectMode "dir")}}
-    <FilePicker::Multiple/>
+  {{#if this.isDirMode}}
+    <FilePicker::Multiple
+      @project={{@project}}
+      @audioFileTree={{this.audioFileTreeForMode}}
+      @onTracksCreated={{this.onTracksCreated}}
+    />
   {{/if}}
 
   
-  {{#if (and @activeTrack @activeTrack.audioFileTree (eq @audioSelectMode "file"))}}
+  {{#if (and this.isFileMode @activeTrack this.audioFileTreeForMode)}}
     <div class='flex flex-column h-100'>
       {{#if (gt @activeTrack.sourceNodeRecords.length 1)}}
         <Source::NodeTabs
@@ -36,11 +40,11 @@
         />
       {{/if}}
       <FilePicker::Search 
-        @onSelectFile={{this.saveFilepathControl}}
+        @onSelectFile={{fn this.saveFilepathControl @activeTrack}}
         @filePathRelative={{this.selectedNode.filepathControl.controlValue}}
-        @audioFileTree={{@activeTrack.audioFileTree}}
+        @audioFileTree={{this.audioFileTreeForMode}}
       >
-        <FilePicker::Selection @onSelectItem={{this.onSelectItem}} @directoryTree={{@activeTrack.audioFileTree.directoryTree}}  />
+        <FilePicker::Selection @onSelectItem={{this.onSelectItem}} @directoryTree={{this.audioFileTreeForMode.directoryTree}}  />
       </FilePicker::Search>
     </div>
 

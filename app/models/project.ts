@@ -7,6 +7,7 @@ import type TrackModel from 'euclip/models/track';
 import type { AsyncHasMany, SyncHasMany } from '@ember-data/model';
 import { resetLoop, startLoop, stopLoop, disconnectAll } from 'euclip/utils/cracked';
 import Model from '@ember-data/model';
+import { TrackState } from './track';
 
 export default class ProjectModel extends Model {
   @tracked declare isPlaying: boolean;
@@ -22,13 +23,17 @@ export default class ProjectModel extends Model {
   @hasMany('track', { async: false, inverse: 'project' })
   declare tracks: SyncHasMany<TrackModel>;
 
-  // Methods
+  
+  /**
+   * @deprecated Use ProjectModel.createSingleTrack() instead
+   */
   async setupAndSaveNewTrack(track: TrackModel, saveOptions?: Record<string, unknown>): Promise<TrackModel> {
     await track.save(saveOptions);
     this.tracks.pushObject(track);
     await track.findOrDownloadSoundFiles();
     await track.setupAudioFromScripts(false);
     track.createAudioFileTree();
+    track.state = TrackState.SETUP;
     return track;
   }
 
@@ -90,5 +95,87 @@ export default class ProjectModel extends Model {
     this.tracks.forEach((track) => (track.stepIndex = -1));
     resetLoop();
     return this;
+  }
+
+  /**
+   * Static methods for track creation and management
+   */
+  static async createSingleTrack(project: ProjectModel, trackAttributes: Record<string, any> = {}): Promise<TrackModel> {
+    const defaultAttributes = { hits: 1, state: TrackState.CREATED };
+    const track = project.tracks.createRecord({ ...defaultAttributes, ...trackAttributes }) as TrackModel;
+    
+    try {
+      // Save the track first
+      await track.save();
+      track.state = TrackState.SAVED;
+      
+      // Add to project tracks
+      project.tracks.pushObject(track);
+      
+      // Setup the track
+      await this.setupTrack(track);
+      
+      return track;
+    } catch (error) {
+      track.state = TrackState.ERROR;
+      throw error;
+    }
+  }
+  
+  static async createMultipleTracks(project: ProjectModel, trackConfigsArray: Array<{ attributes?: Record<string, any>, filepath?: string }>): Promise<TrackModel[]> {
+    const tracks: TrackModel[] = [];
+    
+    for (const config of trackConfigsArray) {
+      try {
+        const track = await this.createSingleTrack(project, config.attributes);
+        
+        // If filepath is provided, set it up
+        if (config.filepath) {
+          await this.setTrackFilepath(track, config.filepath);
+        }
+        
+        tracks.push(track);
+      } catch (error) {
+        console.error('Error creating track:', error);
+        // Continue with other tracks even if one fails
+      }
+    }
+    
+    return tracks;
+  }
+  
+  static async setupTrack(track: TrackModel): Promise<void> {
+    try {
+      await track.findOrDownloadSoundFiles();
+      await track.setupAudioFromScripts(false);
+      track.createAudioFileTree();
+      track.state = TrackState.SETUP;
+    } catch (error) {
+      track.state = TrackState.ERROR;
+      throw error;
+    }
+  }
+  
+  static async setTrackFilepath(track: TrackModel, filepath: string): Promise<void> {
+    try {
+      // Find or create filepath control for this track
+      const filepathControl = track.filepathControls.find(fc => fc.nodeOrder === 0) ||
+                             track.store.createRecord('filepath-control', {
+                               track,
+                               nodeOrder: 0,
+                               controlValue: filepath
+                             });
+      
+      if (filepathControl.controlValue !== filepath) {
+        filepathControl.controlValue = filepath;
+        await filepathControl.save();
+      }
+      
+      // Re-setup the track with the new filepath
+      await this.setupTrack(track);
+    } catch (error) {
+      track.state = TrackState.ERROR;
+      throw error;
+    }
   }
 }

@@ -96,17 +96,11 @@ export default class UserCreatorProjectController extends Controller {
   @action
   async createTrack() {
     console.log('create track');
-    let track = this.model.tracks.createRecord({ hits: 1 });
-    this.sortedTracks = [...this.sortedTracks, track];
-    console.log(track);
 
     try {
-      track = await this.model.setupAndSaveNewTrack(track);
+      const track = await this.model.constructor.createSingleTrack(this.model);
+      this.sortedTracks = [...this.sortedTracks, track];
     } catch (error) {
-      // TODO: implement offline track creation if save fails
-      // indicate with a global "saved" state to allow local changes
-      // useful for mutliperson editing scenarios + modifying other users' projects
-      this.deleteTrack(track);
       this.notifications.push({
         type: 'error',
         message: 'Error Creating Track',
@@ -116,8 +110,22 @@ export default class UserCreatorProjectController extends Controller {
   }
 
   @action
-  async createTracksFromFilepaths(/* filepathControls */) {
-    // TODO: Implement track creation from file paths
+  async createTracksFromFilepaths(filepathConfigs) {
+    try {
+      const tracks = await this.model.constructor.createMultipleTracks(
+        this.model,
+        filepathConfigs
+      );
+      this.sortedTracks = [...this.sortedTracks, ...tracks];
+      return tracks;
+    } catch (error) {
+      this.notifications.push({
+        type: 'error',
+        message: 'Error Creating Tracks from File Paths',
+      });
+      console.error(error);
+      return [];
+    }
   }
 
   @action

@@ -1,9 +1,9 @@
 <FilePicker::Search 
   @onSelectFile={{this.saveFilepathControl}}
-  {{!-- @audioFileTree={{@activeTrack.audioFileTree}} --}}
+  @audioFileTree={{@audioFileTree}}
 >
   <FilePicker::Selection 
     @onSelectItem={{this.onSelectItem}} 
-    {{!-- @directoryTree={{@activeTrack.audioFileTree.directoryTree}}   --}}
+    @directoryTree={{@audioFileTree.directoryTree}}  
   />
 </FilePicker::Search>

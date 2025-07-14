@@ -1,7 +1,8 @@
 import Route from '@ember/routing/route';
 import { service } from '@ember/service';
-import ProjectAdapter from '../../../adapters/project';
-import { SoundFileStates } from '../../../models/sound-file';
+import ProjectAdapter from 'euclip/adapters/project';
+import { SoundFileStates } from 'euclip/models/sound-file';
+import AudioFileTreeModel from 'euclip/models/audio-file-tree';
 import ENV from 'euclip/config/environment';
 
 export default class UserCreatorProjectRoute extends Route {
@@ -29,9 +30,10 @@ export default class UserCreatorProjectRoute extends Route {
   setupController(controller, project) {
     console.log('project setup controller');
     controller.fetchAudioFileTrees(project);
-
+    const defaultAudioFileTree = AudioFileTreeModel.createRecord(this.store);
     controller.setProperties({
       activeTrack: project.tracks[0],
+      defaultAudioFileTree: defaultAudioFileTree,
       model: project,
       sortedTracks: project.tracks.sortBy('order'),
     });

@@ -4,7 +4,7 @@
       <h4 class='dark-gray mt0 w-100 pv3 mb0 pl2 yellow bg-semi-transparent-dark-gray'>
         {{if (eq directory.type 'audio') 'Sounds' 'Drum Machine'}}
       </h4>
-      <FileDirectory class='overflow-y-scroll h-100' @onSelectItem={{@onSelectItem}} @directory={{directory}}
+      <FilePicker::FileDirectory class='overflow-y-scroll h-100' @onSelectItem={{@onSelectItem}} @directory={{directory}}
         @filepath={{@track.filepath}} @idx={{idx}} />
     </div>
   {{/each}}
