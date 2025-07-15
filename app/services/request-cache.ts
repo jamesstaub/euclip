@@ -14,22 +14,10 @@ export default class RequestCacheService extends Service {
   }
 
   getItem<T>(key: string): T | undefined {
-    console.log(
-      '📥 getItem called for key:',
-      key,
-      'on service:',
-      this.serviceId
-    );
     return this.cache.get(key);
   }
 
   setItem<T>(key: string, data: T): void {
-    console.log(
-      '💾 setItem called for key:',
-      key,
-      'on service:',
-      this.serviceId
-    );
     this.cache.set(key, data);
     // Clear any pending request for this key since we now have the data
     this.pendingRequests.delete(key);
@@ -51,12 +39,6 @@ export default class RequestCacheService extends Service {
 
   // Set a pending request Promise for this key
   setPendingRequest<T>(key: string, promise: Promise<T>): void {
-    console.log(
-      '🔄 Setting pending request for key:',
-      key,
-      'on service:',
-      this.serviceId
-    );
     this.pendingRequests.set(key, promise);
   }
 
@@ -68,11 +50,6 @@ export default class RequestCacheService extends Service {
     console.log('Clearing cache, size before:', this.cache.size);
     this.cache.clear();
     console.log('Cache cleared, size after:', this.cache.size);
-  }
-
-  debugCache(): void {
-    console.log('Cache size:', this.cache.size);
-    console.log('Cache keys:', Array.from(this.cache.keys()));
   }
 
   get cacheSize(): number {

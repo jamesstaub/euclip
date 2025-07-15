@@ -36,7 +36,7 @@ export default class FilePickerMultipleComponent extends Component<Args> {
       }));
       
       try {
-        const tracks = await ProjectModel.createMultipleTracks(this.args.project, trackConfigs);
+        const tracks = await ProjectModel.createMultipleTracksInBulk(this.args.project, trackConfigs);
         
         if (this.args.onTracksCreated) {
           this.args.onTracksCreated(tracks);

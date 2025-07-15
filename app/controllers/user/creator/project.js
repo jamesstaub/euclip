@@ -94,9 +94,12 @@ export default class UserCreatorProjectController extends Controller {
   }
 
   @action
-  async createTrack() {
-    console.log('create track');
+  onTracksCreated(tracks) {
+    this.sortedTracks = [...this.sortedTracks, ...tracks].sortBy('order');
+  }
 
+  @action
+  async createTrack() {
     try {
       const track = await this.model.constructor.createSingleTrack(this.model);
       this.sortedTracks = [...this.sortedTracks, track];

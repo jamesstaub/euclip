@@ -197,7 +197,6 @@ export default class TrackNodeModel extends Model {
     
     if (controlAttrs.indexOf('path') > -1) {
       // Create filepath control if it doesn't exist
-      console.log('create default FPC')
       FilepathControlModel.findOrCreateWith({
         track: this.track,
         trackNode: this,

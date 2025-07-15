@@ -2,7 +2,7 @@ import ApplicationAdapter from './application';
 import { isArray } from '@ember/array';
 
 export default class TrackAdapter extends ApplicationAdapter {
-  trackIncludeParams = 'project,sequences,init-script,onstep-script';
+  trackIncludeParams = 'project,sequences,init-script,onstep-script,filepath-controls';
 
   // TODO cleanup by overwriting buildUrl method
   urlForCreateRecord(modelName, snapshot) {
@@ -65,5 +65,31 @@ export default class TrackAdapter extends ApplicationAdapter {
     // server updates other track order properties when a track is deleted
     const response = await super.deleteRecord(...arguments);
     store.pushPayload('track', response);
+  }
+
+  /**
+   * Custom method for bulk track creation
+   */
+  async createMultipleTracks(store, projectSlug, trackDataArray) {
+    const url = `/v1/projects/${projectSlug}/tracks/bulk?include=${this.trackIncludeParams}`;
+
+    const payload = {
+      data: trackDataArray.map((trackData) => ({
+        type: 'track',
+        attributes: {
+          ...trackData.attributes,
+          // Include filepath in attributes so backend can create filepath_control
+          filepath: trackData.filepath,
+        },
+        relationships: {
+          project: {
+            data: { type: 'project', id: projectSlug },
+          },
+        },
+      })),
+    };
+
+    const response = await this.ajax(url, 'POST', { data: payload });
+    return response;
   }
 }

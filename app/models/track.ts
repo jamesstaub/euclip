@@ -269,7 +269,6 @@ export default class TrackModel extends Model.extend(Evented) {
           // ALSO TODO: dont load all project assets on /projects index
           // ALSO ensure that the fpcs are properly tied to the track (shouldnt bleed between projects)
 
-
          return SoundFileModel.findOrDownload(
           filepathControl.controlValue,
           this.store
@@ -364,7 +363,6 @@ export default class TrackModel extends Model.extend(Evented) {
     let trackNodes = this.createTrackNodeRecords();
 
     trackNodes = this.applyOrderOfType(trackNodes);
-
     this.setupTrackControls(trackNodes);
     if (this.currentSequence) {
       if (trackNodes.length) {
@@ -486,28 +484,39 @@ export default class TrackModel extends Model.extend(Evented) {
    *
    * Then apply the values from the track controls to the audio nodes
    */
-  setupTrackControls(trackNodes) {
+  setupTrackControls(trackNodes: TrackNodeModel[]): void {
+    console.log('setupTrackControls called with trackNodes:', trackNodes.length);
+    console.log('Available filepath controls:', this.filepathControls.map(fc => ({ 
+      id: fc.id, 
+      controlValue: fc.controlValue, 
+      nodeOrder: fc.nodeOrder 
+    })));
+    
     let remainingControls = [
-      ...this.trackControls.toArray(),
-      ...this.filepathControls.toArray(),
+      ...this.trackControls,
+      ...this.filepathControls,
     ];
     
     remainingControls = this.applyOrderOfType(remainingControls);
   
-    const unlinkedNodes: any[] = [];
+    const unlinkedNodes: TrackNodeModel[] = [];
   
     trackNodes.forEach((trackNode) => {
+      console.log(`Processing trackNode: ${trackNode.nodeType} (orderOfType: ${trackNode.orderOfType})`);
+      
       // Find matching controls by type and order
       const matchingControls = remainingControls.filter((control) => {
         if (control instanceof FilepathControlModel) {
-          return trackNode.orderOfType === control.orderOfType;
+          return trackNode.orderOfType === (control as any).orderOfType;
         }
   
         return (
           trackNode.nodeType === control.nodeType &&
-          trackNode.orderOfType === control.orderOfType
+          trackNode.orderOfType === (control as any).orderOfType
         );
       });
+      
+      console.log(`Found ${matchingControls.length} matching controls for ${trackNode.nodeType}`);
   
       // For samplers, ensure a filepath control is always added
       if (trackNode.nodeType === 'sampler') {
@@ -517,12 +526,14 @@ export default class TrackModel extends Model.extend(Evented) {
   
 
         if (!hasFilepath && this.filepathControls[trackNode.orderOfType]) {
+          console.log(`Adding filepath control for sampler node ${trackNode.orderOfType}`);
           matchingControls.push(this.filepathControls[trackNode.orderOfType]);
         }
       }
 
       // If matched controls are valid, assign them to the node
       if (TrackNodeModel.validateControls(matchingControls, trackNode.nodeType)) {
+        console.log(`Assigning ${matchingControls.length} controls to ${trackNode.nodeType}`);
         matchingControls.forEach((control) => {
           control.set('trackNode', trackNode);
   
@@ -535,23 +546,39 @@ export default class TrackModel extends Model.extend(Evented) {
           }
   
           // Remove assigned control from pool
-          remainingControls = remainingControls.rejectBy('id', control.id);
+          remainingControls = remainingControls.filter(c => c.id !== control.id);
         });
       } else {
+        console.log(`Controls validation failed for ${trackNode.nodeType}`);
         unlinkedNodes.push(trackNode);
       }
   
       trackNode.updateDefaultValue();
     });
   
-    // Clean up unused controls
-    remainingControls.forEach((control) => control.destroyRecord());
+    // Clean up unused controls - but be conservative with filepathControls bc keeping them around prevents
+    // errors when new sampler nodes are created 
+    remainingControls.forEach((control) => {
+      if (control instanceof FilepathControlModel) {
+        console.log(`Evaluating filepath control: ${control.controlValue}`);
+        // Don't destroy filepathControls that have valid controlValue - they might be from bulk creation
+        if (control.controlValue) {
+          console.warn('Preserving filepathControl with value:', control.controlValue);
+          return;
+        }
+      }
+
+      control.destroyRecord();
+    });
   
     // Create missing controls for unmatched nodes
-    unlinkedNodes.forEach((node) => node.findOrCreateTrackControls());
+    unlinkedNodes.forEach((node) => {
+      console.log(`Creating controls for unlinked node: ${node.nodeType}`);
+      node.findOrCreateTrackControls();
+    });
   
     // Apply attributes to all trackNodes
-    const attrsForNodes = TrackControlModel.getAttrsForNodes(this.trackControls);
+    const attrsForNodes = TrackControlModel.getAttrsForNodes(this.trackControls, undefined, undefined);
   
     this.trackNodes.forEach((trackNode) => {
       trackNode.delinkControlsForDeadNodes();
@@ -681,6 +708,7 @@ export default class TrackModel extends Model.extend(Evented) {
 
   /**
    * State management methods
+   * TODO: implement UI to represent track state 
    */
   
   isInState(state: TrackState): boolean {

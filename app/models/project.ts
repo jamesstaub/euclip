@@ -144,10 +144,46 @@ export default class ProjectModel extends Model {
     return tracks;
   }
   
-  static async setupTrack(track: TrackModel): Promise<void> {
+  /**
+   * Creates multiple tracks in a single API request using custom adapter method
+   * Backend will automatically create filepath_control records for any provided filepaths
+   */
+  static async createMultipleTracksInBulk(project: ProjectModel, trackConfigsArray: Array<{ attributes?: Record<string, any>, filepath?: string }>): Promise<TrackModel[]> {
+    const store = project.store;
+    const trackAdapter = store.adapterFor('track') as any;
+    
     try {
-      await track.findOrDownloadSoundFiles();
+      // Make single bulk request - backend will handle creating filepath_control records
+      const response = await trackAdapter.createMultipleTracks(
+        store, 
+        project.slug, 
+        trackConfigsArray
+      );
+      
+      // Push the full JSON API response into the store - this will handle both tracks and included filepath-controls
+      (store as any).pushPayload(response);
+
+      // Get the created tracks from the store
+      const createdTrackIds = response.data.map((trackData: any) => trackData.id);
+      const tracks = createdTrackIds.map((id: any) => (store as any).peekRecord('track', id)) as TrackModel[];
+      
+      // Setup all tracks in parallel
+      // Note: Backend has already created init scripts with sampler nodes for tracks with filepaths
+      await Promise.all(tracks.map(track => this.setupTrack(track)));
+      
+      return tracks;
+    } catch (error) {
+      console.error('Error creating multiple tracks:', error);
+      throw error;
+    }
+  }
+  
+  static async setupTrack(track: TrackModel): Promise<void> {
+    try {      
+      
+      await track.findOrDownloadSoundFiles();      
       await track.setupAudioFromScripts(false);
+      
       track.createAudioFileTree();
       track.state = TrackState.SETUP;
     } catch (error) {
@@ -160,11 +196,11 @@ export default class ProjectModel extends Model {
     try {
       // Find or create filepath control for this track
       const filepathControl = track.filepathControls.find(fc => fc.nodeOrder === 0) ||
-                             track.store.createRecord('filepath-control', {
-                               track,
-                               nodeOrder: 0,
-                               controlValue: filepath
-                             });
+        (track.store as any).createRecord('filepath-control', {
+          track,
+          nodeOrder: 0,
+          controlValue: filepath
+        });
       
       if (filepathControl.controlValue !== filepath) {
         filepathControl.controlValue = filepath;

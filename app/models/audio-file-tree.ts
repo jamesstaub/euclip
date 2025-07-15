@@ -155,25 +155,18 @@ export default class AudioFileTreeModel extends Model {
     
     if (requestCache) {
       // Create cache key using the service helper
-      const cacheKey = requestCache.createCacheKey(path, { search, page });
-      console.log('Checking cache for key:', cacheKey, 'on service:', requestCache.serviceId);
-      requestCache.debugCache();
-      
+      const cacheKey = requestCache.createCacheKey(path, { search, page }); 
       if (requestCache.hasItem(cacheKey)) {
-        console.log('✅ Cache hit for:', cacheKey);
         return requestCache.getItem(cacheKey);
       }
       
       // Check if there's already a pending request for this key
       if (requestCache.hasPendingRequest(cacheKey)) {
-        console.log('🔄 Request already in progress for:', cacheKey);
         const pendingRequest = requestCache.getPendingRequest<DirectoryResponse>(cacheKey);
         if (pendingRequest) {
           return pendingRequest;
         }
       }
-      
-      console.log('Cache miss for:', cacheKey, 'making request to:', url);
     }
 
     // Create the request promise
@@ -200,9 +193,7 @@ export default class AudioFileTreeModel extends Model {
       // Cache the response if service is available
       if (requestCache) {
         const cacheKey = requestCache.createCacheKey(path, { search, page });
-        console.log('Caching response for key:', cacheKey, 'on service:', requestCache.serviceId);
         requestCache.setItem(cacheKey, data);
-        console.log('Cache size after set:', requestCache.cacheSize);
       }
       
       return data;
@@ -214,19 +205,5 @@ export default class AudioFileTreeModel extends Model {
       }
       throw error;
     }
-  }
-
-  /**
-   * Clears the entire cache - useful for testing or when you need fresh data
-   */
-  static clearCache(requestCache: RequestCacheService): void {
-    requestCache.clearCache();
-  }
-
-  /**
-   * Debug method to inspect cache state
-   */
-  static debugCache(requestCache: RequestCacheService): void {
-    requestCache.debugCache();
   }
 }
