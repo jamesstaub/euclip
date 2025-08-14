@@ -32,7 +32,11 @@ Rails.application.routes.draw do
 
     resources :projects, param: :id, only: %i[destroy]
     resources :projects, param: :slug do
-      resources :tracks, only: %i[show create]
+      resources :tracks, only: %i[show create] do
+        collection do
+          post :bulk
+        end
+      end
     end
 
     resources :tracks, only: %i[update destroy]

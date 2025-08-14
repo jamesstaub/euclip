@@ -1,7 +1,7 @@
 class V1::TracksController < V1::BaseController
   respond_to :json
   before_action :set_track, only: %i[show update destroy]
-  before_action :set_project, only: %i[create]
+  before_action :set_project, only: %i[create bulk]
 
   def show
     render json: TrackSerializer.new(@track), status: :ok
@@ -12,6 +12,7 @@ class V1::TracksController < V1::BaseController
       if params[:duplicate_id]
         return duplicate
       end
+
       @track = Track.create_with_relations!({project_id: @project.id})
       if @track.save
         render json: TrackSerializer.new(
@@ -49,6 +50,29 @@ class V1::TracksController < V1::BaseController
       end
     end
   end
+
+def bulk
+  if can? :update, @project
+    # Extract file paths from the JSON API payload
+    file_paths = params[:data]&.map { |track_data| track_data[:attributes][:filepath] }&.compact
+    
+    if file_paths.blank?
+      return render json: { error: "No file paths provided" }, status: :bad_request
+    end
+    
+    @tracks = Track.create_many_from_filepaths!(@project, file_paths)
+    if @tracks.all?(&:persisted?)
+      render json: TrackSerializer.new(
+        @tracks,
+        include: included_relations
+      ), status: :ok
+    else
+      render_unprocessable_entity(@tracks.flat_map(&:errors))
+    end
+  else
+    render_forbidden("user: #{current_user.id} cannot create track for project: #{@project.slug}")
+  end
+end
 
   def update
     if can? :update, @project

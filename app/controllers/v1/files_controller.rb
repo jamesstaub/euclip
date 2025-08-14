@@ -42,6 +42,7 @@ class V1::FilesController < ApplicationController
     path_parts = (['/'] + path_parts)
     path_parts.each_with_index do |path_part, idx|
       dir = determine_dir(descendents, top_dir, path_part, idx)
+      return { } if dir.nil?
       dirs, audio, images = get_children(dir)
       path_str = clean_path_str(path_part, path_parts, idx)
       ancestor_tree << {

@@ -21,12 +21,26 @@ class Track < ApplicationRecord
 
   def self.create_with_relations!(params)
     Track.transaction do
+
+      if params[:file_path].present?
+        file_path = params.delete(:file_path)
+      end
+
       track = self.create!(params)
       track.create_init_script!
       track.sequences.create!
       track.create_onstep_script!
-      
+      track.filepath_controls.create(control_value: file_path, node_order: 0) if file_path.present?
       track
+    end
+  end
+
+  def self.create_many_from_filepaths!(project, file_paths)
+    file_paths.map do |file_path|
+      Track.create_with_relations!({
+        project_id: project.id,
+        file_path: file_path
+      })
     end
   end
 

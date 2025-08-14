@@ -26,9 +26,11 @@ class InitScript < Script
   .sampler({
     path: this.files[0],
   })
+  .lowpass()
   .gain()
   .channelStrip()
   .connect('#main-output')
-        } if self.safe_code.nil?
+
+} if self.safe_code.nil?
   end
 end
