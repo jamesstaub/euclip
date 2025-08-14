@@ -9,7 +9,7 @@ import type TrackModel from 'euclip/models/track';
 import type AudioFileTreeModel from 'euclip/models/audio-file-tree';
 import type { DirectoryModel } from 'euclip/models/audio-file-tree';
 import type { AudioSelectMode } from 'euclip/components/project/ui-state';
-import type ProjectModel from 'euclip/models/project';
+import ProjectModel from 'euclip/models/project';
 import { TrackState } from 'euclip/models/track';
 import { playAudioFile } from 'euclip/utils/cracked';
 
@@ -28,35 +28,48 @@ interface FilePickerDrumFileSidebarSignature {
   };
 }
 
+interface SelectedAudioFile {
+  filepath: string;
+  filename: string;
+  isSelected: boolean;
+}
+
 export default class FilePickerDrumFileSidebarComponent extends Component<FilePickerDrumFileSidebarSignature> {
   @service declare store: StoreService;
 
   @tracked targetNodeIdx = 0;
   @tracked isDownloading = false;
+  @tracked selectedFiles: SelectedAudioFile[] = [];
 
   get selectedNode() {
-    // Only available in 'file' mode when we have an active track
-    if (this.args.audioSelectMode === 'file' && this.args.activeTrack) {
+    // Only available in 'current_track' mode when we have an active track
+    if (
+      this.args.audioSelectMode === 'current_track' &&
+      this.args.activeTrack
+    ) {
       return this.args.activeTrack.samplerNodes[this.targetNodeIdx];
     }
     return null;
   }
 
   get audioFileTreeForMode() {
-    if (this.args.audioSelectMode === 'dir') {
+    if (this.args.audioSelectMode === 'create_tracks') {
       return this.args.defaultAudioFileTree;
-    } else if (this.args.audioSelectMode === 'file' && this.args.activeTrack) {
+    } else if (
+      this.args.audioSelectMode === 'current_track' &&
+      this.args.activeTrack
+    ) {
       return this.args.activeTrack.audioFileTree;
     }
     return null;
   }
 
-  get isFileMode() {
-    return this.args.audioSelectMode === 'file';
+  get isCurrentTrackMode() {
+    return this.args.audioSelectMode === 'current_track';
   }
 
-  get isDirMode() {
-    return this.args.audioSelectMode === 'dir';
+  get isCreateTracksMode() {
+    return this.args.audioSelectMode === 'create_tracks';
   }
 
   async downloadFile(filepath: string): Promise<SoundFileModel> {
@@ -90,22 +103,29 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
 
     if (directory.type === 'dir') {
       await fileTree.appendDirectoriesData(selection);
-    } else if (directory.type === 'audio' && this.isFileMode && this.args.activeTrack) {
+    } else if (
+      directory.type === 'audio' &&
+      this.isCurrentTrackMode &&
+      this.args.activeTrack
+    ) {
       return this.saveFilepathControl(selection, this.args.activeTrack);
     }
   }
 
   @action
-  async saveFilepathControl(filepath: string, track: TrackModel): Promise<void> {
+  async saveFilepathControl(
+    filepath: string,
+    track: TrackModel
+  ): Promise<void> {
     track.state = TrackState.SAVED;
-    
+
     await this.downloadFile(filepath);
     let filepathControl = FilepathControlModel.findOrCreateWith({
       track,
       trackNode: this.selectedNode,
       controlValue: filepath,
     });
-    
+
     try {
       await filepathControl.save();
       track.state = TrackState.SETUP;
@@ -117,9 +137,86 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
   }
 
   @action
+  async onSelectFileFromSearch(filepath: string): Promise<void> {
+    if (this.args.activeTrack) {
+      return this.saveFilepathControl(filepath, this.args.activeTrack);
+    }
+  }
+
+  @action
   async onTracksCreated(tracks: TrackModel[]): Promise<void> {
     if (this.args.onTracksCreated) {
       this.args.onTracksCreated(tracks);
     }
+  }
+
+  @action
+  toggleFileSelection(filepath: string) {
+    const existingFile = this.selectedFiles.find(
+      (f) => f.filepath === filepath
+    );
+
+    if (existingFile) {
+      // File is already selected, remove it
+      this.selectedFiles = this.selectedFiles.filter(
+        (f) => f.filepath !== filepath
+      );
+    } else {
+      // File is not selected, add it (unlimited selections allowed)
+      const filename = filepath.split('/').pop() || filepath;
+      const newFile: SelectedAudioFile = {
+        filepath,
+        filename,
+        isSelected: true,
+      };
+      this.selectedFiles = [...this.selectedFiles, newFile];
+    }
+  }
+
+  @action
+  async submitSelectedFiles() {
+    if (this.selectedFiles.length === 0) {
+      return;
+    }
+
+    // This method is now only called in "create_tracks" mode
+    // since "current_track" mode uses direct click behavior
+    if (this.isCreateTracksMode) {
+      // In create tracks mode, create tracks for all selected files
+      const trackConfigs = this.selectedFiles.map((file, index) => ({
+        attributes: { hits: 0, steps: 8 },
+        filepath: file.filepath,
+        trackNumber: this.getNextAvailableTrackNumber() + index,
+      }));
+
+      try {
+        const tracks = await ProjectModel.createMultipleTracksInBulk(
+          this.args.project,
+          trackConfigs
+        );
+
+        if (this.args.onTracksCreated) {
+          this.args.onTracksCreated(tracks);
+        }
+
+        if (this.args.onCloseSidebar) {
+          this.args.onCloseSidebar();
+        }
+
+        // Clear selections after creating tracks
+        this.selectedFiles = [];
+      } catch (error) {
+        console.error('Error creating tracks from selected files:', error);
+      }
+    }
+  }
+
+  getNextAvailableTrackNumber(): number {
+    const existingTracks = this.args.project.orderedTracks;
+    const maxTrackNumber =
+      existingTracks.length > 0
+        ? Math.max(...existingTracks.map((t) => t.order))
+        : 0;
+    return maxTrackNumber + 1;
   }
 }

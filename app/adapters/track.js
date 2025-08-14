@@ -2,7 +2,8 @@ import ApplicationAdapter from './application';
 import { isArray } from '@ember/array';
 
 export default class TrackAdapter extends ApplicationAdapter {
-  trackIncludeParams = 'project,sequences,init-script,onstep-script,filepath-controls';
+  trackIncludeParams =
+    'project,sequences,init-script,onstep-script,filepath-controls';
 
   // TODO cleanup by overwriting buildUrl method
   urlForCreateRecord(modelName, snapshot) {
@@ -80,6 +81,10 @@ export default class TrackAdapter extends ApplicationAdapter {
           ...trackData.attributes,
           // Include filepath in attributes so backend can create filepath_control
           filepath: trackData.filepath,
+          // Include order if specified
+          ...(trackData.attributes?.order && {
+            order: trackData.attributes.order,
+          }),
         },
         relationships: {
           project: {

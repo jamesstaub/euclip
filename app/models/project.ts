@@ -148,34 +148,87 @@ export default class ProjectModel extends Model {
    * Creates multiple tracks in a single API request using custom adapter method
    * Backend will automatically create filepath_control records for any provided filepaths
    */
-  static async createMultipleTracksInBulk(project: ProjectModel, trackConfigsArray: Array<{ attributes?: Record<string, any>, filepath?: string }>): Promise<TrackModel[]> {
+  static async createMultipleTracksInBulk(project: ProjectModel, trackConfigsArray: Array<{ attributes?: Record<string, any>, filepath?: string, trackNumber?: number }>): Promise<TrackModel[]> {
     const store = project.store;
     const trackAdapter = store.adapterFor('track') as any;
     
     try {
-      // Make single bulk request - backend will handle creating filepath_control records
-      const response = await trackAdapter.createMultipleTracks(
-        store, 
-        project.slug, 
-        trackConfigsArray
-      );
+      // Group files by track number to support multiple files per track
+      const trackGroups = new Map<number, Array<{ attributes?: Record<string, any>, filepath?: string }>>();
       
-      // Push the full JSON API response into the store - this will handle both tracks and included filepath-controls
-      (store as any).pushPayload(response);
-
-      // Get the created tracks from the store
-      const createdTrackIds = response.data.map((trackData: any) => trackData.id);
-      const tracks = createdTrackIds.map((id: any) => (store as any).peekRecord('track', id)) as TrackModel[];
+      trackConfigsArray.forEach(config => {
+        const trackNumber = config.trackNumber || project.getNextTrackOrder();
+        if (!trackGroups.has(trackNumber)) {
+          trackGroups.set(trackNumber, []);
+        }
+        trackGroups.get(trackNumber)?.push({
+          attributes: config.attributes,
+          filepath: config.filepath
+        });
+      });
       
-      // Setup all tracks in parallel
-      // Note: Backend has already created init scripts with sampler nodes for tracks with filepaths
-      await Promise.all(tracks.map(track => this.setupTrack(track)));
+      // Create tracks for each group
+      const allTracks: TrackModel[] = [];
       
-      return tracks;
+      for (const [trackNumber, configs] of trackGroups.entries()) {
+        // For multiple files per track, create one track with the first file
+        // and add additional files as separate filepath controls
+        const primaryConfig = configs[0];
+        
+        const response = await trackAdapter.createMultipleTracks(
+          store, 
+          project.slug, 
+          [{
+            ...primaryConfig,
+            attributes: {
+              ...primaryConfig.attributes,
+              order: trackNumber
+            }
+          }]
+        );
+        
+        // Push the full JSON API response into the store
+        (store as any).pushPayload(response);
+        
+        const createdTrackIds = response.data.map((trackData: any) => trackData.id);
+        const tracks = createdTrackIds.map((id: any) => (store as any).peekRecord('track', id)) as TrackModel[];
+        
+        // Setup track
+        await Promise.all(tracks.map(track => this.setupTrack(track)));
+        
+        // Add additional files as filepath controls if there are more than one
+        if (configs.length > 1) {
+          const track = tracks[0];
+          for (let i = 1; i < configs.length; i++) {
+            const config = configs[i];
+            if (config.filepath) {
+              // Create additional filepath control
+              const filepathControl = store.createRecord('filepath-control', {
+                track: track,
+                controlValue: config.filepath,
+                nodeOrder: i // This will be the order for the additional sampler nodes
+              });
+              await filepathControl.save();
+            }
+          }
+          
+          // Re-setup the track to handle multiple filepath controls
+          await this.setupTrack(track);
+        }
+        
+        allTracks.push(...tracks);
+      }
+      
+      return allTracks;
     } catch (error) {
       console.error('Error creating multiple tracks:', error);
       throw error;
     }
+  }
+  
+  getNextTrackOrder(): number {
+    const maxOrder = this.orderedTracks.reduce((max, track) => Math.max(max, track.order), 0);
+    return maxOrder + 1;
   }
   
   static async setupTrack(track: TrackModel): Promise<void> {

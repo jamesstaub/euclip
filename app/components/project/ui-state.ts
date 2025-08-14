@@ -8,7 +8,7 @@ type Args = {
   project?: any;
 };
 
-export type AudioSelectMode = 'file' | 'dir';
+export type AudioSelectMode = 'current_track' | 'create_tracks';
 
 export interface ProjectUiStateProps {
   leftSidebarOpen: boolean;
@@ -29,7 +29,7 @@ export default class ProjectUiStateComponent extends Component<Args> {
 
   @tracked leftSidebarOpen = false;
   @tracked rightSidebarOpen = false;
-  @tracked audioSelectMode: AudioSelectMode = 'file';
+  @tracked audioSelectMode: AudioSelectMode = 'current_track';
 
   constructor(owner: any, args: Args) {
     super(owner, args);
@@ -38,7 +38,7 @@ export default class ProjectUiStateComponent extends Component<Args> {
   }
 
   get createFromDirectory() {
-    return this.audioSelectMode === 'dir';
+    return this.audioSelectMode === 'create_tracks';
   }
 
   get uiState() {
@@ -72,7 +72,7 @@ export default class ProjectUiStateComponent extends Component<Args> {
         this.leftSidebarOpen = !this.leftSidebarOpen;
         // If we're closing the left sidebar, also reset audioSelectMode
         if (!this.leftSidebarOpen) {
-          this.audioSelectMode = 'file';
+          this.audioSelectMode = 'current_track';
         }
       } else {
         this.rightSidebarOpen = !this.rightSidebarOpen;
@@ -84,7 +84,7 @@ export default class ProjectUiStateComponent extends Component<Args> {
   closeSidebar(direction: 'left' | 'right') {
     if (direction === 'left') {
       this.leftSidebarOpen = false;
-      this.audioSelectMode = 'file';
+      this.audioSelectMode = 'current_track';
     } else {
       this.rightSidebarOpen = false;
     }
@@ -97,13 +97,13 @@ export default class ProjectUiStateComponent extends Component<Args> {
 
   @action
   openCreateFromDirectory() {
-    this.audioSelectMode = 'dir';
+    this.audioSelectMode = 'create_tracks';
     this.leftSidebarOpen = true;
   }
 
   @action
   closeCreateFromDirectory() {
-    this.audioSelectMode = 'file';
+    this.audioSelectMode = 'current_track';
     this.leftSidebarOpen = false;
   }
 }

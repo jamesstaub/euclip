@@ -6,7 +6,7 @@ export default class SourceSelectButtonComponent extends Component {
       return 'red b--red italic';
     }
 
-    return this.args.filename ? 'yellow b--yellow' : 'white b--white';
+    return this.args.filename ? 'yellow b--yellow' : 'light-blue b--light-blue';
   }
 
   get label() {

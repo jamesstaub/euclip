@@ -77,6 +77,9 @@ export default class FilePickerSearchComponent extends Component<DrumFilePickerA
     const fileTree = await this.args.audioFileTree;
 
     fileTree.appendDirectoriesData(ancestorPath, item);
-    return this.args.onSelectFile(searchResult)
+    
+    if (this.args.onSelectFile) {
+      return this.args.onSelectFile(searchResult);
+    }
   }
 }

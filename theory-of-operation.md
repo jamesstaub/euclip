@@ -1,7 +1,10 @@
 # Theory of operation
-Euclip is an open-ended music making tool with a hybrid between a coding environment and traditional user interface. It's as a drum machine with it's wires exposed. The Script editors let you build samplers and synthesizers with custom audio signal chains and write musical logic for creating complex patterns.
 
-Euclip projects resemble other Track-based DAWs, but where everything you can control on a track (sample playback, EQ parameters, reverb, LFOs, etc), can be controlled by either a Script or a UI control (like a slider or dial). The scripts that run on Euclip tracks use the Javascript-based music library (i_dropped_my_phone_the_screen_cracked)[https://github.com/billorcutt/i_dropped_my_phone_the_screen_cracked] (referred to here as Cracked).
+Euclip is an open-ended music making tool with a hybrid between a DAW and live coding environment. It's as a drum machine with it's wires exposed.
+
+A project in Euclip resembles other track-based drum sequencers but with script editors on each track that construct the track's signal chain, and determine rules for how it plays back. There's a global transport/sequencer that executes the track scripts on each beat.
+
+Every parameter in the signal chain (sample playback, EQ parameters, reverb, LFOs, etc), can be controlled by both a scripting or a UI control (like a slider or dial). The scripts that run on Euclip tracks use the Javascript-based music library (i_dropped_my_phone_the_screen_cracked)[https://github.com/billorcutt/i_dropped_my_phone_the_screen_cracked] (referred to here as Cracked).
 
 ## Tracks
 A project consists of Tracks. Tracks are comprised of the following components:

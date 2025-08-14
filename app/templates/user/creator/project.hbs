@@ -26,12 +26,16 @@
               @icon='fi-play'
               @iconClass='yellow-fill rotate-90'
               @closeOnSelect={{true}}
-              @items={{array
+              {{!-- @items={{array
                 (hash label='Sampler' select=(fn this.createTrack 'samplerPreset'))
                 (hash label='Synth' select=(fn this.createTrack 'synthPreset'))
                 (hash label='New From Preset')
                 (hash label='Drum Machine' select=uiState.openCreateFromDirectory)
                 (hash label='Blank Track' select=(fn this.createTrack 'signalChainGui'))
+              }} --}}
+                            @items={{array
+                (hash label='Sampler' select=(fn this.createTrack 'samplerPreset'))
+                (hash label='Drum Machine' select=uiState.openCreateFromDirectory)
               }}
             />
           </div>

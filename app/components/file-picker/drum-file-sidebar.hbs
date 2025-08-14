@@ -1,11 +1,11 @@
 <SidebarWrapper class='bw2 br b--yellow left-0' @direction='left' @onCloseSidebar={{@onCloseSidebar}}>
   <div class='relative flex mh3-ns mh2 yellow flex-column'>
-    <FilePicker::ModeSelector 
-      @activeTrack={{@activeTrack}} 
-      @createFromDirectory={{@createFromDirectory}}
-      @audioSelectMode={{@audioSelectMode}}
-      @setAudioSelectMode={{@setAudioSelectMode}}
-    />
+
+    {{#if this.isCurrentTrackMode}}
+      <Console::Header class="light-gray mb2">Select Sampler For Track {{@activeTrack.order}}</Console::Header>
+    {{else}}
+      <Console::Header class="light-gray mb2">Create Tracks From Selection</Console::Header>
+    {{/if}}
     <InfoBox class='absolute top-0 right-2'>
       <p class='f6 mb3 mt0'>When you select a sound file from this menu the
         sound's URL is available in the code as
@@ -19,34 +19,47 @@
     </InfoBox>
   </div>
   
-  {{#if this.isDirMode}}
-    <FilePicker::Multiple
-      @project={{@project}}
-      @audioFileTree={{this.audioFileTreeForMode}}
-      @onTracksCreated={{this.onTracksCreated}}
-    />
-  {{/if}}
-
   
-  {{#if (and this.isFileMode @activeTrack this.audioFileTreeForMode)}}
-    <div class='flex flex-column h-100'>
-      {{#if (gt @activeTrack.sourceNodeRecords.length 1)}}
-        <Source::NodeTabs
-          class="ml3"
-          @yellow="true"
-          @nodes={{@activeTrack.sourceNodeRecords}}
-          @onSelect={{fn this.setUi 'targetNodeIdx'}}
-          @selectedValue={{this.targetNodeIdx}}
-        />
+  <div class='flex flex-column h-100'>
+    {{#if (and this.isCurrentTrackMode (gt @activeTrack.sourceNodeRecords.length 1))}}
+      <Source::NodeTabs
+        class="ml3"
+        @yellow="true"
+        @nodes={{@activeTrack.sourceNodeRecords}}
+        @onSelect={{fn this.setUi 'targetNodeIdx'}}
+        @selectedValue={{this.targetNodeIdx}}
+      />
+    {{/if}}
+    
+    <FilePicker::Search 
+      @onSelectFile={{this.onSelectFileFromSearch}}
+      @filePathRelative={{if this.isCurrentTrackMode this.selectedNode.filepathControl.controlValue}}
+      @audioFileTree={{this.audioFileTreeForMode}}
+    >
+    
+      <FilePicker::ModeSelector
+        class="pa3 white"
+        @activeTrack={{@activeTrack}} 
+        @audioSelectMode={{@audioSelectMode}}
+        @setAudioSelectMode={{@setAudioSelectMode}}
+      />
+      <FilePicker::Selection 
+        @onSelectItem={{this.onSelectItem}} 
+        @directoryTree={{this.audioFileTreeForMode.directoryTree}}
+        @showCheckboxes={{this.isCreateTracksMode}}
+        @selectedFiles={{this.selectedFiles}}
+        @onToggleFileSelection={{this.toggleFileSelection}}
+      />
+      
+      {{#if (and this.isCreateTracksMode (gt this.selectedFiles.length 0))}}
+        <div class="absolute bottom-0 w-100 pa3 bt b--yellow bg-semi-transparent-dark-gray">
+          <ButtonPrimary 
+            @label={{concat "Create " this.selectedFiles.length " track" (if (gt this.selectedFiles.length 1) "s")}}
+            {{on "click" this.submitSelectedFiles}}
+            class="w-100"
+          />
+        </div>
       {{/if}}
-      <FilePicker::Search 
-        @onSelectFile={{fn this.saveFilepathControl @activeTrack}}
-        @filePathRelative={{this.selectedNode.filepathControl.controlValue}}
-        @audioFileTree={{this.audioFileTreeForMode}}
-      >
-        <FilePicker::Selection @onSelectItem={{this.onSelectItem}} @directoryTree={{this.audioFileTreeForMode.directoryTree}}  />
-      </FilePicker::Search>
-    </div>
-
-  {{/if}}
+    </FilePicker::Search>
+  </div>
 </SidebarWrapper>

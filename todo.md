@@ -1,5 +1,5 @@
-# TODO LIST
 
+# TODO LIST
 
 ## Versioning
 - implement a ProjectState model that takes a serialized snapshot of the whole project 
