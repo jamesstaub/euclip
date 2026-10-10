@@ -20,23 +20,13 @@
             @stop={{this.stop}}
           />
           <div class='flex ml3'>
-            <ButtonPrimary @label={{'New Track'}} {{on 'click' this.createTrack}} />
+            <ButtonPrimary @label={{'New Track'}} {{on 'click' (fn this.createTrack 'sampler')}} />
             <DropdownMenu
               class='h-100 grow-1 bg-dark-gray ba bl-0 bw1 b--yellow ph2'
               @icon='fi-play'
               @iconClass='yellow-fill rotate-90'
               @closeOnSelect={{true}}
-              {{!-- @items={{array
-                (hash label='Sampler' select=(fn this.createTrack 'samplerPreset'))
-                (hash label='Synth' select=(fn this.createTrack 'synthPreset'))
-                (hash label='New From Preset')
-                (hash label='Drum Machine' select=uiState.openCreateFromDirectory)
-                (hash label='Blank Track' select=(fn this.createTrack 'signalChainGui'))
-              }} --}}
-                            @items={{array
-                (hash label='Sampler' select=(fn this.createTrack 'samplerPreset'))
-                (hash label='Drum Machine' select=uiState.openCreateFromDirectory)
-              }}
+              @items={{append this.trackTypeMenuItems (array (hash label='Drum Machine' select=uiState.openCreateFromDirectory))}}
             />
           </div>
         </div>

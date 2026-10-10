@@ -5,6 +5,7 @@ import { service } from '@ember/service';
 import { keepLatestTask, timeout } from 'ember-concurrency';
 import { defineChannelStripMacro } from '../../../utils/cracked';
 import byKey from 'euclip/utils/by-key';
+import applyTrackTypeControls from 'euclip/utils/apply-track-type-controls';
 
 /**
  * Controller focused on model state and business logic.
@@ -14,6 +15,7 @@ import byKey from 'euclip/utils/by-key';
 export default class UserCreatorProjectController extends Controller {
   @service router;
   @service notifications;
+  @service trackTypes;
   @tracked activeTrack;
   isStarting = false;
   @tracked sortedTracks;
@@ -120,10 +122,24 @@ export default class UserCreatorProjectController extends Controller {
     this.sortedTracks = [...this.sortedTracks, ...tracks].slice().sort(byKey('order'));
   }
 
+  // the "New Track" menu: one entry per track type the API offers, then the drum machine picker
+  get trackTypeMenuItems() {
+    return this.trackTypes.types.map((type) => ({
+      label: type.title,
+      select: () => this.createTrack(type.key),
+    }));
+  }
+
   @action
-  async createTrack() {
+  async createTrack(trackTypeKey = 'sampler') {
     try {
-      const track = await this.model.constructor.createSingleTrack(this.model);
+      const type = this.trackTypes.find(trackTypeKey);
+      const track = await this.model.constructor.createSingleTrack(this.model, {
+        trackType: trackTypeKey,
+      });
+      if (type?.controls) {
+        applyTrackTypeControls(track, type.controls);
+      }
       this.sortedTracks = [...this.sortedTracks, track];
     } catch (error) {
       this.notifications.push({

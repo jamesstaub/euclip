@@ -54,6 +54,8 @@ export default class TrackModel extends Model.extend(Evented) {
   @service declare store: StoreService;
 
   @attr('boolean') declare isMaster: boolean;
+  // which kind of track this is (sampler, looped_sampler, multi_sampler, polysynth, master...)
+  @attr('string', { defaultValue: 'sampler' }) declare trackType: string;
   @attr('number') declare order: number;
   @attr('number', { defaultValue: -1 }) declare stepIndex: number;
   @attr('string', { defaultValue: TrackState.CREATED }) declare state: TrackState;
@@ -756,6 +758,16 @@ export default class TrackModel extends Model.extend(Evented) {
       this.stepIndex
     );
 
+    const playSourceNode = (sourceNode, attrs) => {
+      __(sourceNode.uniqueSelector)
+        .stop()
+        .attr({
+          ...controls.find((item) => item.nodeUUID === sourceNode.nodeUUID), //NOTE: explicitly using the key nodeUUID instead of `uuid` because the latter will mess up the native audio node when attrs applied
+          ...attrs,
+        })
+        .start();
+    };
+
     return {
       files: this.downloadedFilepaths,
       filepath: this.downloadedFilepaths[0],
@@ -774,15 +786,14 @@ export default class TrackModel extends Model.extend(Evented) {
       // These methods may get replaced by the track('selector').play() style of API
       playSourceNodes(attrs) {
         if (sourceNodes) {
-          sourceNodes.forEach((sourceNode) => {
-            __(sourceNode.uniqueSelector)
-              .stop()
-              .attr({
-                ...controls.find((item) => item.nodeUUID === sourceNode.nodeUUID), //NOTE: explicitly using the key nodeUUID instead of `uuid` because the latter will mess up the native audio node when attrs applied
-                ...attrs,
-              })
-              .start();
-          });
+          sourceNodes.forEach((sourceNode) => playSourceNode(sourceNode, attrs));
+        }
+      },
+      // plays just the n-th source node (e.g. one pad of a multi-sample kit)
+      playSourceNode(index, attrs) {
+        const sourceNode = sourceNodes?.[index];
+        if (sourceNode) {
+          playSourceNode(sourceNode, attrs);
         }
       },
       playADSRNodes() {

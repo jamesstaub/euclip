@@ -37,7 +37,7 @@ module.exports = function (defaults) {
     },
 
     'ember-composable-helpers': {
-      only: ['compact', 'array'],
+      only: ['compact', 'array', 'append'],
     },
   });
 

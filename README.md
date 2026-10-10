@@ -145,6 +145,27 @@ scripts/rotate-secrets.sh --heroku <app>  # also push the new master key to Hero
 See the header of the script for exactly what is and isn't rotated (the devise pepper is excluded by
 default because rotating it invalidates every password). It needs Docker.
 
+## Tracks: types, sequences and files
+
+A **track** is built from two scripts (setup and play, ordinary editable JavaScript), its sequences,
+its sampler files and its controls.
+
+- **Track types** (the "New Track" menu) live in [`server/app/models/track_type.rb`](server/app/models/track_type.rb):
+  Sampler, Looped sampler (speed in *Loop Sync* units), Multi-sample kit (four sampler pads, one file each)
+  and Polysynth (cracked's `polysynth` macro). Each is a set of starting scripts, sequences and control
+  defaults that is *copied* onto the track on creation (`POST /v1/projects/:slug/tracks` with `track-type`;
+  `GET /v1/track-types` lists them). To add a type, add an entry there; no migration needed. Control
+  defaults (`"sampler.speed" => { unit: "Loop Sync" }`) are applied by the client once the audio exists.
+- **Sequences**: a track has one or more, ordered by `order` (the primary one is the lowest and drives the
+  step display). Each steps independently, and the play script receives its `sequenceIndex` (plus
+  `this.sequences`). A control follows one sequence via `sequenceOrder`. API: `POST/PATCH/DELETE /v1/sequences`
+  (a track always keeps one); client: `track.addSequence()`, `track.removeSequence(seq)`.
+- **Files**: one `filepath_control` per *sampler slot* (`node_order`: 0 is the first sampler node, 1 the
+  second...), unique per track. Scripts read them as `this.files[slot]`. Set one with `track.setFile(slot, path)`;
+  concurrent picks are serialized so a slot never gets two controls.
+- **Controls** (`track_controls`) belong to a node by (type, attribute, creation order) and hold the user's
+  saved values. Rebuilding a track's audio re-links them and never overwrites them; only missing controls are created.
+
 ## The `cracked` audio library
 
 The client depends on a custom fork of Bill Orcutt's `cracked`, built from

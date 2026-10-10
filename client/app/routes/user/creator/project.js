@@ -8,6 +8,7 @@ export default class UserCreatorProjectRoute extends Route {
   @service store;
   @service notifications;
   @service router;
+  @service trackTypes;
 
   model({ slug }) {
     return this.store.queryRecord('project', {
@@ -34,6 +35,7 @@ export default class UserCreatorProjectRoute extends Route {
       sortedTracks: project.tracks.slice().sort(byKey('order')),
     });
     this.getPresets(controller);
+    this.trackTypes.load(); // for the New Track menu; falls back to a plain sampler
   }
 
   async getPresets(controller) {

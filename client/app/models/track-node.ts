@@ -9,6 +9,9 @@ import FilepathControlModel from 'euclip/models/filepath-control';
 import type StoreService from '@ember-data/store';
 import byKey from 'euclip/utils/by-key';
 
+// cracked's synth macros: whole instruments that count as the track's sound source
+const macroSynthNodes = ['polysynth', 'monosynth', 'gang_of_oscillators'];
+
 // Enum for file load states
 export const FILE_LOAD_STATES = {
   EMPTY: 'empty',
@@ -41,7 +44,7 @@ export default class TrackNodeModel extends Model {
 
   // Computed property for checking if this is a source node
   get isSourceNode(): boolean {
-    return ['buffer', 'sampler', ...synthNodes, ...noiseNodes].includes(this.nodeType);
+    return ['buffer', 'sampler', ...synthNodes, ...macroSynthNodes, ...noiseNodes].includes(this.nodeType);
   }
 
   // Computed property for unique selector
