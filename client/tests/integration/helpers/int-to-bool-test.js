@@ -6,12 +6,12 @@ import { hbs } from 'ember-cli-htmlbars';
 module('Integration | Helper | int-to-bool', function (hooks) {
   setupRenderingTest(hooks);
 
-  // TODO: Replace this with your real tests.
-  test('it renders', async function (assert) {
-    this.set('inputValue', '1234');
+  test('maps truthy and falsy numbers to booleans', async function (assert) {
+    this.set('value', 1);
+    await render(hbs`{{if (int-to-bool this.value) "on" "off"}}`);
+    assert.dom(this.element).hasText('on');
 
-    await render(hbs`{{int-to-bool this.inputValue}}`);
-
-    assert.dom().hasText('1234');
+    this.set('value', 0);
+    assert.dom(this.element).hasText('off');
   });
 });

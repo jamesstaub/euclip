@@ -6,12 +6,9 @@ import { hbs } from 'ember-cli-htmlbars';
 module('Integration | Helper | invoke-on-record', function (hooks) {
   setupRenderingTest(hooks);
 
-  // TODO: Replace this with your real tests.
-  test('it renders', async function (assert) {
-    this.set('inputValue', '1234');
-
-    await render(hbs`{{invoke-on-record this.inputValue}}`);
-
-    assert.dom().hasText('1234');
+  test('calls the named method with the argument', async function (assert) {
+    this.set('record', { shout: (word) => `${word}!` });
+    await render(hbs`{{invoke-on-record this.record "shout" "hey"}}`);
+    assert.dom(this.element).hasText('hey!');
   });
 });

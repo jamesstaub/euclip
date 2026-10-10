@@ -6,12 +6,15 @@ import { hbs } from 'ember-cli-htmlbars';
 module('Integration | Helper | style-for-notification', function (hooks) {
   setupRenderingTest(hooks);
 
-  // TODO: Replace this with your real tests.
-  test('it renders', async function (assert) {
-    this.set('inputValue', '1234');
+  test('returns a tachyons style per notification type', async function (assert) {
+    this.set('type', 'error');
+    await render(hbs`{{style-for-notification this.type}}`);
+    assert.dom(this.element).hasText('bg-washed-red dark-red');
 
-    await render(hbs`{{style-for-notification this.inputValue}}`);
+    this.set('type', 'success');
+    assert.dom(this.element).hasText('bg-washed-green dark-green');
 
-    assert.dom().hasText('1234');
+    this.set('type', 'nope');
+    assert.dom(this.element).hasText('');
   });
 });

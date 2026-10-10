@@ -6,12 +6,13 @@ import { hbs } from 'ember-cli-htmlbars';
 module('Integration | Helper | render-model-error', function (hooks) {
   setupRenderingTest(hooks);
 
-  // TODO: Replace this with your real tests.
-  test('it renders', async function (assert) {
-    this.set('inputValue', '1234');
-
-    await render(hbs`{{render-model-error this.inputValue}}`);
-
-    assert.dom().hasText('1234');
+  test('formats a JSON:API error with the offending attribute', async function (assert) {
+    this.set('error', {
+      title: 'Invalid attribute',
+      detail: "can't be blank",
+      source: { pointer: '/data/attributes/username' },
+    });
+    await render(hbs`{{render-model-error this.error}}`);
+    assert.dom(this.element).hasText('Invalid attribute "username" can\'t be blank');
   });
 });

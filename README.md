@@ -75,8 +75,9 @@ cd server && bundle exec rspec   # Rails specs (needs Postgres + master.key)
 cd client && npm run lint
 ```
 
-Status: the Rails suite passes. The legacy Ember QUnit suite is mostly generator stubs and is being replaced by the
-end-to-end tests above.
+Status: the Rails suite and the Playwright suite pass. The legacy Ember QUnit suite was pruned to tests that assert real
+behaviour (helpers, utilities, serializer); run it in a browser with `E2E_QUNIT=1 npx playwright test qunit` from `e2e/`
+(it loads `/tests` from the dev server), and list runtime deprecations with `E2E_DEPRECATIONS=1 npx playwright test deprecations`.
 
 ### WASM bitcrusher (optional)
 
