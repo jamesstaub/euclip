@@ -3,6 +3,8 @@
 <div 
   class="pointer no-outline {{if @track.isMaster "pl4 " "pl3"}} bb b--silver {{if @isActive "bg-yellow" "bg-dark-gray hover-bg-gray"}}" 
   tabindex="0"
+  data-test-track-item
+  data-track-id={{@track.id}}
   {{on "click" @selectActiveTrack}}
   {{focus @isActive}}
   ...attributes
@@ -31,15 +33,16 @@
         {{#unless @track.isMaster}}
           <p class="tc w4 ma2 {{unless @isActive "light-gray"}}">
             {{#if @track.sourceNodeRecords.firstObject}}
-              {{@track.sourceNodeRecords.firstObject.nodeType}}
+              <span data-test-source-label>{{@track.sourceNodeRecords.firstObject.nodeType}}</span>
             {{else if this.samplerBuildFailed}}
               <span
                 {{on "click" @onToggleScripts}}
                 class="f6 pa1 red"
+                data-test-source-failed
                 title={{or @track.scriptAlert "The sampler could not be built; open the script to see why"}}
               >Sampler failed (see script)</span>
             {{else}}
-              <span {{on "click" @onToggleScripts}} class="f6 pa1">No Source Node</span>
+              <span {{on "click" @onToggleScripts}} class="f6 pa1" data-test-no-source>No Source Node</span>
             {{/if}}
           </p>
         {{/unless}}
@@ -67,14 +70,17 @@
       />
 
       {{#if (not (or @track.isSaving @track.isDestroying))}}
-        <DropdownMenu 
-          class="h-100 grow-1 {{if @isActive "dark-fill" "yellow-fill"}} bn bg-transparent"
-          @closeOnSelect={{true}}
-          @items={{array 
-            (hash label="delete" select=this.deleteTrack) 
-            (hash label="duplicate" select=this.duplicateTrack) 
-          }}
-        />
+        {{!-- opening this menu must not also select (navigate to) the track --}}
+        <div class="h-100 flex" {{on "click" this.stopPropagation}}>
+          <DropdownMenu 
+            class="h-100 grow-1 {{if @isActive "dark-fill" "yellow-fill"}} bn bg-transparent"
+            @closeOnSelect={{true}}
+            @items={{array 
+              (hash label="delete" select=this.deleteTrack) 
+              (hash label="duplicate" select=this.duplicateTrack) 
+            }}
+          />
+        </div>
       {{/if}}
     </div>
   </div>

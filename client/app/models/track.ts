@@ -3,7 +3,7 @@ import Model, { attr, belongsTo, hasMany  } from '@ember-data/model';
 import { service } from '@ember/service';
 import { action } from '@ember/object';
 import type StoreService from '@ember-data/store';
-import { keepLatestTask, timeout } from 'ember-concurrency';
+import { keepLatestTask, timeout, waitForProperty } from 'ember-concurrency';
 import { unbindFromSequencer } from 'euclip/utils/cracked';
 import { SoundFileStates } from 'euclip/models/sound-file';
 
@@ -94,17 +94,21 @@ export default class TrackModel extends Model.extend(Evented) {
     // Flag first: from here on nothing may rebuild this track's audio, and the UI stops
     // reporting source state while the records are unloaded.
     this.isTearingDown = true;
+    const selector = this.stableSelector; // capture: the id is gone once the record is unloaded
     this.unbindAndRemoveCrackedNodes();
 
     try {
-      // copy first: unloading mutates the live relationship arrays we'd be iterating
-      [...this.trackNodes].forEach((trackNode) => {
-        if (trackNode && trackNode.isLoaded) this.store.unloadRecord(trackNode);
+      // Ember Data throws if an in-flight record is unloaded, so let pending saves
+      // (e.g. controls of a track that was just created) settle first.
+      const children = [...this.trackControls, ...this.filepathControls, ...this.sequences];
+      await Promise.all(
+        children.filter((r) => r.isSaving).map((r) => waitForProperty(r, 'isSaving', false))
+      );
+      await this.destroyRecord(); // the API cascades to controls, scripts and sequences
+      // then drop the client copies (copy first: unloading mutates the live arrays)
+      [...this.trackNodes, ...children].forEach((record) => {
+        if (record && record.isLoaded && !record.isSaving) this.store.unloadRecord(record);
       });
-      [...this.trackControls].forEach((trackControl) => {
-        if (trackControl && trackControl.isLoaded) this.store.unloadRecord(trackControl);
-      });
-      await this.destroyRecord();
     } catch (error) {
       // the server refused: bring the track (and its sound) back
       console.error(`Failed to delete track ${this.id}`, error);
@@ -114,7 +118,10 @@ export default class TrackModel extends Model.extend(Evented) {
       throw error;
     } finally {
       // sweep again: anything created while the delete request was in flight is an orphan
-      if (this.isTearingDown) this.unbindAndRemoveCrackedNodes();
+      if (this.isTearingDown) {
+        unbindFromSequencer(selector);
+        __(selector).remove();
+      }
     }
   }
 
@@ -210,7 +217,7 @@ export default class TrackModel extends Model.extend(Evented) {
     }
 
     sequenceRecord.set(key, value);
-    unbindFromSequencer(this.classSelector);
+    unbindFromSequencer(this.stableSelector);
     this.bindToSequencer();
     this.saveTrackSequence.perform(sequenceRecord);
   }
@@ -329,7 +336,8 @@ export default class TrackModel extends Model.extend(Evented) {
         // add a track-specific class to every node created so it can be
         // easily selected and properly cleaned up. addCustomSelector sets these in
         // the Cracked store
-        addCustomSelector(node, this.classSelector);
+        addCustomSelector(node, this.classSelector); // user-facing, follows track order
+        addCustomSelector(node, this.stableSelector); // internal: survives renumbering
         addCustomSelector(node, `${type} ${this.classSelector}`);
         addCustomSelector(node, node.getUUID()); // NOTE: no . or # is used, the uuid is the full selector
 
@@ -400,7 +408,7 @@ export default class TrackModel extends Model.extend(Evented) {
         let onStepCallback = this.onStepCallback.bind(this);
         if (trackNodes.length) {
           bindToLoopStep(
-            this.classSelector,
+            this.stableSelector,
             onStepCallback,
             this.currentSequence.sequence,
             {
@@ -614,7 +622,7 @@ export default class TrackModel extends Model.extend(Evented) {
       : 0;
 
     bindToLoopStep(
-      this.classSelector,
+      this.stableSelector,
       onStepCallback,
       this.currentSequence.sequence,
       {
@@ -624,8 +632,8 @@ export default class TrackModel extends Model.extend(Evented) {
   }
 
   unbindAndRemoveCrackedNodes() {
-    unbindFromSequencer(this.classSelector);
-    __(`${this.classSelector}`).remove();
+    unbindFromSequencer(this.stableSelector);
+    __(this.stableSelector).remove();
   }
 
   onStepCallback(index, data, array) {
@@ -659,6 +667,13 @@ export default class TrackModel extends Model.extend(Evented) {
 
   // TODO: create property "trackCreatedOrder" and use that here
   // so weirdness doesnt happen when track order changes
+  // The server renumbers `order` when a track is deleted, but nodes keep the class they were
+  // built with. Anything that must find *this track's* nodes later (loop binding, teardown)
+  // therefore uses the id, which never changes. `classSelector` stays for users' scripts.
+  get stableSelector() {
+    return `.track-id-${this.id}`;
+  }
+
   get classSelector() {
     const indicator = this.isMaster ? 'master' : this.order;
     return `.track-${indicator}`;

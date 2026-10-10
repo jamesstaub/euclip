@@ -60,14 +60,23 @@ the sound-file index.
 
 ### Tests
 
+End-to-end (real browser against the running stack; start it with `docker compose up` or `bin/dev` first):
+
+```bash
+cd e2e && npm install && npx playwright install chromium   # once
+npm test                                                   # or: npm run test:headed
+```
+
+The suite signs in as the seeded dev user (override with `E2E_USER`/`E2E_PASSWORD`, target another
+server with `E2E_BASE_URL`). Server and client checks:
+
 ```bash
 cd server && bundle exec rspec   # Rails specs (needs Postgres + master.key)
 cd client && npm run lint
 ```
 
-Status: the Rails suite has ~25 known failures (registration/session/user specs have drifted
-from the code) and the Ember test suite is mostly generator stubs. The plan is to replace it with
-end-to-end acceptance tests rather than fix it up.
+Status: the Rails suite passes. The legacy Ember QUnit suite is mostly generator stubs and is being replaced by the
+end-to-end tests above.
 
 ### WASM bitcrusher (optional)
 

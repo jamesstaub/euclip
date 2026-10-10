@@ -55,6 +55,18 @@ export default class UserCreatorProjectController extends Controller {
     this.sortedTracks = [
       ...this.sortedTracks.filter((t) => !t.isDeleted),
     ].sortBy('order');
+
+    // never leave the URL on a track that no longer exists (a click may have navigated to it
+    // while the delete was in flight)
+    const { name, params } = this.router.currentRoute;
+    if (name === 'user.creator.project.track' && params?.track_id === track.id) {
+      const fallback = this.sortedTracks.find((t) => !t.isMaster) || this.sortedTracks[0];
+      if (fallback) {
+        this.router.transitionTo('user.creator.project.track', fallback.id);
+      } else {
+        this.router.transitionTo('user.creator.project.index');
+      }
+    }
   }
 
   @action

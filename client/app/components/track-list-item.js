@@ -22,6 +22,11 @@ export default class TrackListItemComponent extends Component {
   }
 
   @action
+  stopPropagation(event) {
+    event.stopPropagation();
+  }
+
+  @action
   async deleteTrack() {
     this.projectController.deleteTrack(this.args.track);
   }
