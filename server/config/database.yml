@@ -1,22 +1,21 @@
+# Local development reads POSTGRES_* from .env (see .env.example).
+# Production (Heroku Postgres) provides DATABASE_URL, which Rails merges over this.
 default: &default
   adapter: postgresql
   encoding: utf8
-  pool: 5
-  host: <%= ENV['POSTGRES_HOST'] %>
-  username: <%= ENV['POSTGRES_USER'] %>
-  password: <%= ENV['POSTGRES_PASSWORD'] %>
-  port: <%= ENV['POSTGRES_PORT'] %>
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS", 5) %>
+  host: <%= ENV.fetch("POSTGRES_HOST", "localhost") %>
+  port: <%= ENV.fetch("POSTGRES_PORT", 5432) %>
+  username: <%= ENV.fetch("POSTGRES_USER", "euclip") %>
+  password: <%= ENV["POSTGRES_PASSWORD"] %>
 
 development:
   <<: *default
-  database: <%= ENV['POSTGRES_DB'] %>
+  database: <%= ENV.fetch("POSTGRES_DB", "euclip_development") %>
 
 test:
   <<: *default
-  database: euclip_test
+  database: <%= ENV.fetch("POSTGRES_TEST_DB", "euclip_test") %>
 
 production:
   <<: *default
-  database: <%= ENV['EUCLIP_API_DATABASE'] %>
-  username: <%= ENV['EUCLIP_API_DATABASE_USER'] %>
-  password: <%= ENV['EUCLIP_API_DATABASE_PASSWORD'] %>

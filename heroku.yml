@@ -1,0 +1,11 @@
+# Heroku container deploys (one-time: `heroku stack:set container -a <app>`).
+# Deploy with `git push heroku <branch>:main`.
+build:
+  docker:
+    web: Dockerfile
+run:
+  web: bundle exec puma -C config/puma.rb
+release:
+  image: web
+  command:
+    - bundle exec rails db:migrate

@@ -1,0 +1,15 @@
+# Local Postgres only. Run the apps natively with `bin/dev` (see README).
+# Matches the defaults in .env.example.
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: euclip
+      POSTGRES_PASSWORD: euclip
+      POSTGRES_DB: euclip_development
+    ports:
+      - "5432:5432"
+    volumes:
+      - euclip_pgdata:/var/lib/postgresql/data
+volumes:
+  euclip_pgdata:

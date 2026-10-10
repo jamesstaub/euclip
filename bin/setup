@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# One-time local setup: dependencies, env file, database.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+[[ -f server/.env ]] || { cp .env.example server/.env; echo "created server/.env"; }
+if [[ ! -f server/config/master.key ]]; then
+  echo "NOTE: server/config/master.key is missing. Get it from a teammate/password manager;"
+  echo "      without it Rails cannot read credentials.yml.enc (devise secrets)."
+fi
+
+(cd client && npm ci)
+(cd server && bundle install)
+
+if command -v docker >/dev/null && ! pg_isready -q -h localhost -p 5432 2>/dev/null; then
+  echo "starting Postgres via docker compose..."
+  docker compose up -d db
+  until pg_isready -q -h localhost -p 5432 2>/dev/null || docker compose exec -T db pg_isready -q 2>/dev/null; do sleep 1; done
+fi
+
+(cd server && bundle exec rails db:prepare)
+echo "Setup done. Run bin/dev"

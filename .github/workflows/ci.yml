@@ -1,0 +1,42 @@
+name: CI
+on:
+  push: { branches: [main, master] }
+  pull_request: {}
+concurrency:
+  group: ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:15
+        env: { POSTGRES_USER: euclip, POSTGRES_PASSWORD: euclip }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      RAILS_ENV: test
+      POSTGRES_USER: euclip
+      POSTGRES_PASSWORD: euclip
+      POSTGRES_HOST: localhost
+      # the test env needs credentials.yml.enc; add RAILS_MASTER_KEY under repo secrets
+      RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
+    defaults: { run: { working-directory: server } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with: { working-directory: server, bundler-cache: true }
+      - run: bundle exec rails db:create db:schema:load
+      - run: bundle exec rspec
+  client-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults: { run: { working-directory: client } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: npm, cache-dependency-path: client/package-lock.json }
+      - run: npm ci
+      - run: npx ember build --environment=production

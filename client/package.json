@@ -12,7 +12,6 @@
   },
   "scripts": {
     "build": "ember build --environment=production",
-    "postinstall": "npm run wasm:build",
     "wasm:build": "cd wasm && wasm-pack build ../wasm --target web --out-dir ../public/wasm",
     "lint": "npm-run-all --aggregate-output --continue-on-error --parallel \"lint:!(fix)\"",
     "lint:fix": "npm-run-all --aggregate-output --continue-on-error --parallel lint:*:fix",

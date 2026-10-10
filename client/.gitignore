@@ -35,3 +35,6 @@
 
 # broccoli-debug
 /DEBUG/
+
+# wasm-pack output (npm run wasm:build)
+/public/wasm

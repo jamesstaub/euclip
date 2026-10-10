@@ -32,6 +32,9 @@ coverage
 .credentials.yml
 public/assets/audio/drum-machines
 config/ssl
+/config/.rotation-backup-*
+/config/master.key.new
+/config/credentials.yml.enc.old
 # Ember build output (built from ../client)
 /public/assets
 /public/icons

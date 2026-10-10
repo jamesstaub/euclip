@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["https://euclip.app", "http://localhost:4200", "https://localhost:4200", "http://localhost:3000"],
+    "method": ["GET", "HEAD"],
+    "responseHeader": ["Content-Type", "Content-Length", "Range"],
+    "maxAgeSeconds": 3600
+  }
+]
