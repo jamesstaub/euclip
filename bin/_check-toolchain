@@ -1,0 +1,23 @@
+# sourced by bin/setup and bin/dev: fail early with an actionable message
+want_ruby="$(cat server/.ruby-version)"
+have_ruby="$(cd server && ruby -e 'print RUBY_VERSION' 2>/dev/null || true)"
+if [[ "$have_ruby" != "$want_ruby" ]]; then
+  cat >&2 <<MSG
+Ruby $want_ruby is required (found: ${have_ruby:-none}; macOS's built-in Ruby is too old).
+Install it with a version manager, e.g. with Homebrew:
+
+  brew install rbenv ruby-build libyaml openssl@3 libpq
+  echo 'eval "\$(rbenv init - zsh)"' >> ~/.zshrc && exec zsh      # one time
+  (cd server && rbenv install $want_ruby)                         # reads server/.ruby-version
+  gem install bundler -v 2.4.19
+  bundle config build.pg --with-pg-config="\$(brew --prefix libpq)/bin/pg_config"
+
+(mise, asdf or rvm work too; just make 'ruby -v' print $want_ruby inside server/.)
+MSG
+  exit 1
+fi
+want_node="$(cat .nvmrc)"
+if [[ "$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || true)" != "$want_node" ]]; then
+  echo "Node $want_node is required (found: $(node -v 2>/dev/null || echo none)); run 'nvm install $want_node && nvm use'." >&2
+  exit 1
+fi

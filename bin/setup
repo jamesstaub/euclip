@@ -2,6 +2,7 @@
 # One-time local setup: dependencies, env file, database.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+source bin/_check-toolchain
 
 [[ -f server/.env ]] || { cp .env.example server/.env; echo "created server/.env"; }
 if [[ ! -f server/config/master.key ]]; then
