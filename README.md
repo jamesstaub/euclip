@@ -12,6 +12,9 @@ copies it into `server/public`, and Rails serves the SPA plus the `/v1` API.
 
 ## Prerequisites
 
+Docker route: just Docker and `server/config/master.key`. The rest is for running natively (Option B).
+
+
 - Node 18 (`nvm use` reads `.nvmrc`)
 - Ruby 3.2.8 (`server/.ruby-version`), e.g. with rvm:
   ```bash
@@ -21,12 +24,28 @@ copies it into `server/public`, and Rails serves the SPA plus the `/v1` API.
   gem install bundler -v 2.4.19
   bundle config build.pg --with-pg-config="$(brew --prefix libpq)/bin/pg_config"
   ```
-- Postgres 15, or Docker (`docker compose up -d db` starts one that matches `.env.example`)
+- Option B only: Postgres 15 (or `docker compose up -d db`)
 - `server/config/master.key`: needed to decrypt `server/config/credentials.yml.enc`
   (devise/JWT secrets). Ask a teammate or your password manager; it is not in git.
 - Optional, only for the Rust/WASM bitcrusher work: Rust + `wasm-pack`
 
 ## Local development
+
+### Option A: everything in Docker (no Ruby/Node install needed)
+
+```bash
+docker compose up        # first run takes a couple of minutes (gems + npm + webpack)
+```
+
+Open http://localhost:4200. The compose file runs Postgres, Rails (`:3000`) and `ember serve` (`:4200`,
+proxying API calls to Rails), with `client/` and `server/` bind-mounted so edits reload.
+Gems and `node_modules` live in named volumes. The database is created and seeded on first start.
+Needs `server/config/master.key`. Reset everything with `docker compose down -v`.
+
+Useful: `docker compose exec -e RAILS_ENV=test server bundle exec rspec`, `docker compose exec server bundle exec rails console`,
+`docker compose logs -f client`.
+
+### Option B: native (faster rebuilds)
 
 ```bash
 bin/setup     # npm ci, bundle install, creates server/.env, starts Postgres via docker, db:prepare

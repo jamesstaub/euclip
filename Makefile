@@ -7,3 +7,5 @@ test: test-server
 build-client:  ; bin/build-client
 docker-build:  ; docker build -t euclip .
 rotate-secrets: ; scripts/rotate-secrets.sh
+docker-up:     ; docker compose up
+docker-down:   ; docker compose down

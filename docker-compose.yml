@@ -1,5 +1,6 @@
-# Local Postgres only. Run the apps natively with `bin/dev` (see README).
-# Matches the defaults in .env.example.
+# `docker compose up`            -> db + Rails (:3000) + Ember (:4200), all in containers
+# `docker compose up -d db`      -> just Postgres (when running Rails/Ember natively via bin/dev)
+# Open http://localhost:4200
 services:
   db:
     image: postgres:15
@@ -11,5 +12,51 @@ services:
       - "5432:5432"
     volumes:
       - euclip_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U euclip"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  server:
+    build:
+      context: .
+      dockerfile: docker/server.dev.Dockerfile
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      RAILS_ENV: development
+      POSTGRES_HOST: db
+      POSTGRES_USER: euclip
+      POSTGRES_PASSWORD: euclip
+      POSTGRES_DB: euclip_development
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./server:/app
+      - euclip_bundle:/bundle
+    command: >
+      bash -c "bundle check || bundle install;
+               rm -f tmp/pids/server.pid;
+               bundle exec rails db:prepare &&
+               bundle exec rails server -b 0.0.0.0 -p 3000"
+
+  client:
+    image: node:18-bookworm-slim
+    working_dir: /app
+    depends_on:
+      - server
+    ports:
+      - "4200:4200"
+      - "7020:7020"   # live reload
+    volumes:
+      - ./client:/app
+      - euclip_node_modules:/app/node_modules
+    command: >
+      sh -c "([ -x node_modules/.bin/ember ] || npm ci) &&
+             npx ember serve --host 0.0.0.0 --live-reload-port 7020 --proxy http://server:3000"
+
 volumes:
   euclip_pgdata:
+  euclip_bundle:
+  euclip_node_modules:
