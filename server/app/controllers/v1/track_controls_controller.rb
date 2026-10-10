@@ -79,6 +79,7 @@ class V1::TrackControlsController < V1::BaseController
                                :node_attr, 
                                :node_order,
                                :current_unit_transform_idx,
+                               :sequence_order,
                                :control_array_value => [],
                               )
 

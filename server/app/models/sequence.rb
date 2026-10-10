@@ -5,6 +5,13 @@ class Sequence < ApplicationRecord
   attribute :hits, :integer, default: 0
   attribute :steps, :integer, default: 8
   attribute :offset, :integer, default: 0
+  # nil until assigned, so "no order given" is distinguishable from an explicit 0
+  attribute :order, :integer, default: nil
+
+  # position within the track: the track's primary sequence has the lowest order
+  validates :order, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
+  validates :order, uniqueness: { scope: :track_id }, if: :track_id?
+  before_validation :assign_next_order, on: :create
 
   def set_default
     # TODO: frontend sequencer logic like this should move out of models into dedicated service objects
@@ -14,4 +21,11 @@ class Sequence < ApplicationRecord
     end
   end
 
+  private
+
+  # new sequences go after the track's existing ones unless an order was given
+  def assign_next_order
+    return unless order.nil?
+    self.order = track_id ? (Sequence.where(track_id: track_id).maximum(:order) || -1) + 1 : 0
+  end
 end

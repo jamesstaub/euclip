@@ -6,7 +6,7 @@ class Track < ApplicationRecord
   has_one :onstep_script, :dependent => :destroy
   has_many :track_controls, :dependent => :destroy
   has_many :filepath_controls, :dependent => :destroy
-  has_many :sequences, :dependent => :destroy
+  has_many :sequences, -> { order(:order, :id) }, :dependent => :destroy
 
   attribute :is_master, :boolean
   attribute :order, :integer
@@ -28,7 +28,7 @@ class Track < ApplicationRecord
 
       track = self.create!(params)
       track.create_init_script!
-      track.sequences.create!
+      track.sequences.create!(order: 0)
       track.create_onstep_script!
       track.filepath_controls.create(control_value: file_path, node_order: 0) if file_path.present?
       track

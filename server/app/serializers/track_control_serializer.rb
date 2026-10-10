@@ -13,5 +13,6 @@ class TrackControlSerializer
              :node_order, 
              :interface_name, 
              :current_unit_transform_idx, 
-             :apply_hits_only
+             :apply_hits_only,
+             :sequence_order
 end

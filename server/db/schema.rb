@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2025_10_10_000000) do
+ActiveRecord::Schema[7.0].define(version: 2025_10_11_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -56,10 +56,11 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_10_000000) do
 
   create_table "filepath_controls", force: :cascade do |t|
     t.string "control_value"
-    t.integer "node_order"
+    t.integer "node_order", default: 0, null: false
     t.bigint "track_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["track_id", "node_order"], name: "index_filepath_controls_on_track_id_and_node_order", unique: true
     t.index ["track_id"], name: "index_filepath_controls_on_track_id"
   end
 
@@ -138,6 +139,8 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_10_000000) do
     t.bigint "track_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "order", default: 0, null: false
+    t.index ["track_id", "order"], name: "index_sequences_on_track_id_and_order", unique: true
     t.index ["track_id"], name: "index_sequences_on_track_id"
   end
 
@@ -158,6 +161,8 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_10_000000) do
     t.decimal "step_size"
     t.integer "current_unit_transform_idx", default: 0
     t.boolean "apply_hits_only", default: false
+    t.integer "sequence_order", default: 0, null: false
+    t.index ["track_id", "node_type", "node_order", "node_attr"], name: "index_track_controls_on_track_node_attr", unique: true
     t.index ["track_id"], name: "index_track_controls_on_track_id"
   end
 
