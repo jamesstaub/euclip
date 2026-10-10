@@ -22,6 +22,9 @@ const base00 = '#333',
   base_lightgreen = '#99d066',
   base_teal = '#4ebaaa';
 
+const monoFont =
+  'Monaco, Menlo, "Ubuntu Mono", Consolas, source-code-pro, monospace';
+
 const invalid = base_red,
   darkBackground = '#202325',
   highlightBackground = '#545b61',
@@ -113,19 +116,84 @@ export const theme = EditorView.theme(
       borderTopColor: tooltipBackground,
       borderBottomColor: tooltipBackground,
     },
-    '.cm-tooltip-autocomplete': {
-      '& > ul > li[aria-selected]': {
-        backgroundColor: highlightBackground,
-        color: base_cyan,
+    // autocomplete menu
+    '.cm-tooltip.cm-tooltip-autocomplete': {
+      backgroundColor: darkBackground,
+      border: `1px solid ${base01}`,
+      borderRadius: '4px',
+      boxShadow: '0 6px 18px rgba(0, 0, 0, 0.45)',
+      fontFamily: monoFont,
+      fontSize: '13px',
+      '& > ul': {
+        fontFamily: monoFont,
+        borderRadius: '4px',
+        maxHeight: '14em',
+        minWidth: '14em',
+        maxWidth: '26em',
+        scrollbarWidth: 'thin',
+        scrollbarColor: `${base02} transparent`,
+        '&::-webkit-scrollbar': { width: '8px' },
+        '&::-webkit-scrollbar-track': { background: 'transparent' },
+        '&::-webkit-scrollbar-thumb': {
+          backgroundColor: base02,
+          borderRadius: '4px',
+        },
       },
       '& > ul > li': {
-        backgroundColor: darkBackground,
+        padding: '3px 10px 3px 6px',
+        lineHeight: '1.4',
+        color: base05,
       },
-      '& .cm-completionLabel': {
-        color: base_cyan,
+      '& > ul > li[aria-selected]': {
+        backgroundColor: highlightBackground,
+        color: base06,
+      },
+      '& .cm-completionLabel': { color: base_cyan },
+      '& .cm-completionMatchedText': {
+        color: base_yellow,
+        textDecoration: 'none',
+        fontWeight: 'bold',
       },
       '& .cm-completionDetail': {
-        color: base05,
+        color: base03,
+        fontStyle: 'normal',
+        fontSize: '11px',
+        marginLeft: '1em',
+        float: 'right',
+      },
+      '& .cm-completionIcon': {
+        color: base03,
+        opacity: 1,
+        width: '1.2em',
+        paddingRight: '0.4em',
+      },
+    },
+
+    // description shown beside the selected completion
+    '.cm-tooltip.cm-completionInfo': {
+      backgroundColor: base00,
+      border: `1px solid ${base01}`,
+      borderRadius: '4px',
+      boxShadow: '0 6px 18px rgba(0, 0, 0, 0.45)',
+      color: base06,
+      fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
+      fontSize: '12.5px',
+      lineHeight: '1.45',
+      padding: '8px 10px',
+      width: 'max-content',
+      maxWidth: '260px',
+      whiteSpace: 'normal',
+      overflowWrap: 'anywhere',
+      '& p': { margin: '0' },
+      '& pre': {
+        margin: '8px 0 0',
+        padding: '6px 8px',
+        backgroundColor: darkBackground,
+        borderRadius: '3px',
+        color: base_lightgreen,
+        fontFamily: monoFont,
+        fontSize: '11.5px',
+        whiteSpace: 'pre-wrap',
       },
     },
   },

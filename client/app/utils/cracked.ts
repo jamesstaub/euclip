@@ -148,3 +148,15 @@ export const noiseNodes: string[] = ['noise', 'pink', 'white', 'brown'];
 export const playAudioFile = (filePath: string): void => {
   __().sampler({filepath: filePath}).play()
 }
+/**
+ * Every selector currently registered in cracked's node lookup (types, `#ids`, `.classes`,
+ * node UUIDs and internal track classes). Used to offer selector autocompletion in the
+ * script editors. Returns an empty list if cracked is not loaded.
+ */
+export function getSelectorLookupKeys(): string[] {
+  try {
+    return Object.keys(__._getNodeLookup() || {});
+  } catch {
+    return [];
+  }
+}
