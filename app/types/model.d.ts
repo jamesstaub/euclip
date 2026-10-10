@@ -12,7 +12,6 @@ import type TrackControlFrequencyModel from 'euclip/models/track-control-frequen
 
 import type TrackNodeModel from 'euclip/models/track-node';
 import type TrackModel from 'euclip/models/track';
-import type UserAuthModel from 'euclip/models/user-auth';
 import type UserModel from 'euclip/models/user';
 import type TrackControlModel from 'euclip/models/track-control';
 import type { DirectoryModel } from 'euclip/models/audio-file-tree';
@@ -33,7 +32,6 @@ export default interface ModelRegistry {
   'track-control': TrackControlModel;
   'track-node': TrackNodeModel;
   'track': TrackModel;
-  'user-auth': UserAuthModel;
   'user': UserModel;
 }
 
@@ -54,7 +52,6 @@ declare module '@ember-data/store' {
     'track-control': TrackControlModel;
     'track-node': TrackNodeModel;
     'track': TrackModel;
-    'user-auth': UserAuthModel;
-    'user': UserModel;
+      'user': UserModel;
   }
 }

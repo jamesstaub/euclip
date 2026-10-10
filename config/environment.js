@@ -28,11 +28,8 @@ module.exports = function (environment) {
     },
   };
 
-  ENV.APP.DISCORD_CLIENT_ID = '1360670663660278031';
-
-  ENV.APP.PROXY_PREFIX = '/.proxy';
   ENV.APP.API_HOST = 'https://euclip.app';
-  ENV.APP.API_PREFIX = '/v1'; // this gets dynamically overwritten in discord initialzier
+  ENV.APP.API_PREFIX = '/v1';
   ENV.APP.ASSETS_PATH = '/assets';
 
   if (environment === 'development') {
@@ -61,10 +58,6 @@ module.exports = function (environment) {
   ENV.APP.DRUMMACHINES_PATH = `/Drum%20Machines%20mp3`;
 
   ENV.APP.DRUMMACHINES_CDN_PATH = `${ENV.APP.AUDIO_CDN_ROOT}${ENV.APP.DRUMMACHINES_PATH}`;
-
-  // when running inside discord iframe 3rd party requests  get proxied
-  // https://discord.com/developers/applications/1360670663660278031/embedded/url-mappings
-  ENV.APP.DRUMMACHINES_PROXY_PATH = '/drum-machines';
 
   return ENV;
 };

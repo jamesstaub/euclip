@@ -6,18 +6,9 @@
         @closeOnSelect={{true}}
         @items={{array (hash label='logout' select=(action 'invalidateSession'))}}
       >
-        {{#if this.currentUser.user.userAuth.avatarUrl}}
-          <img
-            class='h2 w2 br-100'
-            src={{this.currentUser.user.userAuth.avatarUrl}}
-            alt={{this.currentUser.user.username}}
-            title={{this.currentUser.user.username}}
-          />
-        {{else}}
-          <div class='h2 w2 br-100 bg-yellow flex items-center justify-center'>
-            <span class='f3 dark-gray'>{{this.currentUser.user.username.[0]}}</span>
-          </div>
-        {{/if}}
+        <div class='h2 w2 br-100 bg-yellow flex items-center justify-center'>
+          <span class='f3 dark-gray'>{{this.currentUser.user.username.[0]}}</span>
+        </div>
       </DropdownMenu>
     {{else}}
       <LinkTo class='yellow' @route='login'>login</LinkTo>

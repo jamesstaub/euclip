@@ -18,9 +18,6 @@ export default class CurrentUserService extends Service {
 
   async findFromSession() {
     let userId = this.session.data.authenticated.data?.id;
-    if (!userId && this.session.data.authenticated.authenticator == 'authenticator:discord') {
-      userId = this.session.data.authenticated.data.user.data.id
-    }
     let user = await this.store.findRecord('user', userId);
     this.user = user;
   }
