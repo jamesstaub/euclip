@@ -15,7 +15,8 @@ export default class TrackListItemComponent extends Component {
   // The script asks for a sampler even though no sampler node exists (script error, failed build).
   // Derived from the script text so users never have to declare a source type separately.
   get samplerBuildFailed() {
-    if (this.showFilePicker) return false;
+    const track = this.args.track;
+    if (this.showFilePicker || track.isRemoved || !track.hasBuiltAudio) return false;
     const code = this.args.track.initScript?.safeCode ?? '';
     return /\.sampler\s*\(/.test(code);
   }

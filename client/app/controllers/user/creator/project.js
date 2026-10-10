@@ -42,7 +42,15 @@ export default class UserCreatorProjectController extends Controller {
       this.router.transitionTo('user.creator.project.track', nextRoute.id);
     }
 
-    await track.destroyAndCleanup();
+    // take the card off screen right away; destroyAndCleanup stops its audio and deletes it
+    const before = this.sortedTracks;
+    this.sortedTracks = before.filter((t) => t !== track);
+    try {
+      await track.destroyAndCleanup();
+    } catch (e) {
+      this.sortedTracks = before; // the delete failed and the track was restored
+      throw e;
+    }
 
     this.sortedTracks = [
       ...this.sortedTracks.filter((t) => !t.isDeleted),

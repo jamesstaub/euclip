@@ -58,6 +58,16 @@ export default class TrackModel extends Model.extend(Evented) {
   @tracked declare nodeToVisualize: any;
   @tracked declare settingsForNodes: any[];
 
+  // true once the track's init script has run at least once (successfully or not).
+  // The UI only reports a failed source after this, so it never flashes during creation.
+  @tracked hasBuiltAudio = false;
+  // set the moment deletion starts: blocks audio rebuilds and hides transient UI states.
+  @tracked isTearingDown = false;
+
+  get isRemoved(): boolean {
+    return this.isTearingDown || this.isDeleted || this.isDestroying || this.isDestroyed;
+  }
+
   @belongsTo('project', { async: false, inverse: 'tracks' }) declare project: ProjectModel;
   @belongsTo('init-script', { async: false, inverse: 'track' }) declare initScript: InitScriptModel;
   @belongsTo('onstep-script', { async: false, inverse: 'track' }) declare onstepScript: OnstepScriptModel;
@@ -80,22 +90,31 @@ export default class TrackModel extends Model.extend(Evented) {
   }
 
   async destroyAndCleanup(): Promise<void> {
-    const project = await this.project;
+    if (this.isTearingDown) return;
+    // Flag first: from here on nothing may rebuild this track's audio, and the UI stops
+    // reporting source state while the records are unloaded.
+    this.isTearingDown = true;
     this.unbindAndRemoveCrackedNodes();
-    this.trackNodes.forEach((trackNode) => {
-      if (trackNode && trackNode.isLoaded) {
-        this.store.unloadRecord(trackNode);
-      }
-    });
-    this.trackControls.forEach((trackControl) => {
-      if (trackControl && trackControl.isLoaded) {
-        this.store.unloadRecord(trackControl);
-      }
-    });
-    await this.destroyRecord();
 
-    if (project?.isPlaying) {
-      // TODO: Hook to remove callback from loopListeners
+    try {
+      // copy first: unloading mutates the live relationship arrays we'd be iterating
+      [...this.trackNodes].forEach((trackNode) => {
+        if (trackNode && trackNode.isLoaded) this.store.unloadRecord(trackNode);
+      });
+      [...this.trackControls].forEach((trackControl) => {
+        if (trackControl && trackControl.isLoaded) this.store.unloadRecord(trackControl);
+      });
+      await this.destroyRecord();
+    } catch (error) {
+      // the server refused: bring the track (and its sound) back
+      console.error(`Failed to delete track ${this.id}`, error);
+      this.isTearingDown = false;
+      this.rollbackAttributes();
+      this.setupAudioFromScripts();
+      throw error;
+    } finally {
+      // sweep again: anything created while the delete request was in flight is an orphan
+      if (this.isTearingDown) this.unbindAndRemoveCrackedNodes();
     }
   }
 
@@ -209,6 +228,7 @@ export default class TrackModel extends Model.extend(Evented) {
       if (reInit) {
         this.setState(TrackState.SETUP);
         yield this.findOrDownloadSoundFiles();
+        if (this.isRemoved) return;
         this.setupAudioFromScripts();
         this.setState(TrackState.READY);
       }
@@ -276,6 +296,7 @@ export default class TrackModel extends Model.extend(Evented) {
   }
 
   setupAudioFromScripts(unbindBeforeCreate = true) {
+    if (this.isRemoved) return;
     const initScript = this.initScript;
     if (!initScript) {
       console.error(`Track ${this.id} has no initScript; cannot build its audio`);
@@ -367,7 +388,8 @@ export default class TrackModel extends Model.extend(Evented) {
     }
 
     // Destroy all TrackNode records for this track, they'll be recreated from the latest update to the AudioNode tree
-    this.trackNodes.forEach((trackNode) => this.store.unloadRecord(trackNode));
+    // (copy: unloading mutates the live relationship array, which would skip every other record)
+    [...this.trackNodes].forEach((trackNode) => this.store.unloadRecord(trackNode));
 
     let trackNodes = this.createTrackNodeRecords();
 
@@ -392,6 +414,7 @@ export default class TrackModel extends Model.extend(Evented) {
       }
     }
     this.setNodeToVisualize();
+    this.hasBuiltAudio = true;
   }
 
   // can take array of trackNodes or trackControls or filepathControls

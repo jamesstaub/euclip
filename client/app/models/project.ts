@@ -46,7 +46,7 @@ export default class ProjectModel extends Model {
   }
 
   get orderedTracks(): TrackModel[] {
-    return this.tracks.rejectBy('isMaster') as TrackModel[];
+    return this.tracks.rejectBy('isMaster').filter((track: TrackModel) => !track.isRemoved) as TrackModel[];
   }
 
   /**
