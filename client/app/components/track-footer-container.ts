@@ -52,13 +52,13 @@ export default class TrackFooterContainerComponent extends Component<TrackFooter
 
   get channelStripGainControl(): TrackControlModel | undefined {
     return this.channelStripNode?.trackControls
-      .toArray()
+      .slice()
       .find((control) => control.nodeAttr === 'gain');
   }
 
   get channelStripPannerControl(): TrackControlModel | undefined {
     return this.channelStripNode?.trackControls
-      .toArray()
+      .slice()
       .find((control) => control.nodeAttr === 'pan');
   }
 

@@ -7,6 +7,7 @@ module.exports = function (environment) {
     rootURL: '/',
     locationType: 'history',
     EmberENV: {
+      EXTEND_PROTOTYPES: { Array: false },
       FEATURES: {
         // Here you can enable experimental features on an ember canary build
         // e.g. EMBER_MODULE_UNIFICATION: true

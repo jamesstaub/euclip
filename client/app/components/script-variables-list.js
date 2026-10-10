@@ -39,9 +39,13 @@ export default class ScriptVariablesComponent extends Component {
     );
   }
 
+  get firstTabValue() {
+    return this.tabItems?.[0]?.value;
+  }
+
   get currentNode() {
     if (this.args.useSourceNode) {
-      return this.args.validTrackNodes.findBy('isSourceNode', true);
+      return this.args.validTrackNodes.find((item) => item.isSourceNode === true);
     } else if (isPresent(this.args.visibleNodeIdx)) {
       return this.args.validTrackNodes[this.args.visibleNodeIdx];
     }

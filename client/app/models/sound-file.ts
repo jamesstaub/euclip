@@ -112,7 +112,7 @@ export default class SoundFileModel extends Model {
     // Search for the sound file by its relative path
     let soundFile = store
       .peekAll('sound-file')
-      .findBy('filePathRelative', filePathRelative);
+      .find((item) => item.filePathRelative === filePathRelative);
 
     if (soundFile?.isDownloading) {
       // Wait until the file has finished downloading or errored out

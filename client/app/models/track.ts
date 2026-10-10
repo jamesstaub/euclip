@@ -34,6 +34,7 @@ import { isPresent } from '@ember/utils';
 import { extendOnCreateNode } from 'euclip/utils/cracked';
 import { FILE_LOAD_STATES } from './track-node';
 import { debugLog } from 'euclip/utils/debug-log';
+import byKey from 'euclip/utils/by-key';
 
 declare const __: any;
 declare const cracked: any;
@@ -134,15 +135,19 @@ export default class TrackModel extends Model.extend(Evented) {
   }
 
   get sourceNodeRecords(): TrackNodeModel[] {
-    return this.trackNodes?.filter((tn) => tn).filterBy('isSourceNode', true);
+    return this.trackNodes?.filter((tn) => tn).filter((item) => item.isSourceNode === true);
+  }
+
+  get firstSourceNode(): TrackNodeModel | undefined {
+    return this.sourceNodeRecords[0];
   }
 
   get samplerNodes(): TrackNodeModel[] {
-    return this.sourceNodeRecords.filterBy('nodeType', 'sampler').sortBy('order');
+    return this.sourceNodeRecords.filter((item) => item.nodeType === 'sampler').slice().sort(byKey('order'));
   }
 
   get adsrNodes(): TrackNodeModel[] {
-    return this.sourceNodeRecords.filterBy('nodeType', 'adsr').sortBy('order');
+    return this.sourceNodeRecords.filter((item) => item.nodeType === 'adsr').slice().sort(byKey('order'));
   }
 
   get samplerNativeBuffers(): AudioBuffer[] {
@@ -152,7 +157,7 @@ export default class TrackModel extends Model.extend(Evented) {
   }
 
   get sortedFilepathControls(): FilepathControlModel[] {
-    return this.filepathControls.sortBy('nodeOrder');
+    return this.filepathControls.slice().sort(byKey('nodeOrder'));
   }
 
   get samplerFilepathControl(): FilepathControlModel | undefined {
@@ -176,7 +181,7 @@ export default class TrackModel extends Model.extend(Evented) {
     const files: (SoundFileModel | null)[] = Array.from({ length: 16 }, () => null);
 
     this.sortedFilepathControls.forEach((filepathControl, i) => {
-      const match = soundFiles.findBy('filePathRelative', filepathControl.controlValue);
+      const match = soundFiles.find((item) => item.filePathRelative === filepathControl.controlValue);
       if (match?.isDownloaded) {
         files[i] = match;
       }
@@ -347,10 +352,7 @@ export default class TrackModel extends Model.extend(Evented) {
           // callback is a custom addition to cracked library that
           // fires when audio file loads
           userSettings.callback = ({ buffer, error }) => {
-            const trackNode = this.trackNodes.findBy(
-              'nodeUUID',
-              node.getUUID()
-            );
+            const trackNode = this.trackNodes.find((item) => item.nodeUUID === node.getUUID());
 
             if (this.trackNodes && trackNode) {
               if (buffer) {
@@ -570,7 +572,7 @@ export default class TrackModel extends Model.extend(Evented) {
           }
   
           if (control instanceof TrackControlModel) {
-            trackNode.trackControls.pushObject(control);
+            trackNode.trackControls.push(control);
           }
   
           // Remove assigned control from pool
@@ -711,7 +713,7 @@ export default class TrackModel extends Model.extend(Evented) {
             __(sourceNode.uniqueSelector)
               .stop()
               .attr({
-                ...controls.findBy('nodeUUID', sourceNode.nodeUUID), //NOTE: explicitly using the key nodeUUID instead of `uuid` because the latter will mess up the native audio node when attrs applied
+                ...controls.find((item) => item.nodeUUID === sourceNode.nodeUUID), //NOTE: explicitly using the key nodeUUID instead of `uuid` because the latter will mess up the native audio node when attrs applied
                 ...attrs,
               })
               .start();

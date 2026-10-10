@@ -29,7 +29,7 @@ export default class ProjectModel extends Model {
    */
   async setupAndSaveNewTrack(track: TrackModel, saveOptions?: Record<string, unknown>): Promise<TrackModel> {
     await track.save(saveOptions);
-    this.tracks.pushObject(track);
+    this.tracks.push(track);
     await track.findOrDownloadSoundFiles();
     await track.setupAudioFromScripts(false);
     track.createAudioFileTree();
@@ -42,11 +42,11 @@ export default class ProjectModel extends Model {
   }
 
   get masterTrack(): TrackModel | undefined {
-    return this.tracks.findBy('isMaster', true);
+    return this.tracks.find((item) => item.isMaster === true);
   }
 
   get orderedTracks(): TrackModel[] {
-    return this.tracks.rejectBy('isMaster').filter((track: TrackModel) => !track.isRemoved) as TrackModel[];
+    return this.tracks.filter((item) => !item.isMaster).filter((track: TrackModel) => !track.isRemoved) as TrackModel[];
   }
 
   /**
@@ -110,7 +110,7 @@ export default class ProjectModel extends Model {
       track.state = TrackState.SAVED;
       
       // Add to project tracks
-      project.tracks.pushObject(track);
+      project.tracks.push(track);
       
       // Setup the track
       await this.setupTrack(track);

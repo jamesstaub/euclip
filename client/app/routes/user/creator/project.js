@@ -2,6 +2,7 @@ import Route from '@ember/routing/route';
 import { service } from '@ember/service';
 import ProjectAdapter from 'euclip/adapters/project';
 import AudioFileTreeModel from 'euclip/models/audio-file-tree';
+import byKey from 'euclip/utils/by-key';
 
 export default class UserCreatorProjectRoute extends Route {
   @service store;
@@ -30,7 +31,7 @@ export default class UserCreatorProjectRoute extends Route {
       activeTrack: project.tracks[0],
       defaultAudioFileTree: defaultAudioFileTree,
       model: project,
-      sortedTracks: project.tracks.sortBy('order'),
+      sortedTracks: project.tracks.slice().sort(byKey('order')),
     });
     this.getPresets(controller);
   }

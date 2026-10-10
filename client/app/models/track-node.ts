@@ -7,6 +7,7 @@ import { tracked } from '@glimmer/tracking';
 import { isPresent } from '@ember/utils';
 import FilepathControlModel from 'euclip/models/filepath-control';
 import type StoreService from '@ember-data/store';
+import byKey from 'euclip/utils/by-key';
 
 // Enum for file load states
 export const FILE_LOAD_STATES = {
@@ -95,7 +96,7 @@ export default class TrackNodeModel extends Model {
     if (!this.trackControls) {
       return [];
     }
-    return [...this.trackControls.sortBy('sortOrder')];
+    return [...this.trackControls.slice().sort(byKey('sortOrder'))];
   }
 
   // Static method to validate the controls of a node
@@ -205,7 +206,7 @@ export default class TrackNodeModel extends Model {
       return [];
     }
 
-    const existingTrackControls = this.track.get('trackControls').toArray();
+    const existingTrackControls = this.track.get('trackControls').slice();
 
     return controlAttrs.map((controlAttr) => {
       let defaultForAttr = defaultParams[controlAttr];

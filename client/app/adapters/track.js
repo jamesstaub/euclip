@@ -43,7 +43,7 @@ export default class TrackAdapter extends ApplicationAdapter {
       const payloadWithoutNewTrack = {
         meta,
         included: JSON.parse(_included),
-        data: data.rejectBy('id', String(meta.created)),
+        data: data.filter((item) => item.id !== String(meta.created)),
       };
 
       store.pushPayload('track', payloadWithoutNewTrack);
@@ -53,7 +53,7 @@ export default class TrackAdapter extends ApplicationAdapter {
       const payloadNewTrackOnly = {
         meta,
         included: JSON.parse(_included),
-        data: data.findBy('id', String(meta.created)),
+        data: data.find((item) => item.id === String(meta.created)),
       };
 
       return payloadNewTrackOnly;

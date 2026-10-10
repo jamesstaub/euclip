@@ -2,6 +2,7 @@ import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { service } from '@ember/service';
 import { inject as controller } from '@ember/controller';
+import byKey from 'euclip/utils/by-key';
 
 export default class TrackListItemComponent extends Component {
   @service router;
@@ -37,7 +38,7 @@ export default class TrackListItemComponent extends Component {
     this.projectController.sortedTracks = [
       ...this.projectController.sortedTracks,
       track,
-    ].sortBy('order');
+    ].slice().sort(byKey('order'));
   }
 
   @action

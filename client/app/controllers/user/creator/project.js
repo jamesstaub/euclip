@@ -4,6 +4,7 @@ import { tracked } from '@glimmer/tracking';
 import { service } from '@ember/service';
 import { keepLatestTask, timeout } from 'ember-concurrency';
 import { defineChannelStripMacro } from '../../../utils/cracked';
+import byKey from 'euclip/utils/by-key';
 
 /**
  * Controller focused on model state and business logic.
@@ -54,7 +55,7 @@ export default class UserCreatorProjectController extends Controller {
 
     this.sortedTracks = [
       ...this.sortedTracks.filter((t) => !t.isDeleted),
-    ].sortBy('order');
+    ].slice().sort(byKey('order'));
 
     // never leave the URL on a track that no longer exists (a click may have navigated to it
     // while the delete was in flight)
@@ -72,7 +73,7 @@ export default class UserCreatorProjectController extends Controller {
   @action
   // FIXME: refactor current track so it doesn't require a fetch. doesnt need to be a route
   transitionToTrack(id) {
-    const trackTo = this.model.tracks.findBy('id', id);
+    const trackTo = this.model.tracks.find((item) => item.id === id);
     // optimisitically set the active track
     this.activeTrack = trackTo;
 
@@ -116,7 +117,7 @@ export default class UserCreatorProjectController extends Controller {
 
   @action
   onTracksCreated(tracks) {
-    this.sortedTracks = [...this.sortedTracks, ...tracks].sortBy('order');
+    this.sortedTracks = [...this.sortedTracks, ...tracks].slice().sort(byKey('order'));
   }
 
   @action
@@ -194,7 +195,7 @@ export default class UserCreatorProjectController extends Controller {
   selectPrevTrack() {
     const idx = this.sortedTracks.indexOf(this.activeTrack);
     const prevTrack =
-      this.sortedTracks[idx - 1] || this.sortedTracks.lastObject;
+      this.sortedTracks[idx - 1] || this.sortedTracks.at(-1);
     return this.transitionToTrack(prevTrack.id);
   }
 }

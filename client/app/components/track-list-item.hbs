@@ -32,8 +32,8 @@
       {{else}}
         {{#unless @track.isMaster}}
           <p class="tc w4 ma2 {{unless @isActive "light-gray"}}">
-            {{#if @track.sourceNodeRecords.firstObject}}
-              <span data-test-source-label>{{@track.sourceNodeRecords.firstObject.nodeType}}</span>
+            {{#if @track.firstSourceNode}}
+              <span data-test-source-label>{{@track.firstSourceNode.nodeType}}</span>
             {{else if this.samplerBuildFailed}}
               <span
                 {{on "click" @onToggleScripts}}

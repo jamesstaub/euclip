@@ -53,7 +53,7 @@
     {{#if (eq @trackControl.paramUnitNames.length 1)}}
       <p
         class='w-100 dark-gray'
-      >{{@trackControl.paramUnitNames.firstObject}}</p>
+      >{{get @trackControl.paramUnitNames "0"}}</p>
     {{else}}
       <div
         class='nexus-select'

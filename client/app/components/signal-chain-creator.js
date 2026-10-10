@@ -95,7 +95,7 @@ ${this.effectsDefinition}
   selectPreset(presetData) {
     let data = [...presetData];
     this.selectedSourceNode = data.shift();
-    this.selectedEffects = data;
+    this.selectedEffects = A(data);
     this.computeNodesArray();
   }
 

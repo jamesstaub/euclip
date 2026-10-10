@@ -33,7 +33,7 @@ export default class FilepathControlModel extends Model {
     
     const sf = this.store
       .peekAll('sound-file')
-      .findBy('filePathRelative', this.controlValue);
+      .find((item) => item.filePathRelative === this.controlValue);
     return sf?.errorMessage;
   }
 
@@ -66,7 +66,7 @@ export default class FilepathControlModel extends Model {
           nodeOrder: trackNode.nodeOrder || 0,
           controlValue,
         });
-        track.filepathControls.pushObject(filepathControl);
+        track.filepathControls.push(filepathControl);
       } catch (error) {
         console.error('Error creating default filepath control: ', error);
       }
