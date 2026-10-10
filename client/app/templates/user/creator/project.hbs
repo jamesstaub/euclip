@@ -68,7 +68,8 @@
           {{shortcut 'ArrowDown' this.selectNextTrack}}
         >
           <div class='overflow-y-scroll bg-dark-gray track-list-height min-height-5 grow-1'>
-            {{#each this.sortedTracks key='order' as |track|}}
+            {{!-- key by id: the API renumbers `order` after deletes, which would re-bind rows to other tracks --}}
+            {{#each this.sortedTracks key='id' as |track|}}
               {{#unless track.isMaster}}
                 <TrackListItem
                   @track={{track}}
