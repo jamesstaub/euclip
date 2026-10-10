@@ -14,16 +14,8 @@ module.exports = function (defaults) {
       throwUnlessParallelizable: true,
     },
 
-    autoImport: {
-      skipBabel: ['cracked.min.js'],
-    },
-
     babel: {
       plugins: [require.resolve('ember-auto-import/babel-plugin')],
-    },
-
-    sourcemaps: {
-      enabled: false, // Disable sourcemaps for production
     },
 
     minifyCSS: {
@@ -40,13 +32,6 @@ module.exports = function (defaults) {
       },
     },
 
-    ace: {
-      themes: ['ambiance', 'chaos'],
-      modes: ['javascript'],
-      workers: ['javascript'],
-      exts: ['language_tools'],
-    },
-
     'ember-math-helpers': {
       only: ['add', 'gt', 'gte', 'sub', 'mult', 'mod'],
     },
@@ -60,29 +45,19 @@ module.exports = function (defaults) {
   app.import('vendor/cracked.min.js.map');
   app.import('vendor/cracked.min.js');
 
-  // Use `app.import` to add additional libraries to the generated
-  // output files.
-  //
-  // If you need to use different assets in different
-  // environments, specify an object as the first parameter. That
-  // object's keys should be the environment name and the values
-  // should be the asset to use in that environment.
-  //
-  // If the library that you are including contains AMD or ES6
-  // modules that you would like to import into your application
-  // please specify an object with the list of modules as keys
-  // along with the exports of each module as its value.
-
+  // cracked (the custom Web Audio library) is a global script built by
+  // ../../i_dropped_my_phone_the_screen_cracked (`npm run build` there installs it here).
   return require('@embroider/compat').compatBuild(app, Webpack, {
     staticAddonTestSupportTrees: true,
     staticAddonTrees: true,
     staticHelpers: true,
     staticModifiers: true,
     staticComponents: true,
-    splitAtRoutes: ['route.name'], // Adjust as needed
+    // TODO: set splitAtRoutes (e.g. ['user.creator.project']) once route-level code splitting is wanted
     packagerOptions: {
       webpackConfig: {
-        devtool: 'source-map',
+        // sourcemaps in development only
+        devtool: process.env.EMBER_ENV === 'production' ? false : 'source-map',
       },
     },
   });
