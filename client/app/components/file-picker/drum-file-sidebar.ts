@@ -1,6 +1,5 @@
 import Component from '@glimmer/component';
 import SoundFileModel from 'euclip/models/sound-file';
-import FilepathControlModel from 'euclip/models/filepath-control';
 import { service } from '@ember/service';
 import type StoreService from '@ember-data/store';
 import { action } from '@ember/object';
@@ -119,17 +118,11 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
   ): Promise<void> {
     track.state = TrackState.SAVED;
 
-    await this.downloadFile(filepath);
-    let filepathControl = FilepathControlModel.findOrCreateWith({
-      track,
-      trackNode: this.selectedNode,
-      controlValue: filepath,
-    });
-
     try {
-      await filepathControl.save();
+      // the selected sampler node decides the slot: the n-th sampler of the track gets the n-th file
+      const slot = this.selectedNode?.orderOfType ?? 0;
+      await track.setFile(slot, filepath);
       track.state = TrackState.SETUP;
-      track.setupAudioFromScripts();
     } catch (error) {
       track.state = TrackState.ERROR;
       console.error('Error saving filepath control: ', error);

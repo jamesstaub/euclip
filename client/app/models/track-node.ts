@@ -99,28 +99,11 @@ export default class TrackNodeModel extends Model {
     return [...this.trackControls.slice().sort(byKey('sortOrder'))];
   }
 
-  // Static method to validate the controls of a node
-  static validateControls(nodeControlRecords: any[], nodeType: string): boolean {
+  // The numeric control attributes a node type exposes (the file path is a FilepathControl, not a track control)
+  static controlAttrsFor(nodeType: string): string[] {
     const attrs = AudioNodeConfig[nodeType]?.attrs;
-
-    // No attrs provided
-    if (!attrs) return true;
-    const controlAttrs = Object.keys(attrs);
-
-    return controlAttrs.every((controlAttr) => {
-      if (controlAttr === 'path') {
-        return nodeControlRecords.find((nodeControlRecord) => {
-          return (
-            nodeControlRecord instanceof FilepathControlModel &&
-            isPresent(nodeControlRecord.controlValue)
-          );
-        });
-      } else {
-        return nodeControlRecords.find(
-          (trackControl) => trackControl.nodeAttr === controlAttr
-        );
-      }
-    });
+    if (!attrs) return [];
+    return Object.keys(attrs).filter((attr) => attr !== 'path');
   }
 
   // Static method to find the channel strip node
@@ -149,17 +132,17 @@ export default class TrackNodeModel extends Model {
     this._userDefinedInterfaceName = this.userDefinedInterfaceName;
   }
 
-  // Update the default values for track controls based on user settings
+  // When the script gives a control a different default than the one stored, reset that control to it.
+  // (Compared against the persisted defaultValue, so reloading or replaying never resets user edits.)
   updateDefaultValue(): void {
     this.trackControls.forEach((trackControl: any) => {
-      const userDefault = this.userSettingsForControl[trackControl.nodeAttr];
-      if (trackControl._defaultValue !== userDefault) {
-        trackControl.set('currentUnitTransformIdx', 0); // Set default unit
-        trackControl.setValue(userDefault); // Make sure to use setValue setter
-        trackControl.set('defaultValue', userDefault);
-        trackControl.setMinMaxByDefault();
-      }
-      trackControl.set('_defaultValue', userDefault);
+      const userDefault = this.userSettingsForControl?.[trackControl.nodeAttr];
+      if (!isPresent(userDefault) || trackControl.defaultValue === userDefault) return;
+
+      trackControl.set('currentUnitTransformIdx', 0); // Set default unit
+      trackControl.setValue(userDefault); // Make sure to use setValue setter
+      trackControl.set('defaultValue', userDefault);
+      trackControl.setMinMaxByDefault();
     });
   }
 
@@ -186,79 +169,36 @@ export default class TrackNodeModel extends Model {
       .forEach((trackControl: any) => trackControl.setSamplerControlsToBuffer(buffer));
   }
 
-  // Find or create track controls for ephemeral TrackNodes
-  findOrCreateTrackControls(): any[] {
-    const controlAttrs = Object.keys(AudioNodeConfig[this.nodeType]?.attrs);
-    
-    if (controlAttrs.indexOf('path') > -1) {
-      // Create filepath control if it doesn't exist
-      FilepathControlModel.findOrCreateWith({
-        track: this.track,
-        trackNode: this,
-      });
+  /**
+   * Starting values for a new track control for one of this node's attributes (from the node/param config).
+   * Creating and linking the records is Track#setupTrackControls' job; this only describes the control.
+   */
+  defaultControlParams(controlAttr: string): Record<string, any> | null {
+    let defaultForAttr = defaultParams[controlAttr];
 
-      // Remove the 'path' attribute from the list for numeric controls
-      controlAttrs.splice(controlAttrs.indexOf('path'), 1);
+    if (controlAttr === 'frequency') {
+      defaultForAttr = defaultParams[controlAttr]?.[this.nodeType];
     }
 
-    if (!controlAttrs.map) {
-      console.error('Node type not supported');
-      return [];
+    if (!defaultForAttr) {
+      console.error('No default params for Node Control: ', controlAttr);
+      return null;
     }
 
-    const existingTrackControls = this.track.get('trackControls').slice();
+    const { min, max, stepSize, defaultValue, interfaceName } = defaultForAttr;
 
-    return controlAttrs.map((controlAttr) => {
-      let defaultForAttr = defaultParams[controlAttr];
-
-      if (controlAttr === 'frequency') {
-        defaultForAttr = defaultParams[controlAttr][this.nodeType];
-      }
-
-      if (!defaultForAttr) {
-        console.error('No default params for Node Control: ', controlAttr);
-        return null;
-      }
-
-      const { min, max, stepSize, defaultValue, interfaceName } = defaultForAttr;
-
-      let params = {
-        nodeAttr: controlAttr,
-        controlArrayValue: [], 
-        track: this.track,
-        trackNode: this,
-        nodeType: this.nodeType,
-        nodeOrder: this.order,
-        interfaceName: interfaceName[0],
-        controlValue: defaultValue,
-        defaultValue,
-        min,
-        max,
-        stepSize,
-      };
-
-      let trackControl = existingTrackControls.find((tc: any) => {
-        return (
-          !tc.isDeleted &&
-          tc.nodeAttr == params.nodeAttr &&
-          tc.nodeType == params.nodeType &&
-          tc.nodeOrder == params.nodeOrder &&
-          tc.interfaceName == params.interfaceName
-        );
-      });
-
-      if (trackControl) {
-        trackControl.setProperties(params);
-      } else {
-        trackControl = this.store.createRecord('track-control', params);
-      }
-
-      if (this.userDefinedInterfaceName) {
-        trackControl.set('interfaceName', this.userDefinedInterfaceName);
-      }
-
-      trackControl.saveTrackControl.perform();
-      return trackControl;
-    });
+    return {
+      nodeAttr: controlAttr,
+      track: this.track,
+      trackNode: this,
+      nodeType: this.nodeType,
+      nodeOrder: this.order,
+      interfaceName: this.userDefinedInterfaceName || interfaceName[0],
+      controlValue: defaultValue,
+      defaultValue,
+      min,
+      max,
+      stepSize,
+    };
   }
 }

@@ -3,7 +3,8 @@ import Model, { attr, belongsTo, hasMany  } from '@ember-data/model';
 import { service } from '@ember/service';
 import { action } from '@ember/object';
 import type StoreService from '@ember-data/store';
-import { keepLatestTask, timeout, waitForProperty } from 'ember-concurrency';
+import { keepLatestTask, timeout } from 'ember-concurrency';
+import waitUntil from 'euclip/utils/wait-until';
 import { unbindFromSequencer } from 'euclip/utils/cracked';
 import { SoundFileStates } from 'euclip/models/sound-file';
 
@@ -103,7 +104,7 @@ export default class TrackModel extends Model.extend(Evented) {
       // (e.g. controls of a track that was just created) settle first.
       const children = [...this.trackControls, ...this.filepathControls, ...this.sequences];
       await Promise.all(
-        children.filter((r) => r.isSaving).map((r) => waitForProperty(r, 'isSaving', false))
+        children.filter((r) => r.isSaving).map((r) => waitUntil(() => !r.isSaving))
       );
       await this.destroyRecord(); // the API cascades to controls, scripts and sequences
       // then drop the client copies (copy first: unloading mutates the live arrays)
@@ -126,8 +127,14 @@ export default class TrackModel extends Model.extend(Evented) {
     }
   }
 
+  // A track can have several sequences, ordered by `order`; the first is the primary one.
+  get sortedSequences(): SequenceModel[] {
+    return this.sequences.slice().sort(byKey('order'));
+  }
+
+  // the primary sequence: drives the step display and the master loop position
   get currentSequence(): SequenceModel | undefined {
-    return this.sequences?.[0];
+    return this.sortedSequences[0];
   }
 
   get scriptAlert(): string | null {
@@ -180,10 +187,11 @@ export default class TrackModel extends Model.extend(Evented) {
     const soundFiles = this.store.peekAll('sound-file') as SoundFileModel[];
     const files: (SoundFileModel | null)[] = Array.from({ length: 16 }, () => null);
 
-    this.sortedFilepathControls.forEach((filepathControl, i) => {
+    // slot n of `this.files` is the file for the n-th sampler node
+    this.sortedFilepathControls.forEach((filepathControl) => {
       const match = soundFiles.find((item) => item.filePathRelative === filepathControl.controlValue);
-      if (match?.isDownloaded) {
-        files[i] = match;
+      if (match?.isDownloaded && filepathControl.nodeOrder >= 0 && filepathControl.nodeOrder < files.length) {
+        files[filepathControl.nodeOrder] = match;
       }
     });
 
@@ -250,6 +258,59 @@ export default class TrackModel extends Model.extend(Evented) {
       this.setState(TrackState.ERROR);
       this.rollbackAttributes();
     }
+  }
+
+  /**
+   * Adds another sequence to this track (after the existing ones) and starts stepping it.
+   */
+  async addSequence(attributes: Partial<Pick<SequenceModel, 'hits' | 'steps' | 'offset'>> = {}): Promise<SequenceModel> {
+    const order = Math.max(-1, ...this.sequences.map((sequence) => sequence.order ?? 0)) + 1;
+    const sequence = this.store.createRecord('sequence', { track: this, order, ...attributes }) as SequenceModel;
+    await sequence.save();
+    this.rebindSequences();
+    return sequence;
+  }
+
+  /**
+   * Removes one of this track's sequences. A track always keeps at least one; controls that
+   * followed the removed sequence fall back to the primary one.
+   */
+  async removeSequence(sequence: SequenceModel): Promise<void> {
+    if (this.sequences.length <= 1) {
+      throw new Error('A track needs at least one sequence');
+    }
+    unbindFromSequencer(this.stableSelector);
+    try {
+      await sequence.destroyRecord();
+    } finally {
+      this.rebindSequences();
+    }
+  }
+
+  rebindSequences(): void {
+    if (this.isRemoved) return;
+    unbindFromSequencer(this.stableSelector);
+    this.bindToSequencer();
+  }
+
+  // file changes run one at a time per track, so two quick picks can never create two controls for a slot
+  _fileQueue: Promise<unknown> = Promise.resolve();
+
+  /**
+   * Sets the file for the n-th sampler node ("slot") of this track: downloads it, stores it on the
+   * slot's filepath control (creating that control only if the slot has none) and rebuilds the audio.
+   */
+  setFile(slot: number, filepath: string): Promise<FilepathControlModel> {
+    const run = async (): Promise<FilepathControlModel> => {
+      await SoundFileModel.findOrDownload(filepath, this.store);
+      const filepathControl = FilepathControlModel.findOrCreateWith({ track: this, slot, controlValue: filepath });
+      await filepathControl.save();
+      this.setupAudioFromScripts();
+      return filepathControl;
+    };
+    const result = this._fileQueue.then(run, run);
+    this._fileQueue = result.catch(() => {}); // a failed pick must not block the next one
+    return result;
   }
 
   async duplicate(): Promise<TrackModel> {
@@ -405,23 +466,10 @@ export default class TrackModel extends Model.extend(Evented) {
 
     trackNodes = this.applyOrderOfType(trackNodes);
     this.setupTrackControls(trackNodes);
-    if (this.currentSequence) {
-      if (trackNodes.length) {
-        let onStepCallback = this.onStepCallback.bind(this);
-        if (trackNodes.length) {
-          bindToLoopStep(
-            this.stableSelector,
-            onStepCallback,
-            this.currentSequence.sequence,
-            {
-              loopIndex:
-                this.project.stepIndex % this.currentSequence.sequence.length,
-            }
-          );
-        }
-      } else {
-        console.error('no track nodes to bind to sequencer');
-      }
+    if (trackNodes.length) {
+      this.bindToSequencer();
+    } else {
+      console.error('no track nodes to bind to sequencer');
     }
     this.setNodeToVisualize();
     this.hasBuiltAudio = true;
@@ -527,88 +575,94 @@ export default class TrackModel extends Model.extend(Evented) {
    * Then apply the values from the track controls to the audio nodes
    */
   setupTrackControls(trackNodes: TrackNodeModel[]): void {
-    
-    let remainingControls = [
-      ...this.trackControls,
-      ...this.filepathControls,
-    ];
-    
-    remainingControls = this.applyOrderOfType(remainingControls);
-  
-    const unlinkedNodes: TrackNodeModel[] = [];
-  
-    trackNodes.forEach((trackNode) => {
-      // Find matching controls by type and order
-      const matchingControls = remainingControls.filter((control) => {
-        if (control instanceof FilepathControlModel) {
-          return trackNode.orderOfType === (control as any).orderOfType;
-        }
-  
-        return (
-          trackNode.nodeType === control.nodeType &&
-          trackNode.orderOfType === (control as any).orderOfType
-        );
+    // Controls hold the user's saved state (values, ranges, interface, multislider steps), so linking
+    // them to freshly built nodes must never overwrite it: each node takes the control that already
+    // exists for it, and only a missing control is created (with defaults).
+    const scriptOk = !this.initScript?.alert;
+    let pool = this.trackControls.filter((c) => !c.isDeleted);
+
+    const take = (match: (c: TrackControlModel) => boolean): TrackControlModel | undefined => {
+      const found = pool.find(match);
+      if (found) pool = pool.filter((c) => c !== found);
+      return found;
+    };
+
+    // phase 1: controls that point exactly at a node (type, attribute and creation order)
+    const needs: { node: TrackNodeModel; attr: string }[] = [];
+    const linked = new Map<TrackNodeModel, TrackControlModel[]>();
+    trackNodes.forEach((node) => {
+      const controls: TrackControlModel[] = [];
+      linked.set(node, controls);
+      TrackNodeModel.controlAttrsFor(node.nodeType).forEach((attr) => {
+        const exact = take((c) => c.nodeType === node.nodeType && c.nodeAttr === attr && c.nodeOrder === node.order);
+        if (exact) controls.push(exact);
+        else needs.push({ node, attr });
       });
-        
-      // For samplers, ensure a filepath control is always added
-      if (trackNode.nodeType === 'sampler') {
-        const hasFilepath = matchingControls.some(
-          (control) => control instanceof FilepathControlModel
-        );
-  
+    });
 
-        if (!hasFilepath && this.filepathControls[trackNode.orderOfType]) {
-          matchingControls.push(this.filepathControls[trackNode.orderOfType]);
-        }
-      }
-
-      // If matched controls are valid, assign them to the node
-      if (TrackNodeModel.validateControls(matchingControls, trackNode.nodeType)) {
-        matchingControls.forEach((control) => {
-          control.set('trackNode', trackNode);
-  
-          if (control instanceof FilepathControlModel) {
-            trackNode.filepathControl = control;
-          }
-  
-          if (control instanceof TrackControlModel) {
-            trackNode.trackControls.push(control);
-          }
-  
-          // Remove assigned control from pool
-          remainingControls = remainingControls.filter(c => c.id !== control.id);
-        });
+    // phase 2: the script changed (a node was inserted/removed), so creation order moved:
+    // adopt the unclaimed control of the same type and attribute, lowest order first
+    const unresolved: typeof needs = [];
+    needs.forEach(({ node, attr }) => {
+      const candidates = pool
+        .filter((c) => c.nodeType === node.nodeType && c.nodeAttr === attr)
+        .sort(byKey('nodeOrder'));
+      const adopted = candidates[0];
+      if (adopted) {
+        pool = pool.filter((c) => c !== adopted);
+        adopted.nodeOrder = node.order; // heal the stored order; the user's values stay
+        adopted.saveTrackControl.perform();
+        linked.get(node)!.push(adopted);
       } else {
-        unlinkedNodes.push(trackNode);
+        unresolved.push({ node, attr });
       }
-  
-      trackNode.updateDefaultValue();
     });
-  
-    // Clean up unused controls - but be conservative with filepathControls bc keeping them around prevents
-    // errors when new sampler nodes are created 
-    remainingControls.forEach((control) => {
-      if (control instanceof FilepathControlModel) {
-        // Don't destroy filepathControls that have valid controlValue - they might be from bulk creation
-        if (control.controlValue) {
-          return;
-        }
+
+    // phase 3: nothing exists for these yet, so create them
+    unresolved.forEach(({ node, attr }) => {
+      const params = node.defaultControlParams(attr);
+      if (!params) return;
+      const created = this.store.createRecord('track-control', params) as TrackControlModel;
+      created.saveTrackControl.perform();
+      linked.get(node)!.push(created);
+    });
+
+    // link, and give every sampler node the file for its slot (an empty client-only record if none yet)
+    trackNodes.forEach((node) => {
+      linked.get(node)!.forEach((control) => control.set('trackNode', node));
+
+      if (node.nodeType === 'sampler') {
+        const filepathControl = FilepathControlModel.findOrCreateWith({ track: this, slot: node.orderOfType });
+        filepathControl.set('trackNode', node);
+        node.filepathControl = filepathControl;
       }
 
-      control.destroyRecord();
+      node.updateDefaultValue();
     });
-  
-    // Create missing controls for unmatched nodes
-    unlinkedNodes.forEach((node) => {
-      node.findOrCreateTrackControls();
-    });
-  
+
+    // Controls left over belong to nodes the script no longer creates. Only discard them when the script
+    // ran cleanly: a script error also leaves nodes missing, and the user's settings must survive that.
+    if (scriptOk) {
+      pool.forEach((control) => {
+        if (control.isNew) this.store.unloadRecord(control);
+        else control.destroyRecord();
+      });
+
+      const samplerCount = trackNodes.filter((n) => n.nodeType === 'sampler').length;
+      [...this.filepathControls].forEach((control) => {
+        // keep any control that has a file; drop client-only empty ones for slots that no longer exist
+        if (!control.controlValue && control.isNew && control.nodeOrder >= samplerCount) {
+          this.store.unloadRecord(control);
+        }
+      });
+    }
+
     // Apply attributes to all trackNodes
     const attrsForNodes = TrackControlModel.getAttrsForNodes(this.trackControls, undefined, undefined);
-  
+
     this.trackNodes.forEach((trackNode) => {
       trackNode.delinkControlsForDeadNodes();
-  
+
       const attrs = attrsForNodes[trackNode.uniqueSelector];
       if (attrs) {
         applyAttrs(trackNode.uniqueSelector, attrs);
@@ -616,21 +670,26 @@ export default class TrackModel extends Model.extend(Evented) {
     });
   }
 
+  // Position to resume a sequence's loop at: -1 means "not started yet" (the first step is index 0).
+  loopIndexFor(sequenceLength: number): number {
+    const stepIndex = this.project.stepIndex;
+    return typeof stepIndex === 'number' && stepIndex >= 0 && sequenceLength > 0
+      ? stepIndex % sequenceLength
+      : -1;
+  }
+
+  // One step listener per sequence. They share the track's stable selector, so a single unbind
+  // (unbindAndRemoveCrackedNodes / unbindFromSequencer) removes all of them.
   bindToSequencer() {
-    let onStepCallback = this.onStepCallback.bind(this);
-
-    let loopIndex = this.project.isPlaying
-      ? this.project.stepIndex % this.currentSequence.sequence.length
-      : 0;
-
-    bindToLoopStep(
-      this.stableSelector,
-      onStepCallback,
-      this.currentSequence.sequence,
-      {
-        loopIndex,
-      }
-    );
+    this.sortedSequences.forEach((sequence, sequenceIndex) => {
+      const steps = sequence.sequence;
+      bindToLoopStep(
+        this.stableSelector,
+        (index, data, array) => this.onStepCallback(index, data, array, sequenceIndex),
+        steps,
+        { loopIndex: this.loopIndexFor(steps.length) }
+      );
+    });
   }
 
   unbindAndRemoveCrackedNodes() {
@@ -638,25 +697,30 @@ export default class TrackModel extends Model.extend(Evented) {
     __(this.stableSelector).remove();
   }
 
-  onStepCallback(index, data, array) {
+  // Called by the loop on every step of one of this track's sequences. Index 0 is the primary sequence,
+  // which drives the track's step display (and the project's, for the master track).
+  onStepCallback(index, data, array, sequenceIndex = 0) {
     if (this.isDeleted || this.isDestroying || this.isDestroyed) {
       debugLog('track', `step callback on removed track ${this.id}; ignoring`);
       return;
     }
-    this.stepIndex = index;
+    const sequences = this.sortedSequences;
+    const sequence = sequences[sequenceIndex];
+    if (!sequence) return;
 
-    if (this.isMaster) {
-      this.project.stepIndex = index;
+    if (sequenceIndex === 0) {
+      this.stepIndex = index;
+
+      if (this.isMaster) {
+        this.project.stepIndex = index;
+      }
     }
 
-    // before calling the user's onstepScript, pass the current values of all track-controls
+    // before calling the user's onstepScript, pass the current values of this sequence's track-controls
     // to the their respective track-nodes. Sampler nodes are a special case, since they get
     // rebuilt on each play, so they need to be passed their params in the .start() call (see below).
-    const attrsForNodes = TrackControlModel.getAttrsForNodes(
-      this.trackControls,
-      index,
-      this.currentSequence.sequence
-    );
+    const controls = this.trackControls.filter((control) => control.sequenceRecord === sequence);
+    const attrsForNodes = TrackControlModel.getAttrsForNodes(controls, index, sequence.sequence);
 
     this.trackNodes.forEach((trackNode) => {
       const attrs = attrsForNodes[trackNode.uniqueSelector];
@@ -664,7 +728,7 @@ export default class TrackModel extends Model.extend(Evented) {
         applyAttrs(trackNode.uniqueSelector, attrs);
       }
     });
-    this.onstepScript.invokeFunctionRef(index, data, array);
+    this.onstepScript.invokeFunctionRef(index, data, array, sequenceIndex);
   }
 
   // TODO: create property "trackCreatedOrder" and use that here
@@ -697,6 +761,7 @@ export default class TrackModel extends Model.extend(Evented) {
       filepath: this.downloadedFilepaths[0],
       id: this.id,
       trackSelector: this.classSelector,
+      sequences: this.sortedSequences.map((sequence) => sequence.sequence), // every sequence's steps, primary first
       controls: controls, // the value of the controls at this current step
       sliders: this.trackControlData,
       select() {

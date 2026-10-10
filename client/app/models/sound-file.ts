@@ -1,6 +1,5 @@
 import Model, { attr } from '@ember-data/model';
 import { tracked } from '@glimmer/tracking';
-import { waitForProperty } from 'ember-concurrency';
 import ENV from 'euclip/config/environment';
 import { debugLog } from 'euclip/utils/debug-log';
 import encodeFilePath from 'euclip/utils/encode-file-path';
@@ -17,6 +16,11 @@ type SoundFileState = typeof SoundFileStates[keyof typeof SoundFileStates];
 
 // Local ephemeral model created when an audio file is downloaded.
 // Stores reference to the local URL and metadata
+// stored paths are normally "/Folder/file.mp3", but "Folder/file.mp3" must not silently 404
+function withLeadingSlash(path: string): string {
+  return path.startsWith('/') ? path : `/${path}`;
+}
+
 export default class SoundFileModel extends Model {
   // Static ID counter for each instance
   static ID = 0;
@@ -71,7 +75,7 @@ export default class SoundFileModel extends Model {
    * Generate the full URL for the sound file based on the file path.
    */
   get filepathUrl(): string {
-    return `${ENV.APP['DRUMMACHINES_CDN_PATH']}/${encodeFilePath(this.filePathRelative)}`;
+    return `${ENV.APP['DRUMMACHINES_CDN_PATH']}${encodeFilePath(withLeadingSlash(this.filePathRelative))}`;
   }
 
   /**
@@ -82,7 +86,7 @@ export default class SoundFileModel extends Model {
     const url =
       filePathRelative?.startsWith(`${ENV.APP['ASSETS_PATH']}`)
         ? filePathRelative
-        : `${ENV.APP['DRUMMACHINES_CDN_PATH']}${encodeFilePath(filePathRelative)}`;
+        : `${ENV.APP['DRUMMACHINES_CDN_PATH']}${encodeFilePath(withLeadingSlash(filePathRelative))}`;
 
     if (!url) throw new Error('No URL provided to create sound file');
 
@@ -105,28 +109,30 @@ export default class SoundFileModel extends Model {
    * Finds or downloads the sound file by its relative path.
    * If the file is not yet downloaded, it will create and download it.
    */
-  static async findOrDownload(
-    filePathRelative: string,
-    store: any
-  ): Promise<SoundFileModel> {
-    // Search for the sound file by its relative path
-    let soundFile = store
+  // downloads currently running, by path: callers asking for the same file share one record and one request
+  static inflight = new Map<string, Promise<SoundFileModel>>();
+
+  static findOrDownload(filePathRelative: string, store: any): Promise<SoundFileModel> {
+    const existing: SoundFileModel | undefined = store
       .peekAll('sound-file')
-      .find((item) => item.filePathRelative === filePathRelative);
+      .find((item: SoundFileModel) => item.filePathRelative === filePathRelative);
 
-    if (soundFile?.isDownloading) {
-      // Wait until the file has finished downloading or errored out
-      await waitForProperty(soundFile, 'isDownloading', false);
-    }
-    
-    if (!soundFile?.isDownloaded) {
-      soundFile = store.createRecord('sound-file', {
-        filePathRelative: filePathRelative,
-      });
+    if (existing?.isDownloaded) return Promise.resolve(existing);
+
+    const pending = SoundFileModel.inflight.get(filePathRelative);
+    if (pending) return pending;
+
+    // a failed earlier attempt is retried on the same record: creating another record for the same
+    // path would leave duplicates behind, one stuck in the error state
+    const download = (async () => {
+      const soundFile: SoundFileModel =
+        existing ?? store.createRecord('sound-file', { filePathRelative });
       await soundFile.afterCreate();
-    }
+      return soundFile;
+    })().finally(() => SoundFileModel.inflight.delete(filePathRelative));
 
-    return soundFile;
+    SoundFileModel.inflight.set(filePathRelative, download);
+    return download;
   }
 
   /**

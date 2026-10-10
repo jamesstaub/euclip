@@ -6,7 +6,10 @@ import E from '../utils/euclidean';
 
 export default class SequenceModel extends Model {
   // @ts-ignore - Model registry types are not working properly
-  @belongsTo('track', { async: false, inverse: 'sequence' }) declare track: TrackModel;
+  @belongsTo('track', { async: false, inverse: 'sequences' }) declare track: TrackModel;
+
+  // position within the track; the primary sequence (order 0) drives the track's step display
+  @attr('number', { defaultValue: 0 }) declare order: number;
 
   // euclidean rhythm params (should eventually move to a Sequence model)
   @attr('number', {

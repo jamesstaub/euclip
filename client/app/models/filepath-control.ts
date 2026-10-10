@@ -37,43 +37,35 @@ export default class FilepathControlModel extends Model {
     return sf?.errorMessage;
   }
 
-  // explicitly does not call save to allow saving after restarting audio
+  /**
+   * The file for one sampler slot of a track (slot 0 is the first sampler node, 1 the second...).
+   * A track has at most one control per slot; this finds it or creates it, never a second one.
+   * An empty controlValue gives a client-only record (the API refuses empty paths), which is
+   * what lets the UI show a "pick a sound" button before any file is chosen.
+   * Does not save: callers save once the audio has been restarted.
+   */
   static findOrCreateWith({
     track,
-    trackNode,
+    slot,
     controlValue,
   }: {
     track: any;
-    trackNode: any;
-    controlValue: string;
+    slot: number;
+    controlValue?: string;
   }): FilepathControlModel {
-    // peek for existing filepath control matching trackNode.order with this node order
     let filepathControl = track.filepathControls.find(
-      (control: FilepathControlModel) =>
-        control.orderOfType !== undefined &&
-        control.orderOfType === trackNode.orderOfType
+      (control: FilepathControlModel) => control.nodeOrder === slot && !control.isDeleted
     );
 
-    if (filepathControl && controlValue) {
-      filepathControl.controlValue = controlValue;
+    if (filepathControl) {
+      if (controlValue) filepathControl.controlValue = controlValue;
+      return filepathControl;
     }
 
-    if (!filepathControl) {
-      try {
-        filepathControl = track.store.createRecord('filepath-control', {
-          trackNode,
-          track,
-          nodeOrder: trackNode.nodeOrder || 0,
-          controlValue,
-        });
-        track.filepathControls.push(filepathControl);
-      } catch (error) {
-        console.error('Error creating default filepath control: ', error);
-      }
-    }
-
-    track.applyOrderOfType(track.filepathControls);
-
-    return filepathControl;
+    return track.store.createRecord('filepath-control', {
+      track,
+      nodeOrder: slot,
+      controlValue: controlValue ?? '',
+    });
   }
 }

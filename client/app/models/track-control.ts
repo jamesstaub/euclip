@@ -1,18 +1,14 @@
+import waitUntil from 'euclip/utils/wait-until';
 import Model, { attr, belongsTo } from '@ember-data/model';
 import { isArray } from '@ember/array';
-import {
-  timeout,
-  waitForProperty,
-  task,
-  restartableTask,
-} from 'ember-concurrency';
+import { timeout, task, restartableTask } from 'ember-concurrency';
 
 import { isPresent } from '@ember/utils';
 import { setProperties } from '@ember/object';
 
 import {
   defaultNodeParamsByUnit,
-  unitOptionsForNode,
+  unitOptionsFor,
 } from '../utils/audio-param-config';
 import { applyAttrs } from '../utils/cracked';
 import type TrackModel from './track';
@@ -86,17 +82,33 @@ export default class TrackControlModel extends Model {
   @attr('number') declare defaultValue: number;
   @attr('number') declare controlValue: number;
   @attr('boolean') declare applyHitsOnly: boolean; // TODO: move to a MultisliderControl subclass
+  // One value per sequence step, for controls in multislider mode. Must be an attr: without it
+  // Ember Data never sends it to the API and edits are lost on reload.
+  @attr() declare controlArrayValue: number[] | null;
+  // which of the track's sequences this control's steps follow (see `sequence`)
+  @attr('number', { defaultValue: 0 }) declare sequenceOrder: number;
+
+  /**
+   * The sequence record this control follows: the track's sequence whose `order` matches
+   * `sequenceOrder`, falling back to the primary one (e.g. if that sequence was deleted).
+   */
+  get sequenceRecord() {
+    const track = this.track ?? this.trackNode?.track;
+    const sequences = track?.sortedSequences ?? [];
+    return sequences.find((s) => s.order === this.sequenceOrder) ?? sequences[0];
+  }
 
   get controlArrayComputed() {
     // fill the trackControl model's array with defaul value if it is not the correct length
-    const sequence = this.get('trackNode.track.currentSequence.sequence');
-    const controlArrayValue = this.controlArrayValue || [];
+    const sequence = this.sequenceRecord?.sequence;
+    const stored = this.controlArrayValue || [];
     if (sequence) {
-      while (controlArrayValue.length < sequence.length) {
-        controlArrayValue.push(this.defaultValue);
+      // pad with the default (never mutate the stored attr in place) and trim to the sequence length
+      const padded = stored.slice(0, sequence.length);
+      while (padded.length < sequence.length) {
+        padded.push(this.defaultValue);
       }
-      const a = controlArrayValue.slice(0, sequence.length);
-      return a;
+      return padded;
     } else {
       return null;
     }
@@ -136,7 +148,7 @@ export default class TrackControlModel extends Model {
   // Ordered array if unit names for this control
   // the 0th element is the default unit that the node expects
   get paramUnitNames() {
-    return unitOptionsForNode[this.nodeAttr] ?? [];
+    return unitOptionsFor(this.nodeType, this.nodeAttr);
   }
 
   get currentParamUnitLabel() {
@@ -144,7 +156,7 @@ export default class TrackControlModel extends Model {
   }
 
   get unitParamsForAttr() {
-    return defaultNodeParamsByUnit[this.nodeType][this.nodeAttr];
+    return defaultNodeParamsByUnit[this.nodeType]?.[this.nodeAttr];
   }
 
   get sortOrder() {
@@ -335,7 +347,7 @@ export default class TrackControlModel extends Model {
     this.set(
       'controlArrayValue',
       Array.from(
-        new Array(this.controlArrayValue.length),
+        new Array(this.controlArrayComputed?.length ?? 0),
         () => this.defaultValue
       )
     );
@@ -351,7 +363,7 @@ export default class TrackControlModel extends Model {
     this.currentUnitTransformIdx = index;
 
     const { min, max, stepSize, defaultValue } =
-      this.unitParamsForAttr[this.currentParamUnitLabel];
+      this.unitParamsForAttr?.[this.currentParamUnitLabel] ?? {};
 
     if (isPresent(min)) {
       this.min = min;
@@ -391,7 +403,7 @@ export default class TrackControlModel extends Model {
 
   @task
   *awaitAndDestroy() {
-    yield waitForProperty(this, 'isSaving', false);
+    yield waitUntil(() => !this.isSaving);
     if (!this.isDeleted && !this.isDeleting) {
       yield this.destroyRecord();
     }
@@ -476,8 +488,8 @@ export default class TrackControlModel extends Model {
 
           acc[trackControl.trackNode.uniqueSelector][trackControl.nodeAttr] =
             trackControl.attrValueForType(index);
-          return acc;
         }
+        return acc;
       }, {});
   }
 

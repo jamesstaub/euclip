@@ -10,7 +10,7 @@ export default class OnstepScriptModel extends ScriptModel {
   @belongsTo('track', { async: false, inverse: 'onstepScript' }) declare track: TrackModel;
 
   newFunction() {
-    return new Function('index', 'data', 'array', this.safeCode).bind(
+    return new Function('index', 'data', 'array', 'sequenceIndex', this.safeCode).bind(
       this.track.get('scriptScope')
     );
   }

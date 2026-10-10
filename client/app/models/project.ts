@@ -247,21 +247,9 @@ export default class ProjectModel extends Model {
   
   static async setTrackFilepath(track: TrackModel, filepath: string): Promise<void> {
     try {
-      // Find or create filepath control for this track
-      const filepathControl = track.filepathControls.find(fc => fc.nodeOrder === 0) ||
-        (track.store as any).createRecord('filepath-control', {
-          track,
-          nodeOrder: 0,
-          controlValue: filepath
-        });
-      
-      if (filepathControl.controlValue !== filepath) {
-        filepathControl.controlValue = filepath;
-        await filepathControl.save();
-      }
-      
-      // Re-setup the track with the new filepath
-      await this.setupTrack(track);
+      // slot 0 is the track's first sampler; setFile downloads, saves and rebuilds the audio
+      await track.setFile(0, filepath);
+      track.state = TrackState.SETUP;
     } catch (error) {
       track.state = TrackState.ERROR;
       throw error;
