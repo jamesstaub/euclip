@@ -13,7 +13,7 @@ class V1::TracksController < V1::BaseController
         return duplicate
       end
 
-      @track = Track.create_with_relations!({project_id: @project.id})
+      @track = Track.create_with_relations!({project_id: @project.id, track_type: @attributes&.dig(:track_type)})
       if @track.save
         render json: TrackSerializer.new(
           @track,

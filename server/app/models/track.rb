@@ -26,10 +26,20 @@ class Track < ApplicationRecord
         file_path = params.delete(:file_path)
       end
 
-      track = self.create!(params)
-      track.create_init_script!
-      track.sequences.create!(order: 0)
-      track.create_onstep_script!
+      requested_type = params.delete(:track_type)
+      # the master track (main output) has its own default scripts and is not one of the user-facing types
+      type = params[:is_master] ? nil : TrackType.fetch(requested_type)
+      track = self.create!(params.merge(track_type: type ? type.key : 'master'))
+
+      if type
+        track.create_init_script!(safe_code: type.init_script)
+        type.sequences.each_with_index { |attrs, i| track.sequences.create!(attrs.merge(order: i)) }
+        track.create_onstep_script!(safe_code: type.onstep_script)
+      else
+        track.create_init_script!
+        track.sequences.create!(order: 0)
+        track.create_onstep_script!
+      end
       track.filepath_controls.create(control_value: file_path, node_order: 0) if file_path.present?
       track
     end

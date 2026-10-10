@@ -40,6 +40,7 @@ Rails.application.routes.draw do
     end
 
     resources :tracks, only: %i[update destroy]
+    get '/track-types', to: 'track_types#index'
     resources :track_controls, :path => '/track-controls'
     resources :filepath_controls, :path => '/filepath-controls'
 

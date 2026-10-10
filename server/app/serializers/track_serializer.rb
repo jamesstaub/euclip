@@ -1,7 +1,7 @@
 class TrackSerializer
   include JSONAPI::Serializer
   set_key_transform :dash
-  attributes :id, :order, :is_master
+  attributes :id, :order, :is_master, :track_type
   belongs_to :project
   # in some cases we dont want to return these relationships for the whole list, just for a given track.
   # like when a track is duplicated, we re-order all other tracks, so only the newly duplicated track gets all
