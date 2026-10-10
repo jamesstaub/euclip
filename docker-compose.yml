@@ -21,9 +21,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_HOST: euclip_db  # Use the service name as the hostname
       POSTGRES_PORT: 5432
-      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
-      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
-      # ...other environment variables...
     ports:
       - "3000:3000"
     volumes:

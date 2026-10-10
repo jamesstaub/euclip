@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2025_04_23_000645) do
+ActiveRecord::Schema[7.0].define(version: 2025_10_10_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -172,19 +172,6 @@ ActiveRecord::Schema[7.0].define(version: 2025_04_23_000645) do
     t.index ["script_id"], name: "index_tracks_on_script_id"
   end
 
-  create_table "user_auths", force: :cascade do |t|
-    t.uuid "user_id", null: false
-    t.string "provider", null: false
-    t.string "uid", null: false
-    t.string "access_token", null: false
-    t.string "avatar_id"
-    t.datetime "token_expires_at"
-    t.jsonb "extra_data"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["provider", "uid"], name: "index_user_auths_on_provider_and_uid", unique: true
-  end
-
   create_table "user_roles", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "user_id"
     t.bigint "project_id"
@@ -241,7 +228,6 @@ ActiveRecord::Schema[7.0].define(version: 2025_04_23_000645) do
   add_foreign_key "sequences", "tracks"
   add_foreign_key "track_controls", "tracks"
   add_foreign_key "tracks", "projects"
-  add_foreign_key "user_auths", "users"
   add_foreign_key "user_roles", "projects"
   add_foreign_key "user_roles", "users"
 end

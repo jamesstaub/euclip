@@ -19,7 +19,6 @@ class User < ApplicationRecord
     authentication_keys: [:login]
 
   has_many :projects, foreign_key: "creator_id"
-  has_one :user_auth
   
   has_one_attached :avatar
 

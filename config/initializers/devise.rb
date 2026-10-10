@@ -33,8 +33,7 @@ Devise.setup do |config|
     jwt.request_formats = { user: [:json] }
 
     jwt.dispatch_requests = [
-      ['POST', %r{^\/login$}],
-      ['POST', %r{^/oauth/auth$}]
+      ['POST', %r{^\/login$}]
     ]
 
     jwt.revocation_requests = [

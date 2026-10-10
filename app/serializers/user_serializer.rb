@@ -7,8 +7,6 @@ class UserSerializer
   attributes :first_name, :last_name, :username, :email, :settings,
              :avatar_metadata, :created_at, :updated_at
 
-  has_one :user_auth
-
   link :self do |object|
     { url: "#{USER_PATH}/#{object.id}" }
   end
