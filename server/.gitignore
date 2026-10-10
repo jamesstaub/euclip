@@ -32,3 +32,13 @@ coverage
 .credentials.yml
 public/assets/audio/drum-machines
 config/ssl
+# Ember build output (built from ../client)
+/public/assets
+/public/icons
+/public/vendor
+/public/index.html
+/public/favicon.ico
+/public/wasm
+
+# plaintext secrets (previously tracked as credentials.yml)
+/credentials.yml
