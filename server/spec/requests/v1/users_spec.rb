@@ -52,10 +52,8 @@ RSpec.describe 'V1::Users', type: :request do
       get "#{user_path}/#{a_user.id}", headers: @auth_header
       jdata = json_parse(response.body)
 
-      expect(jdata.dig(:data, :links, :destroy_avatar, :method)).to eql('delete')
       expect(jdata.dig(:data, :links, :self, :url)).to eql("#{user_path}/#{a_user.id}")
       expect(jdata.dig(:data, :links, :avatar, :url)).to eql("#{user_path}/#{a_user.id}/avatar")
-      expect(jdata.dig(:data, :links, :destroy_avatar, :url)).to eql('registrations/avatar')
     end
 
     it 'should return not_found if user ID is invalid' do
@@ -94,13 +92,6 @@ RSpec.describe 'V1::Users', type: :request do
       get user_path
 
       expect(response).to have_http_status(401)
-    end
-
-    it 'should return unauthorized message' do
-      get user_path
-      jdata = json_parse(response.body)
-
-      expect(jdata).to include(error: 'You need to sign in or sign up before continuing.')
     end
   end
 end

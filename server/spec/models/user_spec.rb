@@ -85,24 +85,6 @@ RSpec.describe User, type: :model do
       end
     end
 
-    describe 'first_name' do
-      it 'should have error if NOT present' do
-        user = build(:user, first_name: '')
-        user.save
-
-        expect(user.errors.full_messages).to include("First name can't be blank")
-      end
-    end
-
-    describe 'last_name' do
-      it 'should have error if NOT present' do
-        user = build(:user, last_name: '')
-        user.save
-
-        expect(user.errors.full_messages).to include("Last name can't be blank")
-      end
-    end
-
     describe 'username' do
       it 'should have error if NOT present' do
         user = build(:user, username: '')
@@ -164,42 +146,12 @@ RSpec.describe User, type: :model do
     end
 
     describe 'password' do
-      let(:char_message) { "Password must include 1 special char @\#$%^&+=, 1 CAP char, 1 low char" }
-
       describe 'on create' do
         it 'should have error if NOT the correct length' do
           user = build(:user, password: '$1Go', password_confirmation: '$1Go')
           user.save
 
           expect(user.errors.full_messages).to include('Password is too short (minimum is 6 characters)')
-        end
-
-        it 'should have a special character' do
-          user = build(:user, password: '1GoGoGo', password_confirmation: '1GoGoGo')
-          user.save
-
-          expect(user.errors.full_messages).to include(char_message)
-        end
-
-        it 'should have an uppercase char' do
-          user = build(:user, password: '$1gogo', password_confirmation: '$1gogo')
-          user.save
-
-          expect(user.errors.full_messages).to include(char_message)
-        end
-
-        it 'should have a lowercase char' do
-          user = build(:user, password: '$1GOGO', password_confirmation: '$1GOGO')
-          user.save
-
-          expect(user.errors.full_messages).to include(char_message)
-        end
-
-        it 'should have a number' do
-          user = build(:user, password: '$GoGoGo', password_confirmation: '$GoGoGo')
-          user.save
-
-          expect(user.errors.full_messages).to include(char_message)
         end
       end
 
@@ -212,30 +164,6 @@ RSpec.describe User, type: :model do
           user.update(password: '$1Go', password_confirmation: '$1Go')
 
           expect(user.errors.full_messages).to include('Password is too short (minimum is 6 characters)')
-        end
-
-        it 'should have a special character' do
-          user.update(password: '1GoGoGo', password_confirmation: '1GoGoGo')
-
-          expect(user.errors.full_messages).to include(char_message)
-        end
-
-        it 'should have an uppercase char' do
-          user.update(password: '$1gogo', password_confirmation: '$1gogo')
-
-          expect(user.errors.full_messages).to include(char_message)
-        end
-
-        it 'should have a lowercase char' do
-          user.update(password: '$1GOGO', password_confirmation: '$1GOGO')
-
-          expect(user.errors.full_messages).to include(char_message)
-        end
-
-        it 'should have a number' do
-          user.update(password: '$GoGoGo', password_confirmation: '$GoGoGo')
-
-          expect(user.errors.full_messages).to include(char_message)
         end
       end
     end

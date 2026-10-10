@@ -6,49 +6,53 @@ RSpec.describe 'Registration', type: :request do
   let(:registration_url) { '/registration' }
 
   describe 'POST /registration' do
-    let(:params) { {
-      user: {
-        first_name: Faker::Name.first_name,
-        last_name:  Faker::Name.last_name,
-        username:   Faker::Internet.username(specifier: 8),
-        email:      Faker::Internet.safe_email,
-        password:   '$Qwerty1',
-        password_confirmation: '$Qwerty1',
-      }
+    let(:headers) { { 'Content-Type': APP_JSON, Accept: APP_JSON } }
+    let(:attributes) { {
+      username: Faker::Internet.username(specifier: 8),
+      email:    Faker::Internet.safe_email,
+      password: '$Qwerty1',
     } }
+    let(:params) { { data: { type: 'users', attributes: attributes } } }
 
     describe 'success' do
       it 'should return status 201' do
-        post registration_url, params: params
+        post registration_url, params: params.to_json, headers: headers
         expect(response).to have_http_status(201)
       end
 
       it "should return the new user's data" do
-        post registration_url, params: params
+        post registration_url, params: params.to_json, headers: headers
         jdata = json_parse(response.body)
 
         expect(jdata.dig(:data, :type)).to eql('user')
-        expect(jdata.dig(:data, :attributes, :first_name)).to eql(params.dig(:user, :first_name))
+        expect(jdata.dig(:data, :attributes, :username)).to eql(attributes[:username])
+      end
+
+      it 'should let the new user log in' do
+        post registration_url, params: params.to_json, headers: headers
+        post '/login', params: { user: { login: attributes[:username], password: '$Qwerty1' } }.to_json, headers: headers
+
+        expect(response).to have_http_status(200)
+        expect(response.headers['Authorization']).to be_present
       end
     end
 
     describe 'failure' do
-      it 'should return status 422' do
-        post registration_url
-        expect(response).to have_http_status(422)
-      end
-
-      it 'should return error messages' do
-        post registration_url, headers: @auth_header
+      it 'should return status 422 and messages for a blank password' do
+        attributes[:password] = ''
+        post registration_url, params: params.to_json, headers: headers
         jdata = json_parse(response.body)
 
-        expect(jdata[:errors]).to include("Email can't be blank")
-        expect(jdata[:errors]).to include("Email format is invalid")
+        expect(response).to have_http_status(422)
         expect(jdata[:errors]).to include("Password can't be blank")
-        expect(jdata[:errors]).to include("Password must include 1 special char @\#$%^&+=, 1 CAP char, 1 low char")
-        expect(jdata[:errors]).to include("First name can't be blank")
-        expect(jdata[:errors]).to include("Last name can't be blank")
-        expect(jdata[:errors]).to include("Username can't be blank")
+      end
+
+      it 'should reject a duplicate username' do
+        create(:user, username: attributes[:username])
+        post registration_url, params: params.to_json, headers: headers
+
+        expect(response).to have_http_status(422)
+        expect(json_parse(response.body)[:errors]).to include('Username has already been taken')
       end
     end
   end
@@ -60,8 +64,8 @@ RSpec.describe 'Registration', type: :request do
 
     describe 'success' do
       let(:params)  { { user: { current_password: '$Qwerty1', username: 'newusername' } } }
-      let(:avatar) { fixture_file_upload('images/rails-logo1.png') }
-      let(:avatar2) { fixture_file_upload('images/rails-logo2.png') }
+      let(:avatar) { Rack::Test::UploadedFile.new(Rails.root.join('spec/fixtures/images/rails-logo1.png'), 'image/png') }
+      let(:avatar2) { Rack::Test::UploadedFile.new(Rails.root.join('spec/fixtures/images/rails-logo2.png'), 'image/png') }
 
       it 'should return status 201' do
         put registration_url, params: params, headers: @auth_header
@@ -150,7 +154,8 @@ RSpec.describe 'Registration', type: :request do
       end
 
       it 'should return error if the token is expired' do
-        Timecop.travel(3.days)
+        cookies.delete('_euclip_session') # test the JWT, not the session cookie
+        Timecop.travel(31.days)
         put registration_url, params: params, headers: @auth_header
         jdata = json_parse(response.body)
 

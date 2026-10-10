@@ -12,7 +12,7 @@ class SessionsController < Devise::SessionsController
     # we are using the cookie authentication in addition to JWT because rails 7
     # upgrade began throwing an error when config.session_store :disabled
     # so we manually cleanup the cookie here
-    response.set_cookie('_euclip_session', {})
+    response.delete_cookie('_euclip_session')
 
     signout_user
     verify_user_is_signed_out

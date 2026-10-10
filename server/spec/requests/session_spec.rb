@@ -72,14 +72,14 @@ RSpec.describe 'Session', type: :request do
       end
 
       it 'should return status 500' do
-        Timecop.travel(3.days)
+        Timecop.travel(31.days)
         delete logout_url, headers: @headers
 
         expect(response).to have_http_status(500)
       end
 
       it 'should notify the user that the token has expired' do
-        Timecop.travel(3.days)
+        Timecop.travel(31.days)
         delete logout_url, headers: @headers
 
         expect(response.body).to match(/Signature has expired/)

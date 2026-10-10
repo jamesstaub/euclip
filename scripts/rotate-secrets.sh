@@ -33,8 +33,7 @@
 #   2. deploy (the app needs the NEW master key set as RAILS_MASTER_KEY: the
 #      --heroku flag does this; do it right before you deploy the new commit)
 #   3. once verified, delete server/config/.rotation-backup-*  (it holds the OLD key)
-#   4. manually rotate anything this script cannot reach (Discord client
-#      secret in the Discord developer portal, DB password, etc.)
+#   4. manually rotate anything this script cannot reach (DB passwords, etc.)
 
 set -euo pipefail
 
@@ -171,7 +170,5 @@ Done. Next:
   1. git add server/config/credentials.yml.enc && git commit
   2. $( [[ -z "$HEROKU_APP" ]] && echo "set the new RAILS_MASTER_KEY on Heroku (re-run with --heroku <app>), then" ) deploy
   3. after verifying, delete $BACKUP  (it contains the OLD master key)
-  4. rotate manually: Discord client secret (Discord developer portal), database passwords
-     for any exposed environments, and remove any remaining DISCORD_* vars:
-       heroku config:unset DISCORD_CLIENT_ID DISCORD_CLIENT_SECRET -a <app>
+  4. rotate anything this script cannot reach (e.g. database passwords for exposed environments)
 EOF

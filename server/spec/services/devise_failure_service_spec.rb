@@ -8,6 +8,7 @@ RSpec.describe 'DeviseFailureService', type: :request do
   end
 
   it 'should return an expected error' do
+    cookies.delete('_euclip_session') # test the JWT, not the session cookie
     set_auth_with_bad_jti
     @headers[:Authorization] = @auth
     put '/registration', params: { user: { username: 'newusername', current_password: '$Qwerty1' } }.to_json, headers: @headers
