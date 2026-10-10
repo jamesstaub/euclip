@@ -4,15 +4,15 @@ have_ruby="$(cd server && ruby -e 'print RUBY_VERSION' 2>/dev/null || true)"
 if [[ "$have_ruby" != "$want_ruby" ]]; then
   cat >&2 <<MSG
 Ruby $want_ruby is required (found: ${have_ruby:-none}; macOS's built-in Ruby is too old).
-Install it with a version manager, e.g. with Homebrew:
+Install it with rvm:
 
-  brew install rbenv ruby-build libyaml openssl@3 libpq
-  echo 'eval "\$(rbenv init - zsh)"' >> ~/.zshrc && exec zsh      # one time
-  (cd server && rbenv install $want_ruby)                         # reads server/.ruby-version
+  rvm install $want_ruby --with-openssl-dir="\$(brew --prefix openssl@3)"
+  rvm use $want_ruby --default        # bin/ scripts use whatever ruby your shell has active
   gem install bundler -v 2.4.19
   bundle config build.pg --with-pg-config="\$(brew --prefix libpq)/bin/pg_config"
+  (brew install libyaml libpq openssl@3 if you haven't already)
 
-(mise, asdf or rvm work too; just make 'ruby -v' print $want_ruby inside server/.)
+Then re-run this script from a shell where 'cd server && ruby -v' prints $want_ruby.
 MSG
   exit 1
 fi

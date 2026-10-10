@@ -13,7 +13,14 @@ copies it into `server/public`, and Rails serves the SPA plus the `/v1` API.
 ## Prerequisites
 
 - Node 18 (`nvm use` reads `.nvmrc`)
-- Ruby 3.2.8 (`server/.ruby-version`; rbenv/rvm/asdf)
+- Ruby 3.2.8 (`server/.ruby-version`), e.g. with rvm:
+  ```bash
+  brew install libyaml libpq openssl@3
+  rvm install 3.2.8 --with-openssl-dir="$(brew --prefix openssl@3)"
+  rvm use 3.2.8 --default
+  gem install bundler -v 2.4.19
+  bundle config build.pg --with-pg-config="$(brew --prefix libpq)/bin/pg_config"
+  ```
 - Postgres 15, or Docker (`docker compose up -d db` starts one that matches `.env.example`)
 - `server/config/master.key`: needed to decrypt `server/config/credentials.yml.enc`
   (devise/JWT secrets). Ask a teammate or your password manager; it is not in git.
