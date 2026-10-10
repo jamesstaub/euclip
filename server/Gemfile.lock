@@ -135,6 +135,10 @@ GEM
     discard (1.2.1)
       activerecord (>= 4.2, < 8)
     docile (1.4.0)
+    dotenv (3.2.0)
+    dotenv-rails (3.2.0)
+      dotenv (= 3.2.0)
+      railties (>= 6.1)
     dry-auto_inject (0.9.0)
       dry-container (>= 0.3.4)
     dry-configurable (0.16.1)
@@ -153,6 +157,8 @@ GEM
     factory_bot_rails (6.2.0)
       factory_bot (~> 6.2.0)
       railties (>= 5.0.0)
+    faker (2.23.0)
+      i18n (>= 1.8.11, < 2)
     ffi (1.15.5)
     ffi-compiler (1.0.1)
       ffi (>= 1.0.0)
@@ -402,7 +408,9 @@ DEPENDENCIES
   devise-encryptable
   devise-jwt
   discard
+  dotenv-rails
   factory_bot_rails
+  faker (~> 2.23)
   hamlit
   hamlit-rails
   html2haml
@@ -433,4 +441,4 @@ RUBY VERSION
    ruby 3.2.8p263
 
 BUNDLED WITH
-   2.4.1
+   2.4.19

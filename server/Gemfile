@@ -44,6 +44,10 @@ gem 'devise-jwt' # https://github.com/waiting-for-dev/devise-jwt
 # ------ AUTHORIZATION -------------------
 gem 'cancancan'
 
+group :development, :test do
+  gem 'dotenv-rails'
+end
+
 group :development do
   gem 'html2haml'
   gem 'letter_opener'
@@ -57,6 +61,7 @@ end
 
 group :development, :test do
   gem 'factory_bot_rails'
+  gem 'faker', '~> 2.23'
   gem 'rspec-rails'
   gem 'pry-byebug'
   gem 'pry-rails'
