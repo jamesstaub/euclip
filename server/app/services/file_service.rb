@@ -47,6 +47,7 @@ class FileService
     offset = page * page_size
 
     searchable_files = SearchableFile
+                      .audio_files # not covers, Thumbs.db, notes...
                       .includes(:root)
                       .where("LOWER(path) LIKE LOWER(?)", "%#{SearchableFile.sanitize_sql_like(query.to_s)}%")
                       .offset(offset)

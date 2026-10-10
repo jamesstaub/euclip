@@ -7,6 +7,8 @@ RSpec.describe 'V1::Files', type: :request do
     SearchableDirectory.create!(name: '/')
     FileService.create_record('Roland/TR 808/kick.mp3')
     FileService.create_record('WAV hh+filterloops/loop 1.mp3')
+    FileService.create_record('Roland/TR 808/kick cover.jpg')
+    FileService.create_record('Roland/TR 808/Thumbs.db')
     login_user
   end
 
@@ -64,6 +66,11 @@ RSpec.describe 'V1::Files', type: :request do
 
     it 'matches file paths case-insensitively' do
       expect(search('KICK')).to eq(['kick.mp3'])
+    end
+
+    it 'only returns audio files (no images or system files)' do
+      expect(search('kick')).to eq(['kick.mp3'])
+      expect(search('thumbs')).to be_empty
     end
 
     it 'treats % and _ literally instead of as wildcards' do
