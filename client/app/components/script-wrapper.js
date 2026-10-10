@@ -3,44 +3,34 @@ import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import { service } from '@ember/service';
 
-import { useMachine } from 'ember-statecharts';
-import scriptWrapperMachine from '../machines/script-wrapper-machine';
-
-import { isPresent } from '@ember/utils';
 
 export default class ScriptWrapperComponent extends Component {
   @service store;
   @tracked editorLineCount;
 
-  statechart = useMachine(this, () => {
-    return {
-      machine: scriptWrapperMachine.withConfig({
-        guards: {
-          canShowInit: this._initModelPresent.bind(this),
-          canShowOnstep: this._onstepModelPresent.bind(this),
-        },
-      }),
-    };
-  });
+  // which panel is showing: the scripts, the signal-chain GUI or the presets list
+  @tracked view = 'script'; // 'script' | 'signalGui' | 'presets'
+  // which script tab, when view === 'script'
+  @tracked tab = 'init'; // 'init' | 'onstep'
 
   get showPresets() {
-    return this.statechart.state.matches('presets');
+    return this.view === 'presets';
   }
 
   get showSignalGui() {
-    return this.statechart.state.matches('signalGui');
+    return this.view === 'signalGui';
   }
 
   get showScripts() {
-    return this.statechart.state.matches('script');
+    return this.view === 'script';
   }
 
   get showInitScript() {
-    return this.statechart.state.matches({ script: 'init' });
+    return this.view === 'script' && this.tab === 'init';
   }
 
   get showOnstepScript() {
-    return this.statechart.state.matches({ script: 'onstep' });
+    return this.view === 'script' && this.tab === 'onstep';
   }
 
   /*
@@ -48,12 +38,12 @@ export default class ScriptWrapperComponent extends Component {
   */
   @action
   openGUI() {
-    this.statechart.send('OPEN_GUI');
+    this.view = 'signalGui';
   }
 
   @action
   openPresets() {
-    this.statechart.send('OPEN_PRESETS');
+    this.view = 'presets';
   }
 
   @action
@@ -65,33 +55,31 @@ export default class ScriptWrapperComponent extends Component {
         .perform('editorContent', scriptModel.signalChainGeneratedCode);
       await scriptModel.get('runCode').perform();
     }
-    this.statechart.send('CREATE_FROM_GUI');
+    this.backToScript();
   }
 
   @action
   backToScript() {
-    this.statechart.send('BACK_TO_SCRIPT');
+    this.view = 'script';
+    this.tab = 'init';
   }
 
   @action
   setUITypeTab(selectedTab) {
-    this.statechart.send(`SET_TAB_${selectedTab.toUpperCase()}`);
+    this.setTab(selectedTab);
   }
 
   @action
   setScriptTypeTab(selectedTab) {
-    this.statechart.send(`SET_TAB_${selectedTab.toUpperCase()}`);
+    this.setTab(selectedTab);
   }
 
-  /*
-    state machine guards
-  */
-  _initModelPresent() {
-    return isPresent(this.args.track.initScript);
-  }
-
-  _onstepModelPresent() {
-    return isPresent(this.args.track.onstepScript);
+  setTab(selectedTab) {
+    const tab = String(selectedTab).toLowerCase();
+    // tabs only exist on the scripts panel
+    if (this.view === 'script' && (tab === 'init' || tab === 'onstep')) {
+      this.tab = tab;
+    }
   }
 
   // since the script wrapper is only rendered once on the project level

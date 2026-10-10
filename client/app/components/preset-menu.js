@@ -1,61 +1,39 @@
 import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
-import { useMachine } from 'ember-statecharts';
-import listSelectMachine from '../machines/list-select-machine';
 
 export default class PresetMenuComponent extends Component {
   @tracked item;
   @tracked selectedPreset;
-
-  statechart = useMachine(this, () => {
-    return {
-      machine: listSelectMachine
-        .withConfig({
-          actions: {
-            handleSelectItem(context) {
-              const { component } = context;
-              // validate existance of selectedPreset?
-              component.selectedPreset;
-            },
-            handleSubmit(context) {
-              const { component } = context;
-              component.submit();
-            },
-            handleSuccess(context) {
-              const { component } = context;
-              component.args.closeMenu();
-            },
-          },
-        })
-        .withContext({
-          component: this,
-        }),
-    };
-  });
+  // 'idle' -> 'selected' -> 'loading' -> 'success' | 'error' (re-selecting after an error retries)
+  @tracked status = 'idle';
 
   get canSubmit() {
-    return this.statechart.state.matches('selected');
+    return this.status === 'selected';
   }
 
   async submit() {
+    this.status = 'loading';
     try {
-      this.statechart.send('LOADING');
       await this.args.onSubmit(this.selectedPreset.id);
-      this.statechart.send('SUCCESS');
+      this.status = 'success';
+      this.args.closeMenu();
     } catch (error) {
-      this.statechart.send('ERROR', error);
+      console.error('Applying preset failed', error);
+      this.status = 'error';
     }
   }
 
   @action
   selectItem(item) {
+    if (this.status === 'loading') return;
     this.selectedPreset = item;
-    this.statechart.send('SELECT');
+    this.status = 'selected';
   }
 
   @action
   async applyPreset() {
-    this.statechart.send('SUBMIT');
+    if (!this.canSubmit) return;
+    await this.submit();
   }
 }
