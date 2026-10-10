@@ -1,3 +1,4 @@
+import encodeFilePath from 'euclip/utils/encode-file-path';
 import Model from '@ember-data/model';
 import { belongsTo } from '@ember-data/model';
 import { tracked } from '@glimmer/tracking';
@@ -146,9 +147,7 @@ export default class AudioFileTreeModel extends Model {
     { search, page }: FetchDirectoryOptions,
     requestCache?: RequestCacheService
   ): Promise<DirectoryResponse> {
-    const encodedPath = path
-      ? path.split('/').map(encodeURIComponent).join('/')
-      : '';
+    const encodedPath = path ? encodeFilePath(path) : '';
 
     const searchQuery = search ? `/search?q=${search}&page=${page}` : '';
     const url = `${ENV.APP['API_PREFIX']}/files${encodedPath}${searchQuery}`;

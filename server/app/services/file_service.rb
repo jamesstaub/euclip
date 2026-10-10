@@ -48,7 +48,7 @@ class FileService
 
     searchable_files = SearchableFile
                       .includes(:root)
-                      .where("LOWER(path) LIKE LOWER(?)", "%#{query}%")
+                      .where("LOWER(path) LIKE LOWER(?)", "%#{SearchableFile.sanitize_sql_like(query.to_s)}%")
                       .offset(offset)
                       .limit(page_size)
 

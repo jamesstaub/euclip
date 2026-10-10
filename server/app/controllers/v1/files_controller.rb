@@ -2,7 +2,8 @@ class V1::FilesController < ApplicationController
   respond_to :json
 
   def index
-    path = CGI.unescape(request.path.gsub("/v1/files", ""))
+    # path-style decoding: a literal "+" is a plus, not a space (CGI.unescape is for query strings)
+    path = Rack::Utils.unescape_path(request.path.sub("/v1/files", ""))
     parts = path.split('/').reject(&:empty?)
 
     root_dir = SearchableDirectory.get_root

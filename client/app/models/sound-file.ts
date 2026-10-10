@@ -3,6 +3,7 @@ import { tracked } from '@glimmer/tracking';
 import { waitForProperty } from 'ember-concurrency';
 import ENV from 'euclip/config/environment';
 import { debugLog } from 'euclip/utils/debug-log';
+import encodeFilePath from 'euclip/utils/encode-file-path';
 
 export const SoundFileStates = {
   INIT: 'init',
@@ -70,7 +71,7 @@ export default class SoundFileModel extends Model {
    * Generate the full URL for the sound file based on the file path.
    */
   get filepathUrl(): string {
-    return `${ENV.APP['DRUMMACHINES_CDN_PATH']}/${this.filePathRelative}`;
+    return `${ENV.APP['DRUMMACHINES_CDN_PATH']}/${encodeFilePath(this.filePathRelative)}`;
   }
 
   /**
@@ -81,7 +82,7 @@ export default class SoundFileModel extends Model {
     const url =
       filePathRelative?.startsWith(`${ENV.APP['ASSETS_PATH']}`)
         ? filePathRelative
-        : `${ENV.APP['DRUMMACHINES_CDN_PATH']}${filePathRelative}`;
+        : `${ENV.APP['DRUMMACHINES_CDN_PATH']}${encodeFilePath(filePathRelative)}`;
 
     if (!url) throw new Error('No URL provided to create sound file');
 
