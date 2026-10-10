@@ -179,16 +179,10 @@ export default class TrackNodeModel extends Model {
   async setSamplerControlsToBuffer(buffer: AudioBuffer): Promise<void> {
     this.bufferDuration = buffer.duration;
 
-    const trackControls = await this.store
-      .peekAll('track-control')
-      .filter((tc: any) => !tc.isDeleted);
-
-    trackControls
-      .filterBy('nodeType', 'sampler')
-      .map(
-        async (trackControl: any) =>
-          await trackControl.setSamplerControlsToBuffer(buffer)
-      );
+    // only this node's own controls: other tracks' samplers have their own buffers
+    this.trackControls
+      .filter((tc: any) => !tc.isDeleted && tc.nodeType === 'sampler')
+      .forEach((trackControl: any) => trackControl.setSamplerControlsToBuffer(buffer));
   }
 
   // Find or create track controls for ephemeral TrackNodes

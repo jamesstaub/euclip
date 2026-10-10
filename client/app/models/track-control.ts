@@ -136,10 +136,7 @@ export default class TrackControlModel extends Model {
   // Ordered array if unit names for this control
   // the 0th element is the default unit that the node expects
   get paramUnitNames() {
-    if (!unitOptionsForNode[this.nodeAttr]) {
-      debugger;
-    }
-    return unitOptionsForNode[this.nodeAttr];
+    return unitOptionsForNode[this.nodeAttr] ?? [];
   }
 
   get currentParamUnitLabel() {

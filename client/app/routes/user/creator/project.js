@@ -19,13 +19,11 @@ export default class UserCreatorProjectRoute extends Route {
   // TODO: there was a bug where initSignalChain hung forever.
   // add a loading indicator that resolves with afterModel
   async afterModel(project) {
-    console.log('project after model');
     await project.initSignalChain();
     return project;
   }
 
   setupController(controller, project) {
-    console.log('project setup controller');
     controller.fetchAudioFileTrees(project);
     const defaultAudioFileTree = AudioFileTreeModel.createRecord(this.store);
     controller.setProperties({

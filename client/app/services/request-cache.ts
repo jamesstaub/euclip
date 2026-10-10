@@ -1,3 +1,4 @@
+import { debugLog } from 'euclip/utils/debug-log';
 import Service from '@ember/service';
 
 export default class RequestCacheService extends Service {
@@ -7,10 +8,7 @@ export default class RequestCacheService extends Service {
 
   constructor() {
     super();
-    console.log(
-      '🔧 RequestCacheService constructor called - Service ID:',
-      this.serviceId
-    );
+    debugLog('request-cache', 'service created', this.serviceId);
   }
 
   getItem<T>(key: string): T | undefined {
@@ -47,9 +45,9 @@ export default class RequestCacheService extends Service {
   }
 
   clearCache(): void {
-    console.log('Clearing cache, size before:', this.cache.size);
+    debugLog('request-cache', 'clearing, size before:', this.cache.size);
     this.cache.clear();
-    console.log('Cache cleared, size after:', this.cache.size);
+    debugLog('request-cache', 'cleared, size after:', this.cache.size);
   }
 
   get cacheSize(): number {

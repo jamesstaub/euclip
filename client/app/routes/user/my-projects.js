@@ -20,7 +20,6 @@ export default class UserMyProjectsRoute extends Route {
       });
     } else {
       // this.router.transitionTo('login');
-      console.log('not authenticated');
     }
   }
 

@@ -51,10 +51,7 @@ export default class ScriptModel extends Model {
 
   async onScriptError(e: Error, type: string) {
     const project = await this.track?.project;
-    if (!project) {
-      debugger;
-    }
-    project.stopLoop().resetLoop();
+    project?.stopLoop().resetLoop();
 
     await timeout(100); // Avoid double render
     this.alert = `${type} ${e.message || e}`;

@@ -213,7 +213,8 @@ export default class TrackModel extends Model.extend(Evented) {
         this.setState(TrackState.READY);
       }
       yield this.save();
-    } catch {
+    } catch (error) {
+      console.error(`Failed to update track ${this.id} (${key})`, error);
       this.setState(TrackState.ERROR);
       this.rollbackAttributes();
     }
@@ -277,8 +278,8 @@ export default class TrackModel extends Model.extend(Evented) {
   setupAudioFromScripts(unbindBeforeCreate = true) {
     const initScript = this.initScript;
     if (!initScript) {
-      console.error('no initScript: This happened once, figure out why');
-      debugger;
+      console.error(`Track ${this.id} has no initScript; cannot build its audio`);
+      return;
     }
 
     // settingsForNodes is an array to store audio node uuids created in this track's script
@@ -344,23 +345,26 @@ export default class TrackModel extends Model.extend(Evented) {
       }
     });
 
-    if (unbindBeforeCreate) {
-      this.unbindAndRemoveCrackedNodes();
+    try {
+      if (unbindBeforeCreate) {
+        this.unbindAndRemoveCrackedNodes();
+      }
+
+      // run script to create audio nodes
+      debugLog('track', `#${this.order} running init script`, {
+        files: this.downloadedFilepaths.slice(0, 3),
+        filepathControls: this.filepathControls.map((f) => f.controlValue),
+      });
+      initScript.invokeFunctionRef();
+      debugLog('track', `#${this.order} init script done`, {
+        nodes: this.settingsForNodes.map((n) => n.nodeType),
+        alert: initScript.alert,
+      });
+
+    } finally {
+      // never leave this global hook installed, even if the script or node setup throws
+      extendOnCreateNode(null);
     }
-
-    // run script to create audio nodes
-    debugLog('track', `#${this.order} running init script`, {
-      files: this.downloadedFilepaths.slice(0, 3),
-      filepathControls: this.filepathControls.map((f) => f.controlValue),
-    });
-    initScript.invokeFunctionRef();
-    debugLog('track', `#${this.order} init script done`, {
-      nodes: this.settingsForNodes.map((n) => n.nodeType),
-      alert: initScript.alert,
-    });
-
-    // nullify this callback after creating track nodes to prevent it from getting called outside of this track
-    extendOnCreateNode(null);
 
     // Destroy all TrackNode records for this track, they'll be recreated from the latest update to the AudioNode tree
     this.trackNodes.forEach((trackNode) => this.store.unloadRecord(trackNode));
@@ -602,9 +606,8 @@ export default class TrackModel extends Model.extend(Evented) {
   }
 
   onStepCallback(index, data, array) {
-    if (this.isDeleted) {
-      console.warn('tried to run call back on deleted track, must reset loop');
-
+    if (this.isDeleted || this.isDestroying || this.isDestroyed) {
+      debugLog('track', `step callback on removed track ${this.id}; ignoring`);
       return;
     }
     this.stepIndex = index;

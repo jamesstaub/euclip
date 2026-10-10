@@ -201,7 +201,6 @@ function completionsForState(state, methodName, argPosition, tokenBeforeText) {
     case STATES.ATTRS:
       return getAttrsCompletions(methodName, tokenBeforeText);
     case STATES.PROPERTY:
-      console.log('PROPERTY autocomplete default value?');
       return [];
     case STATES.SELECTED_NODE:
       return getObjectCompletions('Control', 'Connect', 'Find');
@@ -288,8 +287,6 @@ function getObjectCompletions() {
 }
 
 function getSelectorCompletions() {
-  console.log(
-    'TODO: show autocomplete list of possible selectors for available nodes'
-  );
+  // TODO: show autocomplete list of possible selectors for available nodes
   return [];
 }

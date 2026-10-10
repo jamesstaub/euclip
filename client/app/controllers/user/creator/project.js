@@ -14,6 +14,7 @@ export default class UserCreatorProjectController extends Controller {
   @service router;
   @service notifications;
   @tracked activeTrack;
+  isStarting = false;
   @tracked sortedTracks;
   @tracked presetCollections;
 
@@ -132,11 +133,18 @@ export default class UserCreatorProjectController extends Controller {
   }
 
   @action
-  play() {
-    this.model.stopLoop();
-    this.model.resetLoop();
-    this.model.initSignalChain();
-    this.model.startLoop();
+  async play() {
+    if (this.isStarting) return;
+    this.isStarting = true;
+    try {
+      this.model.stopLoop();
+      this.model.resetLoop();
+      // nodes (and samples) must exist before the loop starts stepping
+      await this.model.initSignalChain();
+      this.model.startLoop();
+    } finally {
+      this.isStarting = false;
+    }
   }
 
   @action
