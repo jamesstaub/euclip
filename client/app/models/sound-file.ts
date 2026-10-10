@@ -2,6 +2,7 @@ import Model, { attr } from '@ember-data/model';
 import { tracked } from '@glimmer/tracking';
 import { waitForProperty } from 'ember-concurrency';
 import ENV from 'euclip/config/environment';
+import { debugLog } from 'euclip/utils/debug-log';
 
 export const SoundFileStates = {
   INIT: 'init',
@@ -60,6 +61,7 @@ export default class SoundFileModel extends Model {
       this.transitionToState(SoundFileStates.DOWNLOADED);
     } catch (error) {
       // TODO: Trace where to pass the download error to the user
+      debugLog('sound-file', 'download failed', this.filePathRelative, error);
       this.transitionToState(SoundFileStates.ERROR, { error });
     }
   }
@@ -84,13 +86,17 @@ export default class SoundFileModel extends Model {
     if (!url) throw new Error('No URL provided to create sound file');
 
     const response = await fetch(url);
+    debugLog('sound-file', 'fetch', url, response.status, response.headers.get('content-type'));
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} fetching ${url}`);
+    }
     const blob = await response.blob();
 
-    const mimeTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav'];
+    const mimeTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/wave'];
     if (mimeTypes.includes(blob.type)) {
       return URL.createObjectURL(blob);
     } else {
-      throw `Audio File Not Found at ${url}`;
+      throw new Error(`Not an audio file (got ${blob.type || 'unknown type'}) at ${url}`);
     }
   }
 

@@ -32,6 +32,12 @@
           <p class="tc w4 ma2 {{unless @isActive "light-gray"}}">
             {{#if @track.sourceNodeRecords.firstObject}}
               {{@track.sourceNodeRecords.firstObject.nodeType}}
+            {{else if this.samplerBuildFailed}}
+              <span
+                {{on "click" @onToggleScripts}}
+                class="f6 pa1 red"
+                title={{or @track.scriptAlert "The sampler could not be built; open the script to see why"}}
+              >Sampler failed (see script)</span>
             {{else}}
               <span {{on "click" @onToggleScripts}} class="f6 pa1">No Source Node</span>
             {{/if}}

@@ -6,7 +6,6 @@ import type StoreService from '@ember-data/store';
 import { keepLatestTask, timeout } from 'ember-concurrency';
 import { unbindFromSequencer } from 'euclip/utils/cracked';
 import { SoundFileStates } from 'euclip/models/sound-file';
-import ENV from 'euclip/config/environment';
 
 import type ProjectModel from './project';
 import type InitScriptModel from 'euclip/models/init-script';
@@ -34,6 +33,7 @@ import { isPresent } from '@ember/utils';
 
 import { extendOnCreateNode } from 'euclip/utils/cracked';
 import { FILE_LOAD_STATES } from './track-node';
+import { debugLog } from 'euclip/utils/debug-log';
 
 declare const __: any;
 declare const cracked: any;
@@ -147,26 +147,23 @@ export default class TrackModel extends Model.extend(Evented) {
 
   get downloadedSoundFiles(): (SoundFileModel | null)[] {
     const soundFiles = this.store.peekAll('sound-file') as SoundFileModel[];
-  
-    const silentPath = `${ENV.APP['ASSETS_PATH']}/audio/silent.mp3`;
-    const silentSf = soundFiles.findBy('filePathRelative', silentPath) ?? null;
-  
-    const files: (SoundFileModel | null)[] = Array.from({ length: 16 }, () => silentSf);
-  
+    const files: (SoundFileModel | null)[] = Array.from({ length: 16 }, () => null);
+
     this.sortedFilepathControls.forEach((filepathControl, i) => {
       const match = soundFiles.findBy('filePathRelative', filepathControl.controlValue);
-      if (match) {
+      if (match?.isDownloaded) {
         files[i] = match;
       }
     });
-  
+
     return files;
   }
 
   /**
    * The array of downloaded files exposed to the user via `this.files` in the script.
-   * initialized with array of silent files to avoid errors when no files are downloaded
-  */  
+   * Entries are null until a file has downloaded; samplers are still created without a path
+   * (they are silent until a file loads), so the UI never depends on a download succeeding.
+  */
   get downloadedFilepaths(): (string | null)[] {
     return this.downloadedSoundFiles.map(file => file?.downloadedURI ?? null);
   }
@@ -352,7 +349,15 @@ export default class TrackModel extends Model.extend(Evented) {
     }
 
     // run script to create audio nodes
+    debugLog('track', `#${this.order} running init script`, {
+      files: this.downloadedFilepaths.slice(0, 3),
+      filepathControls: this.filepathControls.map((f) => f.controlValue),
+    });
     initScript.invokeFunctionRef();
+    debugLog('track', `#${this.order} init script done`, {
+      nodes: this.settingsForNodes.map((n) => n.nodeType),
+      alert: initScript.alert,
+    });
 
     // nullify this callback after creating track nodes to prevent it from getting called outside of this track
     extendOnCreateNode(null);

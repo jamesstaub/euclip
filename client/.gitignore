@@ -27,8 +27,7 @@
 /package.json.ember-try
 
 # local copies of drum machine samples (prod/dev read them from the GCS bucket)
-/public/assets/audio/*
-!/public/assets/audio/silent.mp3
+/public/assets/audio
 .DS_Store
 **/.DS_Store
 

@@ -1,9 +1,7 @@
 import Route from '@ember/routing/route';
 import { service } from '@ember/service';
 import ProjectAdapter from 'euclip/adapters/project';
-import { SoundFileStates } from 'euclip/models/sound-file';
 import AudioFileTreeModel from 'euclip/models/audio-file-tree';
-import ENV from 'euclip/config/environment';
 
 export default class UserCreatorProjectRoute extends Route {
   @service store;
@@ -22,7 +20,6 @@ export default class UserCreatorProjectRoute extends Route {
   // add a loading indicator that resolves with afterModel
   async afterModel(project) {
     console.log('project after model');
-    await this.downloadSilent();
     await project.initSignalChain();
     return project;
   }
@@ -45,31 +42,5 @@ export default class UserCreatorProjectRoute extends Route {
       include: 'presets',
     });
     controller.set('presetCollections', presetCollections);
-  }
-
-  // silent.mp3 is used to guarantee AudioBufferSourceNode creation
-  // even before a filepath is chosen.
-  // expected to be created with order 1
-  async downloadSilent() {
-    if (
-      this.store.peekAll('sound-file')[0] &&
-      this.store
-        .peekAll('sound-file')[0]
-        .filePathRelative.endsWith('silent.mp3')
-    )
-      return;
-
-    const sf = this.store.createRecord('sound-file', {
-      filePathRelative: `${ENV.APP.ASSETS_PATH}/audio/silent.mp3`,
-    });
-    await sf.afterCreate();
-
-    if (sf.state === SoundFileStates.ERROR) {
-      this.notifications.push({
-        message:
-          'Failed to download fallback audio. Samplers may not work as expected.',
-        type: 'error',
-      });
-    }
   }
 }
