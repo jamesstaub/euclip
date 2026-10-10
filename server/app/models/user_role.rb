@@ -1,0 +1,8 @@
+class UserRole < ApplicationRecord
+  belongs_to :user
+  belongs_to :project
+
+  validates :user_id, uniqueness: { scope: :project_id }
+
+  enum role: [:admin, :creator, :collaborator, :viewer]
+end

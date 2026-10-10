@@ -1,0 +1,2 @@
+class InitScriptSerializer < ScriptSerializer
+end

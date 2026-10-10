@@ -1,0 +1,2 @@
+class OnstepScriptSerializer < ScriptSerializer
+end
