@@ -33,6 +33,7 @@ export default class UserCreatorProjectTrackRoute extends Route {
 
   setupController(controller, model) {
     super.setupController(controller, model);
-    controller.project.activeTrack = model;
+    // the project controller owns the active track; don't depend on this controller exposing it
+    this.controllerFor('user.creator.project').activeTrack = model;
   }
 }

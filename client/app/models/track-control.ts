@@ -194,6 +194,12 @@ export default class TrackControlModel extends Model {
 
     const sampleLenSec = this.trackNode.bufferDuration || 0;
 
+    // Loop Sync stretches the sample to the loop, so it needs the sample's length. Until a file is chosen
+    // and decoded there is nothing to stretch: play at normal speed (silently; this runs on every step).
+    if (this.currentParamUnitLabel === 'Loop Sync' && !sampleLenSec) {
+      return 1;
+    }
+
     const ret = paramsForUnit.func(value, {
       intervalMs: this.track.project.loopInterval,
       sampleLenSec: sampleLenSec,

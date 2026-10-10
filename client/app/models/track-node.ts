@@ -63,6 +63,21 @@ export default class TrackNodeModel extends Model {
     return getCrackedNode(this.nodeUUID);
   }
 
+  // Sample length in seconds: this node's own decoded buffer, else what we already learned about its file
+  @tracked _bufferDuration?: number;
+  get bufferDuration(): number | undefined {
+    return this._bufferDuration ?? this.soundFile?.duration;
+  }
+  set bufferDuration(value: number | undefined) {
+    this._bufferDuration = value;
+  }
+
+  get soundFile(): any {
+    const path = this.filepathControl?.controlValue;
+    if (!path) return undefined;
+    return this.store.peekAll('sound-file').find((file: any) => file.filePathRelative === path);
+  }
+
   // Computed property for checking if the sample is loaded
   get sampleIsLoaded(): boolean {
     return this.fileLoadState === FILE_LOAD_STATES.SUCCESS;
@@ -165,6 +180,7 @@ export default class TrackNodeModel extends Model {
   // Set sampler controls to a given buffer (used for setting the buffer duration)
   async setSamplerControlsToBuffer(buffer: AudioBuffer): Promise<void> {
     this.bufferDuration = buffer.duration;
+    if (this.soundFile) this.soundFile.duration = buffer.duration;
 
     // only this node's own controls: other tracks' samplers have their own buffers
     this.trackControls

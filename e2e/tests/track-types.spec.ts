@@ -17,9 +17,17 @@ async function addTrack(page: Page, typeTitle: string) {
 const nodes = (page: Page, selector: string) => page.evaluate((s) => (window as any).__(s).size(), selector);
 
 test.describe('track types in the New Track menu', () => {
+  // creating a track navigates between routes: nothing may log an error while doing so
+  let pageErrors: string[] = [];
   test.beforeEach(async ({ page }) => {
+    pageErrors = [];
+    page.on('pageerror', (e) => pageErrors.push(e.message));
+    page.on('console', (m) => m.type() === 'error' && pageErrors.push(m.text()));
     await login(page);
     await createProject(page);
+  });
+  test.afterEach(() => {
+    expect(pageErrors).toEqual([]);
   });
 
   test('lists the types the API offers', async ({ page }) => {
@@ -44,6 +52,28 @@ test.describe('track types in the New Track menu', () => {
     await expect(
       page.locator('.controls-wrapper', { has: page.getByText('speed', { exact: true }) }).locator('select option:checked')
     ).toHaveText('Loop Sync');
+  });
+
+  test('a looped sampler never warns about Loop Sync, with or without a file', async ({ page }) => {
+    const warnings: string[] = [];
+    page.on('console', (m) => /loop-relative|Loop Sync/i.test(m.text()) && warnings.push(m.text()));
+
+    const { id } = await addTrack(page, 'Looped sampler');
+    // no file chosen yet: nothing to stretch, so it must stay quiet while stepping
+    await page.getByRole('button', { name: 'play' }).click();
+    await page.waitForTimeout(2500);
+    await page.getByRole('button', { name: 'stop' }).click();
+    expect(warnings).toEqual([]);
+
+    // with a file, and across the rebuild that playing triggers (the node starts without a decoded buffer)
+    await addFilepath(page, { id } as any, 0, '/Korg/Korg 01W/01W TOM.mp3');
+    await page.reload();
+    await page.getByRole('button', { name: 'play' }).click();
+    await page.waitForTimeout(2500);
+    await page.getByRole('button', { name: 'stop' }).click();
+    await page.getByRole('button', { name: 'play' }).click(); // replay: rebuilds the nodes again
+    await page.waitForTimeout(2500);
+    expect(warnings).toEqual([]);
   });
 
   test('a multi-sample kit has four sampler pads, each with its own file slot', async ({ page }) => {

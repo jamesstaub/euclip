@@ -26,6 +26,9 @@ export default class SoundFileModel extends Model {
   static ID = 0;
 
   @tracked state: SoundFileState = SoundFileStates.INIT;
+  // length in seconds, known once the audio has been decoded; lets a rebuilt sampler node know it
+  // straight away (Loop Sync speed needs it) instead of only after its own decode finishes
+  @tracked duration?: number;
 
   // Error message in case of download failure
   @tracked errorMessage: string | null = null;
