@@ -4,8 +4,14 @@ class V1::SnapshotsController < V1::BaseController
   include LenientJsonApiParams
 
   before_action :set_project, only: %i[create]
-  before_action :set_snapshot, only: %i[update destroy activate]
+  before_action :set_snapshot, only: %i[show update destroy activate]
   before_action :authorize_writes, only: %i[create update destroy activate]
+
+  # GET /v1/snapshots/:id?include=tracks,tracks.sequences,...
+  # One snapshot with its tracks, so a snapshot that isn't active can be loaded in the background.
+  def show
+    render json: SnapshotSerializer.new(@snapshot, include: included_relations), status: :ok
+  end
 
   # POST /v1/projects/:project_slug/snapshots
   # Clones the active snapshot (or `relationships.source`) under the given name.

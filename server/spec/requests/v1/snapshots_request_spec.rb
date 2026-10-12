@@ -139,6 +139,25 @@ RSpec.describe 'V1 snapshots', type: :request do
     end
   end
 
+  describe 'loading a snapshot' do
+    it 'returns one snapshot with its tracks and their relations' do
+      other = main.clone!(name: 'B')
+      api(:get, "snapshots/#{other.id}?include=tracks,tracks.sequences,tracks.init-script")
+
+      expect(response).to have_http_status(200)
+      body = json_parse(response.body)
+      expect(body.dig(:data, :attributes, :name)).to eq('B')
+      expect(body.dig(:data, :relationships, :tracks, :data).length).to eq(other.tracks.count)
+      expect(body[:included].map { |i| i[:type] }).to include('track', 'sequence', 'init-script')
+    end
+
+    it "does not show another user's snapshot" do
+      stranger = Project.create_with_relations!(creator_id: create(:user).id)
+      api(:get, "snapshots/#{stranger.active_snapshot.id}")
+      expect(response).to have_http_status(403)
+    end
+  end
+
   describe 'managing snapshots' do
     it 'renames a snapshot and sets its tempo' do
       api(:patch, "snapshots/#{main.id}", { data: { type: 'snapshot', id: main.id.to_s, attributes: { name: 'Intro', bpm: 140 } } })
