@@ -4,6 +4,8 @@ import { attr, hasMany, belongsTo } from '@ember-data/model';
 import { tracked } from '@glimmer/tracking';
 import type UserModel from './user';
 import type TrackModel from 'euclip/models/track';
+import type SnapshotModel from 'euclip/models/snapshot';
+import type ProjectSampleModel from 'euclip/models/project-sample';
 import type { AsyncHasMany, SyncHasMany } from '@ember-data/model';
 import { resetLoop, startLoop, stopLoop, disconnectAll } from 'euclip/utils/cracked';
 import Model from '@ember-data/model';
@@ -20,8 +22,22 @@ export default class ProjectModel extends Model {
   @belongsTo('user', { async: false, inverse: 'projects' })
   declare creator: UserModel;
 
-  @hasMany('track', { async: false, inverse: 'project' })
-  declare tracks: SyncHasMany<TrackModel>;
+  // A project is a set of snapshots; each is a complete set of tracks with its own tempo, and the active
+  // one is what is being played and edited. The sample pool belongs to the project (all snapshots share it).
+  @hasMany('snapshot', { async: false, inverse: 'project' })
+  declare snapshots: SyncHasMany<SnapshotModel>;
+
+  @belongsTo('snapshot', { async: false, inverse: null })
+  declare activeSnapshot: SnapshotModel;
+
+  @hasMany('project-sample', { async: false, inverse: 'project' })
+  declare projectSamples: SyncHasMany<ProjectSampleModel>;
+
+  // The tracks of the active snapshot. Everything that worked on "the project's tracks" keeps working:
+  // reading, and creating (tracks are created inside the active snapshot).
+  get tracks(): SyncHasMany<TrackModel> {
+    return (this.activeSnapshot?.tracks ?? []) as SyncHasMany<TrackModel>;
+  }
 
   
   /**
@@ -102,7 +118,11 @@ export default class ProjectModel extends Model {
    */
   static async createSingleTrack(project: ProjectModel, trackAttributes: Record<string, any> = {}): Promise<TrackModel> {
     const defaultAttributes = { hits: 1, state: TrackState.CREATED };
-    const track = project.tracks.createRecord({ ...defaultAttributes, ...trackAttributes }) as TrackModel;
+    const track = project.activeSnapshot.tracks.createRecord({
+      project,
+      ...defaultAttributes,
+      ...trackAttributes,
+    }) as TrackModel;
     
     try {
       // Save the track first

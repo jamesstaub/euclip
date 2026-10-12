@@ -9,6 +9,7 @@ import { unbindFromSequencer } from 'euclip/utils/cracked';
 import { SoundFileStates } from 'euclip/models/sound-file';
 
 import type ProjectModel from './project';
+import type SnapshotModel from './snapshot';
 import type InitScriptModel from 'euclip/models/init-script';
 import type OnstepScriptModel from 'euclip/models/onstep-script';
 import AudioFileTreeModel from 'euclip/models/audio-file-tree';
@@ -72,7 +73,9 @@ export default class TrackModel extends Model.extend(Evented) {
     return this.isTearingDown || this.isDeleted || this.isDestroying || this.isDestroyed;
   }
 
-  @belongsTo('project', { async: false, inverse: 'tracks' }) declare project: ProjectModel;
+  // `project.tracks` is the active snapshot's tracks, so a track relates to its project without an inverse
+  @belongsTo('project', { async: false, inverse: null }) declare project: ProjectModel;
+  @belongsTo('snapshot', { async: false, inverse: 'tracks' }) declare snapshot: SnapshotModel;
   @belongsTo('init-script', { async: false, inverse: 'track' }) declare initScript: InitScriptModel;
   @belongsTo('onstep-script', { async: false, inverse: 'track' }) declare onstepScript: OnstepScriptModel;
   @belongsTo('audio-file-tree', { async: false, inverse: 'track' }) declare audioFileTree: AudioFileTreeModel;
@@ -317,7 +320,7 @@ export default class TrackModel extends Model.extend(Evented) {
 
   async duplicate(): Promise<TrackModel> {
     const project = await this.project;
-    const newTrack = project.tracks.createRecord() as TrackModel;
+    const newTrack = project.activeSnapshot.tracks.createRecord({ project }) as TrackModel;
     return await project.setupAndSaveNewTrack(newTrack, {
       adapterOptions: { duplicateId: this.id },
     });

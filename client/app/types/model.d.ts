@@ -13,6 +13,8 @@ import type TrackControlFrequencyModel from 'euclip/models/track-control-frequen
 import type TrackNodeModel from 'euclip/models/track-node';
 import type TrackModel from 'euclip/models/track';
 import type UserModel from 'euclip/models/user';
+import type SnapshotModel from 'euclip/models/snapshot';
+import type ProjectSampleModel from 'euclip/models/project-sample';
 import type TrackControlModel from 'euclip/models/track-control';
 import type { DirectoryModel } from 'euclip/models/audio-file-tree';
 
@@ -33,6 +35,8 @@ export default interface ModelRegistry {
   'track-node': TrackNodeModel;
   'track': TrackModel;
   'user': UserModel;
+  'snapshot': SnapshotModel;
+  'project-sample': ProjectSampleModel;
 }
 
 declare module '@ember-data/store' {
@@ -53,5 +57,7 @@ declare module '@ember-data/store' {
     'track-node': TrackNodeModel;
     'track': TrackModel;
       'user': UserModel;
+    'snapshot': SnapshotModel;
+    'project-sample': ProjectSampleModel;
   }
 }

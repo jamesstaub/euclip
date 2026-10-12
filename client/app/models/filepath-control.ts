@@ -12,6 +12,8 @@ export default class FilepathControlModel extends Model {
 
   @belongsTo('track', { async: false, inverse: 'filepathControls' }) track!: any;
   @belongsTo('track-node', { async: false, inverse: 'filepathControl' }) trackNode!: any;
+  // the pool sample this slot plays (the pool is the source of truth; controlValue is a copy of its path)
+  @belongsTo('project-sample', { async: false, inverse: null }) projectSample!: any;
   @attr('number') nodeOrder!: number;
   @attr('string') controlValue!: string; // value of control for string attributes
 
