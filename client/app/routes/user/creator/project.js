@@ -9,6 +9,7 @@ export default class UserCreatorProjectRoute extends Route {
   @service notifications;
   @service router;
   @service trackTypes;
+  @service snapshotRuntime;
 
   model({ slug }) {
     return this.store.queryRecord('project', {
@@ -36,6 +37,13 @@ export default class UserCreatorProjectRoute extends Route {
     });
     this.getPresets(controller);
     this.trackTypes.load(); // for the New Track menu; falls back to a plain sampler
+    this.snapshotRuntime.warm(project); // build the other snapshots silently so switching to them is instant
+  }
+
+  // leaving the project: its other snapshots' built audio must not outlive it
+  deactivate() {
+    const project = this.modelFor('user.creator.project');
+    if (project) this.snapshotRuntime.unstageAll(project);
   }
 
   async getPresets(controller) {

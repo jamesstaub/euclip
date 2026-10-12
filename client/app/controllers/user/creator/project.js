@@ -16,6 +16,8 @@ export default class UserCreatorProjectController extends Controller {
   @service router;
   @service notifications;
   @service trackTypes;
+  @service snapshotRuntime;
+  @service store;
   @tracked activeTrack;
   isStarting = false;
   @tracked sortedTracks;
@@ -111,7 +113,8 @@ export default class UserCreatorProjectController extends Controller {
     yield timeout(1000);
 
     try {
-      return yield this.model.save();
+      // tempo belongs to the active snapshot; everything else (title...) to the project
+      return yield (key === 'bpm' ? this.model.activeSnapshot : this.model).save();
     } catch (error) {
       console.error('Failed To Save Project');
     }
@@ -128,6 +131,64 @@ export default class UserCreatorProjectController extends Controller {
       label: type.title,
       select: () => this.createTrack(type.key),
     }));
+  }
+
+  // --- snapshots -------------------------------------------------------------------------------------
+
+  // The track list, active track and URL follow the active snapshot.
+  refreshForActiveSnapshot() {
+    this.sortedTracks = this.model.tracks.slice().sort(byKey('order'));
+    this.activeTrack = this.sortedTracks.find((track) => !track.isMaster) ?? this.sortedTracks[0];
+    if (this.router.currentRouteName === 'user.creator.project.track') {
+      this.router.transitionTo('user.creator.project.index'); // that track belongs to the snapshot we left
+    }
+  }
+
+  // Makes a snapshot the active one: on the next step while playing (immediately when stopped).
+  @action
+  async switchSnapshot(snapshot) {
+    try {
+      await this.snapshotRuntime.switchTo(snapshot);
+      this.refreshForActiveSnapshot();
+    } catch (error) {
+      this.notifications.push({ type: 'error', message: 'Could not switch snapshot' });
+      console.error(error);
+    }
+  }
+
+  // "Save snapshot": clones the active snapshot (edits always apply to the active one, so nothing is lost
+  // by switching away). The copy is staged in the background so it is ready to switch to.
+  @action
+  async saveSnapshot() {
+    try {
+      const active = this.model.activeSnapshot;
+      const copy = this.store.createRecord('snapshot', {
+        project: this.model,
+        name: `${active.name} copy`,
+        bpm: active.bpm,
+      });
+      await copy.save();
+      this.snapshotRuntime.stage(copy).catch(() => {});
+      return copy;
+    } catch (error) {
+      this.notifications.push({ type: 'error', message: 'Could not save snapshot' });
+      console.error(error);
+    }
+  }
+
+  @action
+  async renameSnapshot(snapshot, name) {
+    const trimmed = (name ?? '').trim();
+    if (!trimmed || trimmed === snapshot.name) return;
+    snapshot.name = trimmed;
+    await snapshot.save();
+  }
+
+  @action
+  async deleteSnapshot(snapshot) {
+    if (snapshot.isActive || this.model.snapshots.length <= 1) return; // switch away first
+    this.snapshotRuntime.unstage(snapshot);
+    await snapshot.destroyRecord();
   }
 
   @action

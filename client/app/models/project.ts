@@ -16,7 +16,6 @@ export default class ProjectModel extends Model {
 
   @attr('string') declare title: string;
   @attr('string') declare slug: string;
-  @attr('number') declare bpm: number;
   @attr('number', { defaultValue: 0 }) declare stepIndex: number;
 
   @belongsTo('user', { async: false, inverse: 'projects' })
@@ -32,6 +31,15 @@ export default class ProjectModel extends Model {
 
   @hasMany('project-sample', { async: false, inverse: 'project' })
   declare projectSamples: SyncHasMany<ProjectSampleModel>;
+
+  // Tempo is per snapshot: the project's bpm is the active snapshot's.
+  get bpm(): number {
+    return this.activeSnapshot?.bpm ?? 120;
+  }
+
+  set bpm(value: number) {
+    if (this.activeSnapshot) this.activeSnapshot.bpm = value;
+  }
 
   // The tracks of the active snapshot. Everything that worked on "the project's tracks" keeps working:
   // reading, and creating (tracks are created inside the active snapshot).

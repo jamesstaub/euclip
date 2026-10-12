@@ -38,7 +38,8 @@ class V1::SnapshotsController < V1::BaseController
 
   def destroy
     @snapshot.destroy_and_reassign!
-    render json: ProjectSerializer.new(@project.reload, include: included_relations), status: :ok
+    # the client may need to know which snapshot became active (when the active one was deleted)
+    render json: { meta: { active_snapshot_id: @project.reload.active_snapshot_id.to_s } }, status: :ok
   rescue ActiveRecord::RecordNotDestroyed
     @snapshot.errors.add(:base, 'A project needs at least one snapshot')
     render_unprocessable_entity(@snapshot.errors)

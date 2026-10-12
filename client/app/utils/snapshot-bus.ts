@@ -14,6 +14,9 @@ function context(): AudioContext {
 /** The bus for a snapshot, created closed (gain 0) unless asked to start open. */
 export function busFor(snapshotId: string, { open = false }: { open?: boolean } = {}): GainNode {
   let bus = buses.get(snapshotId);
+  if (bus && open && bus.gain.value < 1) {
+    bus.gain.value = 1; // e.g. a snapshot that was staged (closed) and has since become the active one
+  }
   if (!bus) {
     const ctx = context();
     bus = ctx.createGain();

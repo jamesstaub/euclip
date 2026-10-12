@@ -196,9 +196,10 @@ RSpec.describe 'V1 snapshots', type: :request do
     it 'deleting the active snapshot activates a neighbour' do
       b = main.clone!(name: 'B')
       project.update!(active_snapshot: b)
-      api(:delete, "snapshots/#{b.id}")
+      body = api(:delete, "snapshots/#{b.id}")
 
       expect(project.reload.active_snapshot).to eq(main)
+      expect(body.dig(:meta, :active_snapshot_id)).to eq(main.id.to_s)
     end
 
     it "does not let another user change someone else's project" do

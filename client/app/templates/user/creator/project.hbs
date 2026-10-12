@@ -32,6 +32,16 @@
         </div>
       </nav>
 
+      <div class='ph3 pv1 bg-light-gray bt b--moon-gray'>
+        <Project::SnapshotStrip
+          @project={{this.model}}
+          @onSwitch={{this.switchSnapshot}}
+          @onSave={{this.saveSnapshot}}
+          @onRename={{this.renameSnapshot}}
+          @onDelete={{this.deleteSnapshot}}
+        />
+      </div>
+
       <div
         class='flex flex-wrap overflow-hidden grow-1 flex-nowrap-ns'
       >
