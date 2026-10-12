@@ -135,41 +135,24 @@ export default class UserCreatorProjectController extends Controller {
 
   // --- snapshots -------------------------------------------------------------------------------------
 
-  // The track list, active track and URL follow the active snapshot.
-  refreshForActiveSnapshot() {
-    this.sortedTracks = this.model.tracks.slice().sort(byKey('order'));
-    this.activeTrack = this.sortedTracks.find((track) => !track.isMaster) ?? this.sortedTracks[0];
-    if (this.router.currentRouteName === 'user.creator.project.track') {
-      this.router.transitionTo('user.creator.project.index'); // that track belongs to the snapshot we left
-    }
-  }
-
   // Makes a snapshot the active one: on the next step while playing (immediately when stopped).
+  // The tracks are shared, so only their settings change.
   @action
   async switchSnapshot(snapshot) {
     try {
       await this.snapshotRuntime.switchTo(snapshot);
-      this.refreshForActiveSnapshot();
     } catch (error) {
       this.notifications.push({ type: 'error', message: 'Could not switch snapshot' });
       console.error(error);
     }
   }
 
-  // "Save snapshot": clones the active snapshot (edits always apply to the active one, so nothing is lost
-  // by switching away). The copy is staged in the background so it is ready to switch to.
+  // "Save snapshot": stores the current state (tempo, control values, sequences, onstep scripts) as a new
+  // snapshot. Edits always apply to the active snapshot, so nothing is lost by switching away.
   @action
   async saveSnapshot() {
     try {
-      const active = this.model.activeSnapshot;
-      const copy = this.store.createRecord('snapshot', {
-        project: this.model,
-        name: `${active.name} copy`,
-        bpm: active.bpm,
-      });
-      await copy.save();
-      this.snapshotRuntime.stage(copy).catch(() => {});
-      return copy;
+      return await this.snapshotRuntime.saveCurrent(this.model);
     } catch (error) {
       this.notifications.push({ type: 'error', message: 'Could not save snapshot' });
       console.error(error);
@@ -187,7 +170,6 @@ export default class UserCreatorProjectController extends Controller {
   @action
   async deleteSnapshot(snapshot) {
     if (snapshot.isActive || this.model.snapshots.length <= 1) return; // switch away first
-    this.snapshotRuntime.unstage(snapshot);
     await snapshot.destroyRecord();
   }
 

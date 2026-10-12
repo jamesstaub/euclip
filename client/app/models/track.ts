@@ -9,7 +9,6 @@ import { unbindFromSequencer } from 'euclip/utils/cracked';
 import { SoundFileStates } from 'euclip/models/sound-file';
 
 import type ProjectModel from './project';
-import type SnapshotModel from './snapshot';
 import type InitScriptModel from 'euclip/models/init-script';
 import type OnstepScriptModel from 'euclip/models/onstep-script';
 import AudioFileTreeModel from 'euclip/models/audio-file-tree';
@@ -36,7 +35,6 @@ import { isPresent } from '@ember/utils';
 import { extendOnCreateNode } from 'euclip/utils/cracked';
 import { FILE_LOAD_STATES } from './track-node';
 import { debugLog } from 'euclip/utils/debug-log';
-import { withSnapshotDestination } from 'euclip/utils/snapshot-bus';
 import byKey from 'euclip/utils/by-key';
 
 declare const __: any;
@@ -74,9 +72,7 @@ export default class TrackModel extends Model.extend(Evented) {
     return this.isTearingDown || this.isDeleted || this.isDestroying || this.isDestroyed;
   }
 
-  // `project.tracks` is the active snapshot's tracks, so a track relates to its project without an inverse
-  @belongsTo('project', { async: false, inverse: null }) declare project: ProjectModel;
-  @belongsTo('snapshot', { async: false, inverse: 'tracks' }) declare snapshot: SnapshotModel;
+  @belongsTo('project', { async: false, inverse: 'tracks' }) declare project: ProjectModel;
   @belongsTo('init-script', { async: false, inverse: 'track' }) declare initScript: InitScriptModel;
   @belongsTo('onstep-script', { async: false, inverse: 'track' }) declare onstepScript: OnstepScriptModel;
   @belongsTo('audio-file-tree', { async: false, inverse: 'track' }) declare audioFileTree: AudioFileTreeModel;
@@ -321,7 +317,7 @@ export default class TrackModel extends Model.extend(Evented) {
 
   async duplicate(): Promise<TrackModel> {
     const project = await this.project;
-    const newTrack = project.activeSnapshot.tracks.createRecord({ project }) as TrackModel;
+    const newTrack = project.tracks.createRecord() as TrackModel;
     return await project.setupAndSaveNewTrack(newTrack, {
       adapterOptions: { duplicateId: this.id },
     });
@@ -376,10 +372,8 @@ export default class TrackModel extends Model.extend(Evented) {
 
   /**
    * Runs this track's init script to (re)build its audio nodes, then links controls and node records.
-   * `bind: false` builds the audio without starting its step listeners: used to stage a snapshot's
-   * tracks in the background (they are bound when the snapshot is switched in).
    */
-  setupAudioFromScripts(unbindBeforeCreate = true, { bind = true }: { bind?: boolean } = {}) {
+  setupAudioFromScripts(unbindBeforeCreate = true) {
     if (this.isRemoved) return;
     const initScript = this.initScript;
     if (!initScript) {
@@ -459,8 +453,7 @@ export default class TrackModel extends Model.extend(Evented) {
         files: this.downloadedFilepaths.slice(0, 3),
         filepathControls: this.filepathControls.map((f) => f.controlValue),
       });
-      // dac()/out nodes feed the snapshot's own bus (open for the active snapshot, closed while staged)
-      withSnapshotDestination(this.snapshot.id, () => initScript.invokeFunctionRef(), { open: this.snapshot.isActive });
+      initScript.invokeFunctionRef();
       debugLog('track', `#${this.order} init script done`, {
         nodes: this.settingsForNodes.map((n) => n.nodeType),
         alert: initScript.alert,
@@ -480,7 +473,7 @@ export default class TrackModel extends Model.extend(Evented) {
     trackNodes = this.applyOrderOfType(trackNodes);
     this.setupTrackControls(trackNodes);
     if (trackNodes.length) {
-      if (bind) this.bindToSequencer();
+      this.bindToSequencer();
     } else {
       console.error('no track nodes to bind to sequencer');
     }

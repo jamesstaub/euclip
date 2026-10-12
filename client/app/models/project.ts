@@ -21,8 +21,9 @@ export default class ProjectModel extends Model {
   @belongsTo('user', { async: false, inverse: 'projects' })
   declare creator: UserModel;
 
-  // A project is a set of snapshots; each is a complete set of tracks with its own tempo, and the active
-  // one is what is being played and edited. The sample pool belongs to the project (all snapshots share it).
+  // A snapshot is a saved tempo plus the settings of the project's tracks (see services/snapshot-runtime).
+  // The tracks, their init scripts and the sample pool are shared by all snapshots; `activeSnapshot` is
+  // the one currently loaded into them.
   @hasMany('snapshot', { async: false, inverse: 'project' })
   declare snapshots: SyncHasMany<SnapshotModel>;
 
@@ -41,11 +42,8 @@ export default class ProjectModel extends Model {
     if (this.activeSnapshot) this.activeSnapshot.bpm = value;
   }
 
-  // The tracks of the active snapshot. Everything that worked on "the project's tracks" keeps working:
-  // reading, and creating (tracks are created inside the active snapshot).
-  get tracks(): SyncHasMany<TrackModel> {
-    return (this.activeSnapshot?.tracks ?? []) as SyncHasMany<TrackModel>;
-  }
+  @hasMany('track', { async: false, inverse: 'project' })
+  declare tracks: SyncHasMany<TrackModel>;
 
   
   /**
@@ -83,9 +81,7 @@ export default class ProjectModel extends Model {
   }
 
   async initSignalChain() {
-    // Tear down only the active snapshot's audio. (disconnectAll() ends in cracked's global reset, which
-    // would also destroy any other snapshot that is built and waiting to be switched in.)
-    this.tracks.forEach((track) => track.unbindAndRemoveCrackedNodes());
+    this.disconnectAll();
     this.masterTrack?.setupAudioFromScripts();
     await this.downloadTrackSamples();
     this.orderedTracks.map((track) => track.setupAudioFromScripts());
@@ -128,8 +124,7 @@ export default class ProjectModel extends Model {
    */
   static async createSingleTrack(project: ProjectModel, trackAttributes: Record<string, any> = {}): Promise<TrackModel> {
     const defaultAttributes = { hits: 1, state: TrackState.CREATED };
-    const track = project.activeSnapshot.tracks.createRecord({
-      project,
+    const track = project.tracks.createRecord({
       ...defaultAttributes,
       ...trackAttributes,
     }) as TrackModel;

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2025_10_14_000100) do
+ActiveRecord::Schema[7.0].define(version: 2025_10_15_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -167,6 +167,7 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_14_000100) do
     t.integer "bpm", default: 120, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.jsonb "data", default: {}, null: false
     t.index ["project_id", "position"], name: "index_snapshots_on_project_id_and_position", unique: true
     t.index ["project_id"], name: "index_snapshots_on_project_id"
   end
@@ -201,10 +202,8 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_14_000100) do
     t.datetime "updated_at", null: false
     t.bigint "script_id"
     t.string "track_type", default: "sampler", null: false
-    t.bigint "snapshot_id", null: false
     t.index ["project_id"], name: "index_tracks_on_project_id"
     t.index ["script_id"], name: "index_tracks_on_script_id"
-    t.index ["snapshot_id"], name: "index_tracks_on_snapshot_id"
   end
 
   create_table "user_roles", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -267,7 +266,6 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_14_000100) do
   add_foreign_key "snapshots", "projects"
   add_foreign_key "track_controls", "tracks"
   add_foreign_key "tracks", "projects"
-  add_foreign_key "tracks", "snapshots"
   add_foreign_key "user_roles", "projects"
   add_foreign_key "user_roles", "users"
 end

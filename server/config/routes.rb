@@ -41,7 +41,7 @@ Rails.application.routes.draw do
       resources :samples, only: %i[index create], controller: 'project_samples'
     end
 
-    resources :snapshots, only: %i[show update destroy] do
+    resources :snapshots, only: %i[update destroy] do
       member { post :activate }
     end
     resources :samples, only: %i[update destroy], controller: 'project_samples'

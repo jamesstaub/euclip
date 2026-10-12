@@ -1,29 +1,52 @@
-import Model, { attr, belongsTo, hasMany } from '@ember-data/model';
+import Model, { attr, belongsTo } from '@ember-data/model';
 import type ProjectModel from 'euclip/models/project';
-import type TrackModel from 'euclip/models/track';
+
+export interface SequenceSettings {
+  order: number;
+  hits: number;
+  steps: number;
+  offset: number;
+  customSequence: number[] | null;
+}
+
+export interface ControlSettings {
+  controlValue: number;
+  defaultValue: number;
+  controlArrayValue: number[] | null;
+  currentUnitTransformIdx: number;
+  applyHitsOnly: boolean;
+  sequenceOrder: number;
+  min: number;
+  max: number;
+  stepSize: number;
+}
+
+export interface TrackSettings {
+  controls: Record<string, ControlSettings>; // keyed by "nodeType:nodeOrder:nodeAttr"
+  sequences: SequenceSettings[];
+  onstep?: { safeCode: string; editorContent: string };
+}
+
+export interface SnapshotData {
+  tracks?: Record<string, TrackSettings>; // keyed by track id
+}
 
 /**
- * One complete state of a project: its own tracks (including its own main output) and its own tempo.
- * The project's sample pool is shared by all snapshots. Edits always apply to the project's active
- * snapshot; saving a snapshot clones it (server side).
+ * A saved state of a project: its tempo plus the settings of its tracks (control values, sequences and
+ * onstep scripts). The tracks, their init scripts and the sample pool are shared by all snapshots, so
+ * switching never rebuilds audio. The `snapshot-runtime` service captures and applies `data`.
  */
 export default class SnapshotModel extends Model {
   @attr('string') declare name: string;
   @attr('number') declare position: number;
   @attr('number') declare bpm: number;
+  @attr('json-string') declare data: SnapshotData;
   @attr('date') declare createdAt: Date;
 
   // @ts-ignore - model registry types
   @belongsTo('project', { async: false, inverse: 'snapshots' }) declare project: ProjectModel;
-  // @ts-ignore - model registry types
-  @hasMany('track', { async: false, inverse: 'snapshot' }) declare tracks: TrackModel[];
 
   get isActive(): boolean {
     return this.project?.activeSnapshot === this;
-  }
-
-  // the length of one step in milliseconds at this snapshot's tempo (two steps per beat)
-  get stepMs(): number {
-    return 60000 / (this.bpm * 2);
   }
 }

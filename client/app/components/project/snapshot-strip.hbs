@@ -34,8 +34,6 @@
         >
           {{item.snapshot.name}}
           <span class='f7 fw4 ml2'>{{item.snapshot.bpm}}</span>
-          {{#if (eq item.state 'staging')}}<span class='ml1' title='Getting ready...'>…</span>{{/if}}
-          {{#if (eq item.state 'error')}}<span class='ml1 red' title='Could not be prepared'>!</span>{{/if}}
           {{#if item.pending}}<span class='ml1' title='Switching on the next step'>▸</span>{{/if}}
         </button>
         {{#if (and this.canDelete (not item.active))}}

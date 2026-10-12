@@ -2,9 +2,6 @@ class Track < ApplicationRecord
   before_save :set_new_track_order
 
   belongs_to :project
-  belongs_to :snapshot
-  before_validation :default_snapshot, on: :create
-  validate :snapshot_belongs_to_project
   has_one :init_script, :dependent => :destroy
   has_one :onstep_script, :dependent => :destroy
   has_many :track_controls, :dependent => :destroy
@@ -69,7 +66,7 @@ class Track < ApplicationRecord
 
   def self.increment_orders!(old_track, new_track)
     new_track.update!(order: old_track.order + 1)
-    tracks_to_increment = old_track.snapshot.tracks.where.not(id: new_track.id).where("tracks.order >= ?", new_track.order)
+    tracks_to_increment = old_track.project.tracks.where.not(id: new_track.id).where("tracks.order >= ?", new_track.order)
     tracks_to_increment.each { |t|
       t.order = t.order + 1
       t.save
@@ -77,18 +74,7 @@ class Track < ApplicationRecord
   end
 
   def set_new_track_order
-    self.order = self.snapshot.ordered_tracks.count + 1 unless self.order.present? || self.is_master
+    self.order = self.project.ordered_tracks.count + 1 unless self.order.present? || self.is_master
     self.order = nil if self.is_master
-  end
-
-  private
-
-  # a new track goes into the project's active snapshot unless one is given
-  def default_snapshot
-    self.snapshot ||= project&.active_snapshot
-  end
-
-  def snapshot_belongs_to_project
-    errors.add(:snapshot, 'must belong to the same project') if snapshot && project && snapshot.project_id != project.id
   end
 end

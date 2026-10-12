@@ -1,32 +1,26 @@
-# Snapshots of a project: complete, switchable states (tracks + tempo). Edits apply to the active snapshot;
-# create clones one; activate makes one the active snapshot.
+# Snapshots of a project: saved tempo + track settings (`data`), switchable without touching the audio.
+# The client captures the settings when it saves or leaves a snapshot and applies them when it switches;
+# the server stores them and remembers which snapshot is active.
 class V1::SnapshotsController < V1::BaseController
   include LenientJsonApiParams
 
   before_action :set_project, only: %i[create]
-  before_action :set_snapshot, only: %i[show update destroy activate]
+  before_action :set_snapshot, only: %i[update destroy activate]
   before_action :authorize_writes, only: %i[create update destroy activate]
 
-  # GET /v1/snapshots/:id?include=tracks,tracks.sequences,...
-  # One snapshot with its tracks, so a snapshot that isn't active can be loaded in the background.
-  def show
-    render json: SnapshotSerializer.new(@snapshot, include: included_relations), status: :ok
-  end
-
   # POST /v1/projects/:project_slug/snapshots
-  # Clones the active snapshot (or `relationships.source`) under the given name.
   def create
-    source = source_snapshot
-    return render_not_found unless source
-
-    snapshot = source.clone!(name: @attributes[:name])
-    render json: SnapshotSerializer.new(snapshot, include: included_relations), status: :ok
+    attrs = snapshot_attributes
+    attrs[:name] = attrs[:name].presence || Snapshot.copy_name(@project, @project.active_snapshot.name)
+    attrs[:bpm] ||= @project.active_snapshot.bpm
+    snapshot = @project.snapshots.create!(attrs)
+    render json: SnapshotSerializer.new(snapshot), status: :ok
   rescue ActiveRecord::RecordInvalid => e
     render_unprocessable_entity(e.record.errors)
   end
 
   def update
-    attrs = @attributes.permit(:name, :bpm).to_h
+    attrs = snapshot_attributes
     ActiveRecord::Base.transaction do
       @snapshot.update!(attrs) if attrs.present?
       move_to(@attributes[:position].to_i) if @attributes.key?(:position)
@@ -48,7 +42,7 @@ class V1::SnapshotsController < V1::BaseController
   # POST /v1/snapshots/:id/activate
   def activate
     @project.update!(active_snapshot: @snapshot)
-    render json: ProjectSerializer.new(@project.reload, include: included_relations), status: :ok
+    render json: SnapshotSerializer.new(@snapshot), status: :ok
   end
 
   private
@@ -68,9 +62,13 @@ class V1::SnapshotsController < V1::BaseController
     return render_forbidden unless can? :update, @project
   end
 
-  def source_snapshot
-    source_id = @relationships.dig(:source, :data, :id)
-    source_id ? @project.snapshots.find_by(id: source_id) : @project.active_snapshot
+  # `data` is the client's capture of the tracks' settings. It arrives as a JSON *string*: request
+  # parameters have their keys snake_cased (SnakeCaseParameters), which would rename the client's keys.
+  def snapshot_attributes
+    attrs = @attributes.permit(:name, :bpm).to_h.symbolize_keys
+    attrs[:data] = JSON.parse(@attributes[:data]) if @attributes[:data].is_a?(String)
+    attrs[:data] = nil if @attributes.key?(:data) && !attrs.key?(:data) # not a string: rejected by validation
+    attrs
   end
 
   # move this snapshot to a 0-based position, keeping positions dense and unique

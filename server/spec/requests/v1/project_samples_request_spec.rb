@@ -5,7 +5,7 @@ RSpec.describe 'V1 project samples (the pool)', type: :request do
   before(:each) { login_user }
 
   let(:project) { Project.create_with_relations!(creator_id: @current_user.id) }
-  let(:track)   { project.active_snapshot.ordered_tracks.first }
+  let(:track)   { project.ordered_tracks.first }
 
   def api(method, path, body = nil)
     send(method, "/v1/#{path}", params: body&.to_json, headers: @headers)
@@ -133,9 +133,10 @@ RSpec.describe 'V1 project samples (the pool)', type: :request do
       expect(ProjectSample.exists?(sample.id)).to be(false)
     end
 
-    it 'refuses while a track in any snapshot still uses it, and lists the usages' do
+    it 'refuses while a track still uses it, and lists the usages' do
       track.filepath_controls.create!(control_value: '/a/kick.mp3', node_order: 0)
-      other = project.active_snapshot.clone!(name: 'B')
+      other = Track.create_with_relations!(project: project)
+      other.filepath_controls.create!(control_value: '/a/kick.mp3', node_order: 0)
       sample = project.project_samples.first
       api(:delete, "samples/#{sample.id}")
 
@@ -144,7 +145,7 @@ RSpec.describe 'V1 project samples (the pool)', type: :request do
 
       api(:get, "projects/#{project.slug}/samples")
       usages = json_parse(response.body)[:data].first.dig(:attributes, :usages)
-      expect(usages.map { |u| u[:snapshot_id] }).to match_array([project.active_snapshot.id, other.id])
+      expect(usages.map { |u| u[:track_id] }).to match_array([track.id, other.id])
     end
   end
 

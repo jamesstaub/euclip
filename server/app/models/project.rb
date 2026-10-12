@@ -27,27 +27,22 @@ class Project < ApplicationRecord
     active_snapshot&.bpm || super
   end
 
-  # the tracks of the snapshot being played/edited
-  def active_tracks
-    tracks.where(snapshot_id: active_snapshot_id)
-  end
-
   def ordered_tracks
-    active_snapshot.ordered_tracks
+    tracks.where(is_master: false).order(:id)
   end
 
   def reorder_tracks!
-    active_snapshot.reorder_tracks!
+    ordered_tracks.each_with_index { |track, idx| track.update!(order: idx + 1) }
   end
-  
+
   def self.create_with_relations!(params)
     project = nil
     transaction do
       project = Project.create!(params)
       snapshot = project.snapshots.create!(name: 'Main', bpm: project.read_attribute(:bpm))
       project.update!(active_snapshot: snapshot)
-      first_track = Track.create_with_relations!(project: project, snapshot: snapshot)
-      master_track = Track.create_with_relations!(project: project, snapshot: snapshot, is_master: true)
+      first_track = Track.create_with_relations!(project: project)
+      master_track = Track.create_with_relations!(project: project, is_master: true)
       UserRole.create!(user_id: params[:creator_id], project_id: project.id, role: :creator)
     end
     project

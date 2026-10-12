@@ -3,7 +3,6 @@ import type ProjectModel from 'euclip/models/project';
 
 export interface SampleUsage {
   trackId: number;
-  snapshotId: number;
   slot: number;
 }
 
@@ -15,7 +14,7 @@ export default class ProjectSampleModel extends Model {
   @attr('string') declare path: string; // catalog path, e.g. "/Roland/TR 808/kick.mp3"
   @attr('string') declare label: string; // short name for scripts and the UI
   @attr('number') declare position: number;
-  @attr() declare usages: { track_id: number; snapshot_id: number; slot: number }[] | null;
+  @attr() declare usages: { track_id: number; slot: number }[] | null;
 
   // @ts-ignore - model registry types
   @belongsTo('project', { async: false, inverse: 'projectSamples' }) declare project: ProjectModel;

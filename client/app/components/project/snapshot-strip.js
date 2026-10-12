@@ -21,7 +21,7 @@ export default class ProjectSnapshotStripComponent extends Component {
         snapshot,
         active: snapshot.isActive,
         pending: runtime.pendingSnapshot === snapshot,
-        state: snapshot.isActive ? 'active' : runtime.stateOf(snapshot),
+        state: snapshot.isActive ? 'active' : 'idle',
       }));
   }
 

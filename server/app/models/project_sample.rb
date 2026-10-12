@@ -22,10 +22,10 @@ class ProjectSample < ApplicationRecord
     path.start_with?('/') ? path : "/#{path}"
   end
 
-  # where this sample is used: [{ track_id:, snapshot_id:, slot: }, ...]
+  # where this sample is used: [{ track_id:, slot: }, ...]
   def usages
     filepath_controls.includes(:track).map do |control|
-      { track_id: control.track_id, snapshot_id: control.track.snapshot_id, slot: control.node_order }
+      { track_id: control.track_id, slot: control.node_order }
     end
   end
 
