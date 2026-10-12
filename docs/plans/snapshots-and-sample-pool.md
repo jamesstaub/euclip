@@ -1,7 +1,21 @@
 # Snapshots and the project sample pool: refactor proposal
 
-Status: proposal for review. Nothing here is implemented.
+Status: decisions made (section 0); implementation in progress, phase by phase.
 Audience: the project owner, and whoever implements the phases below.
+
+## 0. Decisions (from the project owner)
+
+1. **Edits always autosave on the current snapshot** (the "scenes" model, 7.2 option A). "Save snapshot" forks the active one.
+2. **Tempo is per snapshot** (`snapshots.bpm`). The project-level `bpm` becomes a compatibility view of the active snapshot's.
+3. **Sample pools are per project** and do not change across snapshots.
+4. **Uploads come later**, after the file browser is refactored (the file-directory UI is rebuilt for the pool once snapshots are done).
+5. **Switching happens on the next step**, always (not the next bar). Consequences: the swap itself must be tiny
+   (bind listeners + start the fade, a few ms), so the target must be *staged before* the request: a switch to a
+   snapshot that is not staged yet is queued and fires on the first step after staging finishes. Tempo changes at
+   the swap (the loop interval is reconfigured), and the new snapshot continues at the current loop position
+   (phase-aligned) rather than restarting.
+6. The source/controls UI is being reworked by another session: the sample slot and pool UI here must not edit those
+   components until that lands; server-side work and new files come first.
 
 ## 1. Goal
 
