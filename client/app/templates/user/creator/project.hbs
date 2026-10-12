@@ -20,6 +20,7 @@
             @stop={{this.stop}}
           />
           <div class='flex ml3'>
+            <ButtonPrimary @label='Samples' data-test-pool-toggle aria-pressed={{if uiState.poolOpen 'true' 'false'}} {{on 'click' uiState.togglePool}} />
             <ButtonPrimary @label={{'New Track'}} {{on 'click' (fn this.createTrack 'sampler')}} />
             <DropdownMenu
               class='h-100 grow-1 bg-dark-gray ba bl-0 bw1 b--yellow ph2'
@@ -45,7 +46,14 @@
       <div
         class='flex flex-wrap overflow-hidden grow-1 flex-nowrap-ns'
       >
-        {{#if
+        {{#if uiState.poolOpen}}
+          <Project::SamplePool
+            @project={{this.model}}
+            @activeTrack={{this.activeTrack}}
+            @audioFileTree={{this.defaultAudioFileTree}}
+            @onCloseSidebar={{fn uiState.closeSidebar 'left'}}
+          />
+        {{else if
           (or 
             uiState.createFromDirectory
             (and uiState.leftSidebarOpen this.activeTrack (not this.activeTrack.isDeleted))
@@ -63,7 +71,7 @@
         {{/if}}
         <TrackListWrapper
           @rightSidebarOpen={{uiState.rightSidebarOpen}}
-          @leftSidebarOpen={{uiState.leftSidebarOpen}}
+          @leftSidebarOpen={{or uiState.leftSidebarOpen uiState.poolOpen}}
           {{shortcut 'ArrowUp' this.selectPrevTrack}}
           {{shortcut 'ArrowDown' this.selectNextTrack}}
         >
