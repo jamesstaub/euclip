@@ -9,32 +9,25 @@
   {{focus @isActive}}
   ...attributes
 >
-  <div class="relative flex items-center justify-between overflow-hidden pr3">
-    <span class="f3 code {{unless @isActive "yellow"}}">{{@track.order}}</span>
-    <div class="flex items-center justify-between overflow-hidden grow-0 shrink-0">
+  <div class="track-row pr3">
+    <span class="track-row__order f3 code {{unless @isActive "yellow"}}">{{@track.order}}</span>
+    <div class="track-row__source flex items-center">
       {{#if @track.isMaster}}
         <p class="truncate tc pv2 ph3 ml2 f6 ttu bg-dark-gray yellow ba bw1 b--yellow w4 f7">Main Output</p>
         {{#if @track.nodeToVisualize}}
-          <div class="overflow-hidden">
+          <div class="track-row__scope overflow-hidden">
             <Oscilloscope class="ml3 pl1" @id={{concat @track.id '-scope'}} @isActive={{@isActive}} @node={{@track.nodeToVisualize}} @fill="#333333" @accent="#52ebff" />
           </div>
         {{/if}}
       {{/if}}
       
-      {{#if this.showFilePicker}}
-        {{#each @track.filepathControls as |filepathControl|}}  
-          <SourceSelectButton
-            @filename={{filepathControl.filename}} 
-            @fileError={{filepathControl.fileDownloadError}}
-            @onToggleFilePicker={{@onToggleFilePicker}}
-          />
-        {{/each}}
+      {{#if this.showSourceButton}}
+        {{!-- one button for the track's source, whatever kind it is; opens the footer's source tab --}}
+        <SourceSelectButton @track={{@track}} @onClick={{this.showSource}} />
       {{else}}
         {{#unless @track.isMaster}}
           <p class="tc w4 ma2 {{unless @isActive "light-gray"}}">
-            {{#if @track.firstSourceNode}}
-              <span data-test-source-label>{{@track.firstSourceNode.nodeType}}</span>
-            {{else if this.samplerBuildFailed}}
+            {{#if this.samplerBuildFailed}}
               <span
                 {{on "click" @onToggleScripts}}
                 class="f6 pa1 red"
@@ -51,7 +44,7 @@
 
     {{yield}}
 
-    <div class="overflow-hidden grow-1 basis-auto">
+    <div class="track-row__sequence">
       {{#if (and (not @track.isMaster) @track.currentSequence.sequence)}}
         <TrackSequencer 
           @sequence={{@track.currentSequence.sequence}}
@@ -61,7 +54,8 @@
         />
       {{/if}}
     </div>
-    <div class="grow-0 shrink-0 flex items-center h-100 {{if @rightSidebarOpen "absolute right-0"}}">
+    {{!-- stays in the grid whether or not the scripts button is shown, so the row never reflows when a sidebar opens --}}
+    <div class="track-row__actions flex items-center h-100">
       <ShowScriptBtn
         @rightSidebarOpen={{@rightSidebarOpen}}
         @isActive={{@isActive}}

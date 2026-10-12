@@ -1,4 +1,4 @@
-<div class="relative flex overflow-hidden flex-column grow-1 mh3-ns mh2 script-wrapper-height">
+<div class="relative flex overflow-hidden flex-column mh3-ns mh2 script-wrapper">
   {{#if this.showScripts}}
     <div class="flex flex-wrap justify-between">
       <Console::TabMenu
@@ -13,11 +13,24 @@
               @track.onstepScript
               (hash label="play" value="onstep" beacon=@track.onstepScript.alert)
             )
+            (if
+              @project.macrosScript
+              (hash label="macros" value="macros" beacon=@project.macrosScript.alert)
+            )
           )
         }}
       />
       
       <div class="flex flex-column">
+        <button
+          class="textbutton tl light-gray f6"
+          type="button"
+          data-test-open-macros
+          {{on "click" this.openMacroMenu}}
+        >
+          Macros
+        </button>
+
         {{!-- <button
           class="textbutton tl light-gray f6"
           type="button"
@@ -35,6 +48,13 @@
         </button> --}}
       </div>
     </div>
+  {{/if}}
+
+  {{#if this.showMacroMenu}}
+    <MacroMenu
+      @onSubmit={{this.applyMacro}}
+      @closeMenu={{this.backToScript}}
+    />
   {{/if}}
 
   {{#if this.showPresets}}
@@ -68,6 +88,18 @@
     <ScriptEditor
       @scriptModel={{@track.onstepScript}}
       @editorContent={{@track.onstepScript.editorContent}}
+      @editorLineCount={{this.editorLineCount}}
+    />
+  {{/if}}
+
+  {{#if this.showMacrosScript}}
+    {{!-- project-wide: one script for the whole project, run before any track's script --}}
+    <p class="light-gray f7 mt2 mb2" data-test-macros-script-note>
+      Macros script: shared by every track in this project. It runs before the tracks' setup scripts.
+    </p>
+    <ScriptEditor
+      @scriptModel={{@project.macrosScript}}
+      @editorContent={{@project.macrosScript.editorContent}}
       @editorLineCount={{this.editorLineCount}}
     />
   {{/if}}

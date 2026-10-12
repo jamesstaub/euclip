@@ -5,18 +5,26 @@ export default modifier(
     drawBuffer(canvas, buffer, color);
 
     const onMouseMove = (e) => moveCursor(e, canvas, buffer, color);
+    const onMouseLeave = () => drawBuffer(canvas, buffer, color); // drop the cursor
 
     canvas.addEventListener('mousemove', onMouseMove);
+    canvas.addEventListener('mouseleave', onMouseLeave);
 
-    return () => canvas.removeEventListener('mousemove', onMouseMove);
+    return () => {
+      canvas.removeEventListener('mousemove', onMouseMove);
+      canvas.removeEventListener('mouseleave', onMouseLeave);
+    };
   },
   { eager: false }
 );
 
+// Every draw starts from a blank canvas, so nothing (an old cursor, an earlier waveform) accumulates.
+// Sizes are the canvas's own pixel size, which is not its on-screen size.
 function drawBuffer(canvas, buffer, color) {
   var ctx = canvas.getContext('2d');
   var width = canvas.width;
   var height = canvas.height;
+  ctx.clearRect(0, 0, width, height);
   if (color) {
     ctx.fillStyle = color;
   }
@@ -49,11 +57,8 @@ function drawCursor(canvas, x) {
 // by clearing it and redrawing it on each event
 // pass the mouse x position to drawCursor function
 function moveCursor(e, canvas, buffer, color) {
-  var ctx = canvas.getContext('2d');
-  const { width, height } = canvas.getClientRects()[0];
-  ctx.clearRect(0, 0, width, height);
-  const canvasWidth = canvas.width;
-  const offsetX = e.offsetX * (canvasWidth / width);
-  drawBuffer(canvas, buffer, color);
+  const { width } = canvas.getBoundingClientRect();
+  const offsetX = e.offsetX * (canvas.width / width);
+  drawBuffer(canvas, buffer, color); // clears first
   drawCursor(canvas, offsetX);
 }

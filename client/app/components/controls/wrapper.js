@@ -32,6 +32,11 @@ export default class ControlsWrapperComponent extends Component {
   }
 
   @action
+  resetControl() {
+    this.args.trackControl.resetToDefault();
+  }
+
+  @action
   setParamUnit({ index, value }) {
     this.args.trackControl.setParamUnit({ index, value });
   }

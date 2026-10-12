@@ -4,8 +4,11 @@
 <TrackFooterContainer
   @track={{@model}}
   @toggleSidebar={{fn this.toggleSidebar @track.id}}
-  @rightSidebarOpen={{this.project.rightSidebarOpen}}
-  @leftSidebarOpen={{this.project.leftSidebarOpen}}
+  @showFilePath={{this.showFilePath}}
+  @selectedSourceIdx={{this.projectUi.selectedSourceIdx}}
+  @onSelectSourceNode={{this.selectSourceNode}}
+  @rightSidebarOpen={{this.projectUi.rightSidebarOpen}}
+  @leftSidebarOpen={{this.projectUi.leftSidebarOpen}}
 />
 
 {{outlet}}

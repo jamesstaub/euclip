@@ -1,34 +1,56 @@
-<SidebarWrapper class='bw2 br b--yellow left-0' @direction='left' @onCloseSidebar={{@onCloseSidebar}}>
-  <div class='relative flex mh3-ns mh2 yellow flex-column'>
-
-    {{#if this.isCurrentTrackMode}}
-      <Console::Header class="light-gray mb2">Select Sampler For Track {{@activeTrack.order}}</Console::Header>
-    {{else}}
-      <Console::Header class="light-gray mb2">Create Tracks From Selection</Console::Header>
-    {{/if}}
-    <InfoBox class='absolute top-0 right-2'>
-      <p class='f6 mb3 mt0'>When you select a sound file from this menu the
-        sound's URL is available in the code as
-        <code>this.filepath</code>.
-      </p>
-      <p class='f6 mb3 mt0'>You pass the sound's URL to a
-        <code>sampler</code>
-        node in the Setup script like so:
-      </p>
-      <p class='f6 mb3 mt0'><code>__().sampler({path: this.filepath})</code></p>
+<SidebarWrapper
+  @direction='left'
+  @title={{this.title}}
+  @onCloseSidebar={{@onCloseSidebar}}
+>
+  <:info>
+    <InfoBox>
+      {{#if this.showPool}}
+        <p class='f6 mb3 mt0'>The sounds this project uses. The pool is shared by all snapshots, so every
+          snapshot plays the same samples.</p>
+        <p class='f6 mb3 mt0'>Samples are added to the pool when a track uses them. Pick sounds in the
+          <b>Browse</b> tab.</p>
+      {{else}}
+        <p class='f6 mb3 mt0'>When you select a sound file from this menu the
+          sound's URL is available in the code as
+          <code>this.filepath</code>.
+        </p>
+        <p class='f6 mb3 mt0'>You pass the sound's URL to a
+          <code>sampler</code>
+          node in the Setup script like so:
+        </p>
+        <p class='f6 mb3 mt0'><code>__().sampler({path: this.filepath})</code></p>
+      {{/if}}
     </InfoBox>
-  </div>
-  
-  
-  <div class='flex flex-column h-100'>
+  </:info>
+  <:default>
+  <div class='flex flex-column sidebar-fill'>
+    {{#if this.isCurrentTrackMode}}
+      <div class='ph3 grow-0 shrink-0 bb b--dark-gray'>
+        <Console::TabMenu
+          class='flex-nowrap'
+          data-test-left-tabs
+          @selectedClass='bn bb bw2 b--yellow br0 bg-transparent yellow fw7 mr3'
+          @buttonClass='bn bb bw2 b--transparent br0 bg-transparent light-gray mr3'
+          @items={{this.tabs}}
+          @selectedValue={{@tab}}
+          @onSelect={{@setTab}}
+        />
+      </div>
+    {{/if}}
+
+    {{#if this.showPool}}
+      <Project::SamplePool @project={{@project}} @activeTrack={{@activeTrack}} />
+    {{else}}
     {{#if (and this.isCurrentTrackMode (gt @activeTrack.sourceNodeRecords.length 1))}}
+      <div class='ph3 pt2 grow-0 shrink-0'>
       <Source::NodeTabs
-        class="ml3"
         @yellow="true"
         @nodes={{@activeTrack.sourceNodeRecords}}
-        @onSelect={{fn this.setUi 'targetNodeIdx'}}
+        @onSelect={{this.selectTargetSlot}}
         @selectedValue={{this.targetNodeIdx}}
       />
+      </div>
     {{/if}}
     
     <FilePicker::Search 
@@ -43,6 +65,7 @@
         @audioSelectMode={{@audioSelectMode}}
         @setAudioSelectMode={{@setAudioSelectMode}}
       />
+      <FilePicker::Breadcrumbs @audioFileTree={{this.audioFileTreeForMode}} />
       <FilePicker::Selection 
         @onSelectItem={{this.onSelectItem}} 
         @directoryTree={{this.audioFileTreeForMode.directoryTree}}
@@ -52,7 +75,7 @@
       />
       
       {{#if (and this.isCreateTracksMode (gt this.selectedFiles.length 0))}}
-        <div class="absolute bottom-0 w-100 pa3 bt b--yellow bg-semi-transparent-dark-gray">
+        <div class="sidebar-footer w-100 pa3 bt b--yellow bg-semi-transparent-dark-gray">
           <ButtonPrimary 
             @label={{concat "Create " this.selectedFiles.length " track" (if (gt this.selectedFiles.length 1) "s")}}
             {{on "click" this.submitSelectedFiles}}
@@ -61,5 +84,7 @@
         </div>
       {{/if}}
     </FilePicker::Search>
+    {{/if}}
   </div>
+  </:default>
 </SidebarWrapper>

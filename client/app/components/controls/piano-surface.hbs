@@ -1,0 +1,33 @@
+<div class='surface-wrapper piano-surface flex flex-column items-center mr2 ba b--dark-gray bw1 bg-dark-yellow'>
+  <div class='flex items-center justify-between spaced-text ttu bg-dark-gray white f7 fw3 w-100 pv2 ph2'>
+    <span class='fw7 light-gray'>pitch</span>
+    <span data-test-piano-note>{{this.noteLabel}}</span>
+  </div>
+  <div class='pa2'>
+    <div
+      {{nexus-piano
+        this.activeNote
+        lowNote=this.lowNote
+        highNote=this.highNote
+        size=(array 288 110)
+        onSelect=this.select
+      }}
+    ></div>
+  </div>
+  <div class='flex items-center justify-between w-100 ph2 pb2 f7'>
+    <button
+      class='textbutton pa0 dark-gray underline'
+      type='button'
+      disabled={{not this.canGoDown}}
+      aria-label='Piano octave down'
+      {{on 'click' (fn this.shiftOctave -1)}}
+    >&larr; octave</button>
+    <button
+      class='textbutton pa0 dark-gray underline'
+      type='button'
+      disabled={{not this.canGoUp}}
+      aria-label='Piano octave up'
+      {{on 'click' (fn this.shiftOctave 1)}}
+    >octave &rarr;</button>
+  </div>
+</div>

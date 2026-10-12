@@ -35,7 +35,7 @@ but for other nodes you can do  `__.adsr()` to select only the adsr on that trac
 - add examples of __.ms2freq using the track tempo to control LFO speeds
 - consider "applyTrackControls" as a public function so users can customize order in onstep scripts
 
-- add a CMD+Click on valid cracked methods that opens the docs in a new tab
+- add a CMD+Click on valid cracked methods that opens the docs in a new tab (or tippy)
 - consider refactoring the this.select() method to be a convenience method for 
 
 
@@ -272,6 +272,7 @@ PLAY:::
   - - instead, load the project name only then relations on play
   - - unload project from store when exiting
   - Save "Snapshots" (need to plan this out to work with concurrent editing, permissions)
+    
   - Arrange mode: chain multiple projects together
   - Rails Action Cables for live editing
 
@@ -300,7 +301,10 @@ Implement `hasMany` sequence relationship on tracks, add UI to manage sequences.
   this.sequence.binary(127)
   this.sequence.random(16: len)
   this.sequence.set([1,0,1,0,1,0,1,0])
+  // TODO: need an API for changing over time (bars beats measures?)
   ```
+
+Need to add a menu to the script editor presets for sequence mutation examples.
 
   - alias `data` variable to `step` for clarity in PLAY function
 
@@ -325,6 +329,8 @@ Implement `hasMany` sequence relationship on tracks, add UI to manage sequences.
 - Separate the `offset` from the euclidean algo.
   offset should work for custom rhyhtms
 
+- TODO: Tracks should support subdivisions of the current clock rate (doubling, halfing, triplets, dotted rhythm, swing.)Research a clock-overhaul to support this.
+- Sequence menu UI for altering rate
 
 ### Files
   bug: url parse error for path https://localhost:4200/v1/files/WAV%20hh+filterloops
@@ -407,4 +413,5 @@ and https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/#kbd_roving_tab
 - could add an "undoable" decorator to the save methods on models
 
 - create a "mixer view" for mixing all tracks that have a `channelStrip` macro
+
 

@@ -5,6 +5,7 @@ import { guidFor } from '@ember/object/internals';
 import { isPresent } from '@ember/utils';
 import { next } from '@ember/runloop';
 import { typeOf } from '@ember/utils';
+import { snapToStep } from '../utils/param-scale';
 
 function roundFloat(num) {
   return Number(Number((num || 0).toFixed(4)));
@@ -26,6 +27,10 @@ export default class NexusUi extends Modifier {
       ...optionsHash,
       ...namedOptions,
     };
+
+    this._pendingDragPerPixel = options.dragPerPixel;
+    this._pendingDragStep = options.dragStep;
+    this._pendingOnChange = options.onChange;
 
     if (this.shouldReInit(options)) {
       this.setup(element, nexusClass, options);
@@ -55,23 +60,72 @@ export default class NexusUi extends Modifier {
     this.nexusElement = new Nexus[nexusClass](`#${element.id}`, options);
     this.nexusElement.decimalPlaces = 6;
     if (options.onChange) {
-      this.nexusElement.on('change', options.onChange);
+      this.nexusElement.on('change', this.onNexusChange);
+    }
+    if (this.nexusElement instanceof Nexus.Number) {
+      this.useStepAwareDrag();
     }
 
     this.colorize(options);
   }
 
+  // Nexus sizes a number drag by (max - min), capped at 1000, per pixel. For params with a huge
+  // or unbounded range that makes every pixel worth thousands of units. Scale by the
+  // `dragPerPixel` option (units per pixel) instead; falls back to Nexus's own scaling.
+  useStepAwareDrag() {
+    const nexus = this.nexusElement;
+    const nexusMove = nexus.move.bind(nexus);
+    nexus.move = () => {
+      const perPixel = this._options?.dragPerPixel ?? this._pendingDragPerPixel;
+      if (!Number.isFinite(perPixel) || !(perPixel > 0) || !nexus.clicked) {
+        return nexusMove();
+      }
+      nexus.hasMoved = true;
+      const dy = nexus.mouse.y - nexus.initial.y;
+      // like Nexus, dragging from the left edge is faster than from the right
+      const factor = Math.pow(nexus.changeFactor, 2);
+      const dragged = nexus.actual - dy * perPixel * factor;
+      // Nexus's own step also decides what the box can display and accept, so it is kept fine and
+      // the drag snaps to the control's step size here instead
+      const dragStep = this._options?.dragStep ?? this._pendingDragStep;
+      nexus.value = dragStep > 0 ? snapToStep(dragged, dragStep, nexus.min) : dragged;
+      nexus.render();
+      if (nexus._value.changed) {
+        nexus.emit('change', nexus.value);
+      }
+    };
+  }
+
+  // Nexus emits `change` for programmatic value changes too, after rounding and snapping to its own
+  // step (a model value of 174.61 comes back as 175). Forwarding that would overwrite the model with
+  // a value the user never entered, so only changes made through the UI are passed on.
+  applyingValue = false;
+
+  onNexusChange = (value) => {
+    if (this.applyingValue) return;
+    (this._pendingOnChange ?? this._options?.onChange)?.(value);
+  };
+
+  withoutEmitting(fn) {
+    this.applyingValue = true;
+    try {
+      fn();
+    } finally {
+      this.applyingValue = false;
+    }
+  }
+
   setValue(options) {
     if (typeOf(options.value) === 'boolean') {
-      this.nexusElement.state = options.value;
+      this.withoutEmitting(() => (this.nexusElement.state = options.value));
     } else if (
       isPresent(options.value) &&
       !isNaN(options.value) &&
       this.valueChanged(options)
     ) {
-      this.nexusElement.value = roundFloat(options.value);
+      this.withoutEmitting(() => (this.nexusElement.value = roundFloat(options.value)));
     } else if (cracked.isStr(options.value)) {
-      this.nexusElement.value = options.value;
+      this.withoutEmitting(() => (this.nexusElement.value = options.value));
     }
   }
 
@@ -100,7 +154,9 @@ export default class NexusUi extends Modifier {
         key === 'value' ||
         key === 'values' ||
         key === 'state' ||
-        key === 'stepIndex'
+        key === 'stepIndex' ||
+        key === 'dragPerPixel' ||
+        key === 'dragStep'
       ) {
         return false;
       }

@@ -22,6 +22,6 @@
     @visibleNodeIdx={{@visibleNodeIdx}}
     @validTrackNodes={{@validTrackNodes}}
     @title={{'controls'}}
-    @description={{'TODO: control varialbes are the values of the sliders. You can modify these values before they get passed to the audio node. This is allows you to do math on slider values '}}
+    @description={{'this.controls holds the live values of the sliders, by node id or type: this.controls.lead.frequency. Read one to do math on the slider value; assign to it to offset the audio for the current step only (the slider keeps its value), e.g. a little random jitter on every step.'}}
   />
 {{/if}}

@@ -3,6 +3,7 @@ import { objectCompletions } from './object-completions';
 import { argCompletions } from './arg-completions';
 import { supportedAudioNodes } from '../audio-node-config';
 import { getSelectorLookupKeys } from '../cracked';
+import { SCRIPT_SCOPE_DOCS } from '../script-scope-docs';
 
 /**
  * Builds the CodeMirror `Completion` lists for each context found by `analyzeContext`.
@@ -50,49 +51,6 @@ const UTIL_TYPES = [
 // properties rather than methods, so no `()` is applied
 const NOT_CALLABLE = new Set(['scales', 'chords']);
 
-// Things available on `this` inside a track script (see `scriptScope` in models/track.ts)
-const SCOPE_MEMBERS = [
-  {
-    label: 'select',
-    call: true,
-    info: 'Select nodes in this track: this.select("lowpass") scopes the selector to this track',
-    boost: 10,
-  },
-  {
-    label: 'play',
-    call: true,
-    info: 'Play this track’s source nodes and trigger its envelopes',
-    boost: 9,
-  },
-  { label: 'stop', call: true, info: 'Stop this track’s source nodes' },
-  {
-    label: 'filepath',
-    info: 'URL of the sound file chosen in the file picker; pass it as `path` to a sampler',
-    boost: 8,
-  },
-  { label: 'files', info: 'All sound file URLs downloaded for this track' },
-  {
-    label: 'controls',
-    info: 'Values of this track’s controls at the current step',
-  },
-  { label: 'sliders', info: 'Control data for this track' },
-  {
-    label: 'trackSelector',
-    info: 'Class selector unique to this track, e.g. ".track-1"',
-  },
-  { label: 'id', info: 'Track id' },
-  {
-    label: 'playSourceNodes',
-    call: true,
-    info: 'Restart this track’s source nodes, optionally applying attrs',
-  },
-  {
-    label: 'playADSRNodes',
-    call: true,
-    info: 'Trigger this track’s ADSR envelopes',
-  },
-].map((m) => ({ ...m, type: m.call ? 'method' : 'property' }));
-
 // Keys any node accepts in its params object, whatever the node
 const COMMON_KEYS = [
   {
@@ -128,8 +86,8 @@ function exampleOf(html = '') {
 }
 
 function infoNode(c) {
-  const description = plainInfo(c.detail);
-  const example = exampleOf(c.detail);
+  const description = c.description ?? plainInfo(c.detail);
+  const example = c.example ?? exampleOf(c.detail);
   if (!description && !example) return null;
   return () => {
     const dom = document.createElement('div');
@@ -199,12 +157,13 @@ export function memberCompletions(receiver) {
         .filter((c) => !UTIL_EXCLUDED.includes(c.type))
         .map((c) => methodCompletion(c, UTIL_TYPES.includes(c.type) ? 50 : 0));
     case 'scope':
-      return SCOPE_MEMBERS.map((m) => ({
-        label: m.label,
-        type: m.type,
-        info: m.info,
+      return SCRIPT_SCOPE_DOCS.map((m) => ({
+        label: m.name,
+        type: m.kind,
+        detail: 'track',
+        info: infoNode({ description: m.description, example: m.example }),
         boost: m.boost ?? 0,
-        apply: m.call ? applySnippet(`${m.label}(\${})`) : m.label,
+        apply: m.kind === 'method' ? applySnippet(`${m.name}(\${})`) : m.name,
       }));
     case 'chain':
       return chainCompletions(receiver);

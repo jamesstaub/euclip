@@ -1,11 +1,18 @@
 <div class="light-fill" ...attributes>
-  <button class="bg-transparent bn pa3" type="button" {{on "click" this.toggleInfo}}>
-    {{svg-jar "fi-question" width="20px" height="20px"}}
+  <button
+    class="bg-transparent bn pa3"
+    type="button"
+    title="More information"
+    aria-label="More information"
+    aria-expanded={{if this.open "true" "false"}}
+    {{on "click" this.toggleInfo}}
+  >
+    {{svg-jar "fi-question" width="20px" height="20px" aria-hidden="true" focusable="false"}}
   </button>
 </div>
 
 {{#if this.open}}
-  <p class="dark-gray bg-light-gray pa3 mb3 mt0">
+  <p class="dark-gray bg-light-gray pa3 mb3 mt0" role="note">
     {{yield}}
   </p>
 {{/if}}

@@ -1,0 +1,51 @@
+<div class='flex flex-column light-gray' data-test-macro-menu>
+  <p class='f6 mt0 mb3'>
+    Macros are instruments built from several audio nodes. Each one comes with a documented example
+    (including how its controls are described); loading it replaces this track's scripts.
+  </p>
+
+  <ul class='list ph0 mt0 mr3'>
+    {{#each this.macros as |macro|}}
+      <ListItem class='pv1' @selected={{eq macro.key this.selected.key}}>
+        <ListItemLink {{on 'click' (fn this.select macro)}} data-test-macro-item={{macro.key}}>
+          {{macro.title}}
+        </ListItemLink>
+      </ListItem>
+    {{/each}}
+  </ul>
+
+  <div class='pa3 ba b--dark-gray mb3'>
+    <p class='f6 mt0 mb2'>{{this.selected.description}}</p>
+    <ul class='list ph0 mv0 f7' data-test-macro-settings>
+      {{#each this.settings as |setting|}}
+        <li class='flex justify-between pv1 bb b--dark-gray'>
+          <span class='yellow'>{{setting.key}}</span>
+          <span>{{setting.range}}</span>
+        </li>
+      {{/each}}
+    </ul>
+  </div>
+
+  {{#if this.failed}}
+    <p class='red f6 mt0'>Could not load the example. Try again.</p>
+  {{/if}}
+
+  <div class='pv3'>
+    <SidebarSubmitButton
+      title='Load this example into the setup and play scripts'
+      @disabled={{this.isLoading}}
+      {{on 'click' this.load}}
+      data-test-macro-load
+    >
+      Load Example
+    </SidebarSubmitButton>
+
+    <ButtonPrimary
+      class='light-gray b--light-gray bg-dark-gray'
+      @restyle={{true}}
+      {{on 'click' @closeMenu}}
+    >
+      Cancel
+    </ButtonPrimary>
+  </div>
+</div>

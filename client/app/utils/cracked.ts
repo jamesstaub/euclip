@@ -4,6 +4,8 @@
  * Euclip and Cracked.
  */
 
+import { macroSchemaFor } from './macros/library';
+
 declare const __: any;
 declare const cracked: any;
 
@@ -137,6 +139,19 @@ export function unbindFromSequencer(samplerSelector: string): void {
  */
 export function applyAttrs(selector: string, attrs: Record<string, any>): void {
   __(selector).attr(attrs);
+}
+
+/**
+ * Apply settings to a track node. A macro's settings aren't audio node attributes: they go through the
+ * macro's own `update` method (`__(uuid).polysynth('update', { lp_frequency: 800 })`), which also reaches
+ * any voices that are already playing. Anything else is a plain `.attr()`.
+ */
+export function applyNodeAttrs(selector: string, nodeType: string, attrs: Record<string, any>): void {
+  if (macroSchemaFor(nodeType)) {
+    __(selector)[nodeType]('update', attrs);
+  } else {
+    applyAttrs(selector, attrs);
+  }
 }
 
 /** List of available synth node types */

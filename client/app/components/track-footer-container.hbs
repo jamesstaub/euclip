@@ -3,7 +3,7 @@
     <div
       class='relative flex justify-between flex-column bg-yellow footer-height'
     >
-      <div class='flex overflow-hidden w-100 h-100'>
+      <div class='track-footer flex overflow-hidden w-100 h-100'>
         {{#if this.channelStripNode}}
           <ChannelStrip
             @channelStripGainControl={{this.channelStripGainControl}}
@@ -68,7 +68,10 @@
           <Source::Container
             @track={{@track}}
             @showReference={{this.showReference}}
-            @showFilePath={{fn @toggleSidebar 'left'}}
+            @showFilePath={{@showFilePath}}
+            @selectedNodeIdx={{@selectedSourceIdx}}
+            @onSelectNode={{@onSelectSourceNode}}
+            @updateControl={{this.setControlValue}}
           >
             <TrackReference
               @track={{@track}}
@@ -99,7 +102,7 @@
               >
 
                 <Source::NodeTabs
-                  @nodes={{@track.trackNodesForControls}}
+                  @nodes={{@track.effectNodesForControls}}
                   @onSelect={{fn this.setUi 'visibleNodeIdx'}}
                   @selectedValue={{this.visibleNodeIdx}}
                 />
@@ -113,7 +116,7 @@
                 {{else}}
                   <TrackControls
                     @track={{@track}}
-                    @trackNodesForControls={{@track.trackNodesForControls}}
+                    @trackNodesForControls={{@track.effectNodesForControls}}
                     @visibleNodeIdx={{this.visibleNodeIdx}}
                     @updateControl={{this.setControlValue}}
                     @updateControlAttr={{this.updateControlAttr}}

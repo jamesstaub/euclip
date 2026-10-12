@@ -1,12 +1,46 @@
-<div class={{concat "z-2 flex shrink-1 basis-auto grow-1 gray-blue-radial-bg " this.responsiveClass}} 
-  ...attributes
+{{!-- template-lint-disable no-down-event-binding --}}
+{{!-- a drag has to start on press, not release --}}
+<aside
+  class="sidebar sidebar--{{@direction}} gray-blue-radial-bg"
+  style={{this.style}}
+  aria-label={{@title}}
+  {{did-insert this.setup}}
   {{shortcut "Escape" @onCloseSidebar global=true}}
+  ...attributes
 >
-  <div class="relative flex w-100 flex-column">
-    <IconButton class="absolute top-0 right-0 bg-transparent light-fill bn z-2 pa3" @icon="fi-cancel" 
-      {{on "click" @onCloseSidebar}} 
-      title="Close Sidebar (ESC)"
-    />
-    {{yield}}
+  {{!-- a keyboard-operable splitter: drag, arrow keys (shift = larger steps), Home/End, Enter or double-click to reset --}}
+  <div
+    class="sidebar__handle"
+    role="separator"
+    tabindex="0"
+    aria-orientation="vertical"
+    aria-label={{this.label}}
+    aria-valuemin={{this.min}}
+    aria-valuemax={{this.max}}
+    aria-valuenow={{this.width}}
+    data-dragging={{this.dragging}}
+    {{on "pointerdown" this.startResize}}
+    {{on "pointermove" this.onMove}}
+    {{on "pointerup" this.endResize}}
+    {{on "pointercancel" this.endResize}}
+    {{on "keydown" this.onKey}}
+    {{on "dblclick" this.resetWidth}}
+  ></div>
+
+  <div class="sidebar__body">
+    <header class="sidebar__header">
+      <h2 class="sidebar__title">{{@title}}</h2>
+      {{yield to="info"}}
+      <IconButton
+        class="sidebar__close bg-transparent light-fill bn pa3"
+        @icon="fi-cancel"
+        @label="Close sidebar"
+        title="Close Sidebar (ESC)"
+        {{on "click" @onCloseSidebar}}
+      />
+    </header>
+    <div class="sidebar__content">
+      {{yield}}
+    </div>
   </div>
-</div>
+</aside>

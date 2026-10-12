@@ -44,7 +44,7 @@ export const AudioNodeConfig = {
       ...envelopeAttrs,
     },
   },
-  allpasss: {
+  allpass: {
     type: FILTER,
     attrs: {
       ...filterAttrs,
@@ -483,7 +483,7 @@ export const defaultParams = {
 // nodes defined in cracked library that euclip supports for TrackNodes and TrackControls
 export const supportedAudioNodes = [
   'adsr',
-  'allpasss',
+  'allpass',
   'bandpass',
   'bitcrusher',
   'channelStrip',

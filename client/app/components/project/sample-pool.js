@@ -3,18 +3,17 @@ import { action } from '@ember/object';
 import { service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 import byKey from 'euclip/utils/by-key';
-import { buildPath } from 'euclip/components/file-picker/drum-file-sidebar';
 
 /**
  * The project's sample pool, shown in the left sidebar: every sample the project uses, shared by all
  * snapshots. Rows can be previewed, renamed, assigned to a sampler slot of the active track, and removed
- * (not while a track uses them). "Add samples" browses the catalog and adds files to the pool.
+ * (not while a track uses them). It is the "Sample Pool" tab of the left sidebar; the other tab, "Browse",
+ * searches the catalog.
  */
 export default class ProjectSamplePoolComponent extends Component {
   @service samplePool;
   @service notifications;
 
-  @tracked browsing = false;
   @tracked renamingId = null;
 
   get rows() {
@@ -115,33 +114,6 @@ export default class ProjectSamplePoolComponent extends Component {
       await this.samplePool.refresh(this.args.project); // so "used by" is current
     } catch (error) {
       this.notifications.push({ type: 'error', message: 'Could not use this sample' });
-      console.error(error);
-    }
-  }
-
-  @action
-  toggleBrowse() {
-    this.browsing = !this.browsing;
-  }
-
-  // catalog: folders open, audio files are added to the pool
-  @action
-  async onSelectItem(directory, item) {
-    const tree = this.args.audioFileTree;
-    const selection = buildPath(directory.path, item);
-    if (directory.type === 'dir') {
-      await tree.appendDirectoriesData(selection);
-    } else if (directory.type === 'audio') {
-      await this.addToPool(selection);
-    }
-  }
-
-  @action
-  async addToPool(path) {
-    try {
-      await this.samplePool.add(this.args.project, path);
-    } catch (error) {
-      this.notifications.push({ type: 'error', message: 'Could not add the sample' });
       console.error(error);
     }
   }

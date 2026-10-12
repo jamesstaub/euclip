@@ -1,22 +1,33 @@
 <Controls::NumberBox
   class="slider-number center"
   @value={{@value}}
-  @min={{@min}}
+  @min={{this.min}}
+  @max={{this.max}}
+  @stepSize={{this.stepSize}}
   @onChange={{@onChange}}
 />
 
-<div
-  class='grow-1 mh3 center'
-  {{nexus-ui
-    'Slider'
-    min=@min
-    max=@max
-    value=@value
-    onChange=@onChange
-    step=@stepSize
-    size=(array 20 140)
-  }}
-></div>
+<div class='grow-1 mh3 center relative'>
+  <div
+    {{nexus-ui
+      'Slider'
+      min=this.sliderMin
+      max=this.sliderMax
+      value=this.sliderValue
+      onChange=this.onChangeSlider
+      step=this.sliderStep
+      size=(array 20 140)
+    }}
+  ></div>
+  {{#if this.modulationStyle}}
+    {{! where the onstep script is driving this param to right now; the slider itself stays at the user's value }}
+    <span
+      class='modulation-marker absolute'
+      style={{this.modulationStyle}}
+      title='Set by the onstep script'
+    ></span>
+  {{/if}}
+</div>
 
 
 {{!-- show on tippy --}}

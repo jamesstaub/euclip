@@ -3,24 +3,38 @@
     <Controls::NumberBox
       @onChange={{(fn this.setControlProperty 'max')}}
       @value={{@trackControl.max}}
+      @min={{@trackControl.min}}
+      @stepSize={{this.stepSize}}
+      @dragPerPixel={{this.dragPerPixel}}
     /></label>
   <label
     class='flex items-center justify-between tl f7'
   >{{'min'}}<Controls::NumberBox
       @onChange={{(fn this.setControlProperty 'min')}}
       @value={{@trackControl.min}}
+      @max={{@trackControl.max}}
+      @stepSize={{this.stepSize}}
+      @dragPerPixel={{this.dragPerPixel}}
     /></label>
   <label
     class='flex items-center justify-between tl f7'
   >{{'step size'}}<Controls::NumberBox
       @onChange={{(fn this.setControlProperty 'stepSize')}}
       @value={{@trackControl.stepSize}}
+      @min={{0.0001}}
+      @max={{1000}}
+      @stepSize={{this.stepSizeIncrement}}
+      @dragPerPixel={{this.stepSizeIncrement}}
     /></label>
   <label
     class='flex items-center justify-between tl f7'
   >{{'default'}}<Controls::NumberBox
       @onChange={{(fn this.setControlProperty 'defaultValue')}}
       @value={{@trackControl.defaultValue}}
+      @min={{@trackControl.min}}
+      @max={{@trackControl.max}}
+      @stepSize={{this.stepSize}}
+      @dragPerPixel={{this.dragPerPixel}}
     /></label>
 
   <LabeledToggle

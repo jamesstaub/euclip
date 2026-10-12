@@ -8,9 +8,15 @@ import { isPresent } from '@ember/utils';
 import FilepathControlModel from 'euclip/models/filepath-control';
 import type StoreService from '@ember-data/store';
 import byKey from 'euclip/utils/by-key';
+import { macroSchemaFor } from 'euclip/utils/macros/library';
+import { mergeSchema, resolveSpec, type MacroSchema } from 'euclip/utils/macros/schema';
+import {
+  defaultNodeParamsByUnit,
+  unitOptionsFor,
+} from 'euclip/utils/audio-param-config';
 
 // cracked's synth macros: whole instruments that count as the track's sound source
-const macroSynthNodes = ['polysynth', 'monosynth', 'gang_of_oscillators'];
+export const macroSynthNodes = ['polysynth', 'monosynth', 'gang_of_oscillators'];
 
 // Enum for file load states
 export const FILE_LOAD_STATES = {
@@ -31,7 +37,10 @@ export default class TrackNodeModel extends Model {
   @belongsTo('filepath-control', { async: false, inverse: 'trackNode' }) filepathControl!: FilepathControlModel;
 
   @attr('string') userDefinedInterfaceName!: string;
-  @attr('string') userSettingsForControl!: string;
+  // Not persisted: what the init script passed when it built this node, read by the controls
+  // (numeric attr literals) and by `this.controls` (the node's script `id`).
+  userSettingsForControl: Record<string, number> = {};
+  scriptId?: string;
 
   @attr('string') nodeUUID!: string;
   @attr('string') nodeType!: string;
@@ -45,6 +54,18 @@ export default class TrackNodeModel extends Model {
   // Computed property for checking if this is a source node
   get isSourceNode(): boolean {
     return ['buffer', 'sampler', ...synthNodes, ...macroSynthNodes, ...noiseNodes].includes(this.nodeType);
+  }
+
+  /**
+   * What kind of sound source this node is, for the UI: a sample player, an oscillator, a noise
+   * generator or a whole instrument (a cracked macro such as the polysynth). Undefined for effects.
+   */
+  get sourceKind(): 'sample' | 'oscillator' | 'noise' | 'macro' | undefined {
+    if (!this.isSourceNode) return undefined;
+    if (this.nodeType === 'sampler' || this.nodeType === 'buffer') return 'sample';
+    if (macroSynthNodes.includes(this.nodeType)) return 'macro';
+    if (noiseNodes.includes(this.nodeType)) return 'noise';
+    return 'oscillator';
   }
 
   // Computed property for unique selector
@@ -117,6 +138,24 @@ export default class TrackNodeModel extends Model {
     return [...this.trackControls.slice().sort(byKey('sortOrder'))];
   }
 
+  /**
+   * If this node is a macro with a control schema: that schema, plus whatever the script declared for it
+   * (`this.declareControls('polysynth', { ... })`). Undefined for ordinary audio nodes.
+   */
+  get macroSchema(): MacroSchema | undefined {
+    const base = macroSchemaFor(this.nodeType);
+    if (!base) return undefined;
+    // built-in schema, then what the project's macros script declared, then what this track's script declared
+    const projectLevel = mergeSchema(base, this.track?.project?.declaredMacroControls?.[this.nodeType]);
+    return mergeSchema(projectLevel, this.track?.declaredMacroControls?.[this.nodeType]);
+  }
+
+  // The attributes this node gets track controls for: a macro's schema settings, or an audio node's attrs
+  get controlAttrs(): string[] {
+    const schema = this.macroSchema;
+    return schema ? Object.keys(schema) : TrackNodeModel.controlAttrsFor(this.nodeType);
+  }
+
   // The numeric control attributes a node type exposes (the file path is a FilepathControl, not a track control)
   static controlAttrsFor(nodeType: string): string[] {
     const attrs = AudioNodeConfig[nodeType]?.attrs;
@@ -131,36 +170,49 @@ export default class TrackNodeModel extends Model {
     );
   }
 
-  // Update the user-defined interface name and save to track controls
-  updateUserDefinedInterfaceName(userDefinedInterfaceName: string): void {
-    this.set('userDefinedInterfaceName', userDefinedInterfaceName);
-    if (this._userDefinedInterfaceName !== this.userDefinedInterfaceName) {
-      this.trackControls.forEach((trackControl: any) => {
-        if (
-          trackControl.interfaceNamesForAttr.includes(userDefinedInterfaceName)
-        ) {
-          trackControl.set('interfaceName', userDefinedInterfaceName);
-        } else {
-          // Set the default interface name for unsupported controls
-          trackControl.set('interfaceName', trackControl.interfaceNamesForAttr[0]);
-        }
-        trackControl.save();
-      });
-    }
-    this._userDefinedInterfaceName = this.userDefinedInterfaceName;
-  }
-
-  // When the script gives a control a different default than the one stored, reset that control to it.
-  // (Compared against the persisted defaultValue, so reloading or replaying never resets user edits.)
+  // Compares the numbers the init script gave this node with the ones it gave last time (the controls'
+  // `scriptValue`). A control whose literal changed starts over from the script's value; one whose literal
+  // is unchanged keeps whatever the user set, so reloading or replaying never resets user edits.
   updateDefaultValue(): void {
     this.trackControls.forEach((trackControl: any) => {
-      const userDefault = this.userSettingsForControl?.[trackControl.nodeAttr];
-      if (!isPresent(userDefault) || trackControl.defaultValue === userDefault) return;
+      const literal = this.userSettingsForControl?.[trackControl.nodeAttr];
+      if (!isPresent(literal) || trackControl.scriptValue === literal) return;
 
-      trackControl.set('currentUnitTransformIdx', 0); // Set default unit
-      trackControl.setValue(userDefault); // Make sure to use setValue setter
-      trackControl.set('defaultValue', userDefault);
-      trackControl.setMinMaxByDefault();
+      if (trackControl.scriptValue == null && trackControl.defaultValue === literal) {
+        // saved before scriptValue existed and still at the script's number: just start tracking it
+        trackControl.scriptValue = literal;
+        trackControl.saveTrackControl.perform();
+        return;
+      }
+      trackControl.adoptScriptValue(literal);
+    });
+  }
+
+  /**
+   * A setting the script declared with `this.declareControls(...)` has its range and step re-applied on every
+   * build, so editing the declaration changes the control straight away. The control's current value is never
+   * clipped: the range grows to include it.
+   */
+  applyDeclaredRanges(): void {
+    const declared = {
+      ...this.track?.project?.declaredMacroControls?.[this.nodeType],
+      ...this.track?.declaredMacroControls?.[this.nodeType],
+    };
+    const schema = this.macroSchema;
+    if (!Object.keys(declared).length || !schema) return;
+
+    this.trackControls.forEach((trackControl: any) => {
+      if (trackControl.isDeleted || !declared[trackControl.nodeAttr] || !schema[trackControl.nodeAttr]) return;
+      const { min, max, stepSize } = resolveSpec(schema[trackControl.nodeAttr]);
+      const current = [trackControl.controlValue, trackControl.defaultValue].filter(Number.isFinite);
+      const range = {
+        min: Math.min(min, ...current),
+        max: Math.max(max, ...current),
+        stepSize,
+      };
+      if (['min', 'max', 'stepSize'].every((key) => trackControl[key] === range[key as keyof typeof range])) return;
+      Object.assign(trackControl, range);
+      trackControl.saveTrackControl.perform();
     });
   }
 
@@ -193,6 +245,24 @@ export default class TrackNodeModel extends Model {
    * Creating and linking the records is Track#setupTrackControls' job; this only describes the control.
    */
   defaultControlParams(controlAttr: string): Record<string, any> | null {
+    const macroSpec = this.macroSchema?.[controlAttr];
+    if (macroSpec) {
+      const { min, max, stepSize, defaultValue } = resolveSpec(macroSpec);
+      return {
+        nodeAttr: controlAttr,
+        track: this.track,
+        trackNode: this,
+        nodeType: this.nodeType,
+        nodeOrder: this.order,
+        interfaceName: macroSpec.type === 'choice' ? 'select' : 'slider',
+        controlValue: defaultValue,
+        defaultValue,
+        min,
+        max,
+        stepSize,
+      };
+    }
+
     let defaultForAttr = defaultParams[controlAttr];
 
     if (controlAttr === 'frequency') {
@@ -204,7 +274,19 @@ export default class TrackNodeModel extends Model {
       return null;
     }
 
-    const { min, max, stepSize, defaultValue, interfaceName } = defaultForAttr;
+    const { interfaceName } = defaultForAttr;
+
+    // the node-specific range for the attr's default unit wins over the generic per-attr defaults
+    const unitConfig =
+      defaultNodeParamsByUnit[this.nodeType]?.[controlAttr]?.[
+        unitOptionsFor(this.nodeType, controlAttr)[0]
+      ] ?? {};
+    const pick = (key: string) =>
+      Number.isFinite(unitConfig[key]) ? unitConfig[key] : defaultForAttr[key];
+    const min = pick('min');
+    const max = pick('max');
+    const stepSize = pick('stepSize');
+    const defaultValue = pick('defaultValue');
 
     return {
       nodeAttr: controlAttr,

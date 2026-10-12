@@ -2,6 +2,8 @@ import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import { service } from '@ember/service';
+import { macroExampleByKey } from 'euclip/utils/macros/library';
+import { withMacroSnippet } from 'euclip/utils/macros/schema';
 
 
 export default class ScriptWrapperComponent extends Component {
@@ -9,9 +11,19 @@ export default class ScriptWrapperComponent extends Component {
   @tracked editorLineCount;
 
   // which panel is showing: the scripts, the signal-chain GUI or the presets list
-  @tracked view = 'script'; // 'script' | 'signalGui' | 'presets'
+  @tracked view = 'script'; // 'script' | 'signalGui' | 'presets' | 'macroMenu'
   // which script tab, when view === 'script'
-  @tracked tab = 'init'; // 'init' | 'onstep'
+  @tracked tab = 'init'; // 'init' | 'onstep' | 'macros' (the project-wide macros script)
+
+  // the Macros menu: documented examples to load
+  get showMacroMenu() {
+    return this.view === 'macroMenu';
+  }
+
+  // the project-wide macros script, in the script editor's third tab
+  get showMacrosScript() {
+    return this.view === 'script' && this.tab === 'macros';
+  }
 
   get showPresets() {
     return this.view === 'presets';
@@ -39,6 +51,11 @@ export default class ScriptWrapperComponent extends Component {
   @action
   openGUI() {
     this.view = 'signalGui';
+  }
+
+  @action
+  openMacroMenu() {
+    this.view = 'macroMenu';
   }
 
   @action
@@ -77,7 +94,7 @@ export default class ScriptWrapperComponent extends Component {
   setTab(selectedTab) {
     const tab = String(selectedTab).toLowerCase();
     // tabs only exist on the scripts panel
-    if (this.view === 'script' && (tab === 'init' || tab === 'onstep')) {
+    if (this.view === 'script' && (tab === 'init' || tab === 'onstep' || tab === 'macros')) {
       this.tab = tab;
     }
   }
@@ -102,6 +119,33 @@ export default class ScriptWrapperComponent extends Component {
     scriptModel
       .get('updateScriptTask')
       .perform('signalChainGeneratedCode', content);
+  }
+
+  // Loads a macro's example: its registration goes into the project's macros script (once; never duplicated),
+  // and an example of using it replaces the track's setup and play scripts.
+  @action
+  async applyMacro(macroKey) {
+    const macro = macroExampleByKey(macroKey);
+    const { track, project } = this.args;
+    if (!macro) throw new Error(`Unknown macro ${macroKey}`);
+
+    // the project's macros script first: the track's setup script uses what it registers
+    const macrosScript = project?.macrosScript;
+    if (macrosScript) {
+      const withMacro = withMacroSnippet(macrosScript.editorContent ?? '', macro);
+      if (withMacro !== macrosScript.editorContent) {
+        macrosScript.set('editorContent', withMacro);
+        await macrosScript.runCode.perform();
+      }
+    }
+
+    // the play script, then the setup script (which rebuilds the track's audio)
+    if (track.onstepScript) {
+      track.onstepScript.set('editorContent', macro.onstepScript);
+      await track.onstepScript.runCode.perform();
+    }
+    track.initScript.set('editorContent', macro.initScript);
+    await track.initScript.runCode.perform();
   }
 
   @action

@@ -1,62 +1,11 @@
 {{#each @trackNodesForControls as |trackNode idx|}}
   {{#if (eq @visibleNodeIdx idx)}}
     <div class='flex overflow-hidden h-100'>
-      <div class='flex justify-start overflow-x-scroll bg-yellow overflow-y-hidden h-100 mw-100'>
-        {{#each trackNode.sortedTrackControls as |trackControl|}}
-          {{#if trackControl.isMultislider}}
-            <Controls::Wrapper
-              class='justify-start multislider-wrapper multislider-width'
-              @trackControl={{trackControl}}
-            >
-              <SequencePagination
-                @sequence={{@track.currentSequence.sequence}}
-                @values={{trackControl.controlArrayComputed}}
-                @stepIndex={{@track.stepIndex}}
-                @updateControl={{@updateControl}}
-                as |pgn|
-              >
-                <Controls::Multislider
-                  @stepIndex={{pgn.indexForPage}}
-                  @sequence={{pgn.sequencePaginated}}
-                  @values={{pgn.valuesPaginated}}
-                  @transformedValue={{invoke-on-record trackControl 'attrValueForType' @track.stepIndex}}
-                  @min={{trackControl.min}}
-                  @max={{trackControl.max}}
-                  @stepSize={{trackControl.stepSize}}
-                  @defaultValue={{trackControl.defaultValue}}
-                  @onChange={{fn pgn.updateSequencePage trackControl}}
-                />
-              </SequencePagination>
-            </Controls::Wrapper>
-          {{/if}}
-          {{#if trackControl.isSlider}}
-            <Controls::Wrapper
-              class="pb3"
-              @trackControl={{trackControl}}
-             >
-              <Controls::Slider
-                @value={{trackControl.controlValue}}
-                @transformedValue={{invoke-on-record trackControl 'attrValueForType'}}
-                @stepSize={{trackControl.stepSize}}
-                @min={{trackControl.min}}
-                @max={{trackControl.max}}
-                @onChange={{fn @updateControl trackControl}}
-              />
-            </Controls::Wrapper>
-          {{/if}}
-          {{#if trackControl.isToggle}}
-            <Controls::Wrapper
-              class="pb3"
-              @trackControl={{trackControl}}
-             >
-              <Controls::Toggle
-                @value={{trackControl.controlValue}}
-                @onChange={{fn @updateControl trackControl}}
-              />
-            </Controls::Wrapper>
-          {{/if}}
-        {{/each}}
-      </div>
+      <Controls::NodeControls
+        @track={{@track}}
+        @trackNode={{trackNode}}
+        @updateControl={{@updateControl}}
+      />
     </div>
   {{/if}}
 {{/each}}

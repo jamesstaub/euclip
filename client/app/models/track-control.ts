@@ -5,41 +5,24 @@ import { timeout, task, restartableTask } from 'ember-concurrency';
 
 import { isPresent } from '@ember/utils';
 import { setProperties } from '@ember/object';
+import { tracked } from '@glimmer/tracking';
+import { fromNormalized, toNormalized, type ParamScale } from '../utils/param-scale';
 
 import {
   defaultNodeParamsByUnit,
+  macroUnitParams,
   unitOptionsFor,
 } from '../utils/audio-param-config';
-import { applyAttrs } from '../utils/cracked';
+import { resolveSpec } from '../utils/macros/schema';
+import { applyNodeAttrs } from '../utils/cracked';
 import type TrackModel from './track';
 import type TrackNodeModel from './track-node';
 
-function findSmallestDivisor(value, stepSize, range) {
-  let minDifference = Math.abs(value - Math.round(value / stepSize) * stepSize);
-  let smallestDivisor = stepSize;
+// a sample longer than this defaults to Loop Sync speed
+const LOOP_SYNC_MIN_SECONDS = 2;
 
-  for (let divisor = 1; divisor <= range; divisor++) {
-    if (range % divisor === 0) {
-      const nearestMultiple = Math.round(value / divisor) * divisor;
-      const difference = Math.abs(value - nearestMultiple);
-
-      if (difference < minDifference) {
-        minDifference = difference;
-        smallestDivisor = divisor;
-      }
-    }
-  }
-
-  return smallestDivisor;
-}
-
-function findSmallestDecimalPlace(value) {
-  const stringValue = value.toString();
-  const decimalIndex = stringValue.indexOf('.');
-  return decimalIndex === -1
-    ? 1
-    : Math.pow(10, -(stringValue.length - decimalIndex - 1));
-}
+// node ids that already shadowed an Array method on `this.controls` (warned about once)
+const warnedIds = new Set<string>();
 
 // TODO refactor into subclasses for diferent types
 // move configurations into the model
@@ -79,8 +62,16 @@ export default class TrackControlModel extends Model {
   @attr('number') declare min: number;
   @attr('number') declare max: number;
   @attr('number') declare stepSize: number;
+  // Value layers, lowest to highest priority:
+  //   defaultValue  the base the control resets to (starts as the init script's literal, or the param spec's default)
+  //   controlValue  the user's setting (slider, piano, ...); equals defaultValue until the user changes it
+  //   modulation    a one-step value written by the onstep script; never saved (see `modulate`)
   @attr('number') declare defaultValue: number;
   @attr('number') declare controlValue: number;
+  // The init script's literal for this attr, in the node's native units. Compared against the script on
+  // every rebuild so only an *edit to the script* resets the control (not user changes or unit switches).
+  @attr('number') declare scriptValue: number | null;
+  @tracked modulation: number | undefined = undefined;
   @attr('boolean') declare applyHitsOnly: boolean; // TODO: move to a MultisliderControl subclass
   // One value per sequence step, for controls in multislider mode. Must be an attr: without it
   // Ember Data never sends it to the API and edits are lost on reload.
@@ -124,6 +115,19 @@ export default class TrackControlModel extends Model {
     return this.interfaceName === 'slider';
   }
 
+  // a choice setting (e.g. a macro's waveform): the control value is an index into `choices`
+  get isSelect() {
+    return this.interfaceName === 'select';
+  }
+
+  get macroSpec() {
+    return this.trackNode?.macroSchema?.[this.nodeAttr];
+  }
+
+  get choices(): string[] {
+    return this.macroSpec?.choices ?? [];
+  }
+
   get isToggle() {
     return this.interfaceName === 'toggle';
   }
@@ -148,7 +152,8 @@ export default class TrackControlModel extends Model {
   // Ordered array if unit names for this control
   // the 0th element is the default unit that the node expects
   get paramUnitNames() {
-    return unitOptionsFor(this.nodeType, this.nodeAttr);
+    const spec = this.macroSpec;
+    return spec ? [resolveSpec(spec).unit] : unitOptionsFor(this.nodeType, this.nodeAttr);
   }
 
   get currentParamUnitLabel() {
@@ -156,7 +161,8 @@ export default class TrackControlModel extends Model {
   }
 
   get unitParamsForAttr() {
-    return defaultNodeParamsByUnit[this.nodeType]?.[this.nodeAttr];
+    const spec = this.macroSpec;
+    return spec ? macroUnitParams(spec) : defaultNodeParamsByUnit[this.nodeType]?.[this.nodeAttr];
   }
 
   get sortOrder() {
@@ -206,7 +212,7 @@ export default class TrackControlModel extends Model {
       seqSteps: this.track.currentSequence?.steps || 1,
     });
 
-    if (isFinite(ret)) {
+    if (typeof ret === 'string' || isFinite(ret)) {
       return ret;
     } else {
       console.error(`ERROR: passed a ${ret} attribute from track control`);
@@ -235,99 +241,213 @@ export default class TrackControlModel extends Model {
    *
    */
   setValue(value) {
-    if (!this.isDestroyed) {
-      if (isArray(value)) {
-        this.controlArrayValue = value;
-      } else {
-        if (this.controlValue === value) {
-          return;
-        }
+    if (this.isDestroyed) return;
 
-        this.beforeUpdateValue(value);
-        this.controlValue = value;
-        const attrs = {};
-        attrs[this.nodeAttr] = value;
-        applyAttrs(this.trackNode.uniqueSelector, attrs);
+    if (isArray(value)) {
+      this.controlArrayValue = value;
+    } else {
+      if (this.controlValue === value) {
+        return;
       }
-      this.saveTrackControl.perform();
+      this.controlValue = value;
+      this.clearModulation(); // the user took over, so the script's step offset no longer applies
+      this.applyToAudio();
     }
+    this.saveTrackControl.perform();
   }
 
-  // TODO:
-  // this currently overwrites user-defined start and end values.
-  // custom UI elements for start and end could be created to just disallow
-  // customization. till then it will seem buggy
-  // Move this to
-  setSamplerControlsToBuffer(nativeBuffer) {
-    // unit transforms will handle their own min/max/defaults
-    // so only set them below if it's the default unit in seconds
-    if (this.currentUnitTransformIdx > 0) return;
-
-    // set the track control for the `end` controlAttr to the audio buffer's length
-    // unless the user has already set a value
-    // convert buffer len to seconds
-    const bufferLen = nativeBuffer.duration;
-
-    if (this.nodeAttr === 'start') {
-      setProperties(this, {
-        min: 0,
-        max: bufferLen,
-        defaultValue: 0,
-      });
-    }
-    if (this.nodeAttr === 'end') {
-      setProperties(this, {
-        min: 0,
-        max: bufferLen,
-        defaultValue: bufferLen,
-      });
-    }
+  /**
+   * Write this control's current value to its audio node, through the unit transform
+   * (the audio node expects native units, e.g. Hz, not the Half Steps the slider shows).
+   */
+  applyToAudio(index?: number) {
+    const value = this.attrValueForType(index);
+    const selector = this.trackNode?.uniqueSelector;
+    if (value === undefined || !selector || !this.nodeAttr) return;
+    applyNodeAttrs(selector, this.nodeType, { [this.nodeAttr]: value });
   }
 
-  // compares value to min, max, stepSize of trackControl record.
-  // if value is not a number, or is outside of min/max, or is not a multiple of stepSize,
-  // then update those values on the trackControl accordingly (and save)
-  beforeUpdateValue(value) {
-    if (cracked.isUndef(value)) {
-      console.warn('WARNING: track control value is undefined', this);
+  /** True once the user has moved the control away from its base value. */
+  get isOverridden(): boolean {
+    if (this.isMultislider) return false;
+    return Number.isFinite(this.controlValue) && this.controlValue !== this.defaultValue;
+  }
+
+  // The unit transform of the current unit, or undefined if none/unknown
+  get currentUnitParams() {
+    return this.unitParamsForAttr?.[this.currentParamUnitLabel];
+  }
+
+  get scale(): ParamScale {
+    // a macro setting can declare its scale in the script; otherwise it comes from the unit
+    const scale = this.macroSpec?.scale ?? this.currentUnitParams?.scale;
+    return scale === 'log' ? 'log' : 'linear';
+  }
+
+  get normalized(): number {
+    return toNormalized(this.controlValue, { min: this.min, max: this.max, scale: this.scale });
+  }
+
+  setNormalized(norm: number) {
+    this.setValue(fromNormalized(norm, { min: this.min, max: this.max, scale: this.scale }));
+  }
+
+  /**
+   * Called when the init script's literal for this attr is different from last time (or new):
+   * the script is the source of truth again, so the control starts over from it.
+   */
+  adoptScriptValue(literal: number) {
+    this.scriptValue = literal;
+    this.currentUnitTransformIdx = 0; // scripts speak the node's native unit, which is unit 0
+    this.defaultValue = literal;
+    this.controlValue = literal;
+    this.setMinMaxByDefault();
+    this.applyToAudio();
+    this.saveTrackControl.perform();
+  }
+
+  /** Back to the base value (the script's literal unless the user changed the default). */
+  resetToDefault() {
+    this.setValue(this.defaultValue);
+    this.saveTrackControl.perform();
+  }
+
+  /**
+   * Set by the onstep script for the current step only (`this.controls.lead.frequency = x`).
+   * `value` is in native units. It goes straight to the audio node and is cleared at the start of the
+   * next step, so a script can read the slider and offset it every step without compounding.
+   */
+  modulate(value: number) {
+    if (!Number.isFinite(value)) {
+      console.warn(`Ignored non-numeric value for ${this.nodeType}.${this.nodeAttr}:`, value);
       return;
     }
-    const min = this.min;
-    const max = this.max;
-    const isNumber = !isNaN(value);
+    this.modulation = value;
+    const selector = this.trackNode?.uniqueSelector;
+    if (selector) applyNodeAttrs(selector, this.nodeType, { [this.nodeAttr]: value });
+  }
 
-    if (isNumber) {
-      this.min = Math.min(min, value);
-      this.max = Math.max(max, value);
+  clearModulation() {
+    if (this.modulation !== undefined) this.modulation = undefined;
+  }
+
+  /** What the audio node actually gets: this step's modulation if there is one, else the slider's value. */
+  effectiveValue(index?: number) {
+    return this.modulation ?? this.attrValueForType(index);
+  }
+
+  /**
+   * The modulation expressed in the slider's units, for drawing a marker. Unit transforms only go one
+   * way (UI -> native), so this is only available for units that are the identity (Hz, seconds, ...).
+   */
+  get modulatedUiValue(): number | undefined {
+    if (this.modulation === undefined) return undefined;
+    const func = this.currentUnitParams?.func;
+    if (!func) return this.modulation;
+    try {
+      const ctx = { intervalMs: 500, sampleLenSec: 1, seqSteps: 1 };
+      return func(1, ctx) === 1 && func(2, ctx) === 2 ? this.modulation : undefined;
+    } catch {
+      return undefined;
     }
+  }
 
-    // if the value is not evenly divisible by the step size, update the step size
-    // so the new value can be set exactly
-    // make sure it works for floats and ints
+  /**
+   * Called when a sampler's file has loaded. Sizes `start`/`end` to the sample and, for a long sample,
+   * switches `speed` to Loop Sync. Anything the user or the script set is kept (only clamped to fit).
+   */
+  setSamplerControlsToBuffer(nativeBuffer: AudioBuffer) {
+    if (this.nodeType !== 'sampler') return;
+    const length = nativeBuffer.duration;
 
-    const isMultipleOfStepSize = Number.isInteger(value / this.stepSize);
-
-    if (!isMultipleOfStepSize && this.stepSize !== 0) {
-      const range = Math.abs(max - min);
-
-      // Find the smallest divisor that minimizes the difference
-      const divisorForIntegers = findSmallestDivisor(
-        value,
-        this.stepSize,
-        range
-      );
-
-      // Find the smallest decimal place for floats
-      const divisorForDecimals = findSmallestDecimalPlace(value);
-
-      // Ensure the step size is a positive value and choose the smaller divisor
-      const newStepSize = Math.max(
-        0.0001,
-        Math.min(divisorForIntegers, divisorForDecimals)
-      );
-
-      this.stepSize = newStepSize;
+    if (this.nodeAttr === 'speed') {
+      this.chooseSpeedUnitForLength(length);
+      return;
     }
+    if (this.nodeAttr !== 'start' && this.nodeAttr !== 'end') return;
+
+    // other units (ms, % of sample, loop steps) have ranges that don't depend on the sample
+    if (this.currentUnitTransformIdx > 0) return;
+
+    const untouched = !this.isOverridden && this.scriptValue == null;
+    const clamp = (n: number) => Math.min(Math.max(n, 0), length);
+    this.min = 0;
+    this.max = length;
+    if (untouched) {
+      // never customised: start at the start of the sample, end at its end
+      const base = this.nodeAttr === 'end' ? length : 0;
+      this.defaultValue = base;
+      this.controlValue = base;
+    } else {
+      this.defaultValue = clamp(this.defaultValue);
+      this.controlValue = clamp(this.controlValue);
+    }
+    this.applyToAudio();
+    this.saveTrackControl.perform();
+  }
+
+  /**
+   * A sample longer than 2 seconds is rarely played at its natural speed: it is used as a loop that
+   * should fit the sequence, which is what Loop Sync speed does. Only an untouched speed control
+   * switches (and then no longer qualifies), so a unit the user picked is never changed behind their back.
+   */
+  chooseSpeedUnitForLength(length: number) {
+    const untouched =
+      this.currentUnitTransformIdx === 0 && !this.isOverridden && this.scriptValue == null;
+    if (!(length > LOOP_SYNC_MIN_SECONDS) || !untouched) return;
+    const index = this.paramUnitNames.indexOf('Loop Sync');
+    if (index > 0) this.setParamUnit({ index, value: 'Loop Sync' });
+  }
+
+  /**
+   * How many native units (seconds, for start/end) one unit of this control is, if the unit is a plain
+   * multiple (seconds, ms, loop steps, % of sample), else undefined. Lets a widget convert a position
+   * to a value and back.
+   */
+  get unitScale(): number | undefined {
+    const one = this.transformCurrentUnit(1);
+    const two = this.transformCurrentUnit(2);
+    const zero = this.transformCurrentUnit(0);
+    return Number.isFinite(one) && one > 0 && zero === 0 && Math.abs(two - 2 * one) < 1e-9
+      ? one
+      : undefined;
+  }
+
+  /**
+   * The note this frequency control is set to, as a (fractional) MIDI number, whatever its unit
+   * (Hz, half steps or cents). Used by the piano.
+   */
+  get midiNote(): number | undefined {
+    const value = this.controlValue;
+    if (!Number.isFinite(value)) return undefined;
+    switch (this.currentParamUnitLabel) {
+      case 'Hz':
+        return value > 0 ? 69 + 12 * Math.log2(value / 440) : undefined;
+      case 'Half Steps':
+        return value;
+      case 'Cents':
+        return value / 100;
+      default:
+        return undefined;
+    }
+  }
+
+  setMidiNote(note: number) {
+    let value: number;
+    switch (this.currentParamUnitLabel) {
+      case 'Hz':
+        value = Math.round(440 * Math.pow(2, (note - 69) / 12) * 100) / 100;
+        break;
+      case 'Half Steps':
+        value = note;
+        break;
+      case 'Cents':
+        value = note * 100;
+        break;
+      default:
+        return;
+    }
+    this.setValue(Math.min(Math.max(value, this.min), this.max));
   }
 
   // force the min/max/stepSize to make sure the defaultValue
@@ -339,26 +459,6 @@ export default class TrackControlModel extends Model {
     if (this.defaultValue < this.min) {
       this.min = this.defaultValue;
     }
-  }
-
-  /**
-   * Every track-control is created with a default value,
-   * which can be modified by the user. setDefault applies that value to the track-controls's
-   * controlValue and controlArrayValue, and also updates the min, max values to make sure
-   * the control's current value is not out of bounds
-   */
-  setDefault() {
-    this.setMinMaxByDefault();
-    this.setValue(this.defaultValue);
-    this.set(
-      'controlArrayValue',
-      Array.from(
-        new Array(this.controlArrayComputed?.length ?? 0),
-        () => this.defaultValue
-      )
-    );
-
-    this.saveTrackControl.perform();
   }
 
   // TODO: this should also get called on record creation
@@ -392,6 +492,7 @@ export default class TrackControlModel extends Model {
     // when changing units, attempt to set the current controlValue intelligently
     // depending on which unit we're going to from.
     // if we're going from index non-0 to 0
+    this.applyToAudio();
     this.saveTrackControl.perform();
   }
 
@@ -424,23 +525,51 @@ export default class TrackControlModel extends Model {
    * to munge the values of track-controls before they get set on the audio nodes
    */
 
-  // FIXME:
-  // decouple script scopes for init and onstep scripts because
-  // the use of attrValuesForType will potentially try to use the sampleLen unit param to get
-  // the control value before the trackNode.crackedNode exists, causing it to fail.
-  static serializeForScript(trackNodes, stepIndex) {
-    // TODO: add in here a property for the track `scriptScope` to determine
-    // the sampler source node since that is a special case
-    return trackNodes.map((trackNode) => {
-      const attrs = {};
-      attrs.nodeUUID = trackNode.nodeUUID;
-
-      trackNode.trackControls.map((trackControl) => {
-        attrs.node = trackNode.nodeType;
-        attrs[trackControl.nodeAttr] = trackControl.attrValueForType(stepIndex);
+  /**
+   * The `this.controls` object scripts see. It is an array with one entry per track node (so
+   * `controls[0].frequency` keeps working), also addressable by the node's script `id` or its type
+   * (`controls.lead.frequency`, `controls.sine.frequency`; the first node of a type wins).
+   *
+   * It is live: reading an attr returns the user's current value (native units, current step for
+   * multisliders) and assigning one sets a one-step modulation, so a script can do
+   *   this.controls.lead.frequency = this.controls.lead.frequency * (1 + jitter)
+   * every step without the offset compounding or touching what the slider shows.
+   */
+  static liveControlsForScript(trackNodes, stepIndex) {
+    const entries = trackNodes.map((trackNode) => {
+      const entry = { node: trackNode.nodeType, nodeUUID: trackNode.nodeUUID };
+      trackNode.trackControls.forEach((trackControl) => {
+        if (trackControl.isDeleted || !trackControl.nodeAttr) return;
+        Object.defineProperty(entry, trackControl.nodeAttr, {
+          enumerable: true,
+          configurable: true,
+          get: () => trackControl.attrValueForType(stepIndex),
+          set: (value) => trackControl.modulate(value),
+        });
       });
-      return attrs;
+      return entry;
     });
+
+    // `controls` is an array, so a name can collide with an array method (`id: 'filter'` vs
+    // `Array#filter`). A script's own id is an explicit choice and wins; a node type never
+    // replaces anything. `length` and indexes are never replaced.
+    const reserved = (key: string) => key === 'length' || /^\d+$/.test(key);
+    trackNodes.forEach((trackNode, i) => {
+      const { scriptId, nodeType } = trackNode;
+      if (scriptId && !reserved(scriptId)) {
+        if (scriptId in entries && !Object.prototype.hasOwnProperty.call(entries, scriptId) && !warnedIds.has(scriptId)) {
+          warnedIds.add(scriptId); // once, not on every step
+          console.warn(`Node id "${scriptId}" hides the array method controls.${scriptId}(); use controls[n] if you need it.`);
+        }
+        if (!Object.prototype.hasOwnProperty.call(entries, scriptId)) {
+          Object.defineProperty(entries, scriptId, { value: entries[i], enumerable: false, configurable: true, writable: true });
+        }
+      }
+      if (nodeType && !reserved(nodeType) && !(nodeType in entries)) {
+        Object.defineProperty(entries, nodeType, { value: entries[i], enumerable: false, configurable: true, writable: true });
+      }
+    });
+    return entries;
   }
 
   // Loop over a list of trackControls an return an array of

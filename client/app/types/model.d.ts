@@ -2,6 +2,7 @@ import type AudioFileTreeModel from 'euclip/models/audio-file-tree';
 import type FilepathControlModel from 'euclip/models/filepath-control';
 import type InitScriptModel from 'euclip/models/init-script';
 import type OnstepScriptModel from 'euclip/models/onstep-script';
+import type MacrosScriptModel from 'euclip/models/macros-script';
 import type PresetCollectionModel from 'euclip/models/preset-collection';
 import type PresetModel from 'euclip/models/preset';
 import type ProjectModel from 'euclip/models/project';
@@ -24,6 +25,7 @@ export default interface ModelRegistry {
   'filepath-control': FilepathControlModel;
   'init-script': InitScriptModel;
   'onstep-script': OnstepScriptModel;
+  'macros-script': MacrosScriptModel;
   'preset-collection': PresetCollectionModel;
   'preset': PresetModel;
   'project': ProjectModel;
@@ -46,6 +48,7 @@ declare module '@ember-data/store' {
     'filepath-control': FilepathControlModel;
     'init-script': InitScriptModel;
     'onstep-script': OnstepScriptModel;
+    'macros-script': MacrosScriptModel;
     'preset-collection': PresetCollectionModel;
     'preset': PresetModel;
     'project': ProjectModel;

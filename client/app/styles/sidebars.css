@@ -1,71 +1,509 @@
+/*
+ * App layout (grid shell, project workspace, resizable sidebars, track rows), built on CSS grid so that regions fill the space they are given instead of
+ * guessing it with calc(100vh - Nrem).
+ *
+ *   .app-shell      nav + main, exactly one viewport tall (no page scroll; regions scroll themselves)
+ *   .project-view   project bar + workspace
+ *   .project-workspace   [left sidebar] [track list + footer] [right sidebar]
+ *   .project-main   track list (scrolls) over the track footer (fixed content height)
+ *
+ * Breakpoints: >= 1024px sidebars sit beside the tracks and are resizable;
+ * 768-1023px they float over the tracks as drawers; < 768px they take over the whole screen.
+ */
 
-
-.sidebar-inner-max-height {
-  max-height: calc(100vh - 16.5rem);
+:root {
+  --sidebar-min: 18rem;
+  --project-main-min: 24rem; /* the track area never gets narrower than this when sidebars open */
+  --footer-min: 22rem;
+  --handle-size: 0.75rem;
 }
 
+/* ---------- App shell ---------- */
 
-
-@media screen and (min-width: 62em){
-  .sidebar-inner-max-height {
-     max-height: calc(100vh - 24rem);
-  }
+.app-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100vh;
+  height: 100dvh;
+  min-width: 0;
 }
 
-.mobile-sidebar-height {
-  height: 100%
+.app-main {
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+}
+
+/* ---------- Project ---------- */
+
+.project-view {
+  /* a column of bars (title, snapshots, ...) above the workspace: bars take their own height,
+     only the workspace flexes, so adding another bar can't hijack the stretchy row */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.project-view > * {
+  flex: 0 0 auto;
+}
+
+.project-view > .project-workspace {
+  flex: 1 1 0;
+}
+
+.project-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas: 'title transport actions';
+  align-items: center;
+  gap: 0.25rem 1rem;
+  padding: 0.5rem 1rem;
+  background: var(--light-gray);
+}
+
+.project-bar__title {
+  grid-area: title;
+  min-width: 0;
+}
+
+.project-bar__transport {
+  grid-area: transport;
+}
+
+.project-bar__actions {
+  grid-area: actions;
+  display: flex;
+}
+
+.project-workspace {
+  --left-w: 0px;
+  --right-w: 0px;
+  position: relative;
+  display: grid;
+  min-height: 0;
+  min-width: 0;
+  grid-template-rows: minmax(0, 1fr); /* sidebars always span the full height, footer or not */
+  grid-template-columns:
+    min(var(--left-w), max(0px, calc(100% - var(--project-main-min) - var(--right-w))))
+    minmax(0, 1fr)
+    min(var(--right-w), max(0px, calc(100% - var(--project-main-min) - var(--left-w))));
+}
+
+.project-main {
+  grid-column: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr); /* without this the column grows to the footer's widest child */
+  grid-template-rows: minmax(5rem, 1fr) auto;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto; /* safety net for very short windows; normally only .track-list scrolls */
+}
+
+.track-list {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--yellow) var(--dark-gray);
+}
+
+.track-list::-webkit-scrollbar {
+  width: 0.5rem;
+}
+
+.track-list::-webkit-scrollbar-thumb {
+  border-radius: 0.25rem;
+  background-color: var(--yellow);
+}
+
+/* The footer belongs to the grid's second row: content height, never less than --footer-min. */
+.footer-height {
+  height: clamp(var(--footer-min), 42dvh, 28rem);
+}
+
+/* ---------- Sidebars ---------- */
+
+.sidebar {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  z-index: 2;
+  --sidebar-w: 28rem;
+}
+
+.sidebar--left {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.sidebar--right {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.sidebar__body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  color: var(--yellow);
+}
+
+.sidebar--left .sidebar__body {
+  border-right: 2px solid var(--yellow);
+}
+
+.sidebar--right .sidebar__body {
+  border-left: 2px solid var(--yellow);
+}
+
+.sidebar__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  flex: 0 0 auto;
+  padding: 0 0.5rem 0 1rem;
+}
+
+.sidebar__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--light-gray);
+  overflow-wrap: anywhere;
+}
+
+/* the open state of <InfoBox> renders a <p> after its button: give it a row of its own */
+.sidebar__header > p {
+  order: 5;
+  flex: 0 0 100%;
+  box-sizing: border-box;
+}
+
+.sidebar__content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* a direct child of .sidebar__content that should take the remaining height and scroll inside it */
+.sidebar-fill {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.sidebar-footer {
+  flex: 0 0 auto;
+}
+
+/* drag handle on the edge facing the track list */
+.sidebar__handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 3;
+  width: var(--handle-size);
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.sidebar--left .sidebar__handle {
+  right: calc(var(--handle-size) / -2);
+}
+
+.sidebar--right .sidebar__handle {
+  left: calc(var(--handle-size) / -2);
+}
+
+.sidebar__handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.25rem;
+  height: 3rem;
+  transform: translate(-50%, -50%);
+  border-radius: 0.125rem;
+  background: var(--yellow);
+  opacity: 0.55;
+  transition: opacity 0.15s, height 0.15s;
+}
+
+.sidebar__handle:hover::after,
+.sidebar__handle:focus-visible::after,
+.sidebar__handle[data-dragging]::after {
+  opacity: 1;
+  height: 5rem;
+}
+
+.sidebar__handle:focus-visible {
+  outline: 2px solid var(--light-blue);
+  outline-offset: -2px;
+}
+
+/* while dragging, nothing underneath (iframes, codemirror, canvas) may steal the pointer */
+.project-workspace[data-resizing] {
+  cursor: ew-resize;
+  user-select: none;
+}
+
+.project-workspace[data-resizing] .project-main,
+.project-workspace[data-resizing] .sidebar__body {
+  pointer-events: none;
+}
+
+/* file picker / script editor fill the sidebar instead of guessing at its height */
+.script-wrapper {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.script-wrapper > .script-editor-row {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.script-editor-area {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .directory-height {
-  height: calc(100vh - 6.125rem);
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
 }
 
-.script-max-height {
-  max-height: calc(100vh - 18rem);
-}
+/* ---------- < 1024px: sidebars are drawers over the tracks ---------- */
 
-.right-sidebar-width,
-.left-sidebar-width {
-  width: var(--sidebar-width);
-  max-width: 50%;
-  position: absolute;
-  z-index: 2;
-}
-
-.right-sidebar-width {
-  right: 0;
-}
-
-.track-list-wrapper {
-  width: 100%;
-}
-
-.track-list-wrapper.left-sidebar-open,
-.track-list-wrapper.right-sidebar-open {
-  width: 50%;
-}
-
-@media (min-width: 40em) {
-  .right-sidebar-width,
-  .left-sidebar-width {
-    width: 40%;
-    position: relative;
+@media (max-width: 1023px) {
+  .project-workspace {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .track-list-wrapper.left-sidebar-open,
-  .track-list-wrapper.right-sidebar-open {
-    width: 60%;
+  .project-main {
+    grid-column: 1;
+    grid-row: 1;
   }
 
-  .track-list-wrapper.left-sidebar-open.right-sidebar-open {
-    max-width: 4.65rem;
+  .sidebar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: min(var(--sidebar-w), 92%);
+    z-index: 20;
+    box-shadow: 0 0 2rem rgba(0, 0, 0, 0.5);
+    background: var(--dark-gray);
+  }
+
+  .sidebar--left {
+    left: 0;
+  }
+
+  .sidebar--right {
+    right: 0;
+  }
+
+  /* the track footer needs its fixed content height, so the whole column scrolls rather than the list */
+  .project-main {
+    grid-template-rows: minmax(0, auto) auto;
   }
 }
 
-@media (min-width: 60em) {
-  .left-sidebar-width,
-  .right-sidebar-width {
-    width: 33%;
-    max-width: 33%;
+/* ---------- < 768px: phone ---------- */
+
+@media (max-width: 767px) {
+  /* project bar: title + New Track on the first row, transport on its own row */
+  .project-bar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'title actions'
+      'transport transport';
+    padding: 0.5rem;
+  }
+
+  .project-bar__transport {
+    justify-self: stretch;
+  }
+
+  /* one scroll container for the whole track area instead of nested ones */
+  .track-list {
+    overflow-y: visible;
+  }
+
+  /* sidebars become full-screen panels, above the app header too; closing returns to the tracks */
+  .sidebar {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    z-index: 50;
+    box-shadow: none;
+  }
+
+  .sidebar__handle {
+    display: none;
+  }
+
+  .sidebar--left .sidebar__body,
+  .sidebar--right .sidebar__body {
+    border: 0;
+  }
+
+  /* a close target big enough for a thumb */
+  .sidebar__header .sidebar__close {
+    min-width: 3rem;
+    min-height: 3rem;
+  }
+}
+
+/* ---------- pointer / keyboard affordances ---------- */
+
+/* rows are focusable (arrow keys move between tracks) so they need a visible focus ring */
+[data-test-track-item]:focus-visible {
+  outline: 3px solid var(--light-blue);
+  outline-offset: -3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar__handle::after {
+    transition: none;
+  }
+}
+
+.min-h-0 {
+  min-height: 0;
+}
+
+.sidebar__title {
+  text-transform: capitalize;
+}
+
+/* ---------- Track rows ---------- */
+
+/* rows size themselves from the width of the list, which shrinks when sidebars open */
+.track-list {
+  container-type: inline-size;
+  container-name: track-list;
+}
+
+.track-row {
+  --step-size: clamp(1.25rem, calc((100cqw - 21rem) / 16), 2rem);
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  grid-template-areas: 'order source seq actions';
+  align-items: center;
+  column-gap: 0.5rem;
+  min-height: 3.5rem; /* stable whether or not the scripts button is showing */
+}
+
+.track-row__order {
+  grid-area: order;
+}
+
+.track-row__source {
+  grid-area: source;
+  min-width: 0;
+}
+
+.track-row__sequence {
+  grid-area: seq;
+  min-width: 0;
+}
+
+.track-row__actions {
+  grid-area: actions;
+  justify-self: end;
+  align-self: stretch; /* lets the menu button fill the row so its icon centers vertically */
+}
+
+/* steps shrink to fit rather than pushing the row wider than the screen */
+.sequencer-width svg {
+  width: var(--step-size, 2rem);
+  height: var(--step-size, 2rem);
+}
+
+/* narrow list (phone, or a tablet with a sidebar open): the step grid gets its own row */
+@container track-list (max-width: 46rem) {
+  .track-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'order source actions'
+      'seq seq seq';
+    padding-bottom: 0.5rem;
+  }
+
+  .track-row__sequence {
+    padding-left: 0.25rem;
+  }
+
+  .track-row {
+    --step-size: clamp(1.25rem, calc((100cqw - 3rem) / 16), 2rem);
+  }
+
+  /* the main-output meter is decoration; the labels and buttons matter more here */
+  .track-row__scope {
+    display: none;
+  }
+}
+
+/* ---------- Track footer on phones ---------- */
+
+@media (max-width: 767px) {
+  /*
+   * channel strip stays on the left; the source / sequence / controls switcher becomes a
+   * horizontal strip above the panel instead of a third column that squeezes it.
+   */
+  .track-footer {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .track-footer > .channel-strip-w {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+
+  .track-footer > .tab-menu {
+    grid-column: 2;
+    grid-row: 1;
+    flex-direction: row;
+    height: auto;
+    flex-wrap: nowrap;
+  }
+
+  .track-footer > .tab-menu .tab-btn.vertical {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .track-footer > .tab-menu .tab-btn.vertical svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .track-footer > .tab-menu .tab-btn.vertical > div {
+    margin-bottom: 0;
+  }
+
+  .track-footer > :not(.channel-strip-w):not(.tab-menu) {
+    grid-column: 2;
+    grid-row: 2;
+    min-width: 0;
+    overflow: auto;
   }
 }

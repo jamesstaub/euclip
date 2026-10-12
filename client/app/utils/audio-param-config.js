@@ -1,3 +1,5 @@
+import { resolveSpec } from './macros/schema';
+
 // Deep merge
 function dm(obj1, obj2) {
   let result = { ...obj1 };
@@ -95,15 +97,47 @@ const delaySeconds = dm(seconds, {
 const amplitude = {
   [AMP]: {
     func: (a) => a,
+    min: 0,
+    max: 1,
+    stepSize: 0.01,
+    defaultValue: 1,
   },
   [DB]: {
     func: (db) => Math.pow(10, db / 20),
+    min: -60,
+    max: 6,
+    stepSize: 1,
+    defaultValue: 0,
   },
 };
 
 const pan = {
   [PAN]: {
     func: (pan) => pan,
+    min: -1,
+    max: 1,
+    stepSize: 0.01,
+    defaultValue: 0,
+  },
+};
+
+const ratio = {
+  [RATIO]: {
+    func: (r) => r,
+    min: 1,
+    max: 20,
+    stepSize: 0.5,
+    defaultValue: 4,
+  },
+};
+
+const curve = {
+  [CURVE]: {
+    func: (c) => c,
+    min: 0,
+    max: 4,
+    stepSize: 0.1,
+    defaultValue: 1,
   },
 };
 
@@ -119,9 +153,38 @@ const decibels = {
 
 const damping = dm(amplitude, {
   [AMP]: {
-    defailtValue: 0.84,
+    defaultValue: 0.84,
   },
 });
+
+// short envelope times, e.g. compressor attack/release
+const compAttack = dm(seconds, {
+  [S]: { max: 1, stepSize: 0.001, defaultValue: 0.003 },
+  [MS]: { max: 1000, stepSize: 1, defaultValue: 3 },
+  [LOOPSTEPS]: { max: 1, stepSize: 0.05, defaultValue: 0 },
+});
+
+const compRelease = dm(seconds, {
+  [S]: { max: 1, stepSize: 0.01, defaultValue: 0.25 },
+  [MS]: { max: 1000, stepSize: 5, defaultValue: 250 },
+  [LOOPSTEPS]: { max: 2, stepSize: 0.05, defaultValue: 0.25 },
+});
+
+const reverbDecay = dm(seconds, {
+  [S]: { min: 0.1, max: 10, stepSize: 0.1, defaultValue: 2 },
+  [MS]: { min: 100, max: 10000, stepSize: 100, defaultValue: 2000 },
+  [LOOPSTEPS]: { min: 0.1, max: 8, stepSize: 0.25, defaultValue: 2 },
+});
+
+const knee = {
+  [DB]: {
+    func: (a) => a,
+    min: 0,
+    max: 40,
+    stepSize: 1,
+    defaultValue: 30,
+  },
+};
 
 /* Speed / PlaybackRate */
 
@@ -187,6 +250,7 @@ const frequency = {
 
 const oscillatorFrequency = dm(frequency, {
   [HZ]: {
+    scale: 'log',
     min: 20,
     max: 20000,
     stepSize: 1,
@@ -208,6 +272,7 @@ const oscillatorFrequency = dm(frequency, {
 
 const filterFrequency = dm(frequency, {
   [HZ]: {
+    scale: 'log',
     min: 20,
     max: 20000,
     stepSize: 1,
@@ -229,25 +294,43 @@ const filterFrequency = dm(frequency, {
 
 const delayFeedback = dm(amplitude, {
   [AMP]: {
+    max: 0.95, // 1 would never decay
     defaultValue: 0.5,
   },
+  [DB]: {
+    max: 0,
+    defaultValue: -6,
+  },
+});
+
+// drive/distortion amounts: 0 is clean
+const drive = dm(amplitude, {
+  [AMP]: { defaultValue: 0.5 },
+  [DB]: { min: -60, max: 6, defaultValue: -6 },
 });
 
 const q = {
   [Q]: {
     func: (q) => q,
-    min: 0,
+    min: 0.1,
     max: 20,
-    stepSize: 1,
-    defaultValue: 0,
+    stepSize: 0.1,
+    defaultValue: 1,
   },
 };
 
+// Where each kind of filter starts: a low-pass wide open and a high-pass fully closed (so a new filter
+// doesn't change the sound until the user moves it), the others somewhere audible.
+const filterAt = (hz) => dm(filterFrequency, { [HZ]: { defaultValue: hz } });
+
+// low-pass/high-pass Q is in dB (0 is flat); the other filters' Q is a plain ratio
+const flatQ = dm(q, { [Q]: { min: 0, defaultValue: 0 } });
+
 const lfoFrequency = dm(frequency, {
   [HZ]: {
-    min: 0,
+    min: 0.01,
     max: 20,
-    stepSize: 0.1,
+    stepSize: 0.01,
     defaultValue: 1,
   },
   // TODO replace halfsteps with LOOPSTEPS for LFO
@@ -262,6 +345,26 @@ const lfoFrequency = dm(frequency, {
     max: 100,
     stepSize: 10,
     defaultValue: 10,
+  },
+});
+
+// ring modulator carriers are audio-rate, unlike LFOs
+const ringFrequency = dm(oscillatorFrequency, {
+  [HZ]: { scale: 'log', min: 1, max: 5000, stepSize: 1, defaultValue: 30 },
+});
+
+// LFO depth is a multiplier on the modulated param
+const lfoDepth = dm(amplitude, {
+  [AMP]: { min: 0, max: 1000, stepSize: 0.1, defaultValue: 1 },
+});
+
+const sampleStartEnd = (defaultPct) => ({
+  [PRCNT]: {
+    func: (pct, { sampleLenSec }) => (pct / 100) * (sampleLenSec || 0),
+    min: 0,
+    max: 100,
+    stepSize: 1,
+    defaultValue: defaultPct,
   },
 });
 
@@ -316,26 +419,26 @@ export const defaultNodeParamsByUnit = {
     sustain: amplitude,
     release: seconds,
   },
-  allpasss: {
-    frequency: filterFrequency,
+  allpass: {
+    frequency: filterAt(1000),
     q: q,
   },
   bandpass: {
-    frequency: filterFrequency,
+    frequency: filterAt(1000),
     q: q,
   },
   bitcrusher: {},
   channelStrip: {
-    gain: amplitude,
+    gain: dm(amplitude, { [AMP]: { defaultValue: 0.9 } }),
     pan: pan,
   },
   comb: { frequency: filterFrequency },
   compressor: {
     threshold: decibels,
-    knee: amplitude,
-    ratio: amplitude,
-    attack: seconds,
-    release: seconds,
+    knee: knee,
+    ratio: ratio,
+    attack: compAttack,
+    release: compRelease,
   },
   delay: {
     delay: delaySeconds,
@@ -346,48 +449,48 @@ export const defaultNodeParamsByUnit = {
   gain: {
     gain: amplitude,
   },
-  highpass: { frequency: filterFrequency },
-  highshelf: { frequency: filterFrequency },
+  highpass: { frequency: filterAt(20), q: flatQ },
+  highshelf: { frequency: filterAt(4000) },
   lfo: {
     frequency: lfoFrequency,
-    gain: amplitude,
+    gain: lfoDepth,
   },
   lowshelf: {
-    frequency: filterFrequency,
+    frequency: filterAt(200),
     q: q,
   },
   lowpass: {
-    frequency: filterFrequency,
-    q: q,
+    frequency: filterAt(20000),
+    q: flatQ,
   },
   notch: {
-    frequency: filterFrequency,
+    frequency: filterAt(1000),
     q: q,
   },
   overdrive: {
-    drive: amplitude,
+    drive: drive,
     color: filterFrequency,
     postCut: filterFrequency,
   },
   panner: {
-    pan: amplitude,
+    pan: pan,
   },
   peaking: {
-    frequency: filterFrequency,
+    frequency: filterAt(1000),
     q: q,
   },
   reverb: {
-    decay: seconds,
+    decay: reverbDecay,
     reverse: boolean,
   },
   ring: {
-    distortion: amplitude,
-    frequency: lfoFrequency,
+    distortion: curve,
+    frequency: ringFrequency,
   },
   sampler: {
     speed: speed,
-    start: seconds,
-    end: seconds,
+    start: dm(seconds, sampleStartEnd(0)),
+    end: dm(seconds, sampleStartEnd(100)),
     loop: boolean,
     path: {},
   },
@@ -407,7 +510,7 @@ export const defaultNodeParamsByUnit = {
     frequency: oscillatorFrequency,
   },
   waveshaper: {
-    drive: amplitude,
+    drive: drive,
   },
   noise: {
     channels: channels,
@@ -426,3 +529,36 @@ export const defaultNodeParamsByUnit = {
     length: length,
   },
 };
+
+/**
+ * Unit labels available for a given node type + attr, in menu order.
+ * Filtered to the units the node type actually configures, so e.g. an
+ * attr shared by many nodes only offers what makes sense for this one.
+ */
+export function unitOptionsFor(nodeType, nodeAttr) {
+  const ordered = unitOptionsForNode[nodeAttr] ?? [];
+  const configured = defaultNodeParamsByUnit[nodeType]?.[nodeAttr];
+  if (!configured) return ordered;
+  const available = ordered.filter((unit) => unit in configured);
+  return available.length ? available : ordered;
+}
+
+/**
+ * The unit table for one macro setting, in the same shape as the audio nodes' (see defaultNodeParamsByUnit):
+ * macros describe their own controls in a schema (utils/macros), so this is built from a setting's spec on
+ * demand, not stored, and follows the script when it changes.
+ */
+export function macroUnitParams(spec) {
+  const { unit, min, max, stepSize, defaultValue } = resolveSpec(spec);
+  return {
+    [unit]: {
+      // a choice is stored as an index and reaches the macro as the chosen string
+      func: spec.type === 'choice' ? (i) => spec.choices[Math.round(i)] : (value) => value,
+      min,
+      max,
+      stepSize,
+      defaultValue,
+      scale: spec.scale,
+    },
+  };
+}

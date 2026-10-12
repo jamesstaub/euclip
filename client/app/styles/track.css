@@ -69,3 +69,84 @@
   margin-right: 0;
 }
 
+
+/* where the onstep script is driving a param right now (the slider itself stays at the user's value) */
+.modulation-marker {
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  margin: 0 0 -7px -7px;
+  box-sizing: border-box;
+  border: 2px solid #ff4136;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* source-tab surfaces: the oscillator piano and the sampler waveform */
+.surface-wrapper {
+  flex-shrink: 0;
+}
+
+.waveform-area {
+  width: 360px;
+  height: 100px;
+  background: #f7f7f7;
+  user-select: none;
+}
+
+.waveform-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* the part of the sample that is not played */
+.waveform-shade {
+  top: 0;
+  bottom: 0;
+  background: rgba(51, 51, 51, 0.45);
+  pointer-events: none;
+}
+
+.waveform-handle {
+  top: 0;
+  bottom: 0;
+  width: 14px;
+  margin-left: -7px;
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.waveform-handle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 6px;
+  width: 2px;
+  background: #ff4136;
+}
+
+.waveform-handle::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff4136;
+}
+
+/* the reset button keeps its place (and height) whether or not it can be used */
+.reset-control {
+  display: block;
+  width: 100%;
+  height: 1.25rem;
+  line-height: 1.25rem;
+}
+
+.reset-control:disabled {
+  opacity: 0.35;
+  cursor: default;
+  text-decoration: none;
+}

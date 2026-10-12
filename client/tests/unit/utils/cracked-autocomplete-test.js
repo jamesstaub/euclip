@@ -1,6 +1,7 @@
 import { module, test } from 'qunit';
 import { EditorState } from '@codemirror/state';
 import { CompletionContext } from '@codemirror/autocomplete';
+import { SCRIPT_SCOPE_DOCS } from 'euclip/utils/script-scope-docs';
 import { crackedCompletionSource } from 'euclip/utils/autocomplete/source';
 
 function complete(doc) {
@@ -32,8 +33,13 @@ module('Unit | Utility | cracked autocomplete', function () {
     assert.ok(top(complete('__("#kick").'), 3).includes('frequency'));
   });
 
-  test('this. completes the track scope', function (assert) {
-    assert.ok(labels(complete('this.')).includes('filepath'));
+  test('this. completes every documented track scope property', function (assert) {
+    const options = labels(complete('this.'));
+    const missing = SCRIPT_SCOPE_DOCS.map((d) => d.name).filter(
+      (name) => !options.includes(name)
+    );
+    assert.deepEqual(missing, []);
+    assert.ok(options.includes('stepMs'));
   });
 
   test('object keys complete for a method and skip keys already used', function (assert) {

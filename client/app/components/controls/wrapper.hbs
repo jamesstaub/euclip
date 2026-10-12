@@ -66,6 +66,14 @@
         }}
       ></div>
     {{/if}}
+    {{! always rendered so it takes the same space whether or not it applies; it only enables once the user changes the value }}
+    <button
+      class='reset-control textbutton f7 pa0 dark-gray underline'
+      type='button'
+      disabled={{not @trackControl.isOverridden}}
+      title={{if @trackControl.isOverridden (concat 'Back to ' @trackControl.defaultValue) 'Already at its default'}}
+      {{on 'click' this.resetControl}}
+    >reset</button>
   </div>
   <div class='flex items-start justify-between flex-column h-100'>
     {{#if this.isShowingConfig}}

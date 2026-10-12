@@ -1,0 +1,88 @@
+{{!--
+  The default surface for one track node: a slider (or multislider/toggle) per control.
+  Custom UIs for particular node types (piano for oscillators, X-Y for filters, ...) belong here:
+  branch on @trackNode.nodeType and render them for the controls they claim, leaving the rest to the loop.
+--}}
+<div class='flex justify-start overflow-x-scroll bg-yellow overflow-y-hidden h-100 mw-100'>
+  {{#if this.pianoControl}}
+    <Controls::PianoSurface
+      @control={{this.pianoControl}}
+      @onChange={{@updateControl}}
+    />
+  {{/if}}
+  {{#if this.waveform}}
+    <Controls::WaveformSurface
+      @buffer={{this.waveform.buffer}}
+      @startControl={{this.waveform.start}}
+      @endControl={{this.waveform.end}}
+      @onChange={{@updateControl}}
+    />
+  {{/if}}
+  {{#each this.visibleControls as |trackControl|}}
+    {{#if trackControl.isMultislider}}
+      <Controls::Wrapper
+        class='justify-start multislider-wrapper multislider-width'
+        @trackControl={{trackControl}}
+      >
+        <SequencePagination
+          @sequence={{@track.currentSequence.sequence}}
+          @values={{trackControl.controlArrayComputed}}
+          @stepIndex={{@track.stepIndex}}
+          @updateControl={{@updateControl}}
+          as |pgn|
+        >
+          <Controls::Multislider
+            @stepIndex={{pgn.indexForPage}}
+            @sequence={{pgn.sequencePaginated}}
+            @values={{pgn.valuesPaginated}}
+            @transformedValue={{invoke-on-record trackControl 'attrValueForType' @track.stepIndex}}
+            @min={{trackControl.min}}
+            @max={{trackControl.max}}
+            @stepSize={{trackControl.stepSize}}
+            @defaultValue={{trackControl.defaultValue}}
+            @onChange={{fn pgn.updateSequencePage trackControl}}
+          />
+        </SequencePagination>
+      </Controls::Wrapper>
+    {{/if}}
+    {{#if trackControl.isSlider}}
+      <Controls::Wrapper
+        class="pb3"
+        @trackControl={{trackControl}}
+       >
+        <Controls::Slider
+          @value={{trackControl.controlValue}}
+          @transformedValue={{invoke-on-record trackControl 'attrValueForType'}}
+          @stepSize={{trackControl.stepSize}}
+          @min={{trackControl.min}}
+          @max={{trackControl.max}}
+          @scale={{trackControl.scale}}
+          @modulatedValue={{trackControl.modulatedUiValue}}
+          @onChange={{fn @updateControl trackControl}}
+        />
+      </Controls::Wrapper>
+    {{/if}}
+    {{#if trackControl.isSelect}}
+      <Controls::Wrapper
+        class="pb3"
+        @trackControl={{trackControl}}
+      >
+        <Controls::Select
+          @trackControl={{trackControl}}
+          @onChange={{fn @updateControl trackControl}}
+        />
+      </Controls::Wrapper>
+    {{/if}}
+    {{#if trackControl.isToggle}}
+      <Controls::Wrapper
+        class="pb3"
+        @trackControl={{trackControl}}
+       >
+        <Controls::Toggle
+          @value={{trackControl.controlValue}}
+          @onChange={{fn @updateControl trackControl}}
+        />
+      </Controls::Wrapper>
+    {{/if}}
+  {{/each}}
+</div>

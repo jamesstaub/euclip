@@ -23,9 +23,13 @@ h1, h2, h3, h4 {
   margin: .5rem 0;
 }
 
-h1, h2, h3, h4, span, label, input, td {
+h1, h2, h3, h4, span, label, td {
   cursor: default;
   user-select: none;
+}
+
+input {
+  user-select: text;
 }
 
 h1 {

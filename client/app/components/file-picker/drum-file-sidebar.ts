@@ -22,6 +22,10 @@ interface FilePickerDrumFileSidebarSignature {
     audioSelectMode: AudioSelectMode;
     project: ProjectModel;
     setAudioSelectMode?: (mode: AudioSelectMode) => void;
+    tab?: 'pool' | 'browse';
+    setTab?: (tab: 'pool' | 'browse') => void;
+    selectedSourceIdx?: number;
+    setSelectedSourceIdx?: (idx: number) => void;
     onCloseSidebar?: () => void;
     onTracksCreated?: (tracks: TrackModel[]) => void;
   };
@@ -36,7 +40,12 @@ interface SelectedAudioFile {
 export default class FilePickerDrumFileSidebarComponent extends Component<FilePickerDrumFileSidebarSignature> {
   @service declare store: StoreService;
 
-  @tracked targetNodeIdx = 0;
+  // The source node being edited: the same selection as the source menu's node tabs (the project UI state
+  // holds it), so both always show which node of which track a picked file goes to.
+  get targetNodeIdx(): number {
+    const count = this.args.activeTrack?.sourceNodeRecords.length ?? 0;
+    return Math.min(this.args.selectedSourceIdx ?? 0, Math.max(0, count - 1));
+  }
   @tracked isDownloading = false;
   @tracked selectedFiles: SelectedAudioFile[] = [];
 
@@ -46,7 +55,7 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
       this.args.audioSelectMode === 'current_track' &&
       this.args.activeTrack
     ) {
-      return this.args.activeTrack.samplerNodes[this.targetNodeIdx];
+      return this.args.activeTrack.sourceNodeRecords[this.targetNodeIdx];
     }
     return null;
   }
@@ -63,6 +72,23 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
     return null;
   }
 
+  // the sample pool is a tab of its own; creating tracks from files is only about the catalog
+  get showPool(): boolean {
+    return this.args.tab === 'pool' && this.isCurrentTrackMode;
+  }
+
+  get tabs() {
+    return [
+      { label: 'Sample Pool', value: 'pool', order: 0 },
+      { label: 'Browse', value: 'browse', order: 1 },
+    ];
+  }
+
+  get title(): string {
+    if (!this.isCurrentTrackMode) return 'Create Tracks From Selection';
+    return this.showPool ? 'Sample Pool' : `Select Sampler For Track ${this.args.activeTrack?.order ?? ''}`;
+  }
+
   get isCurrentTrackMode() {
     return this.args.audioSelectMode === 'current_track';
   }
@@ -76,6 +102,11 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
     const soundFile = await SoundFileModel.findOrDownload(filepath, this.store);
     this.isDownloading = false;
     return soundFile;
+  }
+
+  @action
+  selectTargetSlot(idx: number) {
+    this.args.setSelectedSourceIdx?.(idx);
   }
 
   @action
@@ -120,7 +151,10 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
 
     try {
       // the selected sampler node decides the slot: the n-th sampler of the track gets the n-th file
-      const slot = this.selectedNode?.orderOfType ?? 0;
+      // a picked file only fits a sampler: the selected node when it is one, else the track's first sampler
+      const sampler =
+        this.selectedNode?.nodeType === 'sampler' ? this.selectedNode : track.samplerNodes[0];
+      const slot = sampler?.orderOfType ?? 0;
       await track.setFile(slot, filepath);
       track.state = TrackState.SETUP;
     } catch (error) {

@@ -1,8 +1,10 @@
 
+<div class='app-shell'>
   <NavBar @logoWidth='180px'>
     {{#if this.session.isAuthenticated}}
       <DropdownMenu
         class='pv2 bg-transparent bn'
+        aria-label='Account menu'
         @closeOnSelect={{true}}
         @items={{array (hash label='logout' select=(action 'invalidateSession'))}}
       >
@@ -15,4 +17,7 @@
     {{/if}}
   </NavBar>
 
-{{outlet}}
+  <main class='app-main'>
+    {{outlet}}
+  </main>
+</div>

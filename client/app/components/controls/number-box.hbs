@@ -3,9 +3,11 @@
   {{nexus-ui
     'Number'
     value=@value
-    min=(or @min -20000)
-    max=(or @max 20000)
-    step=(or @stepSize 0.0001)
+    min=this.min
+    max=this.max
+    step=0.0001
+    dragStep=this.step
+    dragPerPixel=this.dragPerPixel
     onChange=@onChange
     size=(array 60 30)
   }}

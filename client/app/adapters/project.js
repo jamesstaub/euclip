@@ -2,7 +2,7 @@ import ApplicationAdapter from './application';
 
 export default class ProjectAdapter extends ApplicationAdapter {
   static projectIncludeParams =
-    'creator,snapshots,project-samples,tracks,tracks.sequences,tracks.track-controls,tracks.filepath-controls,tracks.init-script,tracks.onstep-script';
+    'creator,snapshots,project-samples,tracks,tracks.sequences,tracks.track-controls,tracks.filepath-controls,tracks.init-script,tracks.onstep-script,macros-script';
 
   urlForQueryRecord({ creatorId, slug }) {
     return `/users/${creatorId}/projects/${encodeURIComponent(slug)}`;

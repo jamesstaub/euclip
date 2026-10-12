@@ -7,6 +7,7 @@ import {
 } from 'ember-concurrency';
 import { tracked } from '@glimmer/tracking';
 import type TrackModel from './track';
+import type ProjectModel from './project';
 
 export default class ScriptModel extends Model {
   @attr('string') declare code: string;   // the code written by the user which has been submitted
@@ -21,6 +22,13 @@ export default class ScriptModel extends Model {
 
   declare track: TrackModel;
   declare name: string;
+  // a MacrosScript belongs to a project directly
+  declare project?: ProjectModel;
+
+  // the project this script's audio belongs to: via its track, or directly for a macros script
+  get owningProject(): ProjectModel | undefined {
+    return this.track?.project ?? this.project;
+  }
 
   // create the function referecne and bind it's scope
   get functionRef(): (...args: unknown[]) => void {
@@ -50,7 +58,7 @@ export default class ScriptModel extends Model {
   }
 
   async onScriptError(e: Error, type: string) {
-    const project = await this.track?.project;
+    const project = await this.owningProject;
     project?.stopLoop().resetLoop();
 
     await timeout(100); // Avoid double render
@@ -77,15 +85,17 @@ export default class ScriptModel extends Model {
     this.code = this.editorContent;
     yield this.save();
 
-    if (this.name === 'init-script') {
-      if (this.track.project.isPlaying) {
-            // clean reset on delete to prevent the _loopListeners array gets cleared out in cracked
-
-        this.track.project.stopLoop();
-        yield this.track.project.initSignalChain();
-        this.track.project.startLoop();
+    // a setup script rebuilds its track's audio; a macros script changes what every track can use, so
+    // loading it rebuilds the whole project
+    if (this.name === 'init-script' || this.name === 'macros-script') {
+      const project = this.owningProject;
+      if (project?.isPlaying) {
+        // clean reset on delete to prevent the _loopListeners array gets cleared out in cracked
+        project.stopLoop();
+        yield project.initSignalChain();
+        project.startLoop();
       } else {
-        yield this.track.project.initSignalChain();
+        yield project?.initSignalChain();
       }
     }
 

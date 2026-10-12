@@ -6,6 +6,8 @@ import type StoreService from '@ember-data/store';
 import { keepLatestTask, timeout } from 'ember-concurrency';
 import waitUntil from 'euclip/utils/wait-until';
 import { unbindFromSequencer } from 'euclip/utils/cracked';
+import { DEBUG } from '@glimmer/env';
+import { warnUndocumentedScopeKeys } from '../utils/script-scope-docs';
 import { SoundFileStates } from 'euclip/models/sound-file';
 
 import type ProjectModel from './project';
@@ -23,10 +25,13 @@ import Evented from '@ember/object/evented';
 import {
   addCustomSelector,
   applyAttrs,
+  applyNodeAttrs,
   bindToLoopStep,
   getCrackedNode,
 } from '../utils/cracked';
 import filterNumericAttrs from 'euclip/utils/filter-numeric-attrs';
+import { macroSchemaFor } from 'euclip/utils/macros/library';
+import { choiceIndex, mergeSchema } from 'euclip/utils/macros/schema';
 import { tracked } from '@glimmer/tracking';
 
 import { isPresent } from '@ember/utils';
@@ -65,6 +70,8 @@ export default class TrackModel extends Model.extend(Evented) {
   // true once the track's init script has run at least once (successfully or not).
   // The UI only reports a failed source after this, so it never flashes during creation.
   @tracked hasBuiltAudio = false;
+  // what the setup script declared with `this.declareControls(...)` during the last build, per macro type
+  declaredMacroControls: Record<string, Record<string, any>> = {};
   // set the moment deletion starts: blocks audio rebuilds and hides transient UI states.
   @tracked isTearingDown = false;
 
@@ -147,6 +154,18 @@ export default class TrackModel extends Model.extend(Evented) {
     return this.trackNodes?.filter((tn) => tn).filter((item) => item.isSourceNode === true);
   }
 
+  /**
+   * The one kind of source to show for this track in the track list: several samplers are a
+   * 'multi-sample' kit, one is a 'sample', otherwise the kind of its first source node
+   * (oscillator, noise or macro). Undefined when the track has no source.
+   */
+  get sourceKind(): 'multi-sample' | 'sample' | 'oscillator' | 'noise' | 'macro' | undefined {
+    const samplers = this.samplerNodes.length;
+    if (samplers > 1) return 'multi-sample';
+    if (samplers === 1) return 'sample';
+    return this.firstSourceNode?.sourceKind as any;
+  }
+
   get firstSourceNode(): TrackNodeModel | undefined {
     return this.sourceNodeRecords[0];
   }
@@ -155,8 +174,9 @@ export default class TrackModel extends Model.extend(Evented) {
     return this.sourceNodeRecords.filter((item) => item.nodeType === 'sampler').slice().sort(byKey('order'));
   }
 
+  // An ADSR envelope shapes a source's gain; it is not a sound source itself, so it isn't in `sourceNodeRecords`.
   get adsrNodes(): TrackNodeModel[] {
-    return this.sourceNodeRecords.filter((item) => item.nodeType === 'adsr').slice().sort(byKey('order'));
+    return this.trackNodes.filter((item) => item.nodeType === 'adsr').slice().sort(byKey('order'));
   }
 
   get samplerNativeBuffers(): AudioBuffer[] {
@@ -217,6 +237,18 @@ export default class TrackModel extends Model.extend(Evented) {
   get trackNodesForControls(): TrackNodeModel[] {
     return this.validTrackNodes.filter(
       ({ nodeType, parentMacro }) => nodeType !== 'channelStrip' && parentMacro == null
+    );
+  }
+
+  // The "controls" tab: everything that isn't a sound source (those live in the "source" tab)
+  get effectNodesForControls(): TrackNodeModel[] {
+    return this.trackNodesForControls.filter((node) => !node.isSourceNode);
+  }
+
+  // The "source" tab's controls, in the same order as its node tabs (`sourceNodeRecords`)
+  get sourceNodesForControls(): TrackNodeModel[] {
+    return this.sourceNodeRecords.filter(
+      ({ parentMacro }) => parentMacro == null
     );
   }
 
@@ -380,6 +412,7 @@ export default class TrackModel extends Model.extend(Evented) {
       console.error(`Track ${this.id} has no initScript; cannot build its audio`);
       return;
     }
+    this.project?.ensureMacrosScript?.(); // macros the project defines must exist before this track's script uses them
 
     // settingsForNodes is an array to store audio node uuids created in this track's script
     // not to be confused with trackNode models,
@@ -453,6 +486,7 @@ export default class TrackModel extends Model.extend(Evented) {
         files: this.downloadedFilepaths.slice(0, 3),
         filepathControls: this.filepathControls.map((f) => f.controlValue),
       });
+      this.declaredMacroControls = {}; // the script declares them afresh on every build
       initScript.invokeFunctionRef();
       debugLog('track', `#${this.order} init script done`, {
         nodes: this.settingsForNodes.map((n) => n.nodeType),
@@ -534,7 +568,15 @@ export default class TrackModel extends Model.extend(Evented) {
         const [uuid, type] = Object.entries(node)[0];
         if (getCrackedNode(uuid)) {
           // grab the attributes passed in to the initialization of a cracked node that will be used to set default state of track controls (eg. frequency, gain, speed etc.)
-          const userSettingsForControl = filterNumericAttrs(node.userSettings);
+          // numbers the script gave become the controls' starting values; for a macro's choice setting
+          // (osc_type: 'square') the chosen name becomes its index
+          const macroSchema = macroSchemaFor(type);
+          const choices = Object.fromEntries(
+            Object.entries(node.userSettings ?? {})
+              .map(([key, value]) => [key, choiceIndex(mergeSchema(macroSchema ?? {}, { ...this.project?.declaredMacroControls?.[type], ...this.declaredMacroControls[type] })[key], value)])
+              .filter(([, index]) => index !== undefined)
+          );
+          const userSettingsForControl = { ...filterNumericAttrs(node.userSettings), ...choices };
 
           let trackNodeAttrs = {
             nodeUUID: uuid, // always update uuid since the audio nodes will be new every time
@@ -566,6 +608,7 @@ export default class TrackModel extends Model.extend(Evented) {
           // So it can be read by trackControls to set their default values
           // update track control with user default values
           trackNode.userSettingsForControl = userSettingsForControl;
+          trackNode.scriptId = typeof node.userSettings?.id === 'string' ? node.userSettings.id : undefined;
         }
       });
     return this.trackNodes;
@@ -599,7 +642,7 @@ export default class TrackModel extends Model.extend(Evented) {
     trackNodes.forEach((node) => {
       const controls: TrackControlModel[] = [];
       linked.set(node, controls);
-      TrackNodeModel.controlAttrsFor(node.nodeType).forEach((attr) => {
+      node.controlAttrs.forEach((attr) => {
         const exact = take((c) => c.nodeType === node.nodeType && c.nodeAttr === attr && c.nodeOrder === node.order);
         if (exact) controls.push(exact);
         else needs.push({ node, attr });
@@ -644,6 +687,7 @@ export default class TrackModel extends Model.extend(Evented) {
       }
 
       node.updateDefaultValue();
+      node.applyDeclaredRanges();
     });
 
     // Controls left over belong to nodes the script no longer creates. Only discard them when the script
@@ -663,15 +707,21 @@ export default class TrackModel extends Model.extend(Evented) {
       });
     }
 
-    // Apply attributes to all trackNodes
-    const attrsForNodes = TrackControlModel.getAttrsForNodes(this.trackControls, undefined, undefined);
+    this.trackNodes.forEach((trackNode) => trackNode.delinkControlsForDeadNodes());
+    this.applyControls(this.trackControls);
+  }
 
+  /**
+   * The one place control values are written to audio nodes in bulk (after a rebuild, and on every step).
+   * `index`/`sequenceSteps` are given for a step: multisliders then contribute that step's value, and
+   * hits-only ones skip steps without a hit.
+   */
+  applyControls(controls: TrackControlModel[], index?: number, sequenceSteps?: number[]): void {
+    const attrsForNodes = TrackControlModel.getAttrsForNodes(controls, index, sequenceSteps);
     this.trackNodes.forEach((trackNode) => {
-      trackNode.delinkControlsForDeadNodes();
-
       const attrs = attrsForNodes[trackNode.uniqueSelector];
       if (attrs) {
-        applyAttrs(trackNode.uniqueSelector, attrs);
+        applyNodeAttrs(trackNode.uniqueSelector, trackNode.nodeType, attrs);
       }
     });
   }
@@ -726,14 +776,8 @@ export default class TrackModel extends Model.extend(Evented) {
     // to the their respective track-nodes. Sampler nodes are a special case, since they get
     // rebuilt on each play, so they need to be passed their params in the .start() call (see below).
     const controls = this.trackControls.filter((control) => control.sequenceRecord === sequence);
-    const attrsForNodes = TrackControlModel.getAttrsForNodes(controls, index, sequence.sequence);
-
-    this.trackNodes.forEach((trackNode) => {
-      const attrs = attrsForNodes[trackNode.uniqueSelector];
-      if (attrs) {
-        applyAttrs(trackNode.uniqueSelector, attrs);
-      }
-    });
+    controls.forEach((control) => control.clearModulation()); // last step's script offsets end here
+    this.applyControls(controls, index, sequence.sequence);
     this.onstepScript.invokeFunctionRef(index, data, array, sequenceIndex);
   }
 
@@ -751,37 +795,58 @@ export default class TrackModel extends Model.extend(Evented) {
     return `.track-${indicator}`;
   }
 
+  // NOTE: when adding/changing properties here, document them in utils/script-scope-docs.js
+  // (used by the script editor autocomplete)
   get scriptScope() {
     // sampler speed is a special case because they rebuild on every play,
     // so we need to ensure the attrs from the UI controls get applied after .start()
     // this is not an issue for non sampler nodes.
     const sourceNodes = this.sourceNodeRecords;
     const adsrNodes = this.adsrNodes;
-    const controls = TrackControlModel.serializeForScript(
+    const controls = TrackControlModel.liveControlsForScript(
       this.trackNodes,
       this.stepIndex
     );
 
+    // a source node is restarted with the controls' current values (including this step's modulation),
+    // because samplers are rebuilt on every play and would otherwise lose them
     const playSourceNode = (sourceNode, attrs) => {
+      // a macro instrument (polysynth, ...) is played with its own noteOn/noteOff, not restarted
+      if (macroSchemaFor(sourceNode.nodeType)) return;
+      const controlAttrs = {};
+      sourceNode.trackControls.forEach((control) => {
+        if (control.isDeleted || !control.nodeAttr) return;
+        const value = control.effectiveValue(this.stepIndex);
+        if (value !== undefined) controlAttrs[control.nodeAttr] = value;
+      });
       __(sourceNode.uniqueSelector)
         .stop()
-        .attr({
-          ...controls.find((item) => item.nodeUUID === sourceNode.nodeUUID), //NOTE: explicitly using the key nodeUUID instead of `uuid` because the latter will mess up the native audio node when attrs applied
-          ...attrs,
-        })
+        .attr({ ...controlAttrs, ...attrs })
         .start();
     };
 
     const stableSelector = this.stableSelector;
 
-    return {
+    const scope = {
+      // Tells the UI how a macro's settings are controlled; see the Macros menu for a documented example.
+      // Only meaningful in the setup script (it runs on every build).
+      declareControls: (macroType, controls) => {
+        if (!macroSchemaFor(macroType)) {
+          console.warn(`declareControls: "${macroType}" is not a macro with a control schema`);
+          return;
+        }
+        this.declaredMacroControls = {
+          ...this.declaredMacroControls,
+          [macroType]: { ...this.declaredMacroControls[macroType], ...controls },
+        };
+      },
       files: this.downloadedFilepaths,
       filepath: this.downloadedFilepaths[0],
       id: this.id,
       trackSelector: this.classSelector,
       stepMs: this.project.loopInterval, // length of one step in milliseconds (from the bpm)
       sequences: this.sortedSequences.map((sequence) => sequence.sequence), // every sequence's steps, primary first
-      controls: controls, // the value of the controls at this current step
+      controls: controls, // live: read a control's current value, assign one to modulate it for this step
       sliders: this.trackControlData,
       select() {
         let selector = typeof arguments[0] === 'string' ? arguments[0] : null;
@@ -803,9 +868,11 @@ export default class TrackModel extends Model.extend(Evented) {
           playSourceNode(sourceNode, attrs);
         }
       },
+      // opens this track's envelopes, each with its own settings (e.g. .adsr('fast') or .adsr([a, d, s, r])).
+      // cracked's trigger acts on the current selection, so selecting one node by uuid fires just that one.
       playADSRNodes() {
         adsrNodes.forEach((adsrNode) => {
-          __(adsrNode.uniqueSelector).adsr('trigger', 'fast');
+          __(adsrNode.uniqueSelector).adsr('trigger');
         });
       },
       play(attrs) {
@@ -819,6 +886,9 @@ export default class TrackModel extends Model.extend(Evented) {
         });
       },
     };
+
+    if (DEBUG) warnUndocumentedScopeKeys(scope);
+    return scope;
   }
 
   /**

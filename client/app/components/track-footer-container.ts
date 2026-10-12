@@ -9,15 +9,26 @@ import type TrackModel from 'euclip/models/track';
 import { service } from '@ember/service';
 import type MediaService from 'ember-responsive';
 import type { Tab } from 'euclip/components/console/tab-menu';
+import type ProjectUiService from 'euclip/services/project-ui';
+import type { FooterTab } from 'euclip/services/project-ui';
 
 interface TrackFooterContainerArgs {
   track: TrackModel;
 }
 
-type ControlUiState = 'sequence' | 'source' | 'controls';
+type ControlUiState = FooterTab;
 
 export default class TrackFooterContainerComponent extends Component<TrackFooterContainerArgs> {
-  @tracked controlUiState: ControlUiState = 'controls';
+  @service declare projectUi: ProjectUiService;
+
+  // lives in the project UI service so the track list can open the source tab
+  get controlUiState(): ControlUiState {
+    return this.projectUi.footerTab;
+  }
+
+  set controlUiState(tab: ControlUiState) {
+    this.projectUi.footerTab = tab;
+  }
   @tracked visibleNodeIdx = 0;
   @tracked showReference = false;
   

@@ -1,6 +1,6 @@
-<div class='relative flex grow-1' ...attributes {{shortcut 'Command+Shift+Enter' (perform @scriptModel.runCode)}}>
+<div class='relative flex script-editor-row' ...attributes {{shortcut 'Command+Shift+Enter' (perform @scriptModel.runCode)}}>
   <div
-    class='grow-1 max-w-100 script-max-height'
+    class='script-editor-area'
     {{codemirror
       (add @scriptModel.id this.renderFlag)
       @scriptModel.editorContent

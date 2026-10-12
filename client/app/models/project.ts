@@ -6,6 +6,9 @@ import type UserModel from './user';
 import type TrackModel from 'euclip/models/track';
 import type SnapshotModel from 'euclip/models/snapshot';
 import type ProjectSampleModel from 'euclip/models/project-sample';
+import type MacrosScriptModel from 'euclip/models/macros-script';
+import { defineMacro, undefineMacros } from 'euclip/utils/macros/define';
+import { macroSchemaFor } from 'euclip/utils/macros/library';
 import type { AsyncHasMany, SyncHasMany } from '@ember-data/model';
 import { resetLoop, startLoop, stopLoop, disconnectAll } from 'euclip/utils/cracked';
 import Model from '@ember-data/model';
@@ -45,6 +48,50 @@ export default class ProjectModel extends Model {
   @hasMany('track', { async: false, inverse: 'project' })
   declare tracks: SyncHasMany<TrackModel>;
 
+  // The project-wide script where macros are registered; it runs before any track's script (see runMacrosScript).
+  @belongsTo('macros-script', { async: false, inverse: 'project' })
+  declare macrosScript: MacrosScriptModel;
+
+  // what the macros script declared with `this.declareControls(...)` on its last run, per macro type
+  declaredMacroControls: Record<string, Record<string, any>> = {};
+  // whether the macros script has run since the project loaded (or since it was last loaded in the editor)
+  private macrosHaveRun = false;
+
+  // `this` in the macros script
+  get macrosScope() {
+    return {
+      // adjusts how a macro's settings are controlled, in every track of the project
+      declareControls: (macroType: string, controls: Record<string, any>) => {
+        if (!macroSchemaFor(macroType)) {
+          console.warn(`declareControls: "${macroType}" is not a macro with a control schema (define it first with defineMacro)`);
+          return;
+        }
+        this.declaredMacroControls = {
+          ...this.declaredMacroControls,
+          [macroType]: { ...this.declaredMacroControls[macroType], ...controls },
+        };
+      },
+      // registers a macro of the project's own (see utils/macros/define.js)
+      defineMacro,
+    };
+  }
+
+  /**
+   * Run the macros script: forget what it registered last time and register afresh. Done before any track
+   * script runs, so the macros it defines are there for the tracks to use.
+   */
+  runMacrosScript() {
+    this.declaredMacroControls = {};
+    undefineMacros();
+    this.macrosScript?.invokeFunctionRef();
+    this.macrosHaveRun = true;
+  }
+
+  // a track built on its own (a new track, a reloaded script) still needs the project's macros to exist
+  ensureMacrosScript() {
+    if (!this.macrosHaveRun) this.runMacrosScript();
+  }
+
   
   /**
    * @deprecated Use ProjectModel.createSingleTrack() instead
@@ -82,6 +129,7 @@ export default class ProjectModel extends Model {
 
   async initSignalChain() {
     this.disconnectAll();
+    this.runMacrosScript(); // first: the tracks' scripts use what it registers
     this.masterTrack?.setupAudioFromScripts();
     await this.downloadTrackSamples();
     this.orderedTracks.map((track) => track.setupAudioFromScripts());

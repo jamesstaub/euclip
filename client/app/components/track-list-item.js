@@ -9,15 +9,23 @@ export default class TrackListItemComponent extends Component {
   @service store;
   @controller('user.creator.project') projectController;
 
-  get showFilePicker() {
-    return !!this.args.track.samplerNodes?.length;
+  @service projectUi;
+
+  get showSourceButton() {
+    return !this.args.track.isMaster && !!this.args.track.sourceKind;
+  }
+
+  // The click also selects this track (the row handles it), so the footer that opens is its own.
+  @action
+  showSource() {
+    this.projectUi.footerTab = 'source';
   }
 
   // The script asks for a sampler even though no sampler node exists (script error, failed build).
   // Derived from the script text so users never have to declare a source type separately.
   get samplerBuildFailed() {
     const track = this.args.track;
-    if (this.showFilePicker || track.isRemoved || !track.hasBuiltAudio) return false;
+    if (this.showSourceButton || track.isRemoved || !track.hasBuiltAudio) return false;
     const code = this.args.track.initScript?.safeCode ?? '';
     return /\.sampler\s*\(/.test(code);
   }

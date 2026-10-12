@@ -1,0 +1,40 @@
+<div class='surface-wrapper waveform-surface flex flex-column items-center mr2 ba b--dark-gray bw1 bg-dark-yellow'>
+  <div class='flex items-center justify-between spaced-text ttu bg-dark-gray white f7 fw3 w-100 pv2 ph2'>
+    <span class='fw7 light-gray'>sample</span>
+    <span>{{display-float this.duration}} sec</span>
+  </div>
+  <div class='pa2'>
+    <div class='waveform-area relative'>
+      <canvas
+        class='waveform-canvas db'
+        width='720'
+        height='200'
+        {{audio-waveform @buffer}}
+      ></canvas>
+      <div class='waveform-shade absolute left-0' style={{this.shadeLeftStyle}}></div>
+      <div class='waveform-shade absolute right-0' style={{this.shadeRightStyle}}></div>
+      <div
+        class='waveform-handle absolute'
+        style={{this.startHandleStyle}}
+        role='slider'
+        aria-label='Sample start'
+        aria-valuenow={{this.startSeconds}}
+        data-test-waveform-handle='start'
+        {{on 'pointerdown' (fn this.beginDrag 'start')}}
+      ></div>
+      <div
+        class='waveform-handle absolute'
+        style={{this.endHandleStyle}}
+        role='slider'
+        aria-label='Sample end'
+        aria-valuenow={{this.endSeconds}}
+        data-test-waveform-handle='end'
+        {{on 'pointerdown' (fn this.beginDrag 'end')}}
+      ></div>
+    </div>
+  </div>
+  <div class='flex items-center justify-between w-100 ph2 pb2 f7 dark-gray'>
+    <span>start {{display-float this.startSeconds}}s</span>
+    <span>end {{display-float this.endSeconds}}s</span>
+  </div>
+</div>

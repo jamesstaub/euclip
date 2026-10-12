@@ -5,7 +5,7 @@
   @accent='#000000'
 /> --}}
 <div class='flex justify-between w-auto grow-1'>
-  <div class='flex w-auto mh1 flex-column'>
+  <div class='flex w-auto mh1 flex-column grow-1 min-w-0'>
     <Console::Header>Source</Console::Header>
 
       {{!-- REFACTOR/REDESIGN: 
@@ -26,7 +26,7 @@
 
       <Source::NodeTabs
         @nodes={{@track.sourceNodeRecords}}
-        @onSelect={{fn this.setUi 'visibleNodeIdx'}}
+        @onSelect={{@onSelectNode}}
         @selectedValue={{this.visibleNodeIdx}}
       />
 
@@ -35,24 +35,46 @@
     {{else}}
       {{#if @track.sourceNodeRecords.length}}
       
-        {{#each @track.samplerNodes as |samplerNode|}}
-          <ul class='flex items-center mv0 pa0 list f7'>
-            {{#each samplerNode.filepathControl.pathSegments as |directory|}}
-              {{#if directory.length}}
-                <li class='directory-btns'>
+        {{!-- the sample of the selected sampler node (the node tabs above choose it; the file sidebar follows) --}}
+        {{#if (eq this.selectedNode.nodeType 'sampler')}}
+          <div class='flex flex-column mb2' data-test-source-samples>
+            {{#let this.selectedNode as |samplerNode|}}
+              <div class='flex items-center f7' data-test-source-sample data-source-node-id={{samplerNode.scriptId}}>
+                {{#if samplerNode.filepathControl.pathSegments.length}}
+                  <ul class='flex items-center mv0 pa0 list'>
+                    {{#each samplerNode.filepathControl.pathSegments as |directory segmentIdx|}}
+                      {{#if directory.length}}
+                        <li class='directory-btns'>
+                          <button
+                            class='textbutton pa2'
+                            type='button'
+                            {{on 'click' (fn @showFilePath (path-up-to samplerNode.filepathControl.pathSegments segmentIdx))}}
+                          >
+                            {{directory}}
+                          </button>
+                        </li>
+                      {{/if}}
+                    {{/each}}
+                  </ul>
+                  {{#if samplerNode.filepathControl.fileDownloadError}}
+                    <span class='ml2 red' title={{samplerNode.filepathControl.fileDownloadError}}>download failed</span>
+                  {{else if samplerNode.bufferDuration}}
+                    <span class='ml2 dark-gray'>{{display-float samplerNode.bufferDuration}} sec</span>
+                  {{else}}
+                    <span class='ml2 dark-gray'>loading…</span>
+                  {{/if}}
+                {{else}}
                   <button
-                    class='textbutton pa2'
+                    class='textbutton pa2 underline'
                     type='button'
-                    {{on 'click' @showFilePath}}
-                  >
-                    {{directory}}
-                  </button>
-                </li>
-              {{/if}}
-            {{/each}}
-          </ul>
-        {{/each}}
-        
+                    {{on 'click' (fn @showFilePath undefined)}}
+                  >Pick a Sound</button>
+                {{/if}}
+              </div>
+            {{/let}}
+          </div>
+        {{/if}}
+
         {{!-- FIXME: move error to the node itself, not the track --}}
         {{!-- {{#if @track.fileDownloadError}}
           <div class="red bg-dark-gray pa3">
@@ -63,17 +85,12 @@
       {{else}}
         <p class="light-gray bg-dark-gray pa3 mv0">There are no source nodes defined on this track</p>
       {{/if}}
-      <div class="flex flex-column">
-        {{#each @track.samplerNativeBuffers as |buffer idx|}}
-          {{#if (and (eq idx this.visibleNodeIdx) buffer)}}
-            <canvas
-              class='ba bw1 w6 h-50 pointer-none'
-              {{audio-waveform buffer}}
-            ></canvas>
-            <span class='ml1'>{{display-float buffer.duration}} sec</span>
-          {{/if}}
-        {{/each}}
-      </div>
+      <TrackControls
+        @track={{@track}}
+        @trackNodesForControls={{@track.sourceNodesForControls}}
+        @visibleNodeIdx={{this.visibleNodeIdx}}
+        @updateControl={{@updateControl}}
+      />
     {{/if}}
   </div>
 </div>

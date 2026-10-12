@@ -9,6 +9,7 @@
     {{#if @vertical}}
       <button
         type='button'
+        aria-pressed={{if (eq this.val item.value) 'true' 'false'}}
         class='tab-btn vertical flex flex-column items-center ba b--dark-gray bw1 h-auto grow-1
           {{if
             (eq this.val item.value)
@@ -26,6 +27,7 @@
     {{else}}
       <button
         type='button'
+        aria-pressed={{if (eq this.val item.value) 'true' 'false'}}
         class='tab-btn horizontal w4 f6 ttu
           {{if
             (eq this.val item.value)
