@@ -53,6 +53,7 @@ Rails.application.routes.draw do
 
     resources :init_scripts, :controller => 'scripts', :path => '/init-scripts'
     resources :onstep_scripts, :controller => 'scripts', :path => '/onstep-scripts'
+    resources :macros_scripts, :controller => 'scripts', :path => '/macros-scripts'
     
     resources :sequences, only: %i[create update destroy]
     

@@ -85,8 +85,10 @@ __()
   })
   .adsr('fast') // create an ADSR envelope
   .channelStrip() // connect to output
-  .connect('#main-output')
-  .start();  
+  .connect('#main-output');
+
+// start this track's sampler (a source makes no sound until it is started)
+this.select('sampler').start();
 
 
 /** 
@@ -97,12 +99,33 @@ EOS
 ),
     onstep_script: OnstepScript.create!(safe_code: <<-EOS
 if (data) {
+  // plays the sampler and opens this track's envelope(s) (this.playADSRNodes() does just the envelopes)
   this.play();
-  __('adsr').adsr('trigger', 'fast')
 } else {
   this.stop();
 }
 
+EOS
+),
+  },
+  {
+    title: "Pitch jitter (reads the speed control)",
+    init_script: InitScript.create!(safe_code: <<-EOS
+__().sampler({
+    path: this.files[0],
+  })
+  .channelStrip()
+  .connect('#main-output')
+EOS
+),
+    onstep_script: OnstepScript.create!(safe_code: <<-EOS
+if (data) {
+  // read the speed slider, and offset it for this step only.
+  // the slider keeps its value, so the jitter never builds up
+  const speed = this.controls.sampler.speed;
+  this.controls.sampler.speed = speed * (1 + (Math.random() - 0.5) * 0.1);
+  this.playSourceNodes();
+}
 EOS
 ),
   },

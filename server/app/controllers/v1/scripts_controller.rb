@@ -18,11 +18,13 @@ class V1::ScriptsController < V1::BaseController
   private
   
   def set_script
-    script = Script.includes({:track => :project})
+    script = Script.includes({:track => :project}, :project)
                     .find(params[:id])
 
     raise ActiveRecord::RecordNotFound unless script.present?
-    return render_forbidden unless can? :update, script.track.project
+    # a track's script belongs to the track's project; a MacrosScript to its project directly
+    project = script.track&.project || script.project
+    return render_forbidden unless project && can?(:update, project)
     @script = script
   end
 
@@ -45,6 +47,8 @@ class V1::ScriptsController < V1::BaseController
       InitScriptSerializer
     elsif @type == "onstep-scripts"
       OnstepScriptSerializer
+    elsif @type == "macros-scripts"
+      MacrosScriptSerializer
     end
   end  
 end

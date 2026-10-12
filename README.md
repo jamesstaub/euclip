@@ -71,7 +71,7 @@ The suite signs in as the seeded dev user (override with `E2E_USER`/`E2E_PASSWOR
 server with `E2E_BASE_URL`). Server and client checks:
 
 ```bash
-cd server && bundle exec rspec   # Rails specs (needs Postgres + master.key)
+cd server && bundle exec rspec   # Rails specs (needs Postgres + master.key); always runs against the *_test database
 cd client && npm run lint
 ```
 

@@ -1,5 +1,8 @@
 require 'spec_helper'
-ENV['RAILS_ENV'] ||= 'test'
+# Always the test environment, even when the shell or container sets RAILS_ENV=development
+# (the dev container does). The suite truncates every table, so running it against any other
+# database destroys that data. spec_helper double-checks the database name before truncating.
+ENV['RAILS_ENV'] = 'test'
 require File.expand_path('../config/environment', __dir__)
 
 # Prevent database truncation if the environment is production

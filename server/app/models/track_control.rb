@@ -1,5 +1,5 @@
 class TrackControl < ApplicationRecord
-  validates_inclusion_of :interface_name, :in => %w(dial toggle slider multislider position piano envelope)
+  validates_inclusion_of :interface_name, :in => %w(dial toggle slider multislider position piano envelope select)
 
   belongs_to :track
 

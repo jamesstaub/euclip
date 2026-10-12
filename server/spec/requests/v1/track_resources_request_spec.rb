@@ -126,6 +126,31 @@ RSpec.describe 'V1 track resources', type: :request do
       expect(stored.last).to be_within(0.001).of(3.1)
     end
 
+    it 'stores the init script value apart from the default and the control value' do
+      body = post_json('track-controls', 'track-controls', attrs.merge(script_value: 440, default_value: 2400, control_value: 600))
+      id = body.dig(:data, :id)
+      patch_json('track-controls', id, 'track-controls', { control_value: 700 })
+
+      get "/v1/track-controls/#{id}", headers: @headers
+      stored = json_parse(response.body).dig(:data, :attributes)
+      expect(stored[:'script-value']).to eq(440)
+      expect(stored[:'default-value']).to eq(2400)
+      expect(stored[:'control-value']).to eq(700)
+    end
+
+    it 'accepts a select control (a macro setting that picks one of a few options)' do
+      body = post_json('track-controls', 'track-controls',
+                       node_type: 'polysynth', node_attr: 'osc_type', node_order: 0, interface_name: 'select',
+                       min: 0, max: 3, step_size: 1, default_value: 0, control_value: 2)
+      expect(response).to have_http_status(200)
+      expect(body.dig(:data, :attributes, :'interface-name')).to eq('select')
+    end
+
+    it 'rejects an interface name it does not know' do
+      post_json('track-controls', 'track-controls', attrs.merge(interface_name: 'hologram'))
+      expect(response).to have_http_status(422)
+    end
+
     it 'defaults a control to follow the track primary sequence' do
       body = post_json('track-controls', 'track-controls', attrs)
       expect(body.dig(:data, :attributes, :'sequence-order')).to eq(0)

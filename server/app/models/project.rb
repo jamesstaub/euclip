@@ -8,6 +8,7 @@ class Project < ApplicationRecord
   attribute :bpm, :integer, default: 120
   belongs_to :creator, class_name: "User"
   has_many :tracks, :dependent => :destroy
+  has_one :macros_script, :dependent => :destroy
   has_many :snapshots, -> { order(:position) }, :dependent => :destroy
   # the snapshot being played and edited; every edit applies to it
   belongs_to :active_snapshot, class_name: 'Snapshot', optional: true
@@ -44,6 +45,7 @@ class Project < ApplicationRecord
       project = Project.create!(params)
       snapshot = project.snapshots.create!(name: 'Main', bpm: project.read_attribute(:bpm))
       project.update!(active_snapshot: snapshot)
+      project.create_macros_script!
       first_track = Track.create_with_relations!(project: project)
       master_track = Track.create_with_relations!(project: project, is_master: true)
       UserRole.create!(user_id: params[:creator_id], project_id: project.id, role: :creator)
@@ -56,6 +58,7 @@ class Project < ApplicationRecord
     project = Project.includes(
       :user_roles,
       :tracks,
+      :macros_script,
       tracks: [:init_script, :onstep_script, :sequences]
     )
     .find_by(

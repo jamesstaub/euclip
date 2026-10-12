@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2025_10_15_000000) do
+ActiveRecord::Schema[7.0].define(version: 2025_10_16_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -117,7 +117,9 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_15_000000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "preset_id"
+    t.bigint "project_id"
     t.index ["preset_id"], name: "index_scripts_on_preset_id"
+    t.index ["project_id"], name: "index_scripts_on_project_id"
     t.index ["track_id"], name: "index_scripts_on_track_id"
   end
 
@@ -190,6 +192,7 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_15_000000) do
     t.integer "current_unit_transform_idx", default: 0
     t.boolean "apply_hits_only", default: false
     t.integer "sequence_order", default: 0, null: false
+    t.float "script_value"
     t.index ["track_id", "node_type", "node_order", "node_attr"], name: "index_track_controls_on_track_node_attr", unique: true
     t.index ["track_id"], name: "index_track_controls_on_track_id"
   end
@@ -257,6 +260,7 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_15_000000) do
   add_foreign_key "projects", "snapshots", column: "active_snapshot_id"
   add_foreign_key "projects", "users", column: "creator_id", on_delete: :cascade
   add_foreign_key "scripts", "presets"
+  add_foreign_key "scripts", "projects"
   add_foreign_key "scripts", "tracks"
   add_foreign_key "searchable_directories", "searchable_directories", column: "parent_id", on_delete: :cascade
   add_foreign_key "searchable_directories", "searchable_directories", column: "root_id", on_delete: :cascade

@@ -23,6 +23,14 @@ RSpec.configure do |config|
   config.shared_context_metadata_behavior = :apply_to_host_groups
 
   config.before(:suite) do
+    # Last line of defence: the next line empties every table, so refuse to run unless the
+    # connection really is a test database (whatever RAILS_ENV / POSTGRES_* say).
+    database = ActiveRecord::Base.connection.current_database
+    unless Rails.env.test? && database.end_with?('_test')
+      abort "Refusing to run specs: connected to '#{database}' (env: #{Rails.env}). " \
+            'They truncate all tables; use a database whose name ends in _test (POSTGRES_TEST_DB).'
+    end
+
     DatabaseCleaner.clean_with(:truncation)
   end
 

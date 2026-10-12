@@ -3,6 +3,8 @@ class Script < ApplicationRecord
   # silently replaced with the default
   before_create :set_default
   belongs_to :track, optional: true
+  # only a MacrosScript belongs to a project directly
+  belongs_to :project, optional: true
   belongs_to :preset, optional: true
 
   def set_default

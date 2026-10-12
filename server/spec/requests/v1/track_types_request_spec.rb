@@ -19,7 +19,7 @@ RSpec.describe 'V1 track types', type: :request do
     types = json_parse(response.body)[:data]
 
     expect(response).to have_http_status(200)
-    expect(types.map { |t| t[:id] }).to eq(%w[sampler looped_sampler multi_sampler polysynth])
+    expect(types.map { |t| t[:id] }).to eq(%w[sampler looped_sampler multi_sampler humanized_sampler filter_sweep oscillator_arp polysynth])
     expect(types).to all(satisfy { |t| t[:attributes][:title].present? && t[:attributes][:description].present? })
   end
 
@@ -60,6 +60,23 @@ RSpec.describe 'V1 track types', type: :request do
       expect(track.init_script.safe_code.scan(/this\.files\[i\]/).size).to eq(1) # one loop over four slots
       expect(track.init_script.safe_code).to include('[0, 1, 2, 3]')
       expect(track.onstep_script.safe_code).to include('playSourceNode')
+    end
+
+    it 'copies the scripts that show off this.controls (read a slider, offset it for one step)' do
+      %w[humanized_sampler filter_sweep oscillator_arp].each do |key|
+        track = Track.find(create_track(key).dig(:data, :id))
+        expect(track.track_type).to eq(key)
+        expect(track.onstep_script.safe_code).to match(/this\.controls\.\w+\.\w+/)
+      end
+    end
+
+    it 'seeds the ids and starting values that the play scripts address' do
+      humanized = Track.find(create_track('humanized_sampler').dig(:data, :id))
+      expect(humanized.init_script.safe_code).to include("id: 'filter'", "id: 'level'")
+      expect(humanized.onstep_script.safe_code).to include('this.controls.filter.frequency', 'this.controls.level.gain')
+
+      arp = Track.find(create_track('oscillator_arp').dig(:data, :id))
+      expect(arp.init_script.safe_code).to include("id: 'lead'", 'frequency: 220')
     end
 
     it 'copies a polysynth built on the cracked polysynth macro' do
