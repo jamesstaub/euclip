@@ -237,3 +237,12 @@ owned by that refactor; phases 1-2 are written to not edit `setupTrackControls`/
 4. Uploads: needed in phase 1 (requires object storage; Cloudflare R2 is the candidate) or later?
 5. How many snapshots are expected per project, and how many tracks? That sets the warm-cache size.
 6. Is switching only quantized to the bar, or also on any step / immediately?
+
+## Revision: one shared audio graph (6576a80)
+
+The per-snapshot graph (own output bus, scoped ids, background staging) was replaced. A snapshot is now a
+tempo plus, per track, control values, sequences and the onstep script, stored as JSON in `snapshots.data`.
+Tracks, init scripts and the sample pool are project-level and shared, so a switch writes values into
+existing models and audio params on the next step; nothing is built, downloaded or torn down.
+The client captures the active snapshot when leaving it (and on "save") and applies the target's data
+(`services/snapshot-runtime.ts`). Samples are not part of a snapshot yet.
