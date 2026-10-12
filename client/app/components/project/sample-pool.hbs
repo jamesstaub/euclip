@@ -30,6 +30,7 @@
             @onSelectFile={{this.addToPool}}
             @audioFileTree={{@audioFileTree}}
           >
+            <FilePicker::Breadcrumbs @audioFileTree={{@audioFileTree}} />
             <FilePicker::Selection
               @onSelectItem={{this.onSelectItem}}
               @directoryTree={{@audioFileTree.directoryTree}}

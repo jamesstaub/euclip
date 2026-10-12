@@ -111,10 +111,10 @@ export default class AudioFileTreeModel extends Model {
       }
 
       if (response.ancestor_tree?.length) {
-        response.ancestor_tree.pop(); // drop the current directory
-        this.directoryTree = [
-          ...response.ancestor_tree.map((tree) => new DirectoryModel(tree)),
-        ];
+        // the columns to the left of the current directory. Copy: the response is cached and shared, and
+        // dropping the current directory from the cached array itself would leave stale columns on the next visit
+        const ancestors = response.ancestor_tree.slice(0, -1);
+        this.directoryTree = ancestors.map((tree) => new DirectoryModel(tree));
       }
 
       // Extract the selected item from the path for currentSelection
