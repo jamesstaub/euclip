@@ -67,6 +67,7 @@ export default class AudioFileTreeModel extends Model {
   declare track: TrackModel;
 
   @tracked directoryTree: DirectoryModel[] = [];
+  private latestNavigation = 0;
 
   /**
    * Checks if a directory contains audio files or subdirectories.
@@ -100,10 +101,13 @@ export default class AudioFileTreeModel extends Model {
   ): Promise<void> {
     // Retain only directory-type nodes
     this.directoryTree = this.directoryTree.filter((dir) => dir.type === 'dir');
-    
+    const navigation = ++this.latestNavigation;
+
     try {
       const safePath = path || '/';
       const { hasSubdirs, response } = await AudioFileTreeModel.checkDirectoryContents(safePath, this.requestCache);
+      // a newer navigation (another click) started while this one was loading: it wins
+      if (navigation !== this.latestNavigation) return;
       
       // If onlyIfHasSubdirs is true and directory has no subdirs, don't append
       if (options.onlyIfHasSubdirs && !hasSubdirs) {

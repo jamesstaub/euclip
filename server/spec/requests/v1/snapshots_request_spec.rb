@@ -74,6 +74,12 @@ RSpec.describe 'V1 snapshots', type: :request do
     end
   end
 
+  it 'a project with snapshots can be destroyed' do
+    make_snapshot('B')
+    project # create before counting
+    expect { project.destroy! }.to change { [Project.count, Snapshot.count] }.from([1, 2]).to([0, 0])
+  end
+
   describe 'switching' do
     it 'activate makes a snapshot the active one' do
       other = make_snapshot('B')

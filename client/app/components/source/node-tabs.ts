@@ -9,6 +9,7 @@ export default class SourceNodeTabsComponent extends Component {
     return this.args.nodes
       .map((trackNode: TrackNodeModel, idx: number): Tab => ({
         label: trackNode.nodeType,
+        sublabel: trackNode.scriptId,
         // TODO trackNode.uniqueSelector copy to clipboard
         order: trackNode.order,
         value: idx,

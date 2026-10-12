@@ -1,5 +1,8 @@
 class Project < ApplicationRecord
   before_create :set_defaults
+  # declared before the has_many dependents so it runs first: the active snapshot must stop being referenced
+  # (projects.active_snapshot_id has a foreign key) before the snapshots are destroyed
+  before_destroy { update_column(:active_snapshot_id, nil) }
 
   # TODO: move BPM to "Pattern" model
   attribute :bpm, :integer, default: 120

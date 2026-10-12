@@ -37,7 +37,8 @@
         title={{item.label}}
         {{on 'click' (fn this.select item.value)}}
       >
-        {{item.label}}
+        <span class='db truncate'>{{item.label}}</span>
+        {{#if item.sublabel}}<span class='db truncate f7 fw4 ttn o-70' data-test-tab-sublabel>{{item.sublabel}}</span>{{/if}}
         {{#if item.beacon}}
           <span class='absolute beacon right-1' title={{item.beacon}}>⬤</span>
         {{/if}}

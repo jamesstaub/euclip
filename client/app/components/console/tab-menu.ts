@@ -5,6 +5,7 @@ import { isPresent } from '@ember/utils';
 
 export interface Tab {
   label: string;
+  sublabel?: string; // small text under the label
   order: number;
   value: number;
 }

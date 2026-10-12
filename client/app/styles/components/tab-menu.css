@@ -6,6 +6,14 @@
   max-width: calc(100% - 8rem);
 }
 
+.tab-btn.horizontal {
+  /* buttons keep one size: long labels and ids are cut with an ellipsis (see the truncate spans) */
+  flex: 0 0 auto;
+  max-width: 100%;
+  overflow: hidden;
+  min-height: 2.75rem;
+}
+
 .tab-btn.vertical {
   flex: 0 0 calc(33% - 0.15rem);
 }
