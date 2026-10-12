@@ -74,7 +74,7 @@ RSpec.describe 'V1 track resources', type: :request do
       post_json('filepath-controls', 'filepath-controls', { control_value: 'Roland/snare.mp3', node_order: 1 })
       expect(response).to have_http_status(200)
 
-      expect(track.filepath_controls.order(:node_order).pluck(:control_value)).to eq(['Roland/kick.mp3', 'Roland/snare.mp3'])
+      expect(track.filepath_controls.order(:node_order).pluck(:control_value)).to eq(['/Roland/kick.mp3', '/Roland/snare.mp3']) # normalized: stored with a leading slash
     end
 
     it 'refuses a second file for the same slot (the old race created duplicates)' do

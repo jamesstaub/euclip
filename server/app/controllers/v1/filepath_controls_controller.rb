@@ -72,6 +72,7 @@ class V1::FilepathControlsController < V1::BaseController
     attrs = @attributes.permit(
                                :control_value, 
                                :node_order,
+                               :project_sample_id, # a pick from the project's sample pool (the pool decides the path)
                               )
 
     

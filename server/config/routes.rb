@@ -37,7 +37,14 @@ Rails.application.routes.draw do
           post :bulk
         end
       end
+      resources :snapshots, only: %i[create]
+      resources :samples, only: %i[index create], controller: 'project_samples'
     end
+
+    resources :snapshots, only: %i[update destroy] do
+      member { post :activate }
+    end
+    resources :samples, only: %i[update destroy], controller: 'project_samples'
 
     resources :tracks, only: %i[update destroy]
     get '/track-types', to: 'track_types#index'

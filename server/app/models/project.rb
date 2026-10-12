@@ -5,6 +5,10 @@ class Project < ApplicationRecord
   attribute :bpm, :integer, default: 120
   belongs_to :creator, class_name: "User"
   has_many :tracks, :dependent => :destroy
+  has_many :snapshots, -> { order(:position) }, :dependent => :destroy
+  # the snapshot being played and edited; every edit applies to it
+  belongs_to :active_snapshot, class_name: 'Snapshot', optional: true
+  has_many :project_samples, -> { order(:position) }, :dependent => :destroy
   
   has_many :user_roles, :dependent => :destroy
   has_many :users, through: :user_roles
@@ -16,22 +20,34 @@ class Project < ApplicationRecord
 
   validate :allow_current_slug_update, on: :update
 
+  after_save :sync_bpm_to_active_snapshot, if: :saved_change_to_bpm?
+
+  # tempo is per snapshot: the project's bpm is the active snapshot's (the column is kept in sync for old clients)
+  def bpm
+    active_snapshot&.bpm || super
+  end
+
+  # the tracks of the snapshot being played/edited
+  def active_tracks
+    tracks.where(snapshot_id: active_snapshot_id)
+  end
+
   def ordered_tracks
-    tracks.where(:is_master => false).order(:id)
+    active_snapshot.ordered_tracks
   end
 
   def reorder_tracks!
-    self.ordered_tracks.each_with_index {|track, idx|
-      track.update!(order: idx + 1)
-    }
+    active_snapshot.reorder_tracks!
   end
   
   def self.create_with_relations!(params)
     project = nil
     transaction do
       project = Project.create!(params)
-      first_track = Track.create_with_relations!(project: project)
-      master_track = Track.create_with_relations!(project: project, is_master: true)
+      snapshot = project.snapshots.create!(name: 'Main', bpm: project.read_attribute(:bpm))
+      project.update!(active_snapshot: snapshot)
+      first_track = Track.create_with_relations!(project: project, snapshot: snapshot)
+      master_track = Track.create_with_relations!(project: project, snapshot: snapshot, is_master: true)
       UserRole.create!(user_id: params[:creator_id], project_id: project.id, role: :creator)
     end
     project
@@ -52,6 +68,10 @@ class Project < ApplicationRecord
   end
 
   private 
+
+  def sync_bpm_to_active_snapshot
+    active_snapshot&.update!(bpm: read_attribute(:bpm)) if active_snapshot && active_snapshot.bpm != read_attribute(:bpm)
+  end
   
   def allow_current_slug_update
     existing_record = Project.find_by(slug: slug, creator_id: creator_id)

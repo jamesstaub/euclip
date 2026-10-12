@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2025_10_12_000000) do
+ActiveRecord::Schema[7.0].define(version: 2025_10_14_000100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -60,6 +60,8 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_12_000000) do
     t.bigint "track_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "project_sample_id"
+    t.index ["project_sample_id"], name: "index_filepath_controls_on_project_sample_id"
     t.index ["track_id", "node_order"], name: "index_filepath_controls_on_track_id_and_node_order", unique: true
     t.index ["track_id"], name: "index_filepath_controls_on_track_id"
   end
@@ -82,6 +84,18 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_12_000000) do
     t.index ["script_id"], name: "index_presets_on_script_id"
   end
 
+  create_table "project_samples", force: :cascade do |t|
+    t.bigint "project_id", null: false
+    t.string "path", null: false
+    t.string "label", null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["project_id", "label"], name: "index_project_samples_on_project_id_and_label", unique: true
+    t.index ["project_id", "path"], name: "index_project_samples_on_project_id_and_path", unique: true
+    t.index ["project_id"], name: "index_project_samples_on_project_id"
+  end
+
   create_table "projects", force: :cascade do |t|
     t.text "title"
     t.text "slug"
@@ -90,6 +104,8 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_12_000000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "access_level"
+    t.bigint "active_snapshot_id"
+    t.index ["active_snapshot_id"], name: "index_projects_on_active_snapshot_id"
     t.index ["creator_id"], name: "index_projects_on_creator_id"
   end
 
@@ -144,6 +160,17 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_12_000000) do
     t.index ["track_id"], name: "index_sequences_on_track_id"
   end
 
+  create_table "snapshots", force: :cascade do |t|
+    t.bigint "project_id", null: false
+    t.string "name", null: false
+    t.integer "position", default: 0, null: false
+    t.integer "bpm", default: 120, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["project_id", "position"], name: "index_snapshots_on_project_id_and_position", unique: true
+    t.index ["project_id"], name: "index_snapshots_on_project_id"
+  end
+
   create_table "track_controls", force: :cascade do |t|
     t.float "min"
     t.float "max"
@@ -174,8 +201,10 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_12_000000) do
     t.datetime "updated_at", null: false
     t.bigint "script_id"
     t.string "track_type", default: "sampler", null: false
+    t.bigint "snapshot_id", null: false
     t.index ["project_id"], name: "index_tracks_on_project_id"
     t.index ["script_id"], name: "index_tracks_on_script_id"
+    t.index ["snapshot_id"], name: "index_tracks_on_snapshot_id"
   end
 
   create_table "user_roles", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -222,8 +251,11 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_12_000000) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "allowlisted_jwts", "users", on_delete: :cascade
+  add_foreign_key "filepath_controls", "project_samples"
   add_foreign_key "filepath_controls", "tracks"
   add_foreign_key "preset_collections", "users", column: "creator_id", on_delete: :cascade
+  add_foreign_key "project_samples", "projects"
+  add_foreign_key "projects", "snapshots", column: "active_snapshot_id"
   add_foreign_key "projects", "users", column: "creator_id", on_delete: :cascade
   add_foreign_key "scripts", "presets"
   add_foreign_key "scripts", "tracks"
@@ -232,8 +264,10 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_12_000000) do
   add_foreign_key "searchable_files", "searchable_directories"
   add_foreign_key "searchable_files", "searchable_directories", column: "root_id", on_delete: :cascade
   add_foreign_key "sequences", "tracks"
+  add_foreign_key "snapshots", "projects"
   add_foreign_key "track_controls", "tracks"
   add_foreign_key "tracks", "projects"
+  add_foreign_key "tracks", "snapshots"
   add_foreign_key "user_roles", "projects"
   add_foreign_key "user_roles", "users"
 end
