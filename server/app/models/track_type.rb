@@ -137,10 +137,14 @@ class TrackType
 
       if (data) {
         const pitch = root + scale[index % scale.length] + 12 * (index % 2);
-        const synth = this.select('polysynth');
-        synth.polysynth('noteOn', { pitch, velocity: 100, envelope: [0.01, 0.1, 0.5] });
-        // release before the next step so voices don't pile up
-        setTimeout(() => synth.polysynth('noteOff', { pitch }), 150);
+
+        // Note: cracked's selection is global state shared by everything that runs. Select the synth
+        // right before every call, including inside the timeout: a selection stored in a variable
+        // would by then point at whatever was selected last, and the note would never be released.
+        this.select('polysynth').polysynth('noteOn', { pitch, velocity: 100, envelope: [0.01, 0.1, 0.5] });
+
+        // release before the next step so voices don't pile up (`this.stepMs` is the length of a step)
+        setTimeout(() => this.select('polysynth').polysynth('noteOff', { pitch }), this.stepMs * 0.8);
       }
     JS
     sequences: [{ hits: 5, steps: 8, offset: 0 }]

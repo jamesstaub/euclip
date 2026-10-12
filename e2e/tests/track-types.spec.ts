@@ -106,6 +106,38 @@ test.describe('track types in the New Track menu', () => {
     expect(errors).toEqual([]);
   });
 
+  test('a polysynth releases every note: voices come and go and nothing sustains', async ({ page }) => {
+    // another track that plays on its hits changes cracked's global selection every step, which is
+    // what used to leave the synth's notes unreleased
+    await addTrack(page, 'Multi-sample kit');
+    await addTrack(page, 'Polysynth');
+    const probe = () =>
+      page.evaluate(() => {
+        const w = window as any;
+        let voices = 0;
+        w.cracked.each('polysynth', (el: any) => { voices += Object.keys(el.getParams().settings.active_voices).length; });
+        return { voices, nodes: w.__('*').size() };
+      });
+    const baseline = (await probe()).nodes;
+
+    await page.getByRole('button', { name: 'play' }).click();
+    let sawVoice = false;
+    let maxVoices = 0;
+    for (let i = 0; i < 40; i++) { // ~4s of steps, sampled every 100ms
+      await page.waitForTimeout(100);
+      const { voices } = await probe();
+      sawVoice ||= voices > 0;
+      maxVoices = Math.max(maxVoices, voices);
+    }
+    expect(sawVoice).toBe(true);
+    expect(maxVoices).toBeLessThanOrEqual(2); // a note is released before the next one is a step away
+
+    await page.getByRole('button', { name: 'stop' }).click();
+    await expect.poll(async () => (await probe()).voices, { timeout: 3000 }).toBe(0);
+    // released voices are removed, not left connected (their nodes would pile up and keep sounding)
+    await expect.poll(async () => (await probe()).nodes, { timeout: 4000 }).toBeLessThanOrEqual(baseline + 2);
+  });
+
   test('a polysynth builds the cracked polysynth macro and plays without errors', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));

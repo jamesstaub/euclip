@@ -773,6 +773,7 @@ export default class TrackModel extends Model.extend(Evented) {
       filepath: this.downloadedFilepaths[0],
       id: this.id,
       trackSelector: this.classSelector,
+      stepMs: this.project.loopInterval, // length of one step in milliseconds (from the bpm)
       sequences: this.sortedSequences.map((sequence) => sequence.sequence), // every sequence's steps, primary first
       controls: controls, // the value of the controls at this current step
       sliders: this.trackControlData,
