@@ -31,7 +31,10 @@ test('a track with two files builds two samplers, loads both, and creates no ext
   await expect.poll(() => [...fetched].join(',')).toBe('200');
   // the client used the stored controls instead of creating new ones for the slots
   expect(created).toHaveLength(0);
-  // each sampler shows its own file name in the track row
-  await expect(rows.first()).toContainText('01W TOM');
-  await expect(rows.first()).toContainText('AGG');
+  // the track row is one multi-sample button; the source tab shows the selected sampler's own file
+  await expect(rows.first().locator('[data-test-source-kind="multi-sample"]')).toContainText('2 samples');
+  await rows.first().locator('[data-test-source-kind]').click();
+  await expect(page.locator('[data-test-source-samples]')).toContainText('01W TOM');
+  await page.locator('.tab-btn.horizontal').nth(1).click(); // the second sampler
+  await expect(page.locator('[data-test-source-samples]')).toContainText('AGG');
 });

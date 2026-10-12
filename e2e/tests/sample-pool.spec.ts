@@ -79,13 +79,18 @@ test.describe('sample pool', () => {
     await expect(rows(page)).toHaveCount(1);
   });
 
-  test('"Add samples" browses the catalog', async ({ page }) => {
+  test('the left sidebar has two tabs: Sample Pool and Browse', async ({ page }) => {
     await createProjectWithTrack(page);
     await page.locator('[data-test-pool-toggle]').click();
-    await pool(page).locator('[data-test-pool-browse]').click();
-    await expect(pool(page).locator('[data-test-pool-catalog]')).toBeVisible();
-    await expect(pool(page).getByLabel('Search for Drum Sounds')).toBeVisible();
-    await pool(page).locator('[data-test-pool-browse]').click();
-    await expect(pool(page).locator('[data-test-pool-list]')).toBeVisible();
+    const tabs = page.locator('[data-test-left-tabs]');
+    await expect(tabs.getByRole('button', { name: 'Sample Pool' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(pool(page)).toBeVisible();
+
+    await tabs.getByRole('button', { name: 'Browse' }).click();
+    await expect(pool(page)).toHaveCount(0);
+    await expect(page.getByLabel('Search for Drum Sounds')).toBeVisible();
+
+    await tabs.getByRole('button', { name: 'Sample Pool' }).click();
+    await expect(pool(page)).toBeVisible();
   });
 });

@@ -26,6 +26,7 @@ test('multislider values for a 32-step sequence persist across both pages and a 
 
   const openSpeedMultislider = async () => {
     await page.locator('[data-test-track-item]:not(:has-text("Main Output"))').first().click();
+    await page.getByRole('button', { name: 'source' }).click(); // a sampler's controls live in the source tab
     const wrapper = page.locator('.controls-wrapper', { has: page.getByText('speed', { exact: true }) });
     await expect(wrapper).toBeVisible();
     return wrapper;

@@ -60,6 +60,8 @@ export async function createProjectWithTrack(page: Page) {
   const body = await (await created).json();
   const track = body.included.find((i: any) => i.type === 'track' && !i.attributes['is-master']);
   return {
+    projectId: body.data.id as string,
+    macrosScriptId: body.included.find((i: any) => i.type === 'macros-script')?.id as string | undefined,
     id: track.id as string,
     sequenceId: track.relationships.sequences.data[0].id as string,
     initScriptId: track.relationships['init-script'].data.id as string,
@@ -75,6 +77,16 @@ export async function setScript(page: Page, track: TrackIds, kind: 'init' | 'ons
   const res = await page.request.patch(`/v1/${kind}-scripts/${id}`, {
     headers: await apiHeaders(page),
     data: { data: { type: `${kind}-scripts`, id, attributes: { code, 'editor-content': code }, relationships: { track: { data: { type: 'tracks', id: track.id } } } } },
+  });
+  expect(res.ok()).toBe(true);
+}
+
+/** Replaces the project-wide macros script through the API. Reload the page afterwards. */
+export async function setMacrosScript(page: Page, project: { projectId: string; macrosScriptId?: string }, code: string) {
+  const id = project.macrosScriptId!;
+  const res = await page.request.patch(`/v1/macros-scripts/${id}`, {
+    headers: await apiHeaders(page),
+    data: { data: { type: 'macros-scripts', id, attributes: { code, 'editor-content': code }, relationships: { project: { data: { type: 'projects', id: project.projectId } } } } },
   });
   expect(res.ok()).toBe(true);
 }
@@ -97,3 +109,64 @@ export async function addFilepath(page: Page, track: TrackIds, slot: number, con
   });
   expect(res.ok()).toBe(true);
 }
+
+/**
+ * Records every value cracked schedules on an audio param, keyed by the param's default value
+ * (oscillator frequency 440, biquad filter frequency 350, ...). A headless audio context never
+ * renders, so reading `.value` back doesn't move; what was scheduled is what the audio would get.
+ * Call before the page loads.
+ */
+export async function spyOnParams(page: Page) {
+  await page.addInitScript(() => {
+    const w = window as any;
+    w.__scheduled = {};
+    const original = AudioParam.prototype.setValueAtTime;
+    AudioParam.prototype.setValueAtTime = function (value: number, time: number) {
+      (w.__scheduled[this.defaultValue] ??= []).push(Math.round(value * 100) / 100);
+      return original.call(this, value, time);
+    };
+  });
+}
+
+export const scheduledOn = (page: Page, paramDefault: number): Promise<number[]> =>
+  page.evaluate((d) => (window as any).__scheduled?.[d] ?? [], paramDefault);
+
+/**
+ * Records the linear ramps cracked schedules (an ADSR envelope is a series of them on a gain param):
+ * `{ param, value }` with a number identifying which AudioParam it was. Call before the page loads.
+ */
+export async function spyOnRamps(page: Page) {
+  await page.addInitScript(() => {
+    const w = window as any;
+    w.__ramps = [];
+    const ids = new WeakMap<object, number>();
+    const original = AudioParam.prototype.linearRampToValueAtTime;
+    AudioParam.prototype.linearRampToValueAtTime = function (value: number, time: number) {
+      if (!ids.has(this)) ids.set(this, ids.size + 1);
+      w.__ramps.push({ param: ids.get(this), value: Math.round(value * 1000) / 1000 });
+      return original.call(this, value, time);
+    };
+  });
+}
+
+export const rampsSeen = (page: Page): Promise<{ param: number; value: number }[]> =>
+  page.evaluate(() => (window as any).__ramps ?? []);
+
+/**
+ * Counts oscillators that have been started. An OscillatorNode makes no sound until `start()` is called, so a
+ * track whose oscillator never starts is silent no matter how its envelope and gains are set.
+ * Call before the page loads.
+ */
+export async function spyOnOscillatorStarts(page: Page) {
+  await page.addInitScript(() => {
+    const w = window as any;
+    w.__oscStarts = 0;
+    const original = OscillatorNode.prototype.start;
+    OscillatorNode.prototype.start = function (...args: [number?]) {
+      w.__oscStarts += 1;
+      return original.apply(this, args);
+    };
+  });
+}
+
+export const oscillatorStarts = (page: Page): Promise<number> => page.evaluate(() => (window as any).__oscStarts ?? 0);

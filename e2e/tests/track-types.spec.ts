@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { addFilepath, createProject, login } from './helpers';
+import { addFilepath, createProject, login, oscillatorStarts, rampsSeen, scheduledOn, setScript, spyOnOscillatorStarts, spyOnParams, spyOnRamps } from './helpers';
 
 const rows = (page: Page) => page.locator('[data-test-track-item]:not(:has-text("Main Output"))');
 
@@ -23,6 +23,9 @@ test.describe('track types in the New Track menu', () => {
     pageErrors = [];
     page.on('pageerror', (e) => pageErrors.push(e.message));
     page.on('console', (m) => m.type() === 'error' && pageErrors.push(m.text()));
+    await spyOnParams(page);
+    await spyOnRamps(page);
+    await spyOnOscillatorStarts(page);
     await login(page);
     await createProject(page);
   });
@@ -32,9 +35,111 @@ test.describe('track types in the New Track menu', () => {
 
   test('lists the types the API offers', async ({ page }) => {
     await page.getByRole('button', { name: 'New Track' }).locator('..').getByRole('button').last().click();
-    for (const title of ['Sampler', 'Looped sampler', 'Multi-sample kit', 'Polysynth', 'Drum Machine']) {
+    for (const title of ['Sampler', 'Looped sampler', 'Multi-sample kit', 'Humanized sampler', 'Filter sweep', 'Oscillator arpeggio', 'Polysynth', 'Drum Machine']) {
       await expect(page.getByText(title, { exact: true })).toBeVisible();
     }
+  });
+
+  // Biquad filter frequency params default to 350 and oscillator frequency params to 440.
+  const FILTER_FREQ = 350;
+  const OSC_FREQ = 440;
+  // The project's starting Sampler track also schedules on these params (its wide-open 20000 Hz low-pass),
+  // and cracked sets a node's own default (440) once when it is created. Neither belongs to the track
+  // under test, so drop them.
+  const ofTrackUnderTest = (values: number[]) => values.filter((v) => v !== 20000 && v !== 440);
+
+  test('a new sampler starts with its low-pass wide open, not muffled', async ({ page }) => {
+    const created: Record<string, number> = {};
+    page.on('response', async (r) => {
+      if (r.request().method() !== 'POST' || !/\/v1\/track-controls$/.test(r.url())) return;
+      const a = (await r.json().catch(() => null))?.data?.attributes;
+      if (a) created[`${a['node-type']}.${a['node-attr']}`] = a['control-value'];
+    });
+    await addTrack(page, 'Sampler');
+    await expect.poll(() => created['lowpass.frequency']).toBe(20000);
+    expect(created['lowpass.q']).toBe(0); // flat: no resonant bump until the user adds one
+  });
+
+  test('a humanized sampler varies every hit around the sliders without moving them', async ({ page }) => {
+    await addTrack(page, 'Humanized sampler');
+    await page.getByRole('button', { name: 'play' }).click();
+    await page.waitForTimeout(3500);
+
+    // the filter starts at the script's 8000 Hz and each hit is offset by up to +/-25% of it
+    const cutoffs = ofTrackUnderTest(await scheduledOn(page, FILTER_FREQ));
+    expect(new Set(cutoffs).size).toBeGreaterThan(2);
+    cutoffs.forEach((hz) => {
+      expect(hz).toBeGreaterThanOrEqual(8000 * 0.75 - 1);
+      expect(hz).toBeLessThanOrEqual(8000 * 1.25 + 1);
+    });
+    expect(cutoffs).toContain(8000); // the slider's own value is applied between hits
+  });
+
+  test('a filter sweep moves the cutoff an octave either side of the slider', async ({ page }) => {
+    await addTrack(page, 'Filter sweep');
+    await page.getByRole('button', { name: 'play' }).click();
+    await page.waitForTimeout(3500);
+
+    const cutoffs = ofTrackUnderTest(await scheduledOn(page, FILTER_FREQ));
+    expect(Math.max(...cutoffs)).toBe(2400); // 1200 Hz * 2
+    expect(Math.min(...cutoffs)).toBe(600); // 1200 Hz / 2
+    expect(cutoffs).toContain(1200);
+  });
+
+  test('an oscillator arpeggio plays scale ratios above the frequency control', async ({ page }) => {
+    await addTrack(page, 'Oscillator arpeggio');
+    await page.getByRole('button', { name: 'play' }).click();
+    await page.waitForTimeout(3500);
+
+    const pitches = new Set(await scheduledOn(page, OSC_FREQ));
+    [220, 247.5, 275, 330].forEach((hz) => expect(pitches.has(hz)).toBe(true));
+    expect([...pitches].every((hz) => hz >= 220 && hz <= 220 * (5 / 3) + 0.01)).toBe(true);
+  });
+
+  test('an oscillator arpeggio opens its envelope on every hit (otherwise it is silent)', async ({ page }) => {
+    await addTrack(page, 'Oscillator arpeggio');
+    await page.getByRole('button', { name: 'play' }).click();
+    await page.waitForTimeout(3500);
+
+    // an envelope ramps its gain up to 1 (the attack peak); without a trigger the gain stays at 0
+    const peaks = (await rampsSeen(page)).filter((r) => r.value === 1);
+    expect(peaks.length).toBeGreaterThan(3);
+  });
+
+  test('an oscillator arpeggio starts its oscillator (cracked sources make no sound until started)', async ({ page }) => {
+    const before = await oscillatorStarts(page);
+    await addTrack(page, 'Oscillator arpeggio');
+    await page.getByRole('button', { name: 'play' }).click();
+    await page.waitForTimeout(2500);
+    expect(await oscillatorStarts(page)).toBeGreaterThan(before);
+  });
+
+  // a guard: cracked's trigger acts on the selection, so one track playing must not open another's envelope
+  test("one track's ADSR trigger leaves every other track's envelope alone", async ({ page }) => {
+    await page.waitForLoadState('networkidle');
+    // The project starts with one sampler track. Give it an oscillator + envelope that nothing triggers...
+    const loaded = page.waitForResponse((r) => r.request().method() === 'GET' && /\/projects\/project\d+\?/.test(r.url()));
+    await page.reload();
+    const project = await (await loaded).json();
+    const track = project.included.find((i: any) => i.type === 'track' && !i.attributes['is-master']);
+    const quiet = {
+      id: track.id as string,
+      sequenceId: '',
+      initScriptId: track.relationships['init-script'].data.id as string,
+      onstepScriptId: track.relationships['onstep-script'].data.id as string,
+    };
+    await setScript(page, quiet, 'init', `__().sine({ frequency: 330 }).adsr('fast').channelStrip().connect('#main-output');`);
+    await setScript(page, quiet, 'onstep', `// never triggers its envelope`);
+    await page.reload();
+    await expect(rows(page)).toHaveCount(1);
+
+    // ...next to an arpeggio, which triggers its own envelope on every hit
+    await addTrack(page, 'Oscillator arpeggio');
+    await page.getByRole('button', { name: 'play' }).click();
+    await page.waitForTimeout(3500);
+
+    const ramped = new Set((await rampsSeen(page)).filter((r) => r.value === 1).map((r) => r.param));
+    expect(ramped.size).toBe(1); // only the arpeggio's envelope; the quiet track's stays closed
   });
 
   test('a looped sampler loops and uses Loop Sync speed', async ({ page }) => {
@@ -42,6 +147,7 @@ test.describe('track types in the New Track menu', () => {
     expect(await nodes(page, `sampler .track-${order}`)).toBe(1);
 
     await row.click();
+    await page.getByRole('button', { name: 'source' }).click(); // a sampler's controls live in the source tab
     const speed = page.locator('.controls-wrapper', { has: page.getByText('speed', { exact: true }) });
     await expect(speed.locator('select option:checked')).toHaveText('Loop Sync');
 
@@ -49,6 +155,7 @@ test.describe('track types in the New Track menu', () => {
     await page.waitForTimeout(2000); // controls are saved shortly after they change
     await page.reload();
     await rows(page).last().click();
+    await page.getByRole('button', { name: 'source' }).click();
     await expect(
       page.locator('.controls-wrapper', { has: page.getByText('speed', { exact: true }) }).locator('select option:checked')
     ).toHaveText('Loop Sync');
@@ -79,7 +186,19 @@ test.describe('track types in the New Track menu', () => {
   test('a multi-sample kit has four sampler pads, each with its own file slot', async ({ page }) => {
     const { row, order } = await addTrack(page, 'Multi-sample kit');
     expect(await nodes(page, `sampler .track-${order}`)).toBe(4);
-    await expect(row.getByText(/pick a sound/i)).toHaveCount(4);
+    // the track list shows one multi-sample button; the source tab has a tab per pad and shows the selected pad's sample
+    await expect(row.locator('[data-test-source-kind]')).toHaveCount(1);
+    await expect(row.locator('[data-test-source-kind="multi-sample"]')).toContainText('4 samples');
+    await row.locator('[data-test-source-kind]').click();
+    const padTabs = page.locator('.tab-btn.horizontal').filter({ has: page.locator('[data-test-tab-sublabel]') });
+    await expect(padTabs).toHaveCount(4);
+    await expect(page.locator('[data-test-source-sample]')).toHaveAttribute('data-source-node-id', 'pad1');
+    await expect(page.locator('[data-test-source-sample]').getByRole('button', { name: 'Pick a Sound' })).toHaveCount(1);
+
+    // choosing another pad shows that pad's (still empty) sample
+    await padTabs.nth(3).click();
+    await expect(page.locator('[data-test-source-sample]')).toHaveAttribute('data-source-node-id', 'pad4');
+    await expect(page.locator('[data-test-source-sample]').getByRole('button', { name: 'Pick a Sound' })).toHaveCount(1);
   });
 
   test('a multi-sample kit loads a file per pad and plays them round-robin', async ({ page }) => {
@@ -95,9 +214,15 @@ test.describe('track types in the New Track menu', () => {
     page.on('response', (r) => /storage\.googleapis\.com.*Korg/.test(decodeURIComponent(r.url())) && loaded.add(r.status()));
     await page.reload();
     const row = page.locator(`[data-track-id="${id}"]`);
-    await expect(row.getByText(/pick a sound/i)).toHaveCount(1); // pad 4 still has no file
-    await expect(row).toContainText('01W TOM');
-    await expect(row).toContainText('AGG');
+    await expect(row.locator('[data-test-source-kind="multi-sample"]')).toContainText('4 samples');
+    await row.locator('[data-test-source-kind]').click(); // opens this track's source tab
+    const sample = page.locator('[data-test-source-sample]');
+    const padTabs = page.locator('.tab-btn.horizontal').filter({ has: page.locator('[data-test-tab-sublabel]') });
+    await expect(sample).toContainText('01W TOM'); // pad 1
+    await padTabs.nth(1).click();
+    await expect(sample).toContainText('AGG'); // pad 2
+    await padTabs.nth(3).click();
+    await expect(sample.getByRole('button', { name: 'Pick a Sound' })).toHaveCount(1); // pad 4 still has no file
     await expect.poll(() => [...loaded].join(',')).toBe('200');
 
     await page.getByRole('button', { name: 'play' }).click();
