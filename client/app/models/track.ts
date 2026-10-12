@@ -36,6 +36,7 @@ import { isPresent } from '@ember/utils';
 import { extendOnCreateNode } from 'euclip/utils/cracked';
 import { FILE_LOAD_STATES } from './track-node';
 import { debugLog } from 'euclip/utils/debug-log';
+import { withSnapshotDestination } from 'euclip/utils/snapshot-bus';
 import byKey from 'euclip/utils/by-key';
 
 declare const __: any;
@@ -373,7 +374,12 @@ export default class TrackModel extends Model.extend(Evented) {
     )
   }
 
-  setupAudioFromScripts(unbindBeforeCreate = true) {
+  /**
+   * Runs this track's init script to (re)build its audio nodes, then links controls and node records.
+   * `bind: false` builds the audio without starting its step listeners: used to stage a snapshot's
+   * tracks in the background (they are bound when the snapshot is switched in).
+   */
+  setupAudioFromScripts(unbindBeforeCreate = true, { bind = true }: { bind?: boolean } = {}) {
     if (this.isRemoved) return;
     const initScript = this.initScript;
     if (!initScript) {
@@ -410,6 +416,7 @@ export default class TrackModel extends Model.extend(Evented) {
         addCustomSelector(node, this.classSelector); // user-facing, follows track order
         addCustomSelector(node, this.stableSelector); // internal: survives renumbering
         addCustomSelector(node, `${type} ${this.classSelector}`);
+        addCustomSelector(node, `${type} ${this.stableSelector}`); // this.select() uses this one: unique per track
         addCustomSelector(node, node.getUUID()); // NOTE: no . or # is used, the uuid is the full selector
 
         this.settingsForNodes.push(nodeSettings);
@@ -452,7 +459,8 @@ export default class TrackModel extends Model.extend(Evented) {
         files: this.downloadedFilepaths.slice(0, 3),
         filepathControls: this.filepathControls.map((f) => f.controlValue),
       });
-      initScript.invokeFunctionRef();
+      // dac()/out nodes feed the snapshot's own bus (open for the active snapshot, closed while staged)
+      withSnapshotDestination(this.snapshot.id, () => initScript.invokeFunctionRef(), { open: this.snapshot.isActive });
       debugLog('track', `#${this.order} init script done`, {
         nodes: this.settingsForNodes.map((n) => n.nodeType),
         alert: initScript.alert,
@@ -472,7 +480,7 @@ export default class TrackModel extends Model.extend(Evented) {
     trackNodes = this.applyOrderOfType(trackNodes);
     this.setupTrackControls(trackNodes);
     if (trackNodes.length) {
-      this.bindToSequencer();
+      if (bind) this.bindToSequencer();
     } else {
       console.error('no track nodes to bind to sequencer');
     }
@@ -771,6 +779,8 @@ export default class TrackModel extends Model.extend(Evented) {
         .start();
     };
 
+    const stableSelector = this.stableSelector;
+
     return {
       files: this.downloadedFilepaths,
       filepath: this.downloadedFilepaths[0],
@@ -783,9 +793,9 @@ export default class TrackModel extends Model.extend(Evented) {
       select() {
         let selector = typeof arguments[0] === 'string' ? arguments[0] : null;
         if (selector) {
-          return __(`${selector} ${this.trackSelector}`);
+          return __(`${selector} ${stableSelector}`);
         }
-        return __(this.trackSelector);
+        return __(stableSelector);
       },
       // These methods may get replaced by the track('selector').play() style of API
       playSourceNodes(attrs) {

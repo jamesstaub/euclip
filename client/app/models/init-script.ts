@@ -2,6 +2,7 @@ import ScriptModel from 'euclip/models/script';
 import { belongsTo } from '@ember-data/model';
 import type TrackModel from './track';
 import { tracked } from '@glimmer/tracking';
+import scopeToSnapshot from 'euclip/utils/scope-to-snapshot';
 
 export default class InitScriptModel extends ScriptModel {
   // Explicit type and initializer for `name`
@@ -15,6 +16,6 @@ export default class InitScriptModel extends ScriptModel {
    */
   newFunction(): (...args: unknown[]) => void {
     const scope = this.track?.scriptScope;
-    return new Function(this.safeCode).bind(scope) as (...args: unknown[]) => void;
+    return new Function(scopeToSnapshot(this.safeCode, this.track?.snapshot?.id)).bind(scope) as (...args: unknown[]) => void;
   }
 }

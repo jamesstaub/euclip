@@ -75,7 +75,9 @@ export default class ProjectModel extends Model {
   }
 
   async initSignalChain() {
-    this.disconnectAll();
+    // Tear down only the active snapshot's audio. (disconnectAll() ends in cracked's global reset, which
+    // would also destroy any other snapshot that is built and waiting to be switched in.)
+    this.tracks.forEach((track) => track.unbindAndRemoveCrackedNodes());
     this.masterTrack?.setupAudioFromScripts();
     await this.downloadTrackSamples();
     this.orderedTracks.map((track) => track.setupAudioFromScripts());
