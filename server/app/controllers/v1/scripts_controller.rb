@@ -26,15 +26,18 @@ class V1::ScriptsController < V1::BaseController
     @script = script
   end
 
-  # The client sends the 'code' attribute which represents the currently saved 
-  # state of the text editor
-  # 'safe_code' is saved in the database after the 'code' string is sanitized
+  # `code` is the script the user last *loaded* (ran). It is the only thing that changes the running
+  # script: 'safe_code' is saved from it after sanitizing. `editor_content` is just the editor's draft.
   def set_clean_attrs
     # TODO implement the javascript code cleaning solution implemented in a google 
     # function script to strip out potentially malicious code
     attrs = @attributes.permit(:code, :editor_content).to_h
-    attrs[:safe_code] = attrs[:code]
     @clean_attrs = attrs.except(:code)
+
+    # Saving a draft sends `code` as null/absent. That must leave safe_code alone: assigning nil here
+    # used to make the model fall back to the default sampler script, silently replacing the running
+    # script just because the editor was opened. (An empty string disables the script.)
+    @clean_attrs[:safe_code] = attrs[:code] unless attrs[:code].nil?
   end
 
   def serializer_klass

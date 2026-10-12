@@ -138,6 +138,25 @@ test.describe('track types in the New Track menu', () => {
     await expect.poll(async () => (await probe()).nodes, { timeout: 4000 }).toBeLessThanOrEqual(baseline + 2);
   });
 
+  test('a track type stays loaded after its script panel is opened and the page reloaded', async ({ page }) => {
+    // opening the script editor saves the draft; that must never replace the running script
+    // (it used to reset it to the default sampler, so a reload showed "Pick a Sound" and an unloaded script)
+    const { id } = await addTrack(page, 'Polysynth');
+    const row = page.locator(`[data-track-id="${id}"]`);
+    await row.click();
+    await row.getByRole('button', { name: 'scripts' }).click();
+    await expect(page.getByText('Loaded...')).toBeVisible();
+    await page.waitForTimeout(3500); // the editor's draft save is debounced
+
+    await page.reload();
+    await expect(row.locator('[data-test-source-label]')).toHaveText('polysynth');
+    await expect(row.getByText(/pick a sound/i)).toHaveCount(0);
+
+    await row.click();
+    await row.getByRole('button', { name: 'scripts' }).click();
+    await expect(page.getByText('Loaded...')).toBeVisible(); // not the "Load" button
+  });
+
   test('a polysynth builds the cracked polysynth macro and plays without errors', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));

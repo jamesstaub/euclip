@@ -1,5 +1,7 @@
 class Script < ApplicationRecord
-  before_save :set_default
+  # starting scripts apply when a script is created; on later saves a missing value must never be
+  # silently replaced with the default
+  before_create :set_default
   belongs_to :track, optional: true
   belongs_to :preset, optional: true
 
