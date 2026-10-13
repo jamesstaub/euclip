@@ -8,73 +8,27 @@
   <div class='flex w-auto mh1 flex-column grow-1 min-w-0'>
     <Console::Header>Source</Console::Header>
 
-      {{!-- REFACTOR/REDESIGN: 
-        this UI should represent filepath controls, sound-files and sampler track nodes
-
-        Sample Pool: downloaded sound-files
-        Buffer Waveforms: Sampler Nodes that are loaded with a waveform
-        filepath-controls: UI connecting file selection to the wave form
-
-      --}}
-      {{!-- {{#each @track.sourceNodeRecords as |source|}}
-        {{source.nodeType}}
-        {{#if @track.samplerFilepathControl.filename}}
-          -
-          {{@track.samplerFilepathControl.filename}}
-        {{/if}}
-      {{/each}} --}}
-
-      <Source::NodeTabs
-        @nodes={{@track.sourceNodeRecords}}
-        @onSelect={{@onSelectNode}}
-        @selectedValue={{this.visibleNodeIdx}}
-      />
+      {{!-- a sampler track shows what each sampler holds as cards; other sources (oscillators, macros) keep their tabs --}}
+      {{#if this.isSamplerTrack}}
+        <Source::SamplerRack
+          @track={{@track}}
+          @selectedIdx={{this.visibleNodeIdx}}
+          @onSelect={{@onSelectNode}}
+          @onShowFilePath={{@showFilePath}}
+        />
+      {{else}}
+        <Source::NodeTabs
+          @nodes={{@track.sourceNodeRecords}}
+          @onSelect={{@onSelectNode}}
+          @selectedValue={{this.visibleNodeIdx}}
+        />
+      {{/if}}
 
     {{#if @showReference}}
       {{yield}}
     {{else}}
       {{#if @track.sourceNodeRecords.length}}
       
-        {{!-- the sample of the selected sampler node (the node tabs above choose it; the file sidebar follows) --}}
-        {{#if (eq this.selectedNode.nodeType 'sampler')}}
-          <div class='flex flex-column mb2' data-test-source-samples>
-            {{#let this.selectedNode as |samplerNode|}}
-              <div class='flex items-center f7' data-test-source-sample data-source-node-id={{samplerNode.scriptId}}>
-                {{#if samplerNode.filepathControl.pathSegments.length}}
-                  <ul class='flex items-center mv0 pa0 list'>
-                    {{#each samplerNode.filepathControl.pathSegments as |directory segmentIdx|}}
-                      {{#if directory.length}}
-                        <li class='directory-btns'>
-                          <button
-                            class='textbutton pa2'
-                            type='button'
-                            {{on 'click' (fn @showFilePath (path-up-to samplerNode.filepathControl.pathSegments segmentIdx))}}
-                          >
-                            {{directory}}
-                          </button>
-                        </li>
-                      {{/if}}
-                    {{/each}}
-                  </ul>
-                  {{#if samplerNode.filepathControl.fileDownloadError}}
-                    <span class='ml2 red' title={{samplerNode.filepathControl.fileDownloadError}}>download failed</span>
-                  {{else if samplerNode.bufferDuration}}
-                    <span class='ml2 dark-gray'>{{display-float samplerNode.bufferDuration}} sec</span>
-                  {{else}}
-                    <span class='ml2 dark-gray'>loading…</span>
-                  {{/if}}
-                {{else}}
-                  <button
-                    class='textbutton pa2 underline'
-                    type='button'
-                    {{on 'click' (fn @showFilePath undefined)}}
-                  >Pick a Sound</button>
-                {{/if}}
-              </div>
-            {{/let}}
-          </div>
-        {{/if}}
-
         {{!-- FIXME: move error to the node itself, not the track --}}
         {{!-- {{#if @track.fileDownloadError}}
           <div class="red bg-dark-gray pa3">

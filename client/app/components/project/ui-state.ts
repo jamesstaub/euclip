@@ -27,7 +27,7 @@ export interface ProjectUiStateActions {
   closeSidebar(direction: 'left' | 'right'): void;
   setAudioSelectMode(mode: AudioSelectMode): void;
   togglePool(): void;
-  setSelectedSourceIdx(idx: number): void;
+  setSelectedSourceIdx(idx: number, trackId?: string): void;
   setLeftTab(tab: LeftTab): void;
   openCreateFromDirectory(): void;
   closeCreateFromDirectory(): void;
@@ -142,8 +142,8 @@ export default class ProjectUiStateComponent extends Component<Args> {
   }
 
   @action
-  setSelectedSourceIdx(idx: number) {
-    this.selection = { trackId: this.args.activeTrack?.id, idx };
+  setSelectedSourceIdx(idx: number, trackId?: string) {
+    this.selection = { trackId: trackId ?? this.args.activeTrack?.id, idx };
   }
 
   @action

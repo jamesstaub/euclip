@@ -20,8 +20,9 @@ export default class ProjectUiService extends Service {
     return this.current?.selectedSourceIdx ?? 0;
   }
 
-  setSelectedSourceIdx(idx: number) {
-    this.current?.setSelectedSourceIdx(idx);
+  // `trackId` for a track that is about to become the active one (its row was just clicked)
+  setSelectedSourceIdx(idx: number, trackId?: string) {
+    this.current?.setSelectedSourceIdx(idx, trackId);
   }
 
   get leftSidebarOpen() {

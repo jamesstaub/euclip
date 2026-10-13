@@ -3,7 +3,7 @@
   Custom UIs for particular node types (piano for oscillators, X-Y for filters, ...) belong here:
   branch on @trackNode.nodeType and render them for the controls they claim, leaving the rest to the loop.
 --}}
-<div class='flex justify-start overflow-x-scroll bg-yellow overflow-y-hidden h-100 mw-100'>
+<div class='node-controls flex justify-start overflow-x-scroll bg-yellow overflow-y-hidden h-100 mw-100'>
   {{#if this.pianoControl}}
     <Controls::PianoSurface
       @control={{this.pianoControl}}

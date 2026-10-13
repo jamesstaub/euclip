@@ -186,20 +186,16 @@ test.describe('track types in the New Track menu', () => {
   test('a multi-sample kit has four samplers, each with its own file slot', async ({ page }) => {
     const { row, order } = await addTrack(page, 'Multi-sample kit');
     expect(await nodes(page, `sampler .track-${order}`)).toBe(4);
-    // the track list shows one multi-sample button; the source tab has a tab per sampler and shows the selected sampler's sample
+    // the track list shows one multi-sample button; the source tab has a card per sampler
     await expect(row.locator('[data-test-source-kind]')).toHaveCount(1);
     await expect(row.locator('[data-test-source-kind="multi-sample"]')).toContainText('3 / 4 samplers');
     await row.locator('[data-test-source-kind]').click(); // opens the sound sidebar
     await page.getByRole('button', { name: 'source' }).click(); // the footer's source tab
-    const samplerTabs = page.locator('.track-footer .tab-btn.horizontal').filter({ has: page.locator('[data-test-tab-sublabel]') });
-    await expect(samplerTabs).toHaveCount(4);
-    await expect(page.locator('[data-test-source-sample]')).toHaveAttribute('data-source-node-id', 'sampler1');
-    await expect(page.locator('[data-test-source-sample]').getByRole('button', { name: 'Pick a Sound' })).toHaveCount(1);
-
-    // choosing another sampler shows its (still empty) sample
-    await samplerTabs.nth(3).click();
-    await expect(page.locator('[data-test-source-sample]')).toHaveAttribute('data-source-node-id', 'sampler4');
-    await expect(page.locator('[data-test-source-sample]').getByRole('button', { name: 'Pick a Sound' })).toHaveCount(1);
+    const cards = page.locator('[data-test-sampler-card]');
+    await expect(cards).toHaveCount(4);
+    await expect(cards.nth(0)).toHaveAttribute('data-source-node-id', 'sampler1');
+    await expect(cards.nth(3)).toHaveAttribute('data-source-node-id', 'sampler4');
+    await expect(page.locator('[data-test-sampler-add]')).toHaveCount(4); // every sampler is waiting for a sound
   });
 
   test('a multi-sample kit loads a file per sampler and plays them round-robin', async ({ page }) => {
@@ -218,13 +214,10 @@ test.describe('track types in the New Track menu', () => {
     await expect(row.locator('[data-test-source-kind="multi-sample"]')).toContainText('0 / 4 samplers');
     await row.locator('[data-test-source-kind]').click(); // opens the sound sidebar
     await page.getByRole('button', { name: 'source' }).click(); // the footer's source tab
-    const sample = page.locator('[data-test-source-sample]');
-    const samplerTabs = page.locator('.track-footer .tab-btn.horizontal').filter({ has: page.locator('[data-test-tab-sublabel]') });
-    await expect(sample).toContainText('01W TOM'); // sampler 1
-    await samplerTabs.nth(1).click();
-    await expect(sample).toContainText('AGG'); // sampler 2
-    await samplerTabs.nth(3).click();
-    await expect(sample.getByRole('button', { name: 'Pick a Sound' })).toHaveCount(1); // sampler 4 still has no file
+    const name = (n: number) => page.locator(`[data-test-sampler-card="${n}"] [data-test-sampler-name]`);
+    await expect(name(1)).toHaveText('01W TOM'); // sampler 1
+    await expect(name(2)).toHaveText('AGG'); // sampler 2
+    await expect(page.locator('[data-test-sampler-card="4"] [data-test-sampler-add]')).toBeVisible(); // sampler 4 still has no file
     await expect.poll(() => [...loaded].join(',')).toBe('200');
 
     await page.getByRole('button', { name: 'play' }).click();

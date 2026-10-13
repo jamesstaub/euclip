@@ -185,4 +185,85 @@ test.describe('sound browser', () => {
     await page.locator('[data-test-create-tracks]').click();
     await expect(page.locator('[data-test-source-kind="sample"]')).toHaveCount(before + 2, { timeout: 30_000 });
   });
+
+  // ---- the sampler rack (footer, Source tab) ----
+
+  async function kitWithTwoSounds(page: Page) {
+    await addKit(page);
+    await page.locator('[data-test-source-kind="multi-sample"]').click();
+    await page.getByRole('button', { name: 'source' }).click(); // the rack is in the footer's source tab
+    await openKorg(page);
+    await use(page, 'AGG');
+    await expect(page.locator('[data-test-sampler-card="1"] [data-test-sampler-name]')).toHaveText('AGG');
+    await use(page, '01W TOM');
+    await expect(page.locator('[data-test-sampler-card="2"] [data-test-sampler-name]')).toHaveText('01W TOM');
+  }
+  const sourceTab = (page: Page) => page.getByRole('button', { name: 'source' }).click();
+  const samplerCard = (page: Page, n: number) => page.locator(`[data-test-sampler-card="${n}"]`);
+
+  test('the rack shows what each sampler holds, and the card the browser is adding to has a ring', async ({ page }) => {
+    await kitWithTwoSounds(page);
+    await sourceTab(page);
+    await expect(page.locator('[data-test-sampler-card]')).toHaveCount(4);
+    await expect(samplerCard(page, 1).locator('canvas')).toBeVisible({ timeout: 20_000 }); // a small waveform
+    await expect(samplerCard(page, 3).locator('[data-test-sampler-add]')).toBeVisible();
+    await expect(page.locator('.sampler-rack__count')).toContainText('2 loaded');
+    // the browser is open and moved on to the third sampler: that card says so
+    await expect(samplerCard(page, 3)).toHaveClass(/sampler-card--target/);
+    await expect(samplerCard(page, 3)).toContainText('adding here');
+    await sidebar(page).getByRole('button', { name: /close sidebar/i }).click();
+    await expect(samplerCard(page, 3)).not.toHaveClass(/sampler-card--target/);
+  });
+
+  test('an empty card opens the browser aimed at it; change does the same for a full one', async ({ page }) => {
+    await kitWithTwoSounds(page);
+    await sourceTab(page);
+    await sidebar(page).getByRole('button', { name: /close sidebar/i }).click();
+    await samplerCard(page, 4).locator('[data-test-sampler-add]').click();
+    await expect(sidebar(page)).toBeVisible();
+    await expect(page.locator('[data-test-target]')).toContainText('Sampler 4');
+
+    await samplerCard(page, 1).locator('[data-test-sampler-change]').click();
+    await expect(page.locator('[data-test-target]')).toContainText('Sampler 1');
+    await use(page, 'CABA'); // replaces sampler 1
+    await expect(samplerCard(page, 1).locator('[data-test-sampler-name]')).toHaveText('CABA');
+  });
+
+  test('a card can be cleared, with Undo', async ({ page }) => {
+    await kitWithTwoSounds(page);
+    await sourceTab(page);
+    await samplerCard(page, 2).locator('[data-test-sampler-clear]').click();
+    await expect(samplerCard(page, 2).locator('[data-test-sampler-add]')).toBeVisible();
+    await expect(page.locator('[data-test-source-kind="multi-sample"]')).toContainText('1 / 4 samplers');
+    await page.locator('[data-test-toast-action]').click();
+    await expect(samplerCard(page, 2).locator('[data-test-sampler-name]')).toHaveText('01W TOM');
+    await expect(page.locator('[data-test-source-kind="multi-sample"]')).toContainText('2 / 4 samplers');
+  });
+
+  test('a card can audition its sound', async ({ page }) => {
+    await kitWithTwoSounds(page);
+    await sourceTab(page);
+    const before = await page.evaluate(() => (window as any).__starts);
+    await samplerCard(page, 1).locator('[data-test-sampler-audition]').click();
+    await expect.poll(() => page.evaluate(() => (window as any).__starts), { timeout: 20_000 }).toBeGreaterThan(before);
+  });
+
+  test("the folder caption shows the sampler's sound in the browser, marked and in view", async ({ page }) => {
+    await kitWithTwoSounds(page);
+    await sourceTab(page);
+    await sidebar(page).getByRole('button', { name: /close sidebar/i }).click();
+    await expect(samplerCard(page, 1).locator('[data-test-sampler-where]')).toHaveText('Korg › Korg 01W');
+    await samplerCard(page, 1).locator('[data-test-sampler-where]').click();
+    await expect(crumbs(page).last()).toHaveAttribute('aria-current', 'location');
+    await expect(crumbs(page).last()).toHaveText('Korg 01W');
+    await expect(row(page, 'AGG')).toHaveClass(/sound-row--current/); // the sampler's own sound
+    await expect(page.locator('[data-test-target]')).toContainText('Sampler 1');
+  });
+
+  test('clicking a kit\'s source button in the track list aims the browser at the first empty sampler', async ({ page }) => {
+    await kitWithTwoSounds(page);
+    await sidebar(page).getByRole('button', { name: /close sidebar/i }).click();
+    await page.locator('[data-test-source-kind="multi-sample"]').click();
+    await expect(page.locator('[data-test-target]')).toContainText('Sampler 3');
+  });
 });

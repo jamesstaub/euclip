@@ -11,6 +11,8 @@ interface SoundsListSignature {
     directory?: DirectoryModel;
     /** where each sound already lives on the target track: path -> "Sampler 2" */
     badges?: Record<string, string>;
+    /** the sound the target sampler holds now: marked, and scrolled to when its folder opens */
+    currentPath?: string;
     showCheck?: boolean;
     selectedPaths?: string[];
     onOpenFolder: (directory: DirectoryModel, name: string) => void;
@@ -66,6 +68,7 @@ export default class SoundsListComponent extends Component<SoundsListSignature> 
         loading: !folder && this.samplePool.loadingPath === key,
         detail: folder ? '' : durationText(this.samplePool.durationOf(path)),
         badge: this.args.badges?.[path],
+        current: this.args.currentPath === path,
         checked: picked.has(path),
       };
     });

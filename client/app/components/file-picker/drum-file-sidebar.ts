@@ -8,7 +8,6 @@ import type { DirectoryModel } from 'euclip/models/audio-file-tree';
 import type { AudioSelectMode } from 'euclip/components/project/ui-state';
 import type SamplePoolService from 'euclip/services/sample-pool';
 import type NotificationsService from 'euclip/services/notifications';
-import type { Notification } from 'euclip/services/notifications';
 import ProjectModel from 'euclip/models/project';
 import { TrackState } from 'euclip/models/track';
 import { assignSound, clearSound, nextEmptySampler, samplerSlots, soundName } from 'euclip/utils/sampler-files';
@@ -60,7 +59,6 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
   }
   @tracked selectedFiles: SelectedAudioFile[] = [];
   @tracked isCreating = false;
-  private undoToast: Notification | null = null;
 
   get selectedNode() {
     // Only available in 'current_track' mode when we have an active track
@@ -131,6 +129,13 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
     return badges;
   }
 
+  // the sound the target sampler holds now
+  get currentPath(): string | undefined {
+    if (this.isCreateTracksMode) return undefined;
+    const slots = samplerSlots(this.args.activeTrack);
+    return (slots.find((slot) => slot.index === this.targetNodeIdx) ?? slots[0])?.path || undefined;
+  }
+
   get selectedPaths(): string[] {
     return this.selectedFiles.map((file) => file.filepath);
   }
@@ -199,9 +204,9 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
   async saveFilepathControl(filepath: string, track: TrackModel): Promise<void> {
     track.state = TrackState.SAVED;
 
-    // the previous pick's Undo is out of date the moment another pick starts (the new one has no toast yet,
+    // the previous Undo is out of date the moment another pick starts (the new one has no toast yet,
     // and undoing the old one would empty the sampler that was just filled)
-    this.dismissUndo();
+    this.notifications.dismissGroup('undo');
 
     try {
       // the selected sampler node decides the slot: the n-th sampler of the track gets the n-th file
@@ -219,11 +224,6 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
     }
   }
 
-  private dismissUndo() {
-    if (this.undoToast) this.notifications.remove(this.undoToast);
-    this.undoToast = null;
-  }
-
   // the target moves on to the next empty sampler, and a toast says what happened (with Undo)
   private afterAssign(track: TrackModel, slot: number, filepath: string, previous: string, hereIndex: number) {
     this.samplePool.refresh(this.args.project); // the pool gains the sound and shows who uses it
@@ -236,9 +236,9 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
     const message = kit
       ? `Sampler ${slot + 1} ← ${name}${next ? `. Next: Sampler ${next.number}` : ''}`
       : `${name} is now track ${track.order}'s sound`;
-    this.dismissUndo();
-    const toast: Notification = {
+    this.notifications.push({
       type: 'success',
+      group: 'undo',
       message,
       actionLabel: 'Undo',
       timeout: 6000,
@@ -250,9 +250,7 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
           if (here) this.args.setSelectedSourceIdx?.(here.index);
         });
       },
-    };
-    this.undoToast = toast;
-    this.notifications.push(toast);
+    });
   }
 
   @action

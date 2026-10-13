@@ -1,18 +1,18 @@
 {{!--
   One row of a sound list: a folder (opens), or a sound (audition, select, Use). Shared by the folder list,
   the search results and the "In this project" shelf, so they all look and behave the same.
-  Args: @role (default option; 'listitem' outside a listbox), @name, @path, @folder, @selected, @playing, @loading, @detail, @badge, @showCheck, @checked,
+  Args: @current (the sound the target sampler holds), @role (default option; 'listitem' outside a listbox), @name, @path, @folder, @selected, @playing, @loading, @detail, @badge, @showCheck, @checked,
         @showUse (the Use button), @onOpen (folder), @onPlay, @onSelect, @onUse (Use, double-click), @onToggle. A block adds extra controls (a menu).
 --}}
 <li
-  class='sound-row {{if @selected "sound-row--selected"}} {{if @playing "sound-row--playing"}} {{if @folder "sound-row--folder"}}'
+  class='sound-row {{if @selected "sound-row--selected"}} {{if @current "sound-row--current"}} {{if @playing "sound-row--playing"}} {{if @folder "sound-row--folder"}}'
   role={{or @role 'option'}}
   aria-selected={{if @role undefined (if @selected 'true' 'false')}}
   data-test-sound-row
   data-sound-name={{@name}}
   data-sound-path={{@path}}
   ...attributes
-  {{scroll-into-view @selected 'smooth'}}
+  {{scroll-into-view (or @selected @current) 'smooth'}}
 >
   {{#if @folder}}
     <button type='button' class='sound-row__name sound-row__name--folder' data-test-sound-folder {{on 'click' @onOpen}}>

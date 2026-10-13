@@ -21,7 +21,7 @@ test.describe('file browser', () => {
     await page.reload();
     await openSourceTab(page);
 
-    await page.locator('[data-test-source-sample] button', { hasText: /^\s*Korg 01W\s*$/ }).click(); // a lower path segment
+    await page.locator('[data-test-sampler-where]').click(); // the card's folder caption: show it in the browser
     await expect(crumb(page, '/Korg/Korg 01W')).toHaveAttribute('aria-current', 'location');
 
     await crumb(page, '/Korg').click();
@@ -38,23 +38,24 @@ test.describe('file browser', () => {
       __().sampler({ id: 'kick', path: this.files[0] }).channelStrip().connect('#main-output');
       __().sampler({ id: 'snare', path: this.files[1] }).channelStrip().connect('#main-output');
     `;
-  const menuTab = (page: Page, id: string) => page.locator('.track-footer .tab-btn', { hasText: id });
+  // a sampler's card in the footer's source tab, by its id in the script
+  const card = (page: Page, id: string) => page.locator(`[data-test-sampler-card][data-source-node-id="${id}"]`);
+  const menuTab = (page: Page, id: string) => card(page, id).locator('[data-test-sampler-select]');
   const sidebarTab = (page: Page, id: string) => sidebar(page).locator(`[data-test-target-slot="${id === 'kick' ? 1 : 2}"]`); // the target card's sampler chips
 
-  test('the source menu shows the sample of the selected node only', async ({ page }) => {
+  test('the source tab shows what each sampler holds, and selecting one is a click on its card', async ({ page }) => {
     const track = await createProjectWithTrack(page);
     await setScript(page, track, 'init', TWO_SAMPLERS);
     await addFilepath(page, track, 0, TOM);
     await page.reload();
     await openSourceTab(page);
 
-    const sample = page.locator('[data-test-source-sample]');
-    await expect(sample).toHaveCount(1);
-    await expect(sample).toContainText('01W TOM'); // the first node (kick)
-    await menuTab(page, 'snare').click();
-    await expect(sample).toHaveCount(1);
-    await expect(sample).toHaveAttribute('data-source-node-id', 'snare');
-    await expect(sample.getByRole('button', { name: 'Pick a Sound' })).toBeVisible();
+    await expect(page.locator('[data-test-sampler-card]')).toHaveCount(2);
+    await expect(card(page, 'kick').locator('[data-test-sampler-name]')).toHaveText('01W TOM');
+    await expect(card(page, 'snare').locator('[data-test-sampler-add]')).toBeVisible(); // nothing in the second yet
+    await expect(card(page, 'kick').locator('[data-test-sampler-select]')).toHaveAttribute('aria-pressed', 'true');
+    await card(page, 'snare').locator('[data-test-sampler-add]').click(); // an empty card selects itself and opens the browser
+    await expect(sidebarTab(page, 'snare')).toHaveAttribute('aria-pressed', 'true');
   });
 
   test('selecting a node tab in the source menu or the file sidebar keeps both in sync', async ({ page }) => {
@@ -63,14 +64,13 @@ test.describe('file browser', () => {
     await addFilepath(page, track, 0, TOM);
     await page.reload();
     await openSourceTab(page);
-    await page.locator('[data-test-source-sample] button', { hasText: /^\s*Korg 01W\s*$/ }).click(); // opens the file sidebar
+    await page.locator('[data-test-sampler-where]').click(); // opens the file sidebar
 
     await expect(menuTab(page, 'kick')).toHaveAttribute('aria-pressed', 'true');
     await expect(sidebarTab(page, 'kick')).toHaveAttribute('aria-pressed', 'true');
 
     await sidebarTab(page, 'snare').click(); // from the sidebar...
     await expect(menuTab(page, 'snare')).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('[data-test-source-sample]')).toHaveAttribute('data-source-node-id', 'snare');
 
     await menuTab(page, 'kick').click(); // ...and from the source menu
     await expect(sidebarTab(page, 'kick')).toHaveAttribute('aria-pressed', 'true');
@@ -84,8 +84,7 @@ test.describe('file browser', () => {
     await page.reload();
     await openSourceTab(page);
 
-    await menuTab(page, 'snare').click();
-    await page.locator('[data-test-source-sample]').getByRole('button', { name: 'Pick a Sound' }).click();
+    await card(page, 'snare').locator('[data-test-sampler-add]').click();
     await expect(sidebarTab(page, 'snare')).toHaveAttribute('aria-pressed', 'true'); // the sidebar follows
     await crumb(page, '/').click();
     await expect(crumb(page, '/')).toHaveAttribute('aria-current', 'location');
@@ -97,12 +96,11 @@ test.describe('file browser', () => {
 
     const body = await (await saved).json();
     expect(body.data.attributes['node-order']).toBe(1); // slot 1 = the second sampler
-    await expect(page.locator('[data-test-source-sample]')).toContainText('AGG');
-    await menuTab(page, 'kick').click();
-    await expect(page.locator('[data-test-source-sample]')).toContainText('01W TOM'); // the first one is unchanged
+    await expect(card(page, 'snare').locator('[data-test-sampler-name]')).toHaveText('AGG');
+    await expect(card(page, 'kick').locator('[data-test-sampler-name]')).toHaveText('01W TOM'); // the first one is unchanged
   });
 
-  test('node tabs show the node type with its id underneath, cut off with an ellipsis', async ({ page }) => {
+  test('sampler cards show the sampler id, and a long id does not stretch a card', async ({ page }) => {
     const track = await createProjectWithTrack(page);
     await setScript(page, track, 'init', `
       __().sampler({ id: 'a-very-long-sampler-identifier-that-would-not-fit', path: this.files[0] }).channelStrip().connect('#main-output');
@@ -112,12 +110,10 @@ test.describe('file browser', () => {
     await page.reload();
     await openSourceTab(page);
 
-    const buttons = page.locator('.tab-btn.horizontal').filter({ has: page.locator('[data-test-tab-sublabel]') });
-    await expect(buttons).toHaveCount(2);
-    await expect(buttons.nth(1)).toContainText('snare');
-    const widths = await buttons.evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().width)));
+    const cards = page.locator('[data-test-sampler-card]');
+    await expect(cards).toHaveCount(2);
+    await expect(cards.nth(1)).toContainText('snare');
+    const widths = await cards.evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().width)));
     expect(widths[0]).toBe(widths[1]); // consistent size
-    const long = buttons.nth(0).locator('[data-test-tab-sublabel]');
-    expect(await long.evaluate((e) => e.scrollWidth > e.clientWidth)).toBe(true); // truncated
   });
 });

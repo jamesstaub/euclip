@@ -162,7 +162,7 @@ test.describe('source tab surfaces', () => {
   test.describe('the source button in the track list', () => {
     const button = (page: Page) => rows(page).first().locator('[data-test-source-kind]');
 
-    test('a single sample shows its filename and opens the source tab', async ({ page }) => {
+    test('a single sample shows its filename and opens the sound browser', async ({ page }) => {
       const track = await createProjectWithTrack(page);
       await setScript(page, track, 'init', `__().sampler({ path: this.files[0] }).channelStrip().connect('#main-output');`);
       await addFilepath(page, track, 0, '/Korg/Korg 01W/01W TOM.mp3');
@@ -170,12 +170,14 @@ test.describe('source tab surfaces', () => {
       await expect(button(page)).toHaveAttribute('data-test-source-kind', 'sample');
       await expect(button(page)).toContainText('01W TOM');
 
-      // start on the controls tab; the button switches to the source tab, which shows what is loaded
+      // start on the controls tab; the button opens the sound browser, and the source tab shows what is loaded
       await rows(page).first().click();
       await page.getByRole('button', { name: 'controls' }).click();
-      await expect(page.locator('[data-test-source-samples]')).toHaveCount(0);
+      await expect(page.locator('[data-test-sampler-rack]')).toHaveCount(0);
       await button(page).click();
-      await expect(page.locator('[data-test-source-samples]')).toContainText('01W TOM');
+      await expect(page.locator('aside.sidebar--left')).toBeVisible();
+      await page.getByRole('button', { name: 'source' }).click();
+      await expect(page.locator('[data-test-sampler-card="1"] [data-test-sampler-name]')).toHaveText('01W TOM');
       await expect(page.locator('.waveform-surface')).toBeVisible();
     });
 

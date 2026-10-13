@@ -35,7 +35,6 @@ test('a track with two files builds two samplers, loads both, and creates no ext
   await expect(rows.first().locator('[data-test-source-kind="multi-sample"]')).toContainText('2 / 2 samplers');
   await rows.first().locator('[data-test-source-kind]').click(); // opens the sound sidebar
   await page.getByRole('button', { name: 'source' }).click(); // the footer's source tab
-  await expect(page.locator('[data-test-source-samples]')).toContainText('01W TOM');
-  await page.locator('.track-footer .tab-btn.horizontal').nth(1).click(); // the second sampler
-  await expect(page.locator('[data-test-source-samples]')).toContainText('AGG');
+  await expect(page.locator('[data-test-sampler-card="1"] [data-test-sampler-name]')).toHaveText('01W TOM');
+  await expect(page.locator('[data-test-sampler-card="2"] [data-test-sampler-name]')).toHaveText('AGG');
 });

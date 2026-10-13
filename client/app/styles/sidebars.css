@@ -1213,3 +1213,241 @@
   padding-right: 0.75rem;
   white-space: nowrap;
 }
+
+/* the sound the target sampler already holds, in the browser */
+.sound-row--current {
+  box-shadow: inset 3px 0 0 var(--yellow);
+}
+
+/* ==========================================================================================
+   Sampler rack (footer, Source tab): what each sampler holds, as cards
+   ========================================================================================== */
+
+.sampler-rack {
+  margin-bottom: 0.5rem;
+}
+
+.sampler-rack__count {
+  margin: 0 0 0.2rem;
+  font-size: 0.7rem;
+  color: #5a4a1a;
+}
+
+.sampler-rack__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sampler-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: 0.4rem 0.55rem;
+  border: 2px solid #333;
+  border-radius: 0.6rem;
+  background: rgba(255, 255, 255, 0.5);
+  color: #111;
+}
+
+.sampler-card--selected {
+  background: #fff;
+  box-shadow: 0 0 0 2px #333;
+}
+
+.sampler-card--empty {
+  background: transparent;
+  border-style: dashed;
+}
+
+/* the browser is open and this is where its next sound goes */
+.sampler-card--target {
+  border-color: #111;
+  box-shadow: 0 0 0 4px var(--light-blue);
+  background: rgba(82, 235, 255, 0.25);
+}
+
+.sampler-card__ring {
+  position: absolute;
+  top: -0.6rem;
+  right: 0.6rem;
+  padding: 0 0.5rem;
+  border-radius: 1rem;
+  background: var(--light-blue);
+  color: #111;
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.sampler-card__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.sampler-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.sampler-card__title {
+  flex: none;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #444;
+}
+
+.sampler-card__title i {
+  font-style: normal;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.6;
+}
+
+.sampler-card__wave {
+  display: block;
+  width: 100%;
+  height: 1.4rem;
+}
+
+.sampler-card__wave--note {
+  font-size: 0.72rem;
+  line-height: 1.4rem;
+  color: #5a4a1a;
+}
+
+.sampler-card__name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.sampler-card__add {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.sampler-card--empty .sampler-card__main {
+  min-height: 2.6rem;
+  justify-content: center;
+}
+
+.sampler-card__add b {
+  font-size: 1.1rem;
+}
+
+.sampler-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  font-size: 0.7rem;
+  color: #444;
+}
+
+.sampler-card__icon {
+  flex: none;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.2rem;
+  border: 0;
+  border-radius: 0.3rem;
+  background: transparent;
+  color: inherit;
+  font-size: 0.8rem;
+}
+
+.sampler-card__icon:hover,
+.sampler-card__icon:focus-visible {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.sampler-card__where {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  text-decoration: underline;
+  font-size: inherit;
+}
+
+.sampler-card__duration {
+  flex: none;
+}
+
+/* if the cards and the controls below them do not both fit the footer, the controls scroll rather than clip */
+.track-footer .node-controls {
+  overflow-y: auto;
+}
+
+@media (max-width: 767px) {
+  /* a strip of cards you swipe along, instead of a tall stack in a short footer */
+  .sampler-rack__cards {
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    grid-auto-columns: 75%;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    scroll-snap-type: x proximity;
+  }
+
+  .sampler-card {
+    scroll-snap-align: start;
+  }
+}
+
+/* the whole card is the click target: the button's overlay covers it; the small controls sit above the overlay */
+.sampler-card__main::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.sampler-card__main:focus-visible {
+  outline: 0;
+}
+
+.sampler-card__main:focus-visible::after {
+  outline: 3px solid var(--light-blue);
+  outline-offset: 2px;
+}
+
+.sampler-card__wave {
+  pointer-events: none;
+}
+
+.sampler-card__actions {
+  position: relative;
+  z-index: 1;
+}

@@ -3,6 +3,7 @@ import { action } from '@ember/object';
 import { service } from '@ember/service';
 import { inject as controller } from '@ember/controller';
 import byKey from 'euclip/utils/by-key';
+import { nextEmptySampler } from 'euclip/utils/sampler-files';
 
 export default class TrackListItemComponent extends Component {
   @service router;
@@ -22,6 +23,9 @@ export default class TrackListItemComponent extends Component {
   showSource() {
     const { sourceKind } = this.args.track;
     if (sourceKind === 'sample' || sourceKind === 'multi-sample') {
+      // the browser's target: the first sampler with no sound yet (this row is not the active track yet, so say which track)
+      const empty = nextEmptySampler(this.args.track, -1);
+      if (empty) this.projectUi.setSelectedSourceIdx(empty.index, this.args.track.id);
       this.args.onToggleFilePicker?.();
     } else {
       this.projectUi.footerTab = 'source';

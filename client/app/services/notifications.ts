@@ -9,6 +9,8 @@ export interface Notification {
   actionLabel?: string;
   /** dismiss itself after this many milliseconds */
   timeout?: number;
+  /** a new notification replaces any other of the same group (e.g. 'undo': only the latest action can be undone) */
+  group?: string;
 }
 
 export default class NotificationsService extends Service {
@@ -16,10 +18,15 @@ export default class NotificationsService extends Service {
 
   // Method to push notifications
   push(notification: Notification) {
+    if (notification.group) this.dismissGroup(notification.group);
     this.notifications = [...this.notifications, notification];
     if (notification.timeout) {
       setTimeout(() => this.remove(notification), notification.timeout);
     }
+  }
+
+  dismissGroup(group: string) {
+    this.notifications = this.notifications.filter((item) => item.group !== group);
   }
 
   remove(notification: Notification) {

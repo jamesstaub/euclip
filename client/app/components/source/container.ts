@@ -11,6 +11,12 @@ export default class SourceContainerComponent extends Component {
     return Math.min((this.args as any).selectedNodeIdx ?? 0, Math.max(0, count - 1));
   }
 
+  // every source node is a sampler: the sounds are the story, shown as cards (see Source::SamplerRack)
+  get isSamplerTrack(): boolean {
+    const nodes = (this.args as any).track?.sourceNodeRecords ?? [];
+    return nodes.length > 0 && nodes.every((node: TrackNodeModel) => node.nodeType === 'sampler');
+  }
+
   get selectedNode() {
     return (this.args as any).track?.sourceNodeRecords?.[this.visibleNodeIdx];
   }
