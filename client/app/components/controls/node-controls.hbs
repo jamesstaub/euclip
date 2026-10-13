@@ -3,26 +3,73 @@
   Custom UIs for particular node types (piano for oscillators, X-Y for filters, ...) belong here:
   branch on @trackNode.nodeType and render them for the controls they claim, leaving the rest to the loop.
 --}}
-<div class='node-controls flex justify-start overflow-x-scroll bg-yellow overflow-y-hidden h-100 mw-100'>
-  {{#if this.pianoControl}}
-    <Controls::PianoSurface
-      @control={{this.pianoControl}}
-      @onChange={{@updateControl}}
-    />
-  {{/if}}
-  {{#if this.waveform}}
-    <Controls::WaveformSurface
-      @buffer={{this.waveform.buffer}}
-      @trackNode={{@trackNode}}
-      @startControl={{this.waveform.start}}
-      @endControl={{this.waveform.end}}
-      @loopControl={{this.waveform.loop}}
-      @snapControl={{this.waveform.snap}}
-      @onChange={{@updateControl}}
-    />
-  {{/if}}
-  {{#each this.visibleControls as |trackControl|}}
-    {{#if trackControl.isMultislider}}
+<div class='flex min-w-0 w-100 h-100 bg-yellow'>
+  {{!-- the node's own controls: one reset for all of its parameters --}}
+  <div class='flex-none flex flex-column items-start pr2 mr2 br bw1 b--black-20' data-test-node-rail>
+    <Ui::Button
+      @on='yellow'
+      @size='s'
+      disabled={{not this.changed.length}}
+      title={{if this.changed.length 'Put every parameter of this node back to its default' 'Every parameter is at its default'}}
+      data-test-reset-node
+      {{on 'click' this.resetAll}}
+    >Reset all</Ui::Button>
+    <span class='f7 mid-gray mt1' data-test-changed-count>{{this.changed.length}} changed</span>
+  </div>
+
+  {{!-- the one place that scrolls: sideways, when the parameters do not fit --}}
+  <div class='node-controls flex items-stretch flex-auto min-w-0 bg-yellow overflow-x-scroll overflow-y-hidden h-100 pb2'>
+    {{#if this.pianoControl}}
+      <Controls::PianoSurface
+        @control={{this.pianoControl}}
+        @onChange={{@updateControl}}
+      />
+    {{/if}}
+    {{#if this.waveform}}
+      <Controls::WaveformSurface
+        @buffer={{this.waveform.buffer}}
+        @trackNode={{@trackNode}}
+        @startControl={{this.waveform.start}}
+        @endControl={{this.waveform.end}}
+        @loopControl={{this.waveform.loop}}
+        @snapControl={{this.waveform.snap}}
+        @onChange={{@updateControl}}
+      />
+    {{/if}}
+
+    {{!-- fills the height available, then continues in a new column: any number of parameters, and overflow is only ever sideways --}}
+    <ul class='param-grid list pl0 ma0'>
+      {{#each this.gridControls as |trackControl|}}
+        <Controls::ParamRow @trackControl={{trackControl}}>
+          {{#if trackControl.isSlider}}
+            <Controls::Slider
+              @horizontal={{true}}
+              @value={{trackControl.controlValue}}
+              @transformedValue={{invoke-on-record trackControl 'attrValueForType'}}
+              @stepSize={{trackControl.stepSize}}
+              @min={{trackControl.min}}
+              @max={{trackControl.max}}
+              @scale={{trackControl.scale}}
+              @modulatedValue={{trackControl.modulatedUiValue}}
+              @onChange={{fn @updateControl trackControl}}
+            />
+          {{else if trackControl.isSelect}}
+            <Controls::Select
+              @trackControl={{trackControl}}
+              @onChange={{fn @updateControl trackControl}}
+            />
+          {{else if trackControl.isToggle}}
+            <Controls::Toggle
+              @size={{array 40 20}}
+              @value={{trackControl.controlValue}}
+              @onChange={{fn @updateControl trackControl}}
+            />
+          {{/if}}
+        </Controls::ParamRow>
+      {{/each}}
+    </ul>
+
+    {{#each this.multisliderControls as |trackControl|}}
       <Controls::Wrapper
         class='justify-start multislider-wrapper multislider-width'
         @trackControl={{trackControl}}
@@ -47,45 +94,6 @@
           />
         </SequencePagination>
       </Controls::Wrapper>
-    {{/if}}
-    {{#if trackControl.isSlider}}
-      <Controls::Wrapper
-        class="pb3"
-        @trackControl={{trackControl}}
-       >
-        <Controls::Slider
-          @value={{trackControl.controlValue}}
-          @transformedValue={{invoke-on-record trackControl 'attrValueForType'}}
-          @stepSize={{trackControl.stepSize}}
-          @min={{trackControl.min}}
-          @max={{trackControl.max}}
-          @scale={{trackControl.scale}}
-          @modulatedValue={{trackControl.modulatedUiValue}}
-          @onChange={{fn @updateControl trackControl}}
-        />
-      </Controls::Wrapper>
-    {{/if}}
-    {{#if trackControl.isSelect}}
-      <Controls::Wrapper
-        class="pb3"
-        @trackControl={{trackControl}}
-      >
-        <Controls::Select
-          @trackControl={{trackControl}}
-          @onChange={{fn @updateControl trackControl}}
-        />
-      </Controls::Wrapper>
-    {{/if}}
-    {{#if trackControl.isToggle}}
-      <Controls::Wrapper
-        class="pb3"
-        @trackControl={{trackControl}}
-       >
-        <Controls::Toggle
-          @value={{trackControl.controlValue}}
-          @onChange={{fn @updateControl trackControl}}
-        />
-      </Controls::Wrapper>
-    {{/if}}
-  {{/each}}
+    {{/each}}
+  </div>
 </div>

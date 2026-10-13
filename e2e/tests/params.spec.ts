@@ -102,8 +102,8 @@ test('only editing the script resets a control the user changed', async ({ page 
   expect((await storedControl(page, id))['default-value']).toBe(440);
   await rows(page).first().click();
   await page.getByRole('button', { name: 'source' }).click();
-  // the reset button is always there (so nothing shifts), and only enabled for a control the user moved
-  const reset = page.getByRole('button', { name: 'reset' });
+  // "Reset all" is always there (so nothing shifts), and only enabled once a parameter of the node has been moved
+  const reset = page.locator('[data-test-reset-node]');
   await expect(reset).toBeEnabled();
   const before = await reset.boundingBox();
 

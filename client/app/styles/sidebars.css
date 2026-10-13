@@ -630,11 +630,6 @@
   outline-offset: 2px;
 }
 
-/* if the cards and the controls below them do not both fit the footer, the controls scroll rather than clip */
-.track-footer .node-controls {
-  overflow-y: auto;
-}
-
 @media (max-width: 767px) {
   .sound-row {
     min-height: 3rem;
@@ -684,4 +679,15 @@ body.dragging-sound .accepts-sound {
 
 .sound-row[draggable='true'] {
   cursor: grab;
+}
+
+/* ---- a node's parameters: compact rows in a grid that fills the height, then continues in a new column ---- */
+.param-grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(auto-fill, minmax(2.6rem, 1fr));
+  grid-auto-columns: minmax(25rem, 26rem);
+  gap: 0.4rem;
+  align-self: stretch;
+  margin-right: 0.5rem !important;
 }

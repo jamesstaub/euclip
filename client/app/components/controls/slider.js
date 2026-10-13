@@ -60,7 +60,11 @@ export default class ControlsSliderComponent extends Component {
 
   get modulationStyle() {
     const pct = this.modulationPercent;
-    return pct === undefined ? undefined : `bottom: ${pct}%`;
+    if (pct === undefined) return undefined;
+    // a horizontal slider is driven along its width: left to right (the marker is vertically centred)
+    return this.args.horizontal
+      ? `left: ${pct}%; top: 50%; bottom: auto; margin: -7px 0 0 -7px`
+      : `bottom: ${pct}%`;
   }
 
   @action

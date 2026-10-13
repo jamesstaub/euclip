@@ -1,4 +1,5 @@
 import Component from '@glimmer/component';
+import { action } from '@ember/object';
 
 // source nodes that have a pitch to play on a keyboard
 const OSCILLATORS = ['sine', 'square', 'saw', 'sawtooth', 'triangle'];
@@ -32,6 +33,25 @@ export default class ControlsNodeControlsComponent extends Component {
 
   get claimedAttrs() {
     return this.waveform ? ['start', 'end', 'snap'] : [];
+  }
+
+  // sliders, choices and switches go in the compact grid; per-step (multislider) controls are wide and stay as they are
+  get gridControls() {
+    return this.visibleControls.filter((control) => !control.isMultislider);
+  }
+
+  get multisliderControls() {
+    return this.visibleControls.filter((control) => control.isMultislider);
+  }
+
+  // how many of the node's parameters the user has moved away from their defaults (the ones a surface draws count too)
+  get changed() {
+    return this.args.trackNode.sortedTrackControls.filter((control) => control.isOverridden);
+  }
+
+  @action
+  resetAll() {
+    this.changed.forEach((control) => control.resetToDefault());
   }
 
   get visibleControls() {
