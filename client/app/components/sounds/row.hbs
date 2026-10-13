@@ -13,6 +13,7 @@
   data-sound-path={{@path}}
   ...attributes
   {{scroll-into-view (or @selected @current) 'smooth'}}
+  {{draggable-sound (unless @folder @path)}}
 >
   {{#if @folder}}
     <button type='button' class='sound-row__name sound-row__name--folder' data-test-sound-folder {{on 'click' @onOpen}}>

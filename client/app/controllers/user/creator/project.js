@@ -15,6 +15,7 @@ import applyTrackTypeControls from 'euclip/utils/apply-track-type-controls';
 export default class UserCreatorProjectController extends Controller {
   @service router;
   @service notifications;
+  @service samplePool;
   @service trackTypes;
   @service snapshotRuntime;
   @service store;
@@ -192,6 +193,15 @@ export default class UserCreatorProjectController extends Controller {
       });
       console.error(error);
     }
+  }
+
+  // A sound dragged from the browser onto the New Track button: a sampler track that plays it.
+  @action
+  async createTrackFromSound(path) {
+    const track = await this.createTrack('sampler');
+    if (!track) return;
+    await track.setFile(0, path);
+    this.samplePool.refresh(this.model);
   }
 
   // One Multi-sample kit track with a sampler for each path (the sound browser's "1 kit track" action).

@@ -5,7 +5,7 @@ import type SamplePoolService from 'euclip/services/sample-pool';
 import type ProjectUiService from 'euclip/services/project-ui';
 import type NotificationsService from 'euclip/services/notifications';
 import type TrackModel from 'euclip/models/track';
-import { assignSound, clearSound, samplerSlots, type SamplerSlot } from 'euclip/utils/sampler-files';
+import { assignSound, clearSound, offerUndo, samplerSlots, soundName, type SamplerSlot } from 'euclip/utils/sampler-files';
 
 interface SamplerRackSignature {
   Args: {
@@ -90,6 +90,21 @@ export default class SourceSamplerRackComponent extends Component<SamplerRackSig
   @action
   audition(card: { path: string }) {
     this.samplePool.previewPath(card.path);
+  }
+
+  // a sound dragged from the browser onto a card replaces what the sampler holds
+  @action
+  async dropSound(card: { index: number; slot: number; title: string }, path: string) {
+    const { track } = this.args;
+    this.notifications.dismissGroup('undo');
+    this.args.onSelect(card.index);
+    const previous = await assignSound(track, card.slot, path);
+    this.samplePool.refresh(track.project);
+    offerUndo(this.notifications, `${card.title} ← ${soundName(path)}`, () =>
+      (previous ? assignSound(track, card.slot, previous) : clearSound(track, card.slot)).then(() =>
+        this.samplePool.refresh(track.project)
+      )
+    );
   }
 
   @action

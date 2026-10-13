@@ -10,7 +10,7 @@ import type SamplePoolService from 'euclip/services/sample-pool';
 import type NotificationsService from 'euclip/services/notifications';
 import ProjectModel from 'euclip/models/project';
 import { TrackState } from 'euclip/models/track';
-import { assignSound, clearSound, nextEmptySampler, samplerSlots, soundName } from 'euclip/utils/sampler-files';
+import { assignSound, clearSound, nextEmptySampler, samplerSlots, soundName, type SamplerSlot } from 'euclip/utils/sampler-files';
 
 export const buildPath = (dirPath: string, item: string) =>
   dirPath.endsWith('/') ? `${dirPath}${item}` : `${dirPath}/${item}`;
@@ -214,10 +214,13 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
       const sampler =
         this.selectedNode?.nodeType === 'sampler' ? this.selectedNode : track.samplerNodes[0];
       const slot = sampler?.orderOfType ?? 0;
-      const hereIndex = this.targetNodeIdx;
+      // The target moves on at once, not when the save finishes: a second Use right behind this one must go to the
+      // next sampler, not replace this pick.
+      const next = nextEmptySampler(track, this.targetNodeIdx, [slot]);
+      if (next) this.args.setSelectedSourceIdx?.(next.index);
       const previous = await assignSound(track, slot, filepath);
       track.state = TrackState.SETUP;
-      this.afterAssign(track, slot, filepath, previous, hereIndex);
+      this.afterAssign(track, slot, filepath, previous, next);
     } catch (error) {
       track.state = TrackState.ERROR;
       console.error('Error saving filepath control: ', error);
@@ -225,12 +228,10 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
   }
 
   // the target moves on to the next empty sampler, and a toast says what happened (with Undo)
-  private afterAssign(track: TrackModel, slot: number, filepath: string, previous: string, hereIndex: number) {
+  private afterAssign(track: TrackModel, slot: number, filepath: string, previous: string, next?: SamplerSlot) {
     this.samplePool.refresh(this.args.project); // the pool gains the sound and shows who uses it
     const slots = samplerSlots(track);
     const kit = slots.length > 1;
-    const next = nextEmptySampler(track, hereIndex);
-    if (next) this.args.setSelectedSourceIdx?.(next.index);
 
     const name = soundName(filepath);
     const message = kit

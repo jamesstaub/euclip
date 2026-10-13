@@ -23,7 +23,7 @@
           />
         </div>
         <div class='project-bar__actions'>
-          <ButtonPrimary @label={{'New Track'}} {{on 'click' (fn this.createTrack 'sampler')}} />
+          <ButtonPrimary @label={{'New Track'}} {{on 'click' (fn this.createTrack 'sampler')}} {{sound-drop this.createTrackFromSound}} />
           <DropdownMenu
             class='h-100 grow-1 bg-dark-gray ba bl-0 bw1 b--yellow ph2'
             @icon='fi-play'

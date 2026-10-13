@@ -266,4 +266,41 @@ test.describe('sound browser', () => {
     await page.locator('[data-test-source-kind="multi-sample"]').click();
     await expect(page.locator('[data-test-target]')).toContainText('Sampler 3');
   });
+
+  // ---- dragging a sound from the browser ----
+
+  test('a sound dragged onto a sampler card goes into that sampler, with Undo', async ({ page }) => {
+    await kitWithTwoSounds(page);
+    await row(page, 'CABA').dragTo(samplerCard(page, 4));
+    await expect(samplerCard(page, 4).locator('[data-test-sampler-name]')).toHaveText('CABA');
+    await expect(page.locator('[data-test-source-kind="multi-sample"]')).toContainText('3 / 4 samplers');
+    await page.locator('[data-test-toast-action]').click();
+    await expect(samplerCard(page, 4).locator('[data-test-sampler-add]')).toBeVisible();
+    // dropping on a full card replaces it, and Undo brings the old one back
+    await row(page, 'AMB K').dragTo(samplerCard(page, 1));
+    await expect(samplerCard(page, 1).locator('[data-test-sampler-name]')).toHaveText('AMB K');
+    await page.locator('[data-test-toast-action]').click();
+    await expect(samplerCard(page, 1).locator('[data-test-sampler-name]')).toHaveText('AGG');
+  });
+
+  test("a sound dragged onto a track row goes to that track's first empty sampler", async ({ page }) => {
+    await kitWithTwoSounds(page);
+    await row(page, 'CABA').dragTo(page.locator('[data-test-track-item]', { has: page.locator('[data-test-source-kind="multi-sample"]') }));
+    await expect(samplerCard(page, 3).locator('[data-test-sampler-name]')).toHaveText('CABA');
+  });
+
+  test('a sound dragged onto New Track makes a sampler track that plays it', async ({ page }) => {
+    await page.locator('[data-test-source-kind="sample"]').first().click();
+    await openKorg(page);
+    await row(page, 'AGG').dragTo(page.getByRole('button', { name: 'New Track' }));
+    await expect(page.locator('[data-test-source-kind="sample"]')).toHaveCount(2, { timeout: 30_000 });
+    await expect(page.locator('[data-test-source-kind="sample"] [data-test-source-label]').nth(1)).toHaveText('AGG');
+  });
+
+  test('a track without a sampler says so instead of ignoring the drop', async ({ page }) => {
+    await page.locator('[data-test-source-kind="sample"]').first().click();
+    await openKorg(page);
+    await row(page, 'AGG').dragTo(page.locator('[data-test-track-item]', { hasText: 'Main Output' }));
+    await expect(page.getByRole('alert').filter({ hasText: 'has no sampler' })).toBeVisible();
+  });
 });

@@ -8,6 +8,7 @@
         class='sampler-card {{if card.selected "sampler-card--selected"}} {{unless card.path "sampler-card--empty"}} {{if card.target "sampler-card--target"}}'
         data-test-sampler-card={{card.number}}
         data-source-node-id={{card.node.scriptId}}
+        {{sound-drop (fn this.dropSound card)}}
       >
         {{#if card.target}}<span class='sampler-card__ring' aria-hidden='true'>adding here</span>{{/if}}
         <button

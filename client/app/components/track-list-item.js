@@ -3,7 +3,7 @@ import { action } from '@ember/object';
 import { service } from '@ember/service';
 import { inject as controller } from '@ember/controller';
 import byKey from 'euclip/utils/by-key';
-import { nextEmptySampler } from 'euclip/utils/sampler-files';
+import { assignSound, clearSound, nextEmptySampler, offerUndo, samplerSlots, soundName } from 'euclip/utils/sampler-files';
 
 export default class TrackListItemComponent extends Component {
   @service router;
@@ -11,6 +11,8 @@ export default class TrackListItemComponent extends Component {
   @controller('user.creator.project') projectController;
 
   @service projectUi;
+  @service notifications;
+  @service samplePool;
 
   get showSourceButton() {
     return !this.args.track.isMaster && !!this.args.track.sourceKind;
@@ -39,6 +41,33 @@ export default class TrackListItemComponent extends Component {
     if (this.showSourceButton || track.isRemoved || !track.hasBuiltAudio) return false;
     const code = this.args.track.initScript?.safeCode ?? '';
     return /\.sampler\s*\(/.test(code);
+  }
+
+  // a sound dragged from the browser onto this row: it goes to the track's first empty sampler
+  @action
+  async dropSound(path) {
+    const { track } = this.args;
+    const target = nextEmptySampler(track, -1);
+    if (!samplerSlots(track).length) {
+      this.notifications.push({ type: 'warning', message: `Track ${track.order} has no sampler`, timeout: 4000 });
+      return;
+    }
+    if (!target) {
+      this.notifications.push({
+        type: 'warning',
+        message: `Every sampler of track ${track.order} has a sound: drop on a sampler card to replace one`,
+        timeout: 5000,
+      });
+      return;
+    }
+    this.notifications.dismissGroup('undo');
+    const previous = await assignSound(track, target.slot, path);
+    this.samplePool.refresh(track.project);
+    offerUndo(this.notifications, `${soundName(path)} added to track ${track.order}`, () =>
+      (previous ? assignSound(track, target.slot, previous) : clearSound(track, target.slot)).then(() =>
+        this.samplePool.refresh(track.project)
+      )
+    );
   }
 
   @action

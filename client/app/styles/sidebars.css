@@ -1451,3 +1451,23 @@
   position: relative;
   z-index: 1;
 }
+
+/* ==========================================================================================
+   Dragging a sound from the browser: where it can go lights up, and the one under the pointer more so
+   ========================================================================================== */
+
+body.dragging-sound .sampler-card,
+body.dragging-sound [data-test-track-item] {
+  outline: 2px dashed rgba(0, 0, 0, 0.45);
+  outline-offset: -2px;
+}
+
+.is-drop-target {
+  outline: 3px solid var(--light-blue) !important;
+  outline-offset: -3px !important;
+  background-color: rgba(82, 235, 255, 0.28) !important;
+}
+
+.sound-row[draggable='true'] {
+  cursor: grab;
+}

@@ -41,9 +41,16 @@ export function samplerSlots(track: TrackModel | undefined | null): SamplerSlot[
     });
 }
 
-/** The sampler to fill next: the first empty one after `afterIndex`, else the first empty one; undefined if all are full. */
-export function nextEmptySampler(track: TrackModel | undefined | null, afterIndex: number): SamplerSlot | undefined {
-  const empty = samplerSlots(track).filter((slot) => !slot.path);
+/**
+ * The sampler to fill next: the first empty one after `afterIndex`, else the first empty one; undefined if all are full.
+ * `assumeFilled` names slots that are being filled right now (their pick has not finished saving).
+ */
+export function nextEmptySampler(
+  track: TrackModel | undefined | null,
+  afterIndex: number,
+  assumeFilled: number[] = []
+): SamplerSlot | undefined {
+  const empty = samplerSlots(track).filter((slot) => !slot.path && !assumeFilled.includes(slot.slot));
   return empty.find((slot) => slot.index > afterIndex) ?? empty[0];
 }
 
@@ -77,4 +84,16 @@ export function clearSound(track: TrackModel, slot: number): Promise<void> {
     else if (control) control.controlValue = '';
     track.setupAudioFromScripts();
   });
+}
+
+/**
+ * Offers to take back the latest change to a track's sounds. Only one Undo is ever on offer (group "undo"):
+ * starting another change retires the old one, because it would restore a sound that has since been replaced.
+ */
+export function offerUndo(
+  notifications: { push(notification: any): void },
+  message: string,
+  undo: () => unknown
+) {
+  notifications.push({ type: 'success', group: 'undo', message, actionLabel: 'Undo', timeout: 6000, action: undo });
 }
