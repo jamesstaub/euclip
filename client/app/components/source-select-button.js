@@ -12,7 +12,7 @@ const WAVEFORMS = {
 /**
  * One button per track summarising its sound source, whatever it is:
  *   sample        a single audio file (shows its filename)
- *   multi-sample  several samplers (a dot each, filled when it has a sound, and how many are loaded)
+ *   multi-sample  several samplers (a grid icon and 'loaded / total'; a fixed width, whatever the count)
  *   oscillator    a waveform outline and the oscillator's name
  *   noise         a noise outline and its name
  *   macro         a layered icon and the instrument's name (e.g. polysynth)

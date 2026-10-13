@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { createProject, login } from './helpers';
+import { createProject, createProjectWithTrack, login, setScript } from './helpers';
 
 const sidebar = (page: Page) => page.locator('aside.sidebar--left');
 const row = (page: Page, name: string) => sidebar(page).locator(`[data-test-sound-row][data-sound-name="${name}"]`);
@@ -52,6 +52,9 @@ test.describe('sound browser', () => {
     await page.locator('[data-test-source-kind="sample"]').first().click();
     await expect(page.locator('[data-test-target]')).toContainText('Track 1');
     await expect(page.locator('[data-test-target]')).toContainText('Sampler');
+    // plain divs used to fall back to the browser's serif: every element inherits the app's font
+    const family = await page.locator('[data-test-target]').evaluate((el) => getComputedStyle(el).fontFamily);
+    expect(family).toMatch(/sans-serif/);
   });
 
   test('a sound can be auditioned before it is used, and shows its length afterwards', async ({ page }) => {
@@ -107,7 +110,7 @@ test.describe('sound browser', () => {
   test('filling a kit: each Use moves the target to the next empty sampler; badges show where sounds are', async ({ page }) => {
     await addKit(page);
     const button = page.locator('[data-test-source-kind="multi-sample"]');
-    await expect(button).toContainText('0 / 4 samplers');
+    await expect(button).toContainText('0 / 4');
     await button.click();
     const chip = (n: number) => page.locator(`[data-test-target-slot="${n}"]`);
     await expect(chip(1)).toHaveAttribute('aria-pressed', 'true');
@@ -115,17 +118,17 @@ test.describe('sound browser', () => {
 
     await openKorg(page);
     await use(page, 'AGG');
-    await expect(button).toContainText('1 / 4 samplers');
+    await expect(button).toContainText('1 / 4');
     await expect(chip(2)).toHaveAttribute('aria-pressed', 'true'); // advanced
     await expect(page.locator('[data-test-target]')).toContainText('Sampler 2');
     await use(page, '01W TOM');
-    await expect(button).toContainText('2 / 4 samplers');
+    await expect(button).toContainText('2 / 4');
     await expect(chip(3)).toHaveAttribute('aria-pressed', 'true');
     await expect(row(page, 'AGG').locator('[data-test-sound-badge]')).toHaveText('Sampler 1');
     await expect(row(page, '01W TOM').locator('[data-test-sound-badge]')).toHaveText('Sampler 2');
 
     await page.locator('[data-test-toast-action]').click(); // Undo the second
-    await expect(button).toContainText('1 / 4 samplers');
+    await expect(button).toContainText('1 / 4');
     await expect(chip(2)).toHaveAttribute('aria-pressed', 'true');
   });
 
@@ -234,10 +237,10 @@ test.describe('sound browser', () => {
     await sourceTab(page);
     await samplerCard(page, 2).locator('[data-test-sampler-clear]').click();
     await expect(samplerCard(page, 2).locator('[data-test-sampler-add]')).toBeVisible();
-    await expect(page.locator('[data-test-source-kind="multi-sample"]')).toContainText('1 / 4 samplers');
+    await expect(page.locator('[data-test-source-kind="multi-sample"]')).toContainText('1 / 4');
     await page.locator('[data-test-toast-action]').click();
     await expect(samplerCard(page, 2).locator('[data-test-sampler-name]')).toHaveText('01W TOM');
-    await expect(page.locator('[data-test-source-kind="multi-sample"]')).toContainText('2 / 4 samplers');
+    await expect(page.locator('[data-test-source-kind="multi-sample"]')).toContainText('2 / 4');
   });
 
   test('a card can audition its sound', async ({ page }) => {
@@ -273,7 +276,7 @@ test.describe('sound browser', () => {
     await kitWithTwoSounds(page);
     await row(page, 'CABA').dragTo(samplerCard(page, 4));
     await expect(samplerCard(page, 4).locator('[data-test-sampler-name]')).toHaveText('CABA');
-    await expect(page.locator('[data-test-source-kind="multi-sample"]')).toContainText('3 / 4 samplers');
+    await expect(page.locator('[data-test-source-kind="multi-sample"]')).toContainText('3 / 4');
     await page.locator('[data-test-toast-action]').click();
     await expect(samplerCard(page, 4).locator('[data-test-sampler-add]')).toBeVisible();
     // dropping on a full card replaces it, and Undo brings the old one back
@@ -302,5 +305,23 @@ test.describe('sound browser', () => {
     await openKorg(page);
     await row(page, 'AGG').dragTo(page.locator('[data-test-track-item]', { hasText: 'Main Output' }));
     await expect(page.getByRole('alert').filter({ hasText: 'has no sampler' })).toBeVisible();
+  });
+
+  test('a kit with many samplers keeps the same fixed-width source button, so the sequencer never moves', async ({ page }) => {
+    await page.goto('/'); // (the beforeEach project is not needed here)
+    const track = await createProjectWithTrack(page);
+    const many = Array.from({ length: 12 }, (_, i) => `__().sampler({ id: 's${i}', path: this.files[${i}] }).connect('#main-output');`).join('\n');
+    const one = page.locator('[data-test-source-kind="sample"]');
+    const sequence = page.locator('.track-row__sequence').first();
+    await expect(one).toBeVisible();
+    const single = { width: (await one.boundingBox())!.width, sequenceLeft: (await sequence.boundingBox())!.x };
+
+    await setScript(page, track, 'init', `${many}\n__().gain().channelStrip().connect('#main-output');`);
+    await page.reload();
+    const kit = page.locator('[data-test-source-kind="multi-sample"]');
+    await expect(kit).toContainText('0 / 12');
+    const box = (await kit.boundingBox())!;
+    expect(box.width).toBe(single.width); // the same width as a single sampler's button
+    expect((await sequence.boundingBox())!.x).toBe(single.sequenceLeft); // and the sequencer has not moved
   });
 });

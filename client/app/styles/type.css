@@ -1,22 +1,15 @@
-h1 , 
-h2, 
-h3, 
-h4, 
-h5, 
-h6, 
-p, 
-a,
-li,
-button,
-label,
-select,
-option,
-legend,
-span,
-form,
-table,
-input {
+/* One base font. Everything inherits it (a div, section or aside used to fall back to the browser's serif
+   because only a hand-picked list of elements was set); form controls do not inherit by default. */
+html,
+body {
   font-family: 'Poppins', sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }
 
 h1, h2, h3, h4 {

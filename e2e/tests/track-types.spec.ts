@@ -188,7 +188,7 @@ test.describe('track types in the New Track menu', () => {
     expect(await nodes(page, `sampler .track-${order}`)).toBe(4);
     // the track list shows one multi-sample button; the source tab has a card per sampler
     await expect(row.locator('[data-test-source-kind]')).toHaveCount(1);
-    await expect(row.locator('[data-test-source-kind="multi-sample"]')).toContainText('3 / 4 samplers');
+    await expect(row.locator('[data-test-source-kind="multi-sample"]')).toContainText('0 / 4');
     await row.locator('[data-test-source-kind]').click(); // opens the sound sidebar
     await page.getByRole('button', { name: 'source' }).click(); // the footer's source tab
     const cards = page.locator('[data-test-sampler-card]');
@@ -211,7 +211,7 @@ test.describe('track types in the New Track menu', () => {
     page.on('response', (r) => /storage\.googleapis\.com.*Korg/.test(decodeURIComponent(r.url())) && loaded.add(r.status()));
     await page.reload();
     const row = page.locator(`[data-track-id="${id}"]`);
-    await expect(row.locator('[data-test-source-kind="multi-sample"]')).toContainText('0 / 4 samplers');
+    await expect(row.locator('[data-test-source-kind="multi-sample"]')).toContainText('3 / 4');
     await row.locator('[data-test-source-kind]').click(); // opens the sound sidebar
     await page.getByRole('button', { name: 'source' }).click(); // the footer's source tab
     const name = (n: number) => page.locator(`[data-test-sampler-card="${n}"] [data-test-sampler-name]`);

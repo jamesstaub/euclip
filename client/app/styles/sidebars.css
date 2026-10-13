@@ -535,25 +535,6 @@
   margin-right: 0;
 }
 
-/* ---------- Source button on a kit: one dot per sampler ---------- */
-
-.slot-dots {
-  display: inline-flex;
-  gap: 3px;
-}
-
-.slot-dot {
-  display: block;
-  width: 0.55rem;
-  height: 0.55rem;
-  border-radius: 50%;
-  background: currentColor;
-  border: 1.5px solid currentColor;
-}
-
-.slot-dot--empty {
-  background: transparent;
-}
 
 /* ==========================================================================================
    Sound browser (left sidebar): target card, shelf switch, breadcrumb, search, one-column list
@@ -1206,13 +1187,6 @@
   }
 }
 
-/* a kit's button holds a dot per sampler and "3 / 4 samplers": it grows past the fixed width of the others */
-.source-kit {
-  min-width: 8rem;
-  padding-left: 0.75rem;
-  padding-right: 0.75rem;
-  white-space: nowrap;
-}
 
 /* the sound the target sampler already holds, in the browser */
 .sound-row--current {
