@@ -1,11 +1,11 @@
 {{! template-lint-disable no-down-event-binding }}
 {{! renaming: Enter and Escape on keydown, as in any text field }}
 <div class='flex flex-column sidebar-fill' data-test-sample-pool {{did-insert this.load}}>
-  <p class='sound-count' aria-live='polite'>{{this.countText}}</p>
-  <ul class='sound-list sound-list--plain sidebar-fill' aria-label='Sounds in this project' data-test-pool-list>
+  <p class='ma0 ph3 pv2 f7 moon-gray' aria-live='polite'>{{this.countText}}</p>
+  <ul class='list pl0 ma0 ph2 sidebar-fill scroll-y' aria-label='Sounds in this project' data-test-pool-list>
     {{#each this.rows key='sample.id' as |row|}}
       <li
-        class='sound-row {{if row.playing "sound-row--playing"}}'
+        class='sound-row flex items-center br2 ph2 f6 light-gray hover-bg-white-10 bl bw1 b--transparent'
         data-test-pool-sample
         data-test-sound-row
         data-sample-path={{row.sample.path}}
@@ -14,7 +14,8 @@
       >
         <button
           type='button'
-          class='sound-row__play'
+          class='flex-none flex items-center justify-center w2 h2 mr2 pa0 br-100 ba bw1 f7 pointer bg-transparent
+            {{if row.playing "b--light-blue light-blue" "b--white-30 light-gray"}}'
           aria-label='{{if row.playing "Stop" "Audition"}} {{row.sample.label}}'
           title='Play'
           {{on 'click' (fn this.preview row.sample)}}
@@ -24,7 +25,7 @@
         {{#if (eq this.renamingId row.sample.id)}}
           <input
             type='text'
-            class='sound-row__rename'
+            class='flex-auto min-w-0 f6 pv1 ph2'
             aria-label='Sample name'
             value={{row.sample.label}}
             {{did-insert this.focusInput}}
@@ -34,19 +35,19 @@
         {{else}}
           <button
             type='button'
-            class='sound-row__name'
+            class='bn bg-transparent pa0 pv2 flex-auto tl light-gray f6 fw6 pointer min-w-0'
             title='{{row.sample.path}} (double-click to rename)'
             data-test-pool-label
             {{on 'dblclick' (fn this.startRename row.sample)}}
-          ><span class='truncate'>{{row.sample.label}}</span></button>
+          ><span class='truncate db'>{{row.sample.label}}</span></button>
         {{/if}}
-        <span class='sound-row__detail' data-test-pool-state>
+        <span class='f7 moon-gray flex-none ml2' data-test-pool-state>
           {{#if (eq row.state 'ready')}}{{row.durationText}}{{else if (eq row.state 'error')}}<span class='red' title={{row.audio.error}}>failed</span>{{else if (eq row.state 'loading')}}…{{/if}}
         </span>
-        <span class='sound-row__badge {{unless row.used "sound-row__badge--quiet"}}' data-test-pool-usage data-test-sound-badge>{{if row.used (or row.badge row.usedByText) 'not used'}}</span>
-        <button type='button' class='sound-row__use' data-test-pool-use data-test-sound-use {{on 'click' (fn this.use row.sample)}}>Use <kbd aria-hidden='true'>⏎</kbd></button>
+        <Ui::Badge @tone={{if row.used 'accent' 'muted'}} class='flex-none ml2' data-test-pool-usage data-test-sound-badge>{{if row.used (or row.badge row.usedByText) 'not used'}}</Ui::Badge>
+        <Ui::Button @variant='solid' @size='s' class='sound-use' data-test-pool-use data-test-sound-use {{on 'click' (fn this.use row.sample)}}>Use <kbd class='o-60'>⏎</kbd></Ui::Button>
         <DropdownMenu
-          class='sound-row__menu'
+          class='sound-menu flex-none bn bg-transparent pa0 h2'
           aria-label='More about {{row.sample.label}}'
           data-test-pool-menu
           @closeOnSelect={{true}}
@@ -55,7 +56,7 @@
         />
       </li>
     {{else}}
-      <li class='sound-empty' data-test-pool-empty>No sounds yet. Use a sound from <b>All sounds</b> and it is added here.</li>
+      <li class='pa3 f6 moon-gray' data-test-pool-empty>No sounds yet. Use a sound from <b>All sounds</b> and it is added here.</li>
     {{/each}}
   </ul>
 </div>

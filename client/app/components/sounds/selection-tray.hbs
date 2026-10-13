@@ -1,27 +1,28 @@
-<section class='selection-tray sidebar-footer' aria-label='Selected sounds' data-test-selection-tray ...attributes>
-  <ul class='selection-tray__chips'>
+<section class='sidebar-footer flex flex-column pa3 bt bw1 b--yellow bg-near-black' aria-label='Selected sounds' data-test-selection-tray ...attributes>
+  <ul class='list pl0 mt0 mb2 flex flex-wrap max-h-chips scroll-y'>
     {{#each @files as |file|}}
-      <li class='selection-chip'>
+      <li class='flex items-center f7 light-gray ba b--yellow br-pill bg-yellow-15 pl3 mr1 mb1'>
         {{file.filename}}
-        <button type='button' aria-label='Remove {{file.filename}}' {{on 'click' (fn @onRemove file.filepath)}}>×</button>
+        <Ui::Button @variant='ghost' @size='s' aria-label='Remove {{file.filename}}' {{on 'click' (fn @onRemove file.filepath)}}>×</Ui::Button>
       </li>
     {{/each}}
   </ul>
-  <div class='selection-tray__actions'>
-    <ButtonPrimary
-      class='selection-tray__btn'
+  <div class='flex'>
+    <Ui::Button
+      @size='s'
+      class='flex-auto mr2'
       data-test-create-tracks
-      @label='{{@files.length}} {{if (eq @files.length 1) "track" "tracks"}}'
       disabled={{@busy}}
       {{on 'click' @onTracks}}
-    />
-    <ButtonPrimary
-      class='selection-tray__btn selection-tray__btn--primary'
+    >{{@files.length}} {{if (eq @files.length 1) 'track' 'tracks'}}</Ui::Button>
+    <Ui::Button
+      @variant='solid'
+      @size='s'
+      class='flex-auto'
       data-test-create-kit
-      @label='1 kit track · {{@files.length}} {{if (eq @files.length 1) "sampler" "samplers"}}'
       title={{if @kitDisabled 'A kit has four samplers: select two to four sounds' 'One track with a sampler for each sound'}}
       disabled={{or @busy @kitDisabled}}
       {{on 'click' @onKit}}
-    />
+    >1 kit track · {{@files.length}} {{if (eq @files.length 1) 'sampler' 'samplers'}}</Ui::Button>
   </div>
 </section>

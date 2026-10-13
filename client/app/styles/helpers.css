@@ -263,3 +263,52 @@
   pointer-events: none;
 }
 
+
+/* ---------- Palette ----------
+ * The tachyons colour classes point at the app's own variables, so text, borders and backgrounds are one yellow and
+ * one blue (tachyons' own are gold #ffd700 and #96ccff, which sat next to the brand #ffce55 and #52ebff). */
+.yellow { color: var(--yellow); }
+.hover-yellow:hover { color: var(--yellow); }
+.b--yellow { border-color: var(--yellow); }
+.light-blue { color: var(--light-blue); }
+.b--light-blue { border-color: var(--light-blue); }
+
+/* the few tints and rings tachyons has no class for */
+.bg-yellow-15 { background-color: rgba(255, 206, 85, 0.15); }
+.bg-light-blue-25 { background-color: rgba(82, 235, 255, 0.25); }
+.ring-light-blue { box-shadow: 0 0 0 3px var(--light-blue); }
+.min-h-0 { min-height: 0; }
+
+/* ---------- Small utilities tachyons has no class for ---------- */
+.max-h-chips { max-height: 5.5rem; }  /* about two rows of chips: more scroll */
+.max-h-rack { max-height: 11rem; }    /* about two rows of sampler cards */
+.max-h-menu { max-height: 60vh; overflow-y: auto; }
+.accent-yellow { accent-color: var(--yellow); }
+.focus-within-blue:focus-within { border-color: var(--light-blue) !important; }
+.glyph-search::before { content: '⌕'; }  /* decoration as CSS so the element holds no text */
+.glyph-slash::before { content: '/'; }
+
+/* a link/button whose box covers its whole parent (the parent is `relative`); controls above it take z-1 */
+.stretched::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+/* a thin, yellow-thumbed vertical scroller */
+.scroll-y {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--yellow) transparent;
+}
+
+.scroll-y::-webkit-scrollbar {
+  width: 0.5rem;
+}
+
+.scroll-y::-webkit-scrollbar-thumb {
+  border-radius: 0.25rem;
+  background-color: var(--yellow);
+}

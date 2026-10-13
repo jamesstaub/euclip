@@ -7,6 +7,7 @@ import { SOUND_TYPE } from './draggable-sound';
  */
 export default modifier(
   (element, [onSound]) => {
+    element.classList.add('accepts-sound'); // so the page can light up where a dragged sound can go
     const accepts = (event) => Array.from(event.dataTransfer?.types ?? []).includes(SOUND_TYPE);
 
     const over = (event) => {
@@ -38,6 +39,7 @@ export default modifier(
       element.removeEventListener('dragleave', leave);
       element.removeEventListener('drop', drop);
       element.classList.remove('is-drop-target');
+      element.classList.remove('accepts-sound');
     };
   },
   { eager: false }

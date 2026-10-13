@@ -34,7 +34,7 @@
       @badges={{this.badges}}
     >
       {{#if this.isCurrentTrackMode}}
-        <Sounds::Segmented
+        <Ui::Segmented
           @label='Which sounds'
           @items={{this.segments}}
           @selected={{this.segment}}
@@ -62,8 +62,10 @@
           @onUse={{this.useSound}}
           @onToggle={{this.toggleFileSelection}}
         />
-        <p class='sound-hints' aria-hidden='true'>
-          <span><kbd>↑</kbd><kbd>↓</kbd> hear</span><span><kbd>⏎</kbd> use</span><span><kbd>→</kbd> open</span><span><kbd>←</kbd> up</span>
+        <p class='dn db-ns flex ma0 ph3 pv2 bt b--white-10 f7 moon-gray' aria-hidden='true'>
+          {{#each (array (hash k='↑↓' t='hear') (hash k='⏎' t='use') (hash k='→' t='open') (hash k='←' t='up')) as |hint|}}
+            <span class='mr3'><kbd class='ba b--white-30 br1 ph1 mr1 light-gray'>{{hint.k}}</kbd>{{hint.t}}</span>
+          {{/each}}
         </p>
       {{/if}}
     </FilePicker::Search>

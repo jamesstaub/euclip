@@ -60,10 +60,10 @@ test.describe('sound browser', () => {
   test('a sound can be auditioned before it is used, and shows its length afterwards', async ({ page }) => {
     await page.locator('[data-test-source-kind="sample"]').first().click();
     await openKorg(page);
-    await expect(row(page, 'AGG').locator('.sound-row__detail')).toHaveCount(0); // not known before it is heard
+    await expect(row(page, 'AGG').locator('[data-test-sound-detail]')).toHaveCount(0); // not known before it is heard
     await row(page, 'AGG').locator('[data-test-sound-play]').click();
     await expect.poll(() => page.evaluate(() => (window as any).__starts), { timeout: 20_000 }).toBeGreaterThan(0);
-    await expect(row(page, 'AGG').locator('.sound-row__detail')).toContainText(/\d\.\d\ds/);
+    await expect(row(page, 'AGG').locator('[data-test-sound-detail]')).toContainText(/\d\.\d\ds/);
     // and the track still has no sound: hearing it is not choosing it
     await expect(page.locator('[data-test-source-kind="sample"] [data-test-source-label]')).toHaveText('Pick a Sound');
   });
@@ -147,7 +147,7 @@ test.describe('sound browser', () => {
     await sidebar(page).getByLabel('Search for Drum Sounds').pressSequentially('kick', { delay: 60 });
     const results = sidebar(page).locator('[data-test-search-results]');
     await expect(results).toBeVisible({ timeout: 15_000 });
-    expect(await results.locator('.sound-group__name').count()).toBeGreaterThan(1);
+    expect(await results.locator('[data-test-group-name]').count()).toBeGreaterThan(1);
     const first = results.locator('[data-test-sound-row]').first();
     const name = (await first.getAttribute('data-sound-name'))!;
     await first.hover();
@@ -177,7 +177,7 @@ test.describe('sound browser', () => {
     await expect(page.locator('[data-test-selection-tray]')).toContainText('AGG');
     await page.locator('[data-test-create-kit]').click();
     const kit = page.locator('[data-test-source-kind="multi-sample"]');
-    await expect(kit).toContainText('3 / 4 samplers', { timeout: 30_000 });
+    await expect(kit).toContainText('3 / 4', { timeout: 30_000 });
     await expect(sidebar(page)).toHaveCount(0); // done: the browser closes
 
     // and a track each from two
@@ -210,12 +210,12 @@ test.describe('sound browser', () => {
     await expect(page.locator('[data-test-sampler-card]')).toHaveCount(4);
     await expect(samplerCard(page, 1).locator('canvas')).toBeVisible({ timeout: 20_000 }); // a small waveform
     await expect(samplerCard(page, 3).locator('[data-test-sampler-add]')).toBeVisible();
-    await expect(page.locator('.sampler-rack__count')).toContainText('2 loaded');
+    await expect(page.locator('[data-test-rack-count]')).toContainText('2 loaded');
     // the browser is open and moved on to the third sampler: that card says so
-    await expect(samplerCard(page, 3)).toHaveClass(/sampler-card--target/);
+    await expect(samplerCard(page, 3)).toHaveAttribute('data-state', 'target');
     await expect(samplerCard(page, 3)).toContainText('adding here');
     await sidebar(page).getByRole('button', { name: /close sidebar/i }).click();
-    await expect(samplerCard(page, 3)).not.toHaveClass(/sampler-card--target/);
+    await expect(samplerCard(page, 3)).not.toHaveAttribute('data-state', 'target');
   });
 
   test('an empty card opens the browser aimed at it; change does the same for a full one', async ({ page }) => {
@@ -259,7 +259,7 @@ test.describe('sound browser', () => {
     await samplerCard(page, 1).locator('[data-test-sampler-where]').click();
     await expect(crumbs(page).last()).toHaveAttribute('aria-current', 'location');
     await expect(crumbs(page).last()).toHaveText('Korg 01W');
-    await expect(row(page, 'AGG')).toHaveClass(/sound-row--current/); // the sampler's own sound
+    await expect(row(page, 'AGG')).toHaveAttribute('data-current', 'true'); // the sampler's own sound
     await expect(page.locator('[data-test-target]')).toContainText('Sampler 1');
   });
 
@@ -323,5 +323,35 @@ test.describe('sound browser', () => {
     const box = (await kit.boundingBox())!;
     expect(box.width).toBe(single.width); // the same width as a single sampler's button
     expect((await sequence.boundingBox())!.x).toBe(single.sequenceLeft); // and the sequencer has not moved
+  });
+
+  test('any number of samplers: the target card and the rack wrap and scroll instead of growing', async ({ page }) => {
+    await page.goto('/');
+    const track = await createProjectWithTrack(page);
+    const many = Array.from({ length: 30 }, (_, i) => `__().sampler({ id: 's${i}', path: this.files[${i}] }).connect('#main-output');`).join('\n');
+    await setScript(page, track, 'init', `${many}\n__().gain().channelStrip().connect('#main-output');`);
+    await page.reload();
+    await page.locator('[data-test-source-kind="multi-sample"]').click();
+
+    // the target card: chips wrap, are at most about two rows tall, and scroll; the chosen one is brought into view
+    const chips = page.locator('[data-test-target-slots]');
+    await expect(chips).toBeVisible();
+    expect((await chips.boundingBox())!.height).toBeLessThanOrEqual(100);
+    expect(await chips.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
+    await page.locator('[data-test-target-change]').click();
+    const menu = page.getByRole('button', { name: 'Track 1 · Sampler 30' });
+    expect((await menu.locator('xpath=ancestor::ul[1]').boundingBox())!.height).toBeLessThan(700); // the menu scrolls too
+    await menu.scrollIntoViewIfNeeded();
+    await menu.click();
+    await expect(page.locator('[data-test-target]')).toContainText('Sampler 30');
+    await expect(page.locator('[data-test-target-slot="30"]')).toBeInViewport();
+
+    // the rack in the footer: about two rows of cards, scrolling
+    await page.getByRole('button', { name: 'source' }).click();
+    const rack = page.locator('[data-test-rack-cards]');
+    await expect(rack).toBeVisible();
+    expect((await rack.boundingBox())!.height).toBeLessThanOrEqual(180);
+    expect(await rack.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
+    await expect(page.locator('[data-test-sampler-card="30"]')).toBeInViewport(); // the selected card is in view
   });
 });

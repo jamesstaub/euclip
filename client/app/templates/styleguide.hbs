@@ -1,0 +1,81 @@
+{{page-title 'UI library'}}
+<NavBar @logoWidth='180px' />
+<main class='pa3 pa4-ns light-gray'>
+  <h1 class='f2 yellow mt0'>UI library</h1>
+  <p class='mw6 moon-gray'>The atoms every screen is built from. Tachyons classes first; custom CSS only where a state or a layout needs it.
+    Each atom is shown on the dark surface and on the yellow one. See <code>docs/ui-library.md</code>.</p>
+
+  <section aria-labelledby='sg-palette' class='mb4'>
+    <h2 id='sg-palette' class='f4 yellow'>Palette</h2>
+    <ul class='list pl0 flex flex-wrap'>
+      {{#each (array
+        (hash name='yellow' cls='bg-yellow near-black')
+        (hash name='dark-yellow' cls='bg-dark-yellow near-black')
+        (hash name='light-blue' cls='bg-light-blue near-black')
+        (hash name='dark-blue' cls='bg-dark-blue light-gray')
+        (hash name='dark-gray' cls='bg-dark-gray light-gray ba b--white-30')
+        (hash name='near-black' cls='bg-near-black light-gray ba b--white-30')
+        (hash name='light-gray' cls='bg-light-gray near-black')
+      ) as |swatch|}}
+        <li class='w4 h3 pa2 mr2 mb2 br2 f7 {{swatch.cls}}'>{{swatch.name}}</li>
+      {{/each}}
+    </ul>
+  </section>
+
+  <section aria-labelledby='sg-type' class='mb4'>
+    <h2 id='sg-type' class='f4 yellow'>Type</h2>
+    <p class='f3 fw7 mv1'>Heading, f3 fw7</p>
+    <p class='f5 fw6 mv1'>Title, f5 fw6</p>
+    <p class='f6 mv1'>Body, f6 fw4</p>
+    <p class='f7 moon-gray mv1'>Small and quiet, f7</p>
+    <p class='f6 mv1'><span class='code'>Code: this.files[0]</span></p>
+  </section>
+
+  {{#each (array (hash on='dark' bg='bg-dark-gray light-gray') (hash on='yellow' bg='bg-yellow near-black')) as |surface|}}
+    <section class='pa3 mb4 br3 {{surface.bg}}' aria-label='On the {{surface.on}} surface'>
+      <h2 class='f4 mt0'>On {{surface.on}}</h2>
+
+      <h3 class='f6 ttu'>Button</h3>
+      <div class='flex flex-wrap items-center'>
+        {{#each (array 'outline' 'solid' 'ghost') as |variant|}}
+          <Ui::Button @variant={{variant}} @on={{surface.on}} class='mr2 mb2'>{{variant}}</Ui::Button>
+        {{/each}}
+        <Ui::Button @on={{surface.on}} @pressed={{true}} class='mr2 mb2'>pressed</Ui::Button>
+        <Ui::Button @on={{surface.on}} disabled class='mr2 mb2'>disabled</Ui::Button>
+        {{#each (array 'outline' 'solid' 'ghost') as |variant|}}
+          <Ui::Button @variant={{variant}} @on={{surface.on}} @size='s' class='mr2 mb2'>{{variant}} s</Ui::Button>
+        {{/each}}
+      </div>
+
+      <h3 class='f6 ttu'>Badge</h3>
+      <div class='flex items-center mb3'>
+        <Ui::Badge @on={{surface.on}} class='mr2'>Sampler 2</Ui::Badge>
+        <Ui::Badge @on={{surface.on}} @tone='muted'>not used</Ui::Badge>
+      </div>
+
+      <h3 class='f6 ttu'>Chip</h3>
+      <div class='flex mb3 w-50'>
+        <Ui::Chip @on={{surface.on}} @pressed={{true}} class='mr2'><b>S1</b> AGG</Ui::Chip>
+        <Ui::Chip @on={{surface.on}} class='mr2'><b>S2</b> 01W TOM</Ui::Chip>
+        <Ui::Chip @on={{surface.on}} @quiet={{true}}><b>S3</b> empty</Ui::Chip>
+      </div>
+
+      <h3 class='f6 ttu'>Segmented</h3>
+      <Ui::Segmented
+        class='mb3 w-50'
+        @on={{surface.on}}
+        @label='Example'
+        @selected='b'
+        @onSelect={{this.noop}}
+        @items={{array (hash value='a' label='In this project' showCount=true count=3) (hash value='b' label='All sounds')}}
+      />
+
+      <h3 class='f6 ttu'>Card</h3>
+      <div class='flex'>
+        {{#each (array 'default' 'selected' 'empty' 'target') as |state|}}
+          <Ui::Card @on={{surface.on}} @state={{if (eq state 'default') undefined state}} class='w-20 mr3 f6'>{{state}}</Ui::Card>
+        {{/each}}
+      </div>
+    </section>
+  {{/each}}
+</main>

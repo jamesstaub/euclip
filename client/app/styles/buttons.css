@@ -119,3 +119,10 @@ button:not([disabled]):focus {
     outline-color: var(--dark-blue);
   }
 }
+
+/* One keyboard focus ring for everything interactive (:where keeps its specificity at zero, so a component can still
+   opt out with .no-outline or draw its own). */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--light-blue);
+  outline-offset: 2px;
+}

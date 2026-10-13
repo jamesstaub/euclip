@@ -1,18 +1,18 @@
-<div class='sound-search' role='search'>
-  <div class='sound-search__field'>
-    <span class='sound-search__icon' aria-hidden='true'></span>
+<div class='mh3' role='search'>
+  <div class='flex items-center ba bw1 b--yellow br3 ph3 bg-black-20 moon-gray focus-within-blue'>
+    <span class='glyph-search mr2' aria-hidden='true'></span>
     <Input
       aria-label='Search for Drum Sounds'
-      class='sound-search__input'
+      class='bn bg-transparent light-gray f5 pv3 flex-auto min-w-0 outline-0'
       placeholder='Search sounds…'
       data-test-sound-search
       @value={{this.searchQuery}}
       {{on 'keyup' this.search}}
     />
     {{#if this.searchResults.length}}
-      <button type='button' class='sound-search__clear' data-test-search-clear {{on 'click' this.backToBrowse}}>Clear</button>
+      <Ui::Button @variant='ghost' @size='s' data-test-search-clear {{on 'click' this.backToBrowse}}>Clear</Ui::Button>
     {{else}}
-      <kbd class='sound-search__key' aria-hidden='true'></kbd>
+      <kbd class='glyph-slash f7 ba b--white-30 br1 ph1' aria-hidden='true'></kbd>
     {{/if}}
   </div>
 </div>
@@ -20,12 +20,12 @@
 <ProgressBar class={{concat 'fixed top-0 mv1 mh3 ' (unless this.searchTask.isRunning 'hidden')}} />
 
 {{#if this.searchResults.length}}
-  <div class='sound-results sidebar-fill' data-test-search-results>
-    <ul class='sound-list sound-list--plain' aria-label='Search results'>
+  <div class='sidebar-fill scroll-y flex flex-column' data-test-search-results>
+    <ul class='list pl0 ma0 ph2 flex-none' aria-label='Search results'>
       {{#each this.groups as |group|}}
-        <li class='sound-group'>
-          <h3 class='sound-group__name'>{{group.folder}}</h3>
-          <ul class='sound-group__rows'>
+        <li class='mb2'>
+          <h3 class='f7 ttu fw6 yellow mt3 mb1 mh2' data-test-group-name>{{group.folder}}</h3>
+          <ul class='list pl0 ma0'>
             {{#each group.rows as |row|}}
               <Sounds::Row
                 @role='listitem'
@@ -45,9 +45,9 @@
             {{/each}}
           </ul>
           {{#if group.canExpand}}
-            <button type='button' class='sound-group__more' {{on 'click' (fn this.toggleExpanded group.folder)}}>
+            <Ui::Button @variant='ghost' @size='s' class='ml1 underline' {{on 'click' (fn this.toggleExpanded group.folder)}}>
               {{if group.open 'Show fewer' (concat 'Show all ' group.total)}}
-            </button>
+            </Ui::Button>
           {{/if}}
         </li>
       {{/each}}

@@ -1,43 +1,44 @@
-<section class='target-card' aria-label='Where the next sound goes' data-test-target-card ...attributes>
-  <div class='target-card__label'>
+<Ui::Card class='mh3 mb2' aria-label='Where the next sound goes' data-test-target-card ...attributes>
+  <div class='flex justify-between items-center f7 ttu moon-gray'>
     <span>Adding to</span>
     <DropdownMenu
-      class='target-card__change'
+      class='bn bg-transparent yellow f7 ttu pa1 br2 pointer hover-bg-white-10'
       aria-label='Change where sounds are added'
       data-test-target-change
       @closeOnSelect={{true}}
       @items={{this.menuItems}}
     >change ▾</DropdownMenu>
   </div>
-  <div class='target-card__who' data-test-target aria-live='polite'>
+  <div class='f6 fw6 mv1' data-test-target aria-live='polite'>
     {{#if this.isNewTracks}}
-      New tracks <span class='target-card__hint'>one per sound, or one kit</span>
+      New tracks <span class='f7 fw4 moon-gray ml2'>one per sound, or one kit</span>
     {{else if @track}}
       Track {{@track.order}}{{#if this.isKit}} · kit{{/if}}
       {{#if this.current}}
-        <span class='target-card__arrow'>→ Sampler{{#if this.isKit}} {{this.current.number}}{{/if}}</span>
+        <span class='f7 fw4 yellow ml2'>→ Sampler{{#if this.isKit}} {{this.current.number}}{{/if}}</span>
       {{/if}}
     {{else}}
       No track selected
     {{/if}}
   </div>
   {{#if this.showChips}}
-    <ul class='target-card__slots' aria-label='Samplers'>
-      {{#each this.chips as |chip|}}
-        <li>
-          <button
-            type='button'
-            class='target-chip {{if chip.selected "target-chip--on"}} {{unless chip.path "target-chip--empty"}}'
-            aria-pressed={{if chip.selected 'true' 'false'}}
+    {{!-- a kit can have any number of samplers: the chips wrap, and scroll past about two rows --}}
+    <ul class='list pl0 mb0 mt2 flex flex-wrap max-h-chips scroll-y' aria-label='Samplers' data-test-target-slots>
+      {{#each this.chips key='slot' as |chip|}}
+        <li class='w-25 pr1 pb1 min-w-0'>
+          <Ui::Chip
+            @pressed={{chip.selected}}
+            @quiet={{not chip.path}}
             title={{if chip.name chip.name 'empty'}}
             data-test-target-slot={{chip.number}}
             {{on 'click' (fn @onSelectSampler chip.index)}}
+            {{scroll-into-view chip.selected 'smooth'}}
           >
-            <span class='target-chip__n'>S{{chip.number}}</span>
-            <b>{{if chip.name chip.name 'empty'}}</b>
-          </button>
+            <span class='db o-60'>S{{chip.number}}</span>
+            <b class='db truncate fw6'>{{if chip.name chip.name 'empty'}}</b>
+          </Ui::Chip>
         </li>
       {{/each}}
     </ul>
   {{/if}}
-</section>
+</Ui::Card>

@@ -1,7 +1,7 @@
 {{! template-lint-disable no-down-event-binding }}
 {{! keydown is the point here: arrow keys move through the list and must act on press, as in any native listbox }}
 <ul
-  class='sound-list sidebar-fill'
+  class='list pl0 ma0 ph2 sidebar-fill scroll-y'
   role='listbox'
   tabindex='0'
   aria-label='Sounds'
@@ -24,14 +24,14 @@
       @current={{row.current}}
       @showCheck={{@showCheck}}
       @checked={{row.checked}}
+      @showUse={{not @showCheck}}
+      @onUse={{if @showCheck (fn this.toggle row) (fn this.use row)}}
       @onOpen={{fn this.open row}}
       @onPlay={{fn this.play row}}
       @onSelect={{fn this.select row}}
-      @showUse={{not @showCheck}}
-      @onUse={{if @showCheck (fn this.toggle row) (fn this.use row)}}
       @onToggle={{fn this.toggle row}}
     />
   {{else}}
-    <li class='sound-empty' role='option' aria-disabled='true' aria-selected='false'>Nothing here.</li>
+    <li class='pa3 f6 moon-gray' role='option' aria-disabled='true' aria-selected='false'>Nothing here.</li>
   {{/each}}
 </ul>

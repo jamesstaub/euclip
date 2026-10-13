@@ -21,5 +21,6 @@ Router.map(function () {
   this.route('login');
   this.route('signup');
   this.route('about');
+  this.route('styleguide'); // the UI library, every atom on every surface
   this.route('user-error');
 });

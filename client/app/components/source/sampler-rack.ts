@@ -56,6 +56,8 @@ export default class SourceSamplerRackComponent extends Component<SamplerRackSig
         selected,
         // the browser is open and this sampler is where its next sound goes
         target: browserOpen && selected,
+        // how the card is drawn: where the next sound goes, else empty, else the chosen one
+        state: (browserOpen && selected ? 'target' : !slot.path ? 'empty' : selected ? 'selected' : undefined) as 'target' | 'empty' | 'selected' | undefined,
         buffer: slot.node.sampleIsLoaded ? (slot.node.nativeNode as any)?.buffer : undefined,
         durationText: slot.node.bufferDuration ? `${slot.node.bufferDuration.toFixed(2)}s` : '',
         // the script's own name for the sampler, when it is more than the default "sampler2"
