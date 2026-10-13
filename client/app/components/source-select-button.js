@@ -12,7 +12,7 @@ const WAVEFORMS = {
 /**
  * One button per track summarising its sound source, whatever it is:
  *   sample        a single audio file (shows its filename)
- *   multi-sample  several samplers (a 2x2 grid icon and how many)
+ *   multi-sample  several samplers (a dot each, filled when it has a sound, and how many are loaded)
  *   oscillator    a waveform outline and the oscillator's name
  *   noise         a noise outline and its name
  *   macro         a layered icon and the instrument's name (e.g. polysynth)
@@ -66,6 +66,15 @@ export default class SourceSelectButtonComponent extends Component {
     return this.samplers.length;
   }
 
+  // whether each sampler has a sound, in order
+  get slotStates() {
+    return this.samplers.map((node) => Boolean(node.filepathControl?.controlValue));
+  }
+
+  get loadedCount() {
+    return this.slotStates.filter(Boolean).length;
+  }
+
   // a download error on any of the track's samples
   get fileError() {
     return this.samplers
@@ -83,7 +92,7 @@ export default class SourceSelectButtonComponent extends Component {
   get label() {
     if (this.fileError) return `Error downloading file: ${this.fileError}`;
     if (this.isSample) return `Open the sound sidebar (${this.filename ?? 'no sound picked yet'})`;
-    if (this.isMultiSample) return `Open the sound sidebar (${this.sampleCount} samples)`;
+    if (this.isMultiSample) return `Open the sound sidebar (${this.loadedCount} of ${this.sampleCount} samplers have a sound)`;
     return `Open the source tab (${this.sourceName})`;
   }
 }

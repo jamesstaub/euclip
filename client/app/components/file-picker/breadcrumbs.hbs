@@ -1,9 +1,9 @@
-<nav class='flex flex-wrap items-center ph3 pv2 f6' aria-label='Folder' data-test-file-breadcrumbs ...attributes>
+<nav class='flex flex-wrap items-center ph3 pv2 f6 light-gray' aria-label='Folder' data-test-file-breadcrumbs ...attributes>
   {{#each this.items as |item index|}}
-    {{#if index}}<span class='gray mh1' aria-hidden='true'>/</span>{{/if}}
+    {{#if index}}<span class='moon-gray mh1' aria-hidden='true'>/</span>{{/if}}
     <button
       type='button'
-      class='textbutton pa1 {{if item.current "fw7"}}'
+      class='textbutton pa1 light-gray hover-underline {{if item.current "fw7 white"}}'
       aria-current={{if item.current 'location'}}
       data-test-file-breadcrumb={{item.path}}
       {{on 'click' (fn this.go item)}}

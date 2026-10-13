@@ -539,3 +539,23 @@
 .track-sequencer .sequencer-width {
   margin-right: 0;
 }
+
+/* ---------- Source button on a kit: one dot per sampler ---------- */
+
+.slot-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.slot-dot {
+  display: block;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: currentColor;
+  border: 1.5px solid currentColor;
+}
+
+.slot-dot--empty {
+  background: transparent;
+}

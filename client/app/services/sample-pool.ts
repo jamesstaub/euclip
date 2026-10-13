@@ -56,6 +56,14 @@ export default class SamplePoolService extends Service {
   private audio = new Map<string, PoolAudio>(); // by path
   private loading = new Map<string, Promise<PoolAudio>>();
   private previewing: AudioBufferSourceNode | null = null;
+  // Decoded audio of catalog sounds that were only auditioned (not in the pool). Kept apart from `audio` so
+  // that adding the sound to the pool later still downloads, decodes and analyses it as usual.
+  private previewBuffers = new Map<string, Promise<AudioBuffer | null>>();
+
+  // what the browser shows: which path is playing / loading, and how long each auditioned sound is
+  @tracked playingPath: string | null = null;
+  @tracked loadingPath: string | null = null;
+  @tracked durations: Record<string, number> = {};
   private onsetEngine = new OnsetEngine();
   private analysing = new Map<string, Promise<void>>(); // by path
 
@@ -242,17 +250,81 @@ export default class SamplePoolService extends Service {
   async preview(sample: ProjectSampleModel): Promise<void> {
     const entry = await this.load(sample);
     if (!entry.buffer) return;
+    await this.play(normalizePath(sample.path), entry.buffer);
+  }
+
+  /**
+   * Auditions any catalog sound by path, in the sound browser. Works for sounds that are not in the pool;
+   * playing a sound again stops it, and starting another stops the first. Previews go through a quieter bus
+   * of their own, so they sit under a sequence that is playing.
+   */
+  async previewPath(path: string): Promise<void> {
+    const key = normalizePath(path);
+    if (this.playingPath === key) {
+      this.stopPreview();
+      return;
+    }
+    this.stopPreview();
+    this.loadingPath = key;
+    try {
+      const buffer = await this.previewBuffer(key);
+      // another sound was asked for while this one loaded: that one wins
+      if (this.loadingPath !== key || !buffer) return;
+      await this.play(key, buffer);
+    } finally {
+      if (this.loadingPath === key) this.loadingPath = null;
+    }
+  }
+
+  /** The decoded audio of a catalog sound, downloading it the first time. null when it cannot be loaded. */
+  private previewBuffer(key: string): Promise<AudioBuffer | null> {
+    const pooled = this.audio.get(key);
+    if (pooled?.buffer) return Promise.resolve(pooled.buffer);
+    let job = this.previewBuffers.get(key);
+    if (!job) {
+      job = (async () => {
+        try {
+          const soundFile = await SoundFileModel.findOrDownload(key, this.store);
+          if (!soundFile.isDownloaded) return null;
+          const data = await (await fetch(soundFile.downloadedURI)).arrayBuffer();
+          const buffer = await this.context().decodeAudioData(data);
+          this.durations = { ...this.durations, [key]: buffer.duration };
+          return buffer;
+        } catch (_) {
+          this.previewBuffers.delete(key); // allow another try
+          return null;
+        }
+      })();
+      this.previewBuffers.set(key, job);
+    }
+    return job;
+  }
+
+  /** How long a sound is, once it has been auditioned or loaded; undefined before that. */
+  durationOf(path: string): number | undefined {
+    const key = normalizePath(path);
+    return this.durations[key] ?? this.audio.get(key)?.duration ?? undefined;
+  }
+
+  private async play(key: string, buffer: AudioBuffer): Promise<void> {
     this.stopPreview();
     const context = this.context();
     if (context.state === 'suspended') await context.resume();
     const source = context.createBufferSource();
-    source.buffer = entry.buffer;
-    source.connect(context.destination);
+    source.buffer = buffer;
+    const bus = context.createGain();
+    bus.gain.value = 0.7;
+    source.connect(bus);
+    bus.connect(context.destination);
     source.onended = () => {
-      if (this.previewing === source) this.previewing = null;
+      if (this.previewing === source) {
+        this.previewing = null;
+        this.playingPath = null;
+      }
     };
     source.start();
     this.previewing = source;
+    this.playingPath = key;
   }
 
   stopPreview(): void {
@@ -262,5 +334,6 @@ export default class SamplePoolService extends Service {
       /* already ended */
     }
     this.previewing = null;
+    this.playingPath = null;
   }
 }

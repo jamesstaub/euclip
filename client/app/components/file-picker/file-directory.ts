@@ -73,6 +73,9 @@ export default class FilePickerFileDirectoryComponent extends Component<FilePick
         idx,
         filepath,
         isSelected,
+        // the row this column is on: the folder that was opened, or the sound that was picked. No row at all
+        // until there is one (an unset selection used to light up the first row).
+        isCurrent: this.args.directory.currentSelection === choice,
         canSelect: true, // Always allow selection/deselection
         isDisabled: false, // Never disabled
         labelClass: '', // No opacity changes

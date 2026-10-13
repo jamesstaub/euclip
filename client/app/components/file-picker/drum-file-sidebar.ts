@@ -157,10 +157,27 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
       const slot = sampler?.orderOfType ?? 0;
       await track.setFile(slot, filepath);
       track.state = TrackState.SETUP;
+      this.advanceTarget(track);
     } catch (error) {
       track.state = TrackState.ERROR;
       console.error('Error saving filepath control: ', error);
     }
+  }
+
+  /**
+   * After a sound lands in a sampler, the next empty sampler of the track becomes the target, so filling a
+   * kit is one pick after another. Stays put when every sampler has a sound.
+   */
+  private advanceTarget(track: TrackModel) {
+    const filled = new Set(
+      track.sortedFilepathControls.filter((control) => control.controlValue).map((control) => control.nodeOrder)
+    );
+    const empty = track.sourceNodeRecords
+      .map((node, index) => ({ node, index }))
+      .filter(({ node }) => node.nodeType === 'sampler' && !filled.has(node.orderOfType));
+    if (!empty.length) return;
+    const next = empty.find(({ index }) => index > this.targetNodeIdx) ?? empty[0];
+    this.args.setSelectedSourceIdx?.(next.index);
   }
 
   @action

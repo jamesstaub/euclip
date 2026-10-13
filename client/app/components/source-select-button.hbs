@@ -10,14 +10,11 @@
     {{#if this.isSample}}
       <span class='truncate' data-test-source-label>{{if this.filename this.filename 'Pick a Sound'}}</span>
     {{else if this.isMultiSample}}
-      {{! a 2x2 grid: several samplers }}
-      <svg class='flex-none mr2' width='14' height='14' viewBox='0 0 14 14' fill='currentColor' aria-hidden='true'>
-        <rect x='0' y='0' width='6' height='6' rx='1' />
-        <rect x='8' y='0' width='6' height='6' rx='1' />
-        <rect x='0' y='8' width='6' height='6' rx='1' />
-        <rect x='8' y='8' width='6' height='6' rx='1' />
-      </svg>
-      <span class='truncate' data-test-source-label>{{this.sampleCount}} samples</span>
+      {{! one dot per sampler: filled when it has a sound }}
+      <span class='slot-dots flex-none mr2' aria-hidden='true'>
+        {{#each this.slotStates as |filled|}}<i class='slot-dot {{unless filled "slot-dot--empty"}}'></i>{{/each}}
+      </span>
+      <span class='truncate' data-test-source-label>{{this.loadedCount}} / {{this.sampleCount}} samplers</span>
     {{else if this.hasWaveform}}
       <svg class='flex-none mr2' width='32' height='14' viewBox='0 0 32 14' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linejoin='round' aria-hidden='true'>
         <path d={{this.waveformPath}} />
