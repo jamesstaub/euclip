@@ -46,9 +46,23 @@ export const SCRIPT_SCOPE_DOCS = [
     name: 'files',
     kind: 'property',
     description:
-      'Array of every sound file URL for this track, e.g. one per pad of a multi-sample kit.',
+      'Array of every sound file URL for this track, e.g. one per sampler of a multi-sample kit.',
     example: '__().sampler({ path: this.files[0] })',
     boost: 7,
+  },
+  {
+    name: 'state',
+    kind: 'property',
+    description:
+      'An object that keeps its values from one step to the next (the rest of `this` is rebuilt every step). It starts empty each time the audio is built, i.e. on every play. Use it to decide something once, such as a shuffled order for the bar, and keep it.',
+    example: 'if (index === 0) this.state.order = __.shuffle(__.fill_array(8, (i) => i));',
+  },
+  {
+    name: 'bar',
+    kind: 'property',
+    description:
+      'Which pass through this track’s sequence this is: 0 on the first, then 1, 2, … Use it to vary what plays from one loop to the next.',
+    example: 'const flip = this.bar % 2 === 1;',
   },
   {
     name: 'declareControls',
@@ -61,7 +75,7 @@ export const SCRIPT_SCOPE_DOCS = [
     name: 'controls',
     kind: 'property',
     description:
-      'Live values of this track’s controls, by node id or type (or index). Reading gives the slider’s value (native units, current step for multisliders); assigning sets a one-step offset that is applied to the audio only for this step and never changes the slider. A node id that is also an array method (e.g. \'filter\') still addresses the node.',
+      'Live values of this track’s controls, by node id or type (or index). Reading gives the slider’s value (native units, current step for multisliders); assigning sets a one-step offset that is applied to the audio only for this step and never changes the slider. A node id that is also an array method (e.g. \'filter\') still addresses the node. A sampler also has sliceCount and slices (read-only) and the startSlice / endSlice controls, which pick a region of the sample by its onset slices.',
     example:
       'this.controls.lead.frequency = this.controls.lead.frequency * (1 + Math.random() * 0.02)',
     boost: 6,
@@ -106,7 +120,7 @@ export const SCRIPT_SCOPE_DOCS = [
     name: 'playSourceNode',
     kind: 'method',
     description:
-      'Restart only the n-th source node, e.g. one pad of a multi-sample kit. Optionally applies attrs.',
+      'Restart only the n-th source node, e.g. one sampler of a multi-sample kit. Optionally applies attrs.',
     example: 'this.playSourceNode(2);',
   },
   {

@@ -162,7 +162,10 @@ export default class ProjectModel extends Model {
 
   resetLoop() {
     this.stepIndex = -1;
-    this.tracks.forEach((track) => (track.stepIndex = -1));
+    this.tracks.forEach((track) => {
+      track.stepIndex = -1;
+      track.barCount = 0;
+    });
     resetLoop();
     return this;
   }

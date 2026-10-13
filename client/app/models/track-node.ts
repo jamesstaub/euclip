@@ -10,6 +10,8 @@ import type StoreService from '@ember-data/store';
 import byKey from 'euclip/utils/by-key';
 import { macroSchemaFor } from 'euclip/utils/macros/library';
 import { mergeSchema, resolveSpec, type MacroSchema } from 'euclip/utils/macros/schema';
+import type SamplePoolService from 'euclip/services/sample-pool';
+import type { PoolAudio } from 'euclip/services/sample-pool';
 import {
   defaultNodeParamsByUnit,
   unitOptionsFor,
@@ -28,9 +30,13 @@ export const FILE_LOAD_STATES = {
 
 type FileLoadState = typeof FILE_LOAD_STATES[keyof typeof FILE_LOAD_STATES];
 
+// sampler controls that exist in euclip only: they never reach the audio node (see toAudioAttrs)
+const SAMPLER_ONLY_IN_EUCLIP = ['snap', 'startSlice', 'endSlice'];
+
 // TrackNodeModel class definition
 export default class TrackNodeModel extends Model {
   @service store!: StoreService;
+  @service declare samplePool: SamplePoolService;
 
   @belongsTo('track', { async: false, inverse: 'trackNode' }) track!: any;
   @hasMany('track-control', { async: false, inverse: 'trackNode' }) trackControls!: any[];
@@ -97,6 +103,102 @@ export default class TrackNodeModel extends Model {
     const path = this.filepathControl?.controlValue;
     if (!path) return undefined;
     return this.store.peekAll('sound-file').find((file: any) => file.filePathRelative === path);
+  }
+
+  /**
+   * Slices of a sampler's sample: its onsets cut the file into regions. The audio the pool analysed is found
+   * by the sampler's file path (the pool's decoded copy, shared by every track using the file).
+   */
+  get poolAudio(): PoolAudio | undefined {
+    const path = this.filepathControl?.controlValue;
+    return path ? this.samplePool.audioForPath(path) : undefined;
+  }
+
+  // the project's pool record for this sampler's file, where its onset threshold is kept (undefined if the
+  // file isn't in the pool)
+  get poolSample(): any {
+    const path = this.filepathControl?.controlValue;
+    if (!path) return undefined;
+    const normalized = path.startsWith('/') ? path : `/${path}`;
+    return this.track?.project?.projectSamples?.find((sample: any) => sample.path === normalized);
+  }
+
+  // [0, ...onsets, duration], in seconds; empty until the sample has been analysed
+  get sliceBoundaries(): number[] {
+    return this.poolAudio?.boundaries ?? [];
+  }
+
+  get sliceCount(): number {
+    return Math.max(0, this.sliceBoundaries.length - 1);
+  }
+
+  /**
+   * The region the slice controls ask for, in seconds, or undefined when they aren't in use (startSlice is
+   * -1) or the sample hasn't been analysed. `endSlice` is the last slice played (inclusive); -1 means
+   * the same as startSlice. Indexes past the last slice stick to the last slice.
+   */
+  sliceRegion(): { start: number; end: number } | undefined {
+    if (this.nodeType !== 'sampler') return undefined;
+    const boundaries = this.sliceBoundaries;
+    const count = boundaries.length - 1;
+    if (count < 1) return undefined;
+
+    const controls = this.trackControls ?? [];
+    const valueOf = (attr: string) => {
+      const control = controls.find((c: any) => !c.isDeleted && c.nodeAttr === attr);
+      return control ? control.modulation ?? control.controlValue : undefined;
+    };
+    const startSlice = valueOf('startSlice');
+    if (!Number.isFinite(startSlice) || startSlice < 0) return undefined;
+
+    const first = Math.min(Math.round(startSlice), count - 1);
+    const endSlice = valueOf('endSlice');
+    const last = Number.isFinite(endSlice) && endSlice >= 0 ? Math.min(Math.max(Math.round(endSlice), first), count - 1) : first;
+    return { start: boundaries[first], end: boundaries[last + 1] };
+  }
+
+  // The start and end the time controls ask for (what plays when the slice controls aren't in use), in seconds
+  regionFromTimeControls(): Record<string, number> {
+    const region: Record<string, number> = {};
+    ['start', 'end'].forEach((attr) => {
+      const control = (this.trackControls ?? []).find((c: any) => !c.isDeleted && c.nodeAttr === attr);
+      const value = control?.effectiveValue();
+      if (Number.isFinite(value)) region[attr] = value;
+    });
+    return region;
+  }
+
+  /**
+   * Turns control values into what the audio node understands: the euclip-only settings (snap, the slice
+   * indexes) are not audio attributes and are dropped, and when the slice controls are in use the region
+   * they name replaces `start` and `end`.
+   */
+  toAudioAttrs(attrs: Record<string, any>): Record<string, any> {
+    const audio = { ...attrs };
+    SAMPLER_ONLY_IN_EUCLIP.forEach((attr) => delete audio[attr]);
+    const region = this.sliceRegion();
+    if (region) {
+      audio.start = region.start;
+      audio.end = region.end;
+    }
+    return audio;
+  }
+
+  /**
+   * Once the sample's onsets are known the slice controls can only go as high as there are slices:
+   * set their range (their index starts at -1 for "not in use").
+   */
+  syncSliceControlRanges(): void {
+    const count = this.sliceCount;
+    if (!count) return;
+    this.trackControls
+      .filter((c: any) => !c.isDeleted && (c.nodeAttr === 'startSlice' || c.nodeAttr === 'endSlice'))
+      .forEach((control: any) => {
+        if (control.max === count - 1 && control.min === -1) return;
+        control.min = -1;
+        control.max = count - 1;
+        control.saveTrackControl.perform();
+      });
   }
 
   // Computed property for checking if the sample is loaded
@@ -229,6 +331,14 @@ export default class TrackNodeModel extends Model {
     }
   }
 
+  // Makes sure this sampler's sample has been analysed for onsets, then fits the slice controls to it.
+  async loadSlices(buffer?: AudioBuffer): Promise<void> {
+    const path = this.filepathControl?.controlValue;
+    if (!path || this.nodeType !== 'sampler') return;
+    await this.samplePool.ensureAnalysis(this.track?.project, path, buffer);
+    this.syncSliceControlRanges();
+  }
+
   // Set sampler controls to a given buffer (used for setting the buffer duration)
   async setSamplerControlsToBuffer(buffer: AudioBuffer): Promise<void> {
     this.bufferDuration = buffer.duration;
@@ -238,6 +348,9 @@ export default class TrackNodeModel extends Model {
     this.trackControls
       .filter((tc: any) => !tc.isDeleted && tc.nodeType === 'sampler')
       .forEach((trackControl: any) => trackControl.setSamplerControlsToBuffer(buffer));
+
+    // its onsets, for the waveform's slice markers and the slice controls
+    await this.loadSlices(buffer);
   }
 
   /**

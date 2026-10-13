@@ -12,11 +12,11 @@ const WAVEFORMS = {
 /**
  * One button per track summarising its sound source, whatever it is:
  *   sample        a single audio file (shows its filename)
- *   multi-sample  several samplers (a pad grid icon and how many)
+ *   multi-sample  several samplers (a 2x2 grid icon and how many)
  *   oscillator    a waveform outline and the oscillator's name
  *   noise         a noise outline and its name
  *   macro         a layered icon and the instrument's name (e.g. polysynth)
- * Clicking it is meant to open the track's source tab, which lists what is loaded.
+ * Clicking a sample / multi-sample button opens the sound sidebar; the others open the source tab.
  *
  * Args: @track, @onClick
  */
@@ -82,8 +82,8 @@ export default class SourceSelectButtonComponent extends Component {
 
   get label() {
     if (this.fileError) return `Error downloading file: ${this.fileError}`;
-    if (this.isSample) return `Open the source tab (${this.filename ?? 'no sound picked yet'})`;
-    if (this.isMultiSample) return `Open the source tab (${this.sampleCount} samples)`;
+    if (this.isSample) return `Open the sound sidebar (${this.filename ?? 'no sound picked yet'})`;
+    if (this.isMultiSample) return `Open the sound sidebar (${this.sampleCount} samples)`;
     return `Open the source tab (${this.sourceName})`;
   }
 }

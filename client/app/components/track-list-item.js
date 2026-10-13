@@ -15,10 +15,17 @@ export default class TrackListItemComponent extends Component {
     return !this.args.track.isMaster && !!this.args.track.sourceKind;
   }
 
-  // The click also selects this track (the row handles it), so the footer that opens is its own.
+  // The click also selects this track (the row handles it).
+  // Sampler sources (one file or several) open the sound sidebar, where the sample is picked;
+  // oscillators and macros have nothing to browse, so they open the footer's source tab instead.
   @action
   showSource() {
-    this.projectUi.footerTab = 'source';
+    const { sourceKind } = this.args.track;
+    if (sourceKind === 'sample' || sourceKind === 'multi-sample') {
+      this.args.onToggleFilePicker?.();
+    } else {
+      this.projectUi.footerTab = 'source';
+    }
   }
 
   // The script asks for a sampler even though no sampler node exists (script error, failed build).

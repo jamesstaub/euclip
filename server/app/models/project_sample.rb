@@ -6,6 +6,7 @@ class ProjectSample < ApplicationRecord
 
   validates :path, presence: true, uniqueness: { scope: :project_id }
   validates :label, presence: true, uniqueness: { scope: :project_id }
+  validates :onset_threshold, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 1 }
 
   before_validation :normalize_path
   before_validation :default_label, on: :create

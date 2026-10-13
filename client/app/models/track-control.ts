@@ -115,6 +115,11 @@ export default class TrackControlModel extends Model {
     return this.interfaceName === 'slider';
   }
 
+  // startSlice / endSlice: a sampler region chosen by onset slice instead of by time
+  get isSliceControl() {
+    return this.nodeAttr === 'startSlice' || this.nodeAttr === 'endSlice';
+  }
+
   // a choice setting (e.g. a macro's waveform): the control value is an index into `choices`
   get isSelect() {
     return this.interfaceName === 'select';
@@ -177,6 +182,10 @@ export default class TrackControlModel extends Model {
         return 2;
       case 'loop':
         return 3;
+      case 'startSlice':
+        return 4;
+      case 'endSlice':
+        return 5;
       default:
         return this.nodeAttr;
     }
@@ -264,7 +273,20 @@ export default class TrackControlModel extends Model {
     const value = this.attrValueForType(index);
     const selector = this.trackNode?.uniqueSelector;
     if (value === undefined || !selector || !this.nodeAttr) return;
-    applyNodeAttrs(selector, this.nodeType, { [this.nodeAttr]: value });
+    this.applyAttrsToNode({ [this.nodeAttr]: value });
+  }
+
+  // Everything that reaches the audio goes through the node first (see TrackNode#toAudioAttrs): euclip-only
+  // settings are dropped and the slice controls can replace a sampler's start and end.
+  private applyAttrsToNode(attrs: Record<string, any>) {
+    const node = this.trackNode;
+    if (!node?.uniqueSelector) return;
+    let audioAttrs = node.nodeType === 'sampler' ? node.toAudioAttrs(attrs) : attrs;
+    // a slice control just went back to "not in use": the region the time controls name plays again
+    if (node.nodeType === 'sampler' && this.isSliceControl && !node.sliceRegion()) {
+      audioAttrs = node.regionFromTimeControls();
+    }
+    if (Object.keys(audioAttrs).length) applyNodeAttrs(node.uniqueSelector, node.nodeType, audioAttrs);
   }
 
   /** True once the user has moved the control away from its base value. */
@@ -323,8 +345,7 @@ export default class TrackControlModel extends Model {
       return;
     }
     this.modulation = value;
-    const selector = this.trackNode?.uniqueSelector;
-    if (selector) applyNodeAttrs(selector, this.nodeType, { [this.nodeAttr]: value });
+    this.applyAttrsToNode({ [this.nodeAttr]: value });
   }
 
   clearModulation() {
@@ -538,6 +559,15 @@ export default class TrackControlModel extends Model {
   static liveControlsForScript(trackNodes, stepIndex) {
     const entries = trackNodes.map((trackNode) => {
       const entry = { node: trackNode.nodeType, nodeUUID: trackNode.nodeUUID };
+      if (trackNode.nodeType === 'sampler') {
+        // read-only: how many slices the sample's onsets make (0 until it has been analysed), and where
+        // they start and end, in seconds: [[0, 0.41], [0.41, 0.9], ...]
+        Object.defineProperty(entry, 'sliceCount', { enumerable: true, get: () => trackNode.sliceCount });
+        Object.defineProperty(entry, 'slices', {
+          enumerable: true,
+          get: () => trackNode.sliceBoundaries.slice(1).map((end, i) => [trackNode.sliceBoundaries[i], end]),
+        });
+      }
       trackNode.trackControls.forEach((trackControl) => {
         if (trackControl.isDeleted || !trackControl.nodeAttr) return;
         Object.defineProperty(entry, trackControl.nodeAttr, {

@@ -1,4 +1,7 @@
-<div class='surface-wrapper waveform-surface flex flex-column items-center mr2 ba b--dark-gray bw1 bg-dark-yellow'>
+<div
+  class='surface-wrapper waveform-surface {{unless this.isLooping "is-loop-off"}} flex flex-column items-center mr2 ba b--dark-gray bw1 bg-dark-yellow'
+  data-test-waveform-surface
+>
   <div class='flex items-center justify-between spaced-text ttu bg-dark-gray white f7 fw3 w-100 pv2 ph2'>
     <span class='fw7 light-gray'>sample</span>
     <span>{{display-float this.duration}} sec</span>
@@ -11,6 +14,18 @@
         height='200'
         {{audio-waveform @buffer}}
       ></canvas>
+      {{#if this.activeSliceStyle}}
+        <div class='waveform-active-slice absolute' style={{this.activeSliceStyle}} data-test-active-slice></div>
+      {{/if}}
+      {{#each this.onsetMarkers as |marker|}}
+        <div
+          class='waveform-onset absolute'
+          style={{marker.style}}
+          title='Slice {{marker.index}} starts at {{display-float marker.time}}s'
+          data-test-onset-marker
+          data-time={{marker.time}}
+        ></div>
+      {{/each}}
       <div class='waveform-shade absolute left-0' style={{this.shadeLeftStyle}}></div>
       <div class='waveform-shade absolute right-0' style={{this.shadeRightStyle}}></div>
       <div
@@ -33,8 +48,38 @@
       ></div>
     </div>
   </div>
-  <div class='flex items-center justify-between w-100 ph2 pb2 f7 dark-gray'>
+  <div class='flex items-center justify-between w-100 ph2 pb1 f7 dark-gray'>
     <span>start {{display-float this.startSeconds}}s</span>
     <span>end {{display-float this.endSeconds}}s</span>
+  </div>
+  <div class='flex items-center justify-between w-100 ph2 pb2 f7 dark-gray'>
+    {{#if @snapControl}}
+      <label class='flex items-center' title='Markers jump to the nearest onset, or the start or end of the file'>
+        <input
+          type='checkbox'
+          class='mr1'
+          checked={{this.snapOn}}
+          data-test-snap-toggle
+          {{on 'change' this.toggleSnap}}
+        />
+        snap
+      </label>
+    {{/if}}
+    <span data-test-slice-count>{{this.sliceCount}} slices</span>
+    {{#if this.sample}}
+      <label class='flex items-center' title='Onset threshold: lower finds more, quieter onsets'>
+        <span class='mr1'>onset threshold</span>
+        <input
+          type='range'
+          min='0'
+          max='1'
+          step='0.01'
+          value={{this.threshold}}
+          class='threshold-slider'
+          data-test-onset-threshold
+          {{on 'input' this.setThreshold}}
+        />
+      </label>
+    {{/if}}
   </div>
 </div>

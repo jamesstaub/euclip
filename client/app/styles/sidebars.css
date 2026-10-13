@@ -329,13 +329,18 @@
   .project-bar {
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
-      'title actions'
-      'transport transport';
+      'title transport'
+      'actions actions';
     padding: 0.5rem;
   }
 
-  .project-bar__transport {
+  /* the buttons share the full-width second row rather than fighting the title for space */
+  .project-bar__actions {
     justify-self: stretch;
+  }
+
+  .project-bar__actions > :not(:last-child) {
+    flex: 1 1 auto;
   }
 
   /* one scroll container for the whole track area instead of nested ones */
@@ -506,4 +511,31 @@
     min-width: 0;
     overflow: auto;
   }
+}
+
+/* ---------- Track sequencer: page buttons first, steps after, stacking when there is no room ---------- */
+
+.track-sequencer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start; /* the step grid hugs the pager instead of drifting to the far edge */
+  gap: 0.25rem 1rem;
+  padding: 0.5rem;
+}
+
+/* <SequencePagination> is full-width by default (it heads the multislider in the footer); here it is just the pager */
+.track-sequencer > .w-100 {
+  flex: 0 0 auto;
+  width: auto;
+  margin: 0;
+}
+
+/* no pages (<= 16 steps): no empty pager box taking up a gap */
+.track-sequencer > .w-100:has(> div:empty) {
+  display: none;
+}
+
+.track-sequencer .sequencer-width {
+  margin-right: 0;
 }

@@ -27,11 +27,11 @@ export default class ControlsNodeControlsComponent extends Component {
     const start = this.controlFor('start');
     const end = this.controlFor('end');
     if (!buffer || !start || !end || !start.unitScale || !end.unitScale) return undefined;
-    return { buffer, start, end };
+    return { buffer, start, end, loop: this.controlFor('loop'), snap: this.controlFor('snap') };
   }
 
   get claimedAttrs() {
-    return this.waveform ? ['start', 'end'] : [];
+    return this.waveform ? ['start', 'end', 'snap'] : [];
   }
 
   get visibleControls() {

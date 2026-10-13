@@ -20,7 +20,7 @@ class V1::ProjectSamplesController < V1::BaseController
   end
 
   def update
-    if @sample.update(@attributes.permit(:label, :position))
+    if @sample.update(@attributes.permit(:label, :position, :onset_threshold))
       render json: ProjectSampleSerializer.new(@sample), status: :ok
     else
       render_unprocessable_entity(@sample.errors)

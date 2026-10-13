@@ -50,6 +50,7 @@ const LOOPSTEPS = 'Loop Steps';
 const RATIO = 'Ratio';
 const PAN = 'Pan';
 const PATH = 'Path';
+const SLICE = 'Slice';
 /* Bool */
 const boolean = { [BOOL]: {} };
 
@@ -76,6 +77,17 @@ const seconds = {
     max: 2, // TODO dynamically set from sequence length
     stepSize: 0.25,
     defaultValue: 0,
+  },
+};
+
+// an onset slice of a sample, by index; -1 means "not using slices" (see TrackNode#sliceRegion)
+const sliceIndex = {
+  [SLICE]: {
+    func: (index) => index,
+    min: -1,
+    max: 63,
+    stepSize: 1,
+    defaultValue: -1,
   },
 };
 
@@ -409,6 +421,9 @@ export const unitOptionsForNode = {
   loop: [BOOL],
   path: [PATH],
   pan: [PAN],
+  startSlice: [SLICE],
+  endSlice: [SLICE],
+  snap: [BOOL],
 };
 
 // each of these node params should have a merge object with specific min/max/step/default values
@@ -492,6 +507,9 @@ export const defaultNodeParamsByUnit = {
     start: dm(seconds, sampleStartEnd(0)),
     end: dm(seconds, sampleStartEnd(100)),
     loop: boolean,
+    snap: boolean,
+    startSlice: sliceIndex,
+    endSlice: sliceIndex,
     path: {},
   },
   sine: {

@@ -123,7 +123,8 @@ if (data) {
   // read the speed slider, and offset it for this step only.
   // the slider keeps its value, so the jitter never builds up
   const speed = this.controls.sampler.speed;
-  this.controls.sampler.speed = speed * (1 + (Math.random() - 0.5) * 0.1);
+  // __.random(-50, 50) is cracked's random whole number, so this is +/- 5%
+  this.controls.sampler.speed = speed * (1 + __.random(-50, 50) / 1000);
   this.playSourceNodes();
 }
 EOS

@@ -14,6 +14,8 @@ export default class ProjectSampleModel extends Model {
   @attr('string') declare path: string; // catalog path, e.g. "/Roland/TR 808/kick.mp3"
   @attr('string') declare label: string; // short name for scripts and the UI
   @attr('number') declare position: number;
+  // how sensitive onset detection is for this sample (0..1): lower finds more, quieter onsets
+  @attr('number', { defaultValue: 0.25 }) declare onsetThreshold: number;
   @attr() declare usages: { track_id: number; slot: number }[] | null;
 
   // @ts-ignore - model registry types

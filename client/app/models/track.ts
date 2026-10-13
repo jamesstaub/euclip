@@ -72,6 +72,10 @@ export default class TrackModel extends Model.extend(Evented) {
   @tracked hasBuiltAudio = false;
   // what the setup script declared with `this.declareControls(...)` during the last build, per macro type
   declaredMacroControls: Record<string, Record<string, any>> = {};
+  // how many times the primary sequence has started since the project last started from the top (`this.bar` in scripts)
+  barCount = 0;
+  // `this.state` in scripts: a plain object that keeps its values from step to step (a script's `this` is rebuilt every step)
+  scriptState: Record<string, any> = {};
   // set the moment deletion starts: blocks audio rebuilds and hides transient UI states.
   @tracked isTearingDown = false;
 
@@ -487,6 +491,7 @@ export default class TrackModel extends Model.extend(Evented) {
         filepathControls: this.filepathControls.map((f) => f.controlValue),
       });
       this.declaredMacroControls = {}; // the script declares them afresh on every build
+      this.scriptState = {}; // and a script's remembered values start empty
       initScript.invokeFunctionRef();
       debugLog('track', `#${this.order} init script done`, {
         nodes: this.settingsForNodes.map((n) => n.nodeType),
@@ -576,7 +581,13 @@ export default class TrackModel extends Model.extend(Evented) {
               .map(([key, value]) => [key, choiceIndex(mergeSchema(macroSchema ?? {}, { ...this.project?.declaredMacroControls?.[type], ...this.declaredMacroControls[type] })[key], value)])
               .filter(([, index]) => index !== undefined)
           );
-          const userSettingsForControl = { ...filterNumericAttrs(node.userSettings), ...choices };
+          // a true/false the script gave (loop: true) is the starting value of a toggle control, as 1 or 0
+          const toggles = Object.fromEntries(
+            Object.entries(node.userSettings ?? {})
+              .filter(([, value]) => typeof value === 'boolean')
+              .map(([key, value]) => [key, value ? 1 : 0])
+          );
+          const userSettingsForControl = { ...filterNumericAttrs(node.userSettings), ...toggles, ...choices };
 
           let trackNodeAttrs = {
             nodeUUID: uuid, // always update uuid since the audio nodes will be new every time
@@ -721,7 +732,7 @@ export default class TrackModel extends Model.extend(Evented) {
     this.trackNodes.forEach((trackNode) => {
       const attrs = attrsForNodes[trackNode.uniqueSelector];
       if (attrs) {
-        applyNodeAttrs(trackNode.uniqueSelector, trackNode.nodeType, attrs);
+        applyNodeAttrs(trackNode.uniqueSelector, trackNode.nodeType, trackNode.toAudioAttrs(attrs));
       }
     });
   }
@@ -766,6 +777,7 @@ export default class TrackModel extends Model.extend(Evented) {
 
     if (sequenceIndex === 0) {
       this.stepIndex = index;
+      if (index === 0) this.barCount += 1; // one more pass through the primary sequence
 
       if (this.isMaster) {
         this.project.stepIndex = index;
@@ -821,7 +833,7 @@ export default class TrackModel extends Model.extend(Evented) {
       });
       __(sourceNode.uniqueSelector)
         .stop()
-        .attr({ ...controlAttrs, ...attrs })
+        .attr(sourceNode.toAudioAttrs({ ...controlAttrs, ...attrs }))
         .start();
     };
 
@@ -840,6 +852,8 @@ export default class TrackModel extends Model.extend(Evented) {
           [macroType]: { ...this.declaredMacroControls[macroType], ...controls },
         };
       },
+      state: this.scriptState, // remembers values between steps; starts empty every time the audio is built
+      bar: Math.max(this.barCount - 1, 0), // 0 on the first pass through the sequence, then 1, 2, ...: lets a script vary what it plays each loop
       files: this.downloadedFilepaths,
       filepath: this.downloadedFilepaths[0],
       id: this.id,
@@ -861,7 +875,7 @@ export default class TrackModel extends Model.extend(Evented) {
           sourceNodes.forEach((sourceNode) => playSourceNode(sourceNode, attrs));
         }
       },
-      // plays just the n-th source node (e.g. one pad of a multi-sample kit)
+      // plays just the n-th source node (e.g. one sampler of a multi-sample kit)
       playSourceNode(index, attrs) {
         const sourceNode = sourceNodes?.[index];
         if (sourceNode) {

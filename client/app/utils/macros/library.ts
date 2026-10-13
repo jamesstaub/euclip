@@ -85,12 +85,14 @@ __()
 `;
 
 const POLYSYNTH_ONSTEP = `// A polysynth is played with noteOn and noteOff (no this.play() here).
-// Each hit plays a note from a minor pentatonic scale; the step picks the note.
-const scale = [0, 3, 5, 7, 10]; // semitones above the root
+// Each hit plays a note from a minor scale; the step picks the note. cracked's helpers do the music:
+//   __.scales('minor')   the scale as semitones above the root: [0, 2, 3, 5, 7, 8, 10]
+//   __.chance(30)        true 30% of the time (here: that note goes up an octave)
+const scale = __.scales('minor');
 const root = 48; // MIDI note number (C3)
 
 if (data) {
-  const pitch = root + scale[index % scale.length] + 12 * (index % 2);
+  const pitch = root + scale[index % scale.length] + (__.chance(30) ? 12 : 0);
 
   // Select the synth right before every call (cracked's selection is shared state).
   this.select('polysynth').polysynth('noteOn', { pitch, velocity: 100, envelope: [0.01, 0.1, 0.5] });
@@ -145,12 +147,15 @@ this.select('monosynth').start();
 `;
 
 const MONOSYNTH_ONSTEP = `// A monosynth is played with noteOn and noteOff too.
-const line = [0, 0, 7, 5, 3, 0, 10, 7]; // semitones above the root
+// cracked's helpers pick the notes: __.scales('minor') is the scale as semitones above the root,
+// __.random(min, max) a random whole number, and __.chance(percent) is true that percent of the time.
+const scale = __.scales('minor');
 const root = 36; // MIDI note number (C2)
 
-if (data) {
-  const pitch = root + line[index % line.length];
-  this.select('monosynth').monosynth('noteOn', { pitch, velocity: 100, envelope: [0.005, 0.1, 0.4] });
+// a bass line that mostly climbs the scale, with a random note thrown in now and then; some steps are rests
+if (data && __.chance(85)) {
+  const degree = __.chance(25) ? __.random(0, scale.length - 1) : index % scale.length;
+  this.select('monosynth').monosynth('noteOn', { pitch: root + scale[degree], velocity: 100, envelope: [0.005, 0.1, 0.4] });
 }
 
 // Sweep the filter over the sequence around the cutoff control: one octave either way.
@@ -258,11 +263,15 @@ __()
 this.select('siren').start();
 `;
 
-const SIREN_ONSTEP = `// Step through a few notes with the macro's own 'pitch' method, and sweep the wobble speed
-// around the control: reading this.controls gives its value, assigning offsets it for this step only.
-const notes = [57, 60, 64, 67];
-this.select('siren').siren('pitch', notes[index % notes.length]);
+const SIREN_ONSTEP = `// Step through the notes of a chord with the macro's own 'pitch' method. __.chords('minor_seventh') is the
+// chord as semitones above its root: [0, 3, 7, 10] (others: 'major', 'minor', 'seventh', 'ninth', ...).
+// __.chance(25) is true a quarter of the time: that note jumps up an octave.
+const chord = __.chords('minor_seventh');
+const note = 57 + chord[index % chord.length] + (__.chance(25) ? 12 : 0);
+this.select('siren').siren('pitch', note);
 
+// and sweep the wobble speed around the control: reading this.controls gives its value, assigning offsets it
+// for this step only.
 const sweep = 1 + 0.5 * Math.sin((index / array.length) * 2 * Math.PI);
 this.controls.siren.rate = this.controls.siren.rate * sweep;
 `;

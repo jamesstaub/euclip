@@ -53,8 +53,9 @@ class TrackType
         Try it: replace the code above with this for a little random pitch drift on every hit.
         (controls are addressed by node type, or by the id you give a node: .lowpass({ id: 'filter' }))
 
+        // __.random(min, max) is cracked's random whole number: -20..20 here, so +/- 2% after the division
         if (data) {
-          this.controls.sampler.speed *= 1 + (Math.random() - 0.5) * 0.04;
+          this.controls.sampler.speed *= 1 + __.random(-20, 20) / 1000;
           this.play();
         }
 
@@ -93,29 +94,99 @@ class TrackType
   MULTI_SAMPLER = new(
     key: 'multi_sampler',
     title: 'Multi-sample kit',
-    description: 'Four sampler pads, each with its own file, sharing one channel strip. Hits play the pads in turn.',
+    description: 'Four samplers, each with its own file, sharing one channel strip. Hits play the samplers in turn.',
     init_script: <<~JS,
-      // Four sampler "pads". Pick a file for each in the Source tab: slot n of `this.files`
-      // is the file for pad n + 1. All pads share one bus with a single channel strip.
-      __().gain({ id: 'pads' }).channelStrip().connect('#main-output');
+      // Four samplers. Pick a file for each in the Source tab: slot n of `this.files`
+      // is the file for sampler n + 1. All samplers share one bus with a single channel strip.
+      __().gain({ id: 'samplers' }).channelStrip().connect('#main-output');
 
       [0, 1, 2, 3].forEach((i) => {
         __()
-          .sampler({ id: 'pad' + (i + 1), path: this.files[i] })
-          .connect('#pads');
+          .sampler({ id: 'sampler' + (i + 1), path: this.files[i] })
+          .connect('#samplers');
       });
     JS
     onstep_script: <<~JS,
-      // Every hit plays the next pad in turn (round-robin), so the files play as one instrument.
-      // Tip: add a second sequence and use `sequenceIndex` to give a pad its own rhythm:
+      // Every hit plays the next sampler in turn (round-robin), so the files play as one instrument.
+      // Tip: add a second sequence and use `sequenceIndex` to give a sampler its own rhythm:
       //   this.playSourceNode(sequenceIndex)
-      // Tip: each pad has its own controls, addressed by the ids in the Setup script, e.g. to
-      // pitch one pad down for a single step: this.controls.pad2.speed *= 0.5
+      // Tip: each sampler has its own controls, addressed by the ids in the Setup script, e.g. to
+      // pitch one sampler down for a single step: this.controls.sampler2.speed *= 0.5
       if (data) {
         this.playSourceNode(index % 4);
       }
     JS
     sequences: [{ hits: 4, steps: 8, offset: 0 }]
+  )
+
+  CHOPPED_LOOP = new(
+    key: 'chopped_loop',
+    title: 'Chopped loop',
+    description: 'A drum loop cut into slices at its hits (onsets), played back in a shuffled order that changes every bar.',
+    init_script: <<~JS,
+      // Pick a loop (any recording of several hits) in the Source tab. euclip finds where the hits are and
+      // draws them as slice markers on the waveform; the "onset threshold" under it sets how sensitive that
+      // is (lower finds more, quieter hits), and "snap" makes the start/end markers jump to the slices.
+      //
+      // loop: true makes a slice keep repeating until the next hit; with loop: false a slice plays on past
+      // its end, into the next ones, until the next hit cuts it off.
+      __()
+        .sampler({
+          path: this.files[0],
+          loop: true,
+        })
+        .channelStrip()
+        .connect('#main-output')
+    JS
+    onstep_script: <<~JS,
+      // Every step plays one slice of the loop. The sampler's startSlice and endSlice controls choose a region
+      // by SLICE NUMBER (0, 1, 2, ...), separate from its absolute start and end (in seconds), which stay as set.
+      //   this.controls.sampler.sliceCount   how many slices the loop has (0 until it has been analysed)
+      //   this.controls.sampler.slices       where each one is: [[start, end], ...] in seconds
+      //   this.bar                           which pass through the sequence this is: 0, 1, 2, ...
+      //   this.state                         remembers values from step to step (the rest of `this` is rebuilt)
+      //
+      // The order is worked out at the start of each bar with cracked's helpers:
+      //   __.fill_array(n, fn)   an array of n values, fn(i) for each: [0, 1, 2, ...] here
+      //   __.shuffle(array)      mixes an array up (in place)
+      //   __.random(min, max)    a random whole number from min to max
+      //   __.chance(percent)     true that percent of the time
+
+      const sampler = this.controls.sampler;
+      const slices = sampler.sliceCount;
+      const STUTTER = 30; // percent: how often the random pattern repeats the slice it just played
+
+      if (slices > 0) {
+        if (index === 0 || !this.state.order) {
+          const inOrder = __.fill_array(slices, (i) => i);
+          const patterns = [
+            () => inOrder, // as recorded
+            () => __.shuffle(inOrder.slice()), // shuffled
+            () => inOrder.slice().reverse(), // backwards
+            () => {
+              // random slices, now and then stuttering (repeating the one before)
+              let last = 0;
+              return inOrder.map(() => {
+                if (!__.chance(STUTTER)) last = __.random(0, slices - 1);
+                return last;
+              });
+            },
+          ];
+          // a different pattern each bar, round and round
+          this.state.order = patterns[this.bar % patterns.length]();
+        }
+
+        // this step's slice: set both slice controls to it (this step only; the controls keep their values)
+        const slice = this.state.order[index % slices];
+        sampler.startSlice = slice;
+        sampler.endSlice = slice;
+      }
+
+      if (data) {
+        this.play({ loop: true });
+      }
+    JS
+    sequences: [{ hits: 8, steps: 8, offset: 0 }]
   )
 
   HUMANIZED_SAMPLER = new(
@@ -140,12 +211,15 @@ class TrackType
       // Reading a control gives its slider value. Assigning to it offsets the audio for this step
       // only: the slider stays where you left it and the next step starts from it again, so the
       // randomness never drifts or builds up. Move a slider and the whole thing re-centres.
-      const around = (amount) => 1 + (Math.random() - 0.5) * 2 * amount;
+      // __.random(-100, 100) is a random whole number from -100 to 100, so this is 1 +/- `amount`
+      const around = (amount) => 1 + (__.random(-100, 100) / 100) * amount;
 
       if (data) {
         this.controls.sampler.speed *= around(0.03); // +/- 3% pitch
         this.controls.level.gain *= around(0.15);    // +/- 15% level
         this.controls.filter.frequency *= around(0.25); // +/- 25% brightness
+        // __.chance(20) is true one time in five: now and then a hit is a soft "ghost" note
+        if (__.chance(20)) this.controls.level.gain *= 0.4;
         this.play(); // plays with the offsets above
       }
     JS
@@ -202,16 +276,19 @@ class TrackType
       this.select('sine').start();
     JS
     onstep_script: <<~JS,
-      // Each hit plays the next note of a major pentatonic scale. Notes are ratios of the root,
-      // so changing the frequency control transposes the whole line.
+      // Each hit plays the next note of a minor scale above the root (the frequency control), going round.
+      // __.scales('minor') is the scale as semitones above the root: [0, 2, 3, 5, 7, 8, 10]
+      // (also: 'major', 'wholetone', 'overtone', 'lydian', 'mixolydian' and 'ionian').
       //
       // Assigning this.controls.lead.frequency sets the pitch for this step only; the control keeps
       // the root, and the next step reads it back.
-      const scale = [1, 9 / 8, 5 / 4, 3 / 2, 5 / 3];
+      const scale = __.scales('minor');
 
       if (data) {
         const root = this.controls.lead.frequency;
-        this.controls.lead.frequency = root * scale[index % scale.length];
+        // __.chance(20) is true one time in five: that note goes up an octave
+        const semitones = scale[index % scale.length] + (__.chance(20) ? 12 : 0);
+        this.controls.lead.frequency = root * Math.pow(2, semitones / 12);
         this.playADSRNodes(); // open the envelope
       }
     JS
@@ -235,25 +312,27 @@ class TrackType
         .connect('#main-output')
     JS
     onstep_script: <<~JS,
-      // On every hit, play a note from a minor pentatonic scale. The step picks the note.
-      const scale = [0, 3, 5, 7, 10]; // semitones above the root
+      // On every hit, play a note from a minor scale. The step picks the note; __.chance(30) (true 30% of the
+      // time) sends it up an octave. __.scales('minor') is the scale as semitones above the root.
+      const scale = __.scales('minor');
       const root = 48; // MIDI note number (C3)
 
       if (data) {
-        const pitch = root + scale[index % scale.length] + 12 * (index % 2);
+        const pitch = root + scale[index % scale.length] + (__.chance(30) ? 12 : 0);
 
         // Note: cracked's selection is global state shared by everything that runs. Select the synth
         // right before every call, including inside the timeout: a selection stored in a variable
         // would by then point at whatever was selected last, and the note would never be released.
         this.select('polysynth').polysynth('noteOn', { pitch, velocity: 100, envelope: [0.01, 0.1, 0.5] });
 
-        setTimeout(() => this.select('polysynth').polysynth('noteOff', { pitch }), this.stepMs * 2);
+        // release before the next step so voices don't pile up (`this.stepMs` is the length of a step)
+        setTimeout(() => this.select('polysynth').polysynth('noteOff', { pitch }), this.stepMs * 0.8);
       }
     JS
     sequences: [{ hits: 5, steps: 8, offset: 0 }]
   )
 
-  ALL = [SAMPLER, LOOPED_SAMPLER, MULTI_SAMPLER, HUMANIZED_SAMPLER, FILTER_SWEEP, OSCILLATOR_ARP, POLYSYNTH].freeze
+  ALL = [SAMPLER, LOOPED_SAMPLER, MULTI_SAMPLER, CHOPPED_LOOP, HUMANIZED_SAMPLER, FILTER_SWEEP, OSCILLATOR_ARP, POLYSYNTH].freeze
 
   def self.all
     ALL

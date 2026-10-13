@@ -23,7 +23,6 @@
           />
         </div>
         <div class='project-bar__actions'>
-          <ButtonPrimary @label='Samples' data-test-pool-toggle aria-pressed={{if uiState.poolOpen 'true' 'false'}} {{on 'click' uiState.togglePool}} />
           <ButtonPrimary @label={{'New Track'}} {{on 'click' (fn this.createTrack 'sampler')}} />
           <DropdownMenu
             class='h-100 grow-1 bg-dark-gray ba bl-0 bw1 b--yellow ph2'

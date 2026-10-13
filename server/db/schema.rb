@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2025_10_16_000000) do
+ActiveRecord::Schema[7.0].define(version: 2025_10_17_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -91,6 +91,7 @@ ActiveRecord::Schema[7.0].define(version: 2025_10_16_000000) do
     t.integer "position", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.float "onset_threshold", default: 0.25, null: false
     t.index ["project_id", "label"], name: "index_project_samples_on_project_id_and_label", unique: true
     t.index ["project_id", "path"], name: "index_project_samples_on_project_id_and_path", unique: true
     t.index ["project_id"], name: "index_project_samples_on_project_id"

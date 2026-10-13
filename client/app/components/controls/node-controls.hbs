@@ -13,8 +13,11 @@
   {{#if this.waveform}}
     <Controls::WaveformSurface
       @buffer={{this.waveform.buffer}}
+      @trackNode={{@trackNode}}
       @startControl={{this.waveform.start}}
       @endControl={{this.waveform.end}}
+      @loopControl={{this.waveform.loop}}
+      @snapControl={{this.waveform.snap}}
       @onChange={{@updateControl}}
     />
   {{/if}}
