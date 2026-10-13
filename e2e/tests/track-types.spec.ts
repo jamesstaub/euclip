@@ -35,7 +35,7 @@ test.describe('track types in the New Track menu', () => {
 
   test('lists the types the API offers', async ({ page }) => {
     await page.getByRole('button', { name: 'New Track' }).locator('..').getByRole('button').last().click();
-    for (const title of ['Sampler', 'Looped sampler', 'Multi-sample kit', 'Humanized sampler', 'Filter sweep', 'Oscillator arpeggio', 'Polysynth', 'Drum Machine']) {
+    for (const title of ['Sampler', 'Looped sampler', 'Multi-sample kit', 'Chopped loop', 'Humanized sampler', 'Filter sweep', 'Oscillator arpeggio', 'Polysynth', 'From sounds…']) {
       await expect(page.getByText(title, { exact: true })).toBeVisible();
     }
   });

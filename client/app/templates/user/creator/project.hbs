@@ -29,7 +29,7 @@
             @icon='fi-play'
             @iconClass='yellow-fill rotate-90'
             @closeOnSelect={{true}}
-            @items={{append this.trackTypeMenuItems (array (hash label='Drum Machine' select=uiState.openCreateFromDirectory))}}
+            @items={{append this.trackTypeMenuItems (array (hash label='From sounds…' select=uiState.openCreateFromDirectory))}}
           />
         </div>
       </header>
@@ -50,6 +50,7 @@
             @project={{this.model}}
             @activeTrack={{this.activeTrack}}
             @onTracksCreated={{this.onTracksCreated}}
+            @onCreateKit={{this.createKitFromFiles}}
             @defaultAudioFileTree={{this.defaultAudioFileTree}}
             @audioSelectMode={{uiState.audioSelectMode}}
             @tab={{uiState.leftTab}}

@@ -184,6 +184,7 @@ export default class UserCreatorProjectController extends Controller {
         applyTrackTypeControls(track, type.controls);
       }
       this.sortedTracks = [...this.sortedTracks, track];
+      return track;
     } catch (error) {
       this.notifications.push({
         type: 'error',
@@ -191,6 +192,18 @@ export default class UserCreatorProjectController extends Controller {
       });
       console.error(error);
     }
+  }
+
+  // One Multi-sample kit track with a sampler for each path (the sound browser's "1 kit track" action).
+  // Setting the files one after another is safe: the track queues them and rebuilds its audio each time.
+  @action
+  async createKitFromFiles(paths) {
+    const track = await this.createTrack('multi_sampler');
+    if (!track) return undefined;
+    for (const [slot, path] of paths.entries()) {
+      await track.setFile(slot, path);
+    }
+    return track;
   }
 
   @action

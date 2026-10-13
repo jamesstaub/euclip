@@ -1,0 +1,36 @@
+{{! template-lint-disable no-down-event-binding }}
+{{! keydown is the point here: arrow keys move through the list and must act on press, as in any native listbox }}
+<ul
+  class='sound-list sidebar-fill'
+  role='listbox'
+  tabindex='0'
+  aria-label='Sounds'
+  aria-activedescendant={{this.activeId}}
+  data-test-sound-list
+  {{on 'keydown' this.onKeydown}}
+  ...attributes
+>
+  {{#each this.rows key='path' as |row|}}
+    <Sounds::Row
+      id={{row.id}}
+      @name={{row.name}}
+      @path={{row.path}}
+      @folder={{row.folder}}
+      @selected={{row.selected}}
+      @playing={{row.playing}}
+      @loading={{row.loading}}
+      @detail={{row.detail}}
+      @badge={{row.badge}}
+      @showCheck={{@showCheck}}
+      @checked={{row.checked}}
+      @onOpen={{fn this.open row}}
+      @onPlay={{fn this.play row}}
+      @onSelect={{fn this.select row}}
+      @showUse={{not @showCheck}}
+      @onUse={{if @showCheck (fn this.toggle row) (fn this.use row)}}
+      @onToggle={{fn this.toggle row}}
+    />
+  {{else}}
+    <li class='sound-empty' role='option' aria-disabled='true' aria-selected='false'>Nothing here.</li>
+  {{/each}}
+</ul>

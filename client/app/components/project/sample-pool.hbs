@@ -1,73 +1,60 @@
+{{! template-lint-disable no-down-event-binding }}
+{{! renaming: Enter and Escape on keydown, as in any text field }}
 <div class='flex flex-column sidebar-fill' data-test-sample-pool {{did-insert this.load}}>
-  <div class='pa3 f6 light-gray sans-serif'>{{@project.projectSamples.length}} sample{{unless (eq @project.projectSamples.length 1) 's'}}</div>
-    <ul class='list ma0 pa0 overflow-y-auto sidebar-fill' data-test-pool-list>
-      {{#each this.rows key='sample.id' as |row|}}
-        <li
-          class='ph3 pv2 bb b--dark-gray light-gray'
-          data-test-pool-sample
-          data-sample-path={{row.sample.path}}
-          data-sample-state={{row.state}}
+  <p class='sound-count' aria-live='polite'>{{this.countText}}</p>
+  <ul class='sound-list sound-list--plain sidebar-fill' aria-label='Sounds in this project' data-test-pool-list>
+    {{#each this.rows key='sample.id' as |row|}}
+      <li
+        class='sound-row {{if row.playing "sound-row--playing"}}'
+        data-test-pool-sample
+        data-test-sound-row
+        data-sample-path={{row.sample.path}}
+        data-sample-state={{row.state}}
+      >
+        <button
+          type='button'
+          class='sound-row__play'
+          aria-label='{{if row.playing "Stop" "Audition"}} {{row.sample.label}}'
+          title='Play'
+          {{on 'click' (fn this.preview row.sample)}}
         >
-          <div class='flex items-center'>
-            <button
-              type='button'
-              class='bn bg-transparent yellow pointer pa1 mr2'
-              aria-label='Preview {{row.sample.label}}'
-              title='Play'
-              {{on 'click' (fn this.preview row.sample)}}
-            >▶</button>
-            {{#if (eq this.renamingId row.sample.id)}}
-              <input
-                type='text'
-                class='f6 pv1 ph2 grow-1'
-                aria-label='Sample name'
-                value={{row.sample.label}}
-                {{did-insert this.focusInput}}
-                {{on 'keydown' (fn this.onRenameKey row.sample)}}
-                {{on 'blur' (fn this.commitRename row.sample)}}
-              />
-            {{else}}
-              <span
-                class='grow-1 truncate fw6'
-                title='{{row.sample.path}} (double-click to rename)'
-                data-test-pool-label
-                {{on 'dblclick' (fn this.startRename row.sample)}}
-              >{{row.sample.label}}</span>
-            {{/if}}
-            <span class='f7 gray ml2 nowrap' data-test-pool-state>
-              {{#if (eq row.state 'ready')}}{{row.durationText}}{{else if (eq row.state 'error')}}<span class='red' title={{row.audio.error}}>failed</span>{{else if (eq row.state 'loading')}}…{{/if}}
-            </span>
-            <button
-              type='button'
-              class='bn bg-transparent gray pointer pa1 ml2'
-              aria-label='Remove {{row.sample.label}}'
-              title={{if row.used 'Used by a track: remove it from the track first' 'Remove from the pool'}}
-              disabled={{row.used}}
-              {{on 'click' (fn this.remove row.sample)}}
-            >×</button>
-          </div>
-          <div class='flex items-center flex-wrap f7 gray mt1'>
-            <span data-test-pool-usage>
-              {{#if row.used}}Used by {{row.usedByText}}{{else}}Not used{{/if}}
-            </span>
-            {{#if this.hasSlots}}
-              <span class='ml-auto'>
-                {{#each row.slots as |slot|}}
-                  <button
-                    type='button'
-                    class='f7 ba b--yellow bg-transparent yellow pointer ph2 pv1 ml1'
-                    aria-pressed={{if slot.assigned 'true' 'false'}}
-                    data-test-pool-use
-                    title='Use on slot {{slot.number}} of the selected track'
-                    {{on 'click' (fn this.assign row.sample slot.index)}}
-                  >{{#if slot.assigned}}✓ {{/if}}Slot {{slot.number}}</button>
-                {{/each}}
-              </span>
-            {{/if}}
-          </div>
-        </li>
-      {{else}}
-        <li class='pa3 gray f6' data-test-pool-empty>No samples yet. Pick a sound for a track in the Browse tab and it appears here.</li>
-      {{/each}}
-    </ul>
+          {{#if row.playing}}<span class='eq' aria-hidden='true'><i></i><i></i><i></i></span>{{else}}<span aria-hidden='true'>▶</span>{{/if}}
+        </button>
+        {{#if (eq this.renamingId row.sample.id)}}
+          <input
+            type='text'
+            class='sound-row__rename'
+            aria-label='Sample name'
+            value={{row.sample.label}}
+            {{did-insert this.focusInput}}
+            {{on 'keydown' (fn this.onRenameKey row.sample)}}
+            {{on 'blur' (fn this.commitRename row.sample)}}
+          />
+        {{else}}
+          <button
+            type='button'
+            class='sound-row__name'
+            title='{{row.sample.path}} (double-click to rename)'
+            data-test-pool-label
+            {{on 'dblclick' (fn this.startRename row.sample)}}
+          ><span class='truncate'>{{row.sample.label}}</span></button>
+        {{/if}}
+        <span class='sound-row__detail' data-test-pool-state>
+          {{#if (eq row.state 'ready')}}{{row.durationText}}{{else if (eq row.state 'error')}}<span class='red' title={{row.audio.error}}>failed</span>{{else if (eq row.state 'loading')}}…{{/if}}
+        </span>
+        <span class='sound-row__badge {{unless row.used "sound-row__badge--quiet"}}' data-test-pool-usage data-test-sound-badge>{{if row.used (or row.badge row.usedByText) 'not used'}}</span>
+        <button type='button' class='sound-row__use' data-test-pool-use data-test-sound-use {{on 'click' (fn this.use row.sample)}}>Use <kbd aria-hidden='true'>⏎</kbd></button>
+        <DropdownMenu
+          class='sound-row__menu'
+          aria-label='More about {{row.sample.label}}'
+          data-test-pool-menu
+          @closeOnSelect={{true}}
+          @iconClass='light-fill'
+          @items={{row.menu}}
+        />
+      </li>
+    {{else}}
+      <li class='sound-empty' data-test-pool-empty>No sounds yet. Use a sound from <b>All sounds</b> and it is added here.</li>
+    {{/each}}
+  </ul>
 </div>

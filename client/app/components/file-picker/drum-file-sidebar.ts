@@ -1,19 +1,23 @@
 import Component from '@glimmer/component';
-import SoundFileModel from 'euclip/models/sound-file';
 import { service } from '@ember/service';
-import type StoreService from '@ember-data/store';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import type TrackModel from 'euclip/models/track';
 import type AudioFileTreeModel from 'euclip/models/audio-file-tree';
 import type { DirectoryModel } from 'euclip/models/audio-file-tree';
 import type { AudioSelectMode } from 'euclip/components/project/ui-state';
+import type SamplePoolService from 'euclip/services/sample-pool';
+import type NotificationsService from 'euclip/services/notifications';
+import type { Notification } from 'euclip/services/notifications';
 import ProjectModel from 'euclip/models/project';
 import { TrackState } from 'euclip/models/track';
-import { playAudioFile } from 'euclip/utils/cracked';
+import { assignSound, clearSound, nextEmptySampler, samplerSlots, soundName } from 'euclip/utils/sampler-files';
 
 export const buildPath = (dirPath: string, item: string) =>
   dirPath.endsWith('/') ? `${dirPath}${item}` : `${dirPath}/${item}`;
+
+/** a kit has four samplers (see the Multi-sample kit track type) */
+const KIT_SIZE = 4;
 
 interface FilePickerDrumFileSidebarSignature {
   Args: {
@@ -28,6 +32,8 @@ interface FilePickerDrumFileSidebarSignature {
     setSelectedSourceIdx?: (idx: number) => void;
     onCloseSidebar?: () => void;
     onTracksCreated?: (tracks: TrackModel[]) => void;
+    /** makes one kit track with a sampler for each path; resolves with the track */
+    onCreateKit?: (paths: string[]) => Promise<TrackModel | undefined>;
   };
 }
 
@@ -37,8 +43,14 @@ interface SelectedAudioFile {
   isSelected: boolean;
 }
 
+/**
+ * The "Sounds" browser. What it is doing is set by its *target* (shown in the target card): a sampler of the active
+ * track, or "new tracks". Browsing plays sounds; "Use" puts the sound at the target (and moves the target on to the
+ * next empty sampler), or, when the target is new tracks, adds it to the selection.
+ */
 export default class FilePickerDrumFileSidebarComponent extends Component<FilePickerDrumFileSidebarSignature> {
-  @service declare store: StoreService;
+  @service declare samplePool: SamplePoolService;
+  @service declare notifications: NotificationsService;
 
   // The source node being edited: the same selection as the source menu's node tabs (the project UI state
   // holds it), so both always show which node of which track a picked file goes to.
@@ -46,8 +58,9 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
     const count = this.args.activeTrack?.sourceNodeRecords.length ?? 0;
     return Math.min(this.args.selectedSourceIdx ?? 0, Math.max(0, count - 1));
   }
-  @tracked isDownloading = false;
   @tracked selectedFiles: SelectedAudioFile[] = [];
+  @tracked isCreating = false;
+  private undoToast: Notification | null = null;
 
   get selectedNode() {
     // Only available in 'current_track' mode when we have an active track
@@ -72,21 +85,10 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
     return null;
   }
 
-  // the sample pool is a tab of its own; creating tracks from files is only about the catalog
-  get showPool(): boolean {
-    return this.args.tab === 'pool' && this.isCurrentTrackMode;
-  }
-
-  get tabs() {
-    return [
-      { label: 'Sample Pool', value: 'pool', order: 0 },
-      { label: 'Browse', value: 'browse', order: 1 },
-    ];
-  }
-
-  get title(): string {
-    if (!this.isCurrentTrackMode) return 'Create Tracks From Selection';
-    return this.showPool ? 'Sample Pool' : `Select Sampler For Track ${this.args.activeTrack?.order ?? ''}`;
+  // the folder being shown: the deepest one of the tree (the ones before it are its ancestors)
+  get currentDirectory(): DirectoryModel | undefined {
+    const tree = this.audioFileTreeForMode?.directoryTree ?? [];
+    return tree[tree.length - 1];
   }
 
   get isCurrentTrackMode() {
@@ -97,57 +99,109 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
     return this.args.audioSelectMode === 'create_tracks';
   }
 
-  async downloadFile(filepath: string): Promise<SoundFileModel> {
-    this.isDownloading = true;
-    const soundFile = await SoundFileModel.findOrDownload(filepath, this.store);
-    this.isDownloading = false;
-    return soundFile;
+  // "In this project" (the sample pool) is a shelf of its own; creating tracks is only about the catalog
+  get showPool(): boolean {
+    return this.args.tab === 'pool' && this.isCurrentTrackMode;
+  }
+
+  get segments() {
+    return [
+      { label: 'In this project', value: 'pool', count: this.args.project?.projectSamples?.length ?? 0, showCount: true },
+      { label: 'All sounds', value: 'browse' },
+    ];
+  }
+
+  get segment(): string {
+    return this.showPool ? 'pool' : 'browse';
+  }
+
+  get title(): string {
+    return 'Sounds';
+  }
+
+  // where each sound already lives on the target track: path -> "Sampler 2"
+  get badges(): Record<string, string> {
+    if (this.isCreateTracksMode) return {};
+    const slots = samplerSlots(this.args.activeTrack);
+    const kit = slots.length > 1;
+    const badges: Record<string, string> = {};
+    for (const slot of slots) {
+      if (slot.path) badges[slot.path] = kit ? `Sampler ${slot.number}` : 'In use';
+    }
+    return badges;
+  }
+
+  get selectedPaths(): string[] {
+    return this.selectedFiles.map((file) => file.filepath);
+  }
+
+  // a kit has four samplers: make one from two to four sounds
+  get kitDisabled(): boolean {
+    return this.selectedFiles.length < 2 || this.selectedFiles.length > KIT_SIZE;
   }
 
   @action
-  selectTargetSlot(idx: number) {
-    this.args.setSelectedSourceIdx?.(idx);
+  setSegment(value: 'pool' | 'browse') {
+    this.args.setTab?.(value);
+  }
+
+  // ---- target -------------------------------------------------------------------------------------
+
+  @action
+  selectSampler(index: number) {
+    this.args.setAudioSelectMode?.('current_track');
+    this.args.setSelectedSourceIdx?.(index);
   }
 
   @action
-  setUi(key: string, value: any) {
-    // @ts-ignore
-    this[key] = value;
+  targetNewTracks() {
+    this.args.setAudioSelectMode?.('create_tracks');
+    this.args.setTab?.('browse');
+  }
+
+  // ---- browsing -----------------------------------------------------------------------------------
+
+  @action
+  async openFolder(directory: DirectoryModel, name: string) {
+    await this.audioFileTreeForMode?.appendDirectoriesData(buildPath(directory.path, name));
+  }
+
+  // one folder up. The root has no parent.
+  @action
+  async goUp() {
+    const directory = this.currentDirectory;
+    if (!directory) return;
+    const names = directory.path.split('/').filter(Boolean);
+    if (!names.length) return;
+    await this.audioFileTreeForMode?.appendDirectoriesData(`/${names.slice(0, -1).join('/')}`);
   }
 
   @action
-  async previewAudioFile(filepath: string) {
-    const soundFile: SoundFileModel = await this.downloadFile(filepath);
-    playAudioFile(soundFile.downloadedURI);
+  audition(path: string) {
+    this.samplePool.previewPath(path);
   }
 
+  // ---- using a sound ------------------------------------------------------------------------------
+
+  /** "Use": a sound goes to the target sampler, or (creating tracks) joins the selection */
   @action
-  async onSelectItem(directory: DirectoryModel, item: string) {
-    const fileTree = this.audioFileTreeForMode;
-    if (!fileTree) {
-      console.error('No audio file tree available for current mode');
+  async useSound(path: string) {
+    if (this.isCreateTracksMode) {
+      this.toggleFileSelection(path);
       return;
     }
-
-    const selection = buildPath(directory.path, item);
-
-    if (directory.type === 'dir') {
-      await fileTree.appendDirectoriesData(selection);
-    } else if (
-      directory.type === 'audio' &&
-      this.isCurrentTrackMode &&
-      this.args.activeTrack
-    ) {
-      return this.saveFilepathControl(selection, this.args.activeTrack);
+    if (this.args.activeTrack) {
+      await this.saveFilepathControl(path, this.args.activeTrack);
     }
   }
 
   @action
-  async saveFilepathControl(
-    filepath: string,
-    track: TrackModel
-  ): Promise<void> {
+  async saveFilepathControl(filepath: string, track: TrackModel): Promise<void> {
     track.state = TrackState.SAVED;
+
+    // the previous pick's Undo is out of date the moment another pick starts (the new one has no toast yet,
+    // and undoing the old one would empty the sampler that was just filled)
+    this.dismissUndo();
 
     try {
       // the selected sampler node decides the slot: the n-th sampler of the track gets the n-th file
@@ -155,37 +209,62 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
       const sampler =
         this.selectedNode?.nodeType === 'sampler' ? this.selectedNode : track.samplerNodes[0];
       const slot = sampler?.orderOfType ?? 0;
-      await track.setFile(slot, filepath);
+      const hereIndex = this.targetNodeIdx;
+      const previous = await assignSound(track, slot, filepath);
       track.state = TrackState.SETUP;
-      this.advanceTarget(track);
+      this.afterAssign(track, slot, filepath, previous, hereIndex);
     } catch (error) {
       track.state = TrackState.ERROR;
       console.error('Error saving filepath control: ', error);
     }
   }
 
-  /**
-   * After a sound lands in a sampler, the next empty sampler of the track becomes the target, so filling a
-   * kit is one pick after another. Stays put when every sampler has a sound.
-   */
-  private advanceTarget(track: TrackModel) {
-    const filled = new Set(
-      track.sortedFilepathControls.filter((control) => control.controlValue).map((control) => control.nodeOrder)
-    );
-    const empty = track.sourceNodeRecords
-      .map((node, index) => ({ node, index }))
-      .filter(({ node }) => node.nodeType === 'sampler' && !filled.has(node.orderOfType));
-    if (!empty.length) return;
-    const next = empty.find(({ index }) => index > this.targetNodeIdx) ?? empty[0];
-    this.args.setSelectedSourceIdx?.(next.index);
+  private dismissUndo() {
+    if (this.undoToast) this.notifications.remove(this.undoToast);
+    this.undoToast = null;
+  }
+
+  // the target moves on to the next empty sampler, and a toast says what happened (with Undo)
+  private afterAssign(track: TrackModel, slot: number, filepath: string, previous: string, hereIndex: number) {
+    this.samplePool.refresh(this.args.project); // the pool gains the sound and shows who uses it
+    const slots = samplerSlots(track);
+    const kit = slots.length > 1;
+    const next = nextEmptySampler(track, hereIndex);
+    if (next) this.args.setSelectedSourceIdx?.(next.index);
+
+    const name = soundName(filepath);
+    const message = kit
+      ? `Sampler ${slot + 1} ← ${name}${next ? `. Next: Sampler ${next.number}` : ''}`
+      : `${name} is now track ${track.order}'s sound`;
+    this.dismissUndo();
+    const toast: Notification = {
+      type: 'success',
+      message,
+      actionLabel: 'Undo',
+      timeout: 6000,
+      action: () => {
+        const restore = previous ? assignSound(track, slot, previous) : clearSound(track, slot);
+        Promise.resolve(restore).then(() => {
+          this.samplePool.refresh(this.args.project);
+          const here = slots.find((item) => item.slot === slot);
+          if (here) this.args.setSelectedSourceIdx?.(here.index);
+        });
+      },
+    };
+    this.undoToast = toast;
+    this.notifications.push(toast);
   }
 
   @action
   async onSelectFileFromSearch(filepath: string): Promise<void> {
-    if (this.args.activeTrack) {
+    if (this.isCreateTracksMode) {
+      this.toggleFileSelection(filepath);
+    } else if (this.args.activeTrack) {
       return this.saveFilepathControl(filepath, this.args.activeTrack);
     }
   }
+
+  // ---- creating tracks ----------------------------------------------------------------------------
 
   @action
   async onTracksCreated(tracks: TrackModel[]): Promise<void> {
@@ -196,62 +275,60 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
 
   @action
   toggleFileSelection(filepath: string) {
-    const existingFile = this.selectedFiles.find(
-      (f) => f.filepath === filepath
-    );
+    const existingFile = this.selectedFiles.find((f) => f.filepath === filepath);
 
     if (existingFile) {
-      // File is already selected, remove it
-      this.selectedFiles = this.selectedFiles.filter(
-        (f) => f.filepath !== filepath
-      );
+      this.selectedFiles = this.selectedFiles.filter((f) => f.filepath !== filepath);
     } else {
-      // File is not selected, add it (unlimited selections allowed)
-      const filename = filepath.split('/').pop() || filepath;
-      const newFile: SelectedAudioFile = {
-        filepath,
-        filename,
-        isSelected: true,
-      };
-      this.selectedFiles = [...this.selectedFiles, newFile];
+      this.selectedFiles = [
+        ...this.selectedFiles,
+        { filepath, filename: soundName(filepath) || filepath, isSelected: true },
+      ];
     }
   }
 
   @action
+  clearSelection() {
+    this.selectedFiles = [];
+  }
+
+  // one track for each selected sound
+  @action
   async submitSelectedFiles() {
-    if (this.selectedFiles.length === 0) {
-      return;
+    if (!this.selectedFiles.length || !this.isCreateTracksMode || this.isCreating) return;
+    this.isCreating = true;
+
+    const trackConfigs = this.selectedFiles.map((file, index) => ({
+      attributes: { hits: 0, steps: 8 },
+      filepath: file.filepath,
+      trackNumber: this.getNextAvailableTrackNumber() + index,
+    }));
+
+    try {
+      const tracks = await ProjectModel.createMultipleTracksInBulk(this.args.project, trackConfigs);
+      this.args.onTracksCreated?.(tracks);
+      this.selectedFiles = [];
+      this.args.onCloseSidebar?.();
+    } catch (error) {
+      console.error('Error creating tracks from selected files:', error);
+    } finally {
+      this.isCreating = false;
     }
+  }
 
-    // This method is now only called in "create_tracks" mode
-    // since "current_track" mode uses direct click behavior
-    if (this.isCreateTracksMode) {
-      // In create tracks mode, create tracks for all selected files
-      const trackConfigs = this.selectedFiles.map((file, index) => ({
-        attributes: { hits: 0, steps: 8 },
-        filepath: file.filepath,
-        trackNumber: this.getNextAvailableTrackNumber() + index,
-      }));
-
-      try {
-        const tracks = await ProjectModel.createMultipleTracksInBulk(
-          this.args.project,
-          trackConfigs
-        );
-
-        if (this.args.onTracksCreated) {
-          this.args.onTracksCreated(tracks);
-        }
-
-        if (this.args.onCloseSidebar) {
-          this.args.onCloseSidebar();
-        }
-
-        // Clear selections after creating tracks
-        this.selectedFiles = [];
-      } catch (error) {
-        console.error('Error creating tracks from selected files:', error);
-      }
+  // one kit track with a sampler for each selected sound
+  @action
+  async createKit() {
+    if (this.kitDisabled || this.isCreating || !this.args.onCreateKit) return;
+    this.isCreating = true;
+    try {
+      await this.args.onCreateKit(this.selectedFiles.map((file) => file.filepath));
+      this.selectedFiles = [];
+      this.args.onCloseSidebar?.();
+    } catch (error) {
+      console.error('Error creating a kit from selected files:', error);
+    } finally {
+      this.isCreating = false;
     }
   }
 
@@ -262,5 +339,18 @@ export default class FilePickerDrumFileSidebarComponent extends Component<FilePi
         ? Math.max(...existingTracks.map((t) => t.order))
         : 0;
     return maxTrackNumber + 1;
+  }
+
+  // "/" jumps to the search box, as in most file browsers
+  @action
+  onKeydown(event: KeyboardEvent) {
+    const target = event.target as HTMLElement;
+    if (event.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
+      const search = (event.currentTarget as HTMLElement).querySelector<HTMLInputElement>('[data-test-sound-search]');
+      if (search) {
+        event.preventDefault();
+        search.focus();
+      }
+    }
   }
 }

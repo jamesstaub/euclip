@@ -1,0 +1,27 @@
+<section class='selection-tray sidebar-footer' aria-label='Selected sounds' data-test-selection-tray ...attributes>
+  <ul class='selection-tray__chips'>
+    {{#each @files as |file|}}
+      <li class='selection-chip'>
+        {{file.filename}}
+        <button type='button' aria-label='Remove {{file.filename}}' {{on 'click' (fn @onRemove file.filepath)}}>×</button>
+      </li>
+    {{/each}}
+  </ul>
+  <div class='selection-tray__actions'>
+    <ButtonPrimary
+      class='selection-tray__btn'
+      data-test-create-tracks
+      @label='{{@files.length}} {{if (eq @files.length 1) "track" "tracks"}}'
+      disabled={{@busy}}
+      {{on 'click' @onTracks}}
+    />
+    <ButtonPrimary
+      class='selection-tray__btn selection-tray__btn--primary'
+      data-test-create-kit
+      @label='1 kit track · {{@files.length}} {{if (eq @files.length 1) "sampler" "samplers"}}'
+      title={{if @kitDisabled 'A kit has four samplers: select two to four sounds' 'One track with a sampler for each sound'}}
+      disabled={{or @busy @kitDisabled}}
+      {{on 'click' @onKit}}
+    />
+  </div>
+</section>

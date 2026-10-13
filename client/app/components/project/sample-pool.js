@@ -6,9 +6,9 @@ import byKey from 'euclip/utils/by-key';
 
 /**
  * The project's sample pool, shown in the left sidebar: every sample the project uses, shared by all
- * snapshots. Rows can be previewed, renamed, assigned to a sampler slot of the active track, and removed
- * (not while a track uses them). It is the "Sample Pool" tab of the left sidebar; the other tab, "Browse",
- * searches the catalog.
+ * snapshots. Rows can be previewed, renamed, used on the target sampler, and removed
+ * (not while a track uses them). It is the "In this project" shelf of the sound browser; "All sounds"
+ * browses the catalog.
  */
 export default class ProjectSamplePoolComponent extends Component {
   @service samplePool;
@@ -16,10 +16,14 @@ export default class ProjectSamplePoolComponent extends Component {
 
   @tracked renamingId = null;
 
+  get countText() {
+    const count = this.args.project.projectSamples.length;
+    return `${count} sound${count === 1 ? '' : 's'} in this project`;
+  }
+
   get rows() {
-    const { project, activeTrack } = this.args;
+    const { project } = this.args;
     const trackNumbers = new Map(project.tracks.map((track) => [Number(track.id), track.isMaster ? 'Main' : track.order]));
-    const slots = activeTrack?.samplerNodes ?? [];
     return project.projectSamples
       .slice()
       .sort(byKey('position'))
@@ -37,20 +41,20 @@ export default class ProjectSamplePoolComponent extends Component {
             .map((n) => `track ${n}`)
             .join(', '),
           used: trackIds.length > 0,
-          // the active track's sampler slots, and whether each plays this sample
-          slots: slots.map((_, index) => ({
-            index,
-            number: index + 1,
-            assigned: (activeTrack?.sortedFilepathControls ?? []).some(
-              (control) => control.nodeOrder === index && control.controlValue === sample.path
-            ),
-          })),
+          // where this sample already plays on the active track ("Sampler 2"), else which tracks use it
+          badge: this.args.badges?.[sample.path] ?? (trackIds.length ? this.usedByLabel(trackIds, trackNumbers) : ''),
+          playing: this.samplePool.playingPath === (sample.path.startsWith('/') ? sample.path : `/${sample.path}`),
+          menu: [
+            { label: 'Rename', select: () => this.startRename(sample) },
+            { label: 'Remove from project', select: () => this.remove(sample) },
+          ],
         };
       });
   }
 
-  get hasSlots() {
-    return (this.args.activeTrack?.samplerNodes?.length ?? 0) > 0;
+  usedByLabel(trackIds, trackNumbers) {
+    const numbers = trackIds.map((id) => trackNumbers.get(id)).filter((n) => n !== undefined);
+    return `track ${numbers.join(', ')}`;
   }
 
   // opening the pool brings it up to date (tracks add files to it as they pick them) and starts loading its audio
@@ -104,17 +108,9 @@ export default class ProjectSamplePoolComponent extends Component {
     }
   }
 
-  // puts the sample into one sampler slot of the active track
+  // "Use": the sample goes where the sound browser's target card says (the browser does the work, with Undo)
   @action
-  async assign(sample, slot) {
-    const track = this.args.activeTrack;
-    if (!track) return;
-    try {
-      await track.setFile(slot, sample.path);
-      await this.samplePool.refresh(this.args.project); // so "used by" is current
-    } catch (error) {
-      this.notifications.push({ type: 'error', message: 'Could not use this sample' });
-      console.error(error);
-    }
+  use(sample) {
+    this.args.onUse?.(sample.path);
   }
 }

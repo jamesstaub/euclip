@@ -1,90 +1,81 @@
+{{! template-lint-disable no-down-event-binding }}
+{{! the "/" shortcut to focus the search box is a keydown, as in any file browser }}
 <SidebarWrapper
   @direction='left'
   @title={{this.title}}
   @onCloseSidebar={{@onCloseSidebar}}
+  data-test-sound-browser
+  {{on 'keydown' this.onKeydown}}
 >
   <:info>
     <InfoBox>
-      {{#if this.showPool}}
-        <p class='f6 mb3 mt0'>The sounds this project uses. The pool is shared by all snapshots, so every
-          snapshot plays the same samples.</p>
-        <p class='f6 mb3 mt0'>Samples are added to the pool when a track uses them. Pick sounds in the
-          <b>Browse</b> tab.</p>
-      {{else}}
-        <p class='f6 mb3 mt0'>When you select a sound file from this menu the
-          sound's URL is available in the code as
-          <code>this.filepath</code>.
-        </p>
-        <p class='f6 mb3 mt0'>You pass the sound's URL to a
-          <code>sampler</code>
-          node in the Setup script like so:
-        </p>
-        <p class='f6 mb3 mt0'><code>__().sampler({path: this.filepath})</code></p>
-      {{/if}}
+      <p class='f6 mb3 mt0'>Click a sound to hear it. <b>Use</b> (or Enter) puts it where the <b>Adding to</b> card says,
+        then moves on to the next empty sampler, so a kit fills one pick after another. <b>Undo</b> brings the old sound back.</p>
+      <p class='f6 mb3 mt0'>The sound's URL is available in the code as <code>this.files[n]</code>, one per sampler:
+        <code>__().sampler({path: this.files[0]})</code>.</p>
+      <p class='f6 mb3 mt0'><b>In this project</b> lists the sounds already in use. Choose <b>New tracks</b> in the card to
+        make a track for each sound you tick, or one kit from two to four of them.</p>
     </InfoBox>
   </:info>
   <:default>
-  <div class='flex flex-column sidebar-fill'>
-    {{#if this.isCurrentTrackMode}}
-      <div class='ph3 grow-0 shrink-0 bb b--dark-gray'>
-        <Console::TabMenu
-          class='flex-nowrap'
-          data-test-left-tabs
-          @selectedClass='bn bb bw2 b--yellow br0 bg-transparent yellow fw7 mr3'
-          @buttonClass='bn bb bw2 b--transparent br0 bg-transparent light-gray mr3'
-          @items={{this.tabs}}
-          @selectedValue={{@tab}}
-          @onSelect={{@setTab}}
-        />
-      </div>
-    {{/if}}
+    <Sounds::TargetCard
+      @track={{@activeTrack}}
+      @mode={{@audioSelectMode}}
+      @selectedIdx={{this.targetNodeIdx}}
+      @onSelectSampler={{this.selectSampler}}
+      @onNewTracks={{this.targetNewTracks}}
+    />
 
-    {{#if this.showPool}}
-      <Project::SamplePool @project={{@project}} @activeTrack={{@activeTrack}} />
-    {{else}}
-    {{#if (and this.isCurrentTrackMode (gt @activeTrack.sourceNodeRecords.length 1))}}
-      <div class='ph3 pt2 grow-0 shrink-0'>
-      <Source::NodeTabs
-        @yellow="true"
-        @nodes={{@activeTrack.sourceNodeRecords}}
-        @onSelect={{this.selectTargetSlot}}
-        @selectedValue={{this.targetNodeIdx}}
-      />
-      </div>
-    {{/if}}
-    
-    <FilePicker::Search 
+    <FilePicker::Search
       @onSelectFile={{this.onSelectFileFromSearch}}
-      @filePathRelative={{if this.isCurrentTrackMode this.selectedNode.filepathControl.controlValue}}
       @audioFileTree={{this.audioFileTreeForMode}}
+      @showCheck={{this.isCreateTracksMode}}
+      @selectedPaths={{this.selectedPaths}}
+      @badges={{this.badges}}
     >
-    
-      <FilePicker::ModeSelector
-        class="pa3"
-        @activeTrack={{@activeTrack}} 
-        @audioSelectMode={{@audioSelectMode}}
-        @setAudioSelectMode={{@setAudioSelectMode}}
-      />
-      <FilePicker::Breadcrumbs @audioFileTree={{this.audioFileTreeForMode}} />
-      <FilePicker::Selection 
-        @onSelectItem={{this.onSelectItem}} 
-        @directoryTree={{this.audioFileTreeForMode.directoryTree}}
-        @showCheckboxes={{this.isCreateTracksMode}}
-        @selectedFiles={{this.selectedFiles}}
-        @onToggleFileSelection={{this.toggleFileSelection}}
-      />
-      
-      {{#if (and this.isCreateTracksMode (gt this.selectedFiles.length 0))}}
-        <div class="sidebar-footer w-100 pa3 bt b--yellow bg-semi-transparent-dark-gray">
-          <ButtonPrimary 
-            @label={{concat "Create " this.selectedFiles.length " track" (if (gt this.selectedFiles.length 1) "s")}}
-            {{on "click" this.submitSelectedFiles}}
-            class="w-100"
-          />
-        </div>
+      {{#if this.isCurrentTrackMode}}
+        <Sounds::Segmented
+          @label='Which sounds'
+          @items={{this.segments}}
+          @selected={{this.segment}}
+          @onSelect={{this.setSegment}}
+        />
+      {{/if}}
+
+      {{#if this.showPool}}
+        <Project::SamplePool
+          @project={{@project}}
+          @activeTrack={{@activeTrack}}
+          @badges={{this.badges}}
+          @onUse={{this.useSound}}
+        />
+      {{else}}
+        <FilePicker::Breadcrumbs @audioFileTree={{this.audioFileTreeForMode}} @onUp={{this.goUp}} />
+        <Sounds::List
+          @directory={{this.currentDirectory}}
+          @badges={{this.badges}}
+          @showCheck={{this.isCreateTracksMode}}
+          @selectedPaths={{this.selectedPaths}}
+          @onOpenFolder={{this.openFolder}}
+          @onUp={{this.goUp}}
+          @onUse={{this.useSound}}
+          @onToggle={{this.toggleFileSelection}}
+        />
+        <p class='sound-hints' aria-hidden='true'>
+          <span><kbd>↑</kbd><kbd>↓</kbd> hear</span><span><kbd>⏎</kbd> use</span><span><kbd>→</kbd> open</span><span><kbd>←</kbd> up</span>
+        </p>
       {{/if}}
     </FilePicker::Search>
+
+    {{#if (and this.isCreateTracksMode this.selectedFiles.length)}}
+      <Sounds::SelectionTray
+        @files={{this.selectedFiles}}
+        @busy={{this.isCreating}}
+        @kitDisabled={{this.kitDisabled}}
+        @onRemove={{this.toggleFileSelection}}
+        @onTracks={{this.submitSelectedFiles}}
+        @onKit={{this.createKit}}
+      />
     {{/if}}
-  </div>
   </:default>
 </SidebarWrapper>

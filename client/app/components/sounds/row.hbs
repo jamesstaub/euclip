@@ -1,0 +1,59 @@
+{{!--
+  One row of a sound list: a folder (opens), or a sound (audition, select, Use). Shared by the folder list,
+  the search results and the "In this project" shelf, so they all look and behave the same.
+  Args: @role (default option; 'listitem' outside a listbox), @name, @path, @folder, @selected, @playing, @loading, @detail, @badge, @showCheck, @checked,
+        @showUse (the Use button), @onOpen (folder), @onPlay, @onSelect, @onUse (Use, double-click), @onToggle. A block adds extra controls (a menu).
+--}}
+<li
+  class='sound-row {{if @selected "sound-row--selected"}} {{if @playing "sound-row--playing"}} {{if @folder "sound-row--folder"}}'
+  role={{or @role 'option'}}
+  aria-selected={{if @role undefined (if @selected 'true' 'false')}}
+  data-test-sound-row
+  data-sound-name={{@name}}
+  data-sound-path={{@path}}
+  ...attributes
+  {{scroll-into-view @selected 'smooth'}}
+>
+  {{#if @folder}}
+    <button type='button' class='sound-row__name sound-row__name--folder' data-test-sound-folder {{on 'click' @onOpen}}>
+      <span class='truncate'>{{@name}}</span>
+      <span class='sound-row__chevron' aria-hidden='true'>›</span>
+    </button>
+  {{else}}
+    {{#if @showCheck}}
+      <input
+        type='checkbox'
+        class='sound-check'
+        checked={{@checked}}
+        aria-label='Select {{@name}}'
+        data-test-sound-check
+        {{on 'change' @onToggle}}
+      />
+    {{/if}}
+    <button
+      type='button'
+      class='sound-row__play'
+      aria-label='{{if @playing "Stop" "Audition"}} {{@name}}'
+      aria-pressed={{if @playing 'true' 'false'}}
+      data-test-sound-play
+      {{on 'click' @onPlay}}
+    >
+      {{#if @playing}}
+        <span class='eq' aria-hidden='true'><i></i><i></i><i></i></span>
+      {{else if @loading}}
+        <span aria-hidden='true'>…</span>
+      {{else}}
+        <span aria-hidden='true'>▶</span>
+      {{/if}}
+    </button>
+    <button type='button' class='sound-row__name' {{on 'click' @onSelect}} {{on 'dblclick' @onUse}}>
+      <span class='truncate'>{{@name}}</span>
+    </button>
+    {{#if @detail}}<span class='sound-row__detail'>{{@detail}}</span>{{/if}}
+    {{#if @badge}}<span class='sound-row__badge' data-test-sound-badge>{{@badge}}</span>{{/if}}
+    {{#if @showUse}}
+      <button type='button' class='sound-row__use' data-test-sound-use {{on 'click' @onUse}}>Use <kbd aria-hidden='true'>⏎</kbd></button>
+    {{/if}}
+    {{yield}}
+  {{/if}}
+</li>

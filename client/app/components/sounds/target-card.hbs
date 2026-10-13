@@ -1,0 +1,43 @@
+<section class='target-card' aria-label='Where the next sound goes' data-test-target-card ...attributes>
+  <div class='target-card__label'>
+    <span>Adding to</span>
+    <DropdownMenu
+      class='target-card__change'
+      aria-label='Change where sounds are added'
+      data-test-target-change
+      @closeOnSelect={{true}}
+      @items={{this.menuItems}}
+    >change ▾</DropdownMenu>
+  </div>
+  <div class='target-card__who' data-test-target aria-live='polite'>
+    {{#if this.isNewTracks}}
+      New tracks <span class='target-card__hint'>one per sound, or one kit</span>
+    {{else if @track}}
+      Track {{@track.order}}{{#if this.isKit}} · kit{{/if}}
+      {{#if this.current}}
+        <span class='target-card__arrow'>→ Sampler{{#if this.isKit}} {{this.current.number}}{{/if}}</span>
+      {{/if}}
+    {{else}}
+      No track selected
+    {{/if}}
+  </div>
+  {{#if this.showChips}}
+    <ul class='target-card__slots' aria-label='Samplers'>
+      {{#each this.chips as |chip|}}
+        <li>
+          <button
+            type='button'
+            class='target-chip {{if chip.selected "target-chip--on"}} {{unless chip.path "target-chip--empty"}}'
+            aria-pressed={{if chip.selected 'true' 'false'}}
+            title={{if chip.name chip.name 'empty'}}
+            data-test-target-slot={{chip.number}}
+            {{on 'click' (fn @onSelectSampler chip.index)}}
+          >
+            <span class='target-chip__n'>S{{chip.number}}</span>
+            <b>{{if chip.name chip.name 'empty'}}</b>
+          </button>
+        </li>
+      {{/each}}
+    </ul>
+  {{/if}}
+</section>

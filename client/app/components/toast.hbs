@@ -21,7 +21,12 @@
       <p>{{notification.message}}</p>
 
       {{#if notification.action}}
-        {{! TODO }}
+        <button
+          type='button'
+          class='bn bg-transparent pa0 mb2 fw7 underline pointer'
+          data-test-toast-action
+          {{on 'click' (fn this.runAction notification)}}
+        >{{or notification.actionLabel 'Undo'}}</button>
       {{/if}}
     </div>
   {{/each}}

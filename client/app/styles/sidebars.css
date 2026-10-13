@@ -280,11 +280,6 @@
   overflow: hidden;
 }
 
-.directory-height {
-  flex: 1 1 0;
-  min-height: 0;
-  overflow-y: auto;
-}
 
 /* ---------- < 1024px: sidebars are drawers over the tracks ---------- */
 
@@ -558,4 +553,663 @@
 
 .slot-dot--empty {
   background: transparent;
+}
+
+/* ==========================================================================================
+   Sound browser (left sidebar): target card, shelf switch, breadcrumb, search, one-column list
+   ========================================================================================== */
+
+.sidebar--left {
+  --snd-ink: #f4f4f4;
+  --snd-muted: #9fb3b6;
+  --snd-line: rgba(255, 255, 255, 0.14);
+  --snd-hover: rgba(255, 255, 255, 0.08);
+  --snd-sel: rgba(255, 206, 85, 0.18);
+}
+
+/* ---- target card ---- */
+.target-card {
+  flex: 0 0 auto;
+  margin: 0 1rem 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(255, 206, 85, 0.55);
+  border-radius: 0.6rem;
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--snd-ink);
+}
+
+.target-card__label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--snd-muted);
+}
+
+.target-card__change {
+  border: 0;
+  background: transparent;
+  color: var(--yellow);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.3rem;
+  border-radius: 0.3rem;
+}
+
+.target-card__change:hover,
+.target-card__change:focus-visible {
+  background: var(--snd-hover);
+}
+
+.target-card__who {
+  margin: 0.15rem 0 0.1rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.target-card__arrow {
+  margin-left: 0.4rem;
+  font-weight: 400;
+  font-size: 0.78rem;
+  color: var(--yellow);
+}
+
+.target-card__hint {
+  margin-left: 0.4rem;
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: var(--snd-muted);
+}
+
+.target-card__slots {
+  display: flex;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.target-card__slots li {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.target-chip {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+  padding: 0.25rem 0.4rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--snd-line);
+  background: transparent;
+  color: var(--snd-muted);
+  font-size: 0.68rem;
+  line-height: 1.25;
+}
+
+.target-chip b {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  color: var(--snd-ink);
+}
+
+.target-chip--empty b {
+  font-weight: 400;
+  color: var(--snd-muted);
+}
+
+.target-chip--on {
+  border: 2px solid var(--yellow);
+  padding: calc(0.25rem - 1px) calc(0.4rem - 1px);
+  background: rgba(255, 206, 85, 0.14);
+}
+
+.target-chip--on b,
+.target-chip--on .target-chip__n {
+  color: var(--yellow);
+}
+
+/* ---- search ---- */
+.sound-search {
+  flex: 0 0 auto;
+  margin: 0 1rem;
+}
+
+.sound-search__field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.75rem;
+  padding: 0 0.75rem;
+  border: 2px solid var(--yellow);
+  border-radius: 0.6rem;
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--snd-muted);
+}
+
+.sound-search__field:focus-within {
+  border-color: var(--light-blue);
+}
+
+.sound-search__input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--snd-ink);
+  font-size: 1rem;
+  user-select: text;
+}
+
+.sound-search__icon::before {
+  content: '⌕';
+}
+
+.sound-search__key::before {
+  content: '/'; /* the shortcut that focuses the search box */
+}
+
+.sound-search__key {
+  font-family: inherit;
+  font-size: 0.7rem;
+  border: 1px solid var(--snd-line);
+  border-radius: 0.25rem;
+  padding: 0 0.35rem;
+}
+
+.sound-search__clear {
+  border: 0;
+  background: transparent;
+  color: var(--yellow);
+  font-size: 0.8rem;
+}
+
+/* ---- shelf switch ---- */
+.segmented {
+  flex: 0 0 auto;
+  display: flex;
+  margin: 0.75rem 1rem 0.25rem;
+  padding: 3px;
+  border-radius: 0.55rem;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.segmented__btn {
+  flex: 1;
+  border: 0;
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.25rem;
+  background: transparent;
+  color: var(--snd-muted);
+  font-size: 0.82rem;
+}
+
+.segmented__btn b {
+  font-weight: 700;
+}
+
+.segmented__btn.is-on {
+  background: var(--yellow);
+  color: #111;
+  font-weight: 700;
+}
+
+/* ---- breadcrumb ---- */
+.crumbs {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 1rem;
+  color: var(--snd-ink);
+  font-size: 0.82rem;
+}
+
+.crumbs__up {
+  border: 0;
+  background: transparent;
+  color: var(--yellow);
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 0 0.35rem;
+  border-radius: 0.3rem;
+}
+
+.crumbs__up:disabled {
+  opacity: 0.3;
+}
+
+.crumbs__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.crumbs__list li + li::before {
+  content: '›';
+  margin: 0 0.15rem;
+  color: var(--snd-muted);
+}
+
+.crumbs__item {
+  border: 0;
+  background: transparent;
+  color: var(--snd-ink);
+  padding: 0.15rem 0.2rem;
+  border-radius: 0.3rem;
+  font-size: inherit;
+}
+
+.crumbs__item:hover {
+  background: var(--snd-hover);
+}
+
+.crumbs__item--current {
+  font-weight: 700;
+}
+
+/* ---- the list: folders and sounds, one column ---- */
+.sound-list {
+  flex: 1 1 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0 0.5rem;
+  list-style: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+  outline: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--yellow) transparent;
+}
+
+.sound-list::-webkit-scrollbar {
+  width: 0.5rem;
+}
+
+.sound-list::-webkit-scrollbar-thumb {
+  border-radius: 0.25rem;
+  background-color: var(--yellow);
+}
+
+.sound-list:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--light-blue);
+  border-radius: 0.5rem;
+}
+
+.sound-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.6rem;
+  padding: 0 0.5rem;
+  border-radius: 0.5rem;
+  color: var(--snd-ink);
+  font-size: 0.9rem;
+}
+
+.sound-row:hover {
+  background: var(--snd-hover);
+}
+
+.sound-row--selected {
+  background: var(--snd-sel);
+  box-shadow: inset 0 0 0 1px rgba(255, 206, 85, 0.6);
+}
+
+.sound-row__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0.55rem 0;
+  font-size: inherit;
+}
+
+.sound-row--folder .sound-row__name {
+  font-weight: 500;
+}
+
+.sound-row__chevron {
+  color: var(--snd-muted);
+  font-size: 1.1rem;
+}
+
+.sound-row__play {
+  flex: none;
+  width: 1.7rem;
+  height: 1.7rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: transparent;
+  color: var(--snd-ink);
+  font-size: 0.6rem;
+  padding: 0;
+}
+
+.sound-row__play:hover,
+.sound-row__play:focus-visible {
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+
+.sound-row--selected .sound-row__play {
+  background: var(--yellow);
+  border-color: var(--yellow);
+  color: #111;
+}
+
+.sound-row--playing .sound-row__play {
+  background: transparent;
+  border-color: var(--light-blue);
+}
+
+.sound-row__detail {
+  flex: none;
+  font-size: 0.75rem;
+  color: var(--snd-muted);
+}
+
+.sound-row__badge {
+  flex: none;
+  max-width: 7rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.68rem;
+  color: var(--yellow);
+  border: 1px solid rgba(255, 206, 85, 0.6);
+  border-radius: 1rem;
+  padding: 0.05rem 0.5rem;
+}
+
+.sound-row__badge--quiet {
+  color: var(--snd-muted);
+  border-color: var(--snd-line);
+}
+
+/*
+ * Use appears on the row you are on (hover, keyboard focus or selection), so choosing a sound you already know is
+ * one click. It overlays the end of the row instead of taking space, and stays focusable while it is transparent.
+ */
+.sound-row {
+  position: relative;
+}
+
+.sound-row__use {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  pointer-events: none;
+  border: 0;
+  border-radius: 0.4rem;
+  background: var(--yellow);
+  color: #111;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 0.3rem 0.6rem;
+}
+
+.sound-row__use kbd {
+  font-family: inherit;
+  opacity: 0.65;
+  margin-left: 0.15rem;
+}
+
+.sound-row:hover .sound-row__use,
+.sound-row:focus-within .sound-row__use,
+.sound-row--selected .sound-row__use,
+.sound-row__use:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sound-row:hover .sound-row__badge,
+.sound-row--selected .sound-row__badge,
+.sound-row:focus-within .sound-row__badge {
+  visibility: hidden; /* the badge gives way to Use, which is what the row is about now */
+}
+
+/* a row with a menu keeps the menu clear of Use */
+.sound-row:has(.sound-row__menu) .sound-row__use {
+  right: 2.4rem;
+}
+
+.sound-row__rename {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85rem;
+  user-select: text;
+}
+
+.sound-row__menu {
+  flex: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  height: 1.7rem;
+}
+
+.sound-check {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--yellow);
+}
+
+/* the animated bars of a sound that is playing */
+.eq {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 0.8rem;
+}
+
+.eq i {
+  display: block;
+  width: 3px;
+  background: var(--light-blue);
+  border-radius: 1px;
+  animation: eq-bounce 0.9s ease-in-out infinite;
+}
+
+.eq i:nth-child(1) { height: 40%; animation-delay: 0s; }
+.eq i:nth-child(2) { height: 90%; animation-delay: 0.15s; }
+.eq i:nth-child(3) { height: 60%; animation-delay: 0.3s; }
+
+@keyframes eq-bounce {
+  0%, 100% { transform: scaleY(0.4); transform-origin: bottom; }
+  50% { transform: scaleY(1); transform-origin: bottom; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eq i { animation: none; }
+}
+
+.sound-empty {
+  padding: 1rem;
+  color: var(--snd-muted);
+  font-size: 0.85rem;
+}
+
+.sound-count {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0.5rem 1rem;
+  color: var(--snd-muted);
+  font-size: 0.8rem;
+}
+
+.sound-hints {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 0.9rem;
+  margin: 0;
+  padding: 0.5rem 1rem 0.75rem;
+  border-top: 1px solid var(--snd-line);
+  color: var(--snd-muted);
+  font-size: 0.72rem;
+}
+
+.sound-hints kbd {
+  font-family: inherit;
+  border: 1px solid var(--snd-line);
+  border-radius: 0.25rem;
+  padding: 0 0.3rem;
+  margin-right: 0.15rem;
+  color: var(--snd-ink);
+}
+
+/* ---- search results: sounds grouped by the machine they belong to ---- */
+.sound-results {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.sound-list--plain {
+  overflow: visible;
+  flex: 0 0 auto;
+}
+
+.sound-group {
+  margin-bottom: 0.5rem;
+}
+
+.sound-group__name {
+  margin: 0.6rem 0.5rem 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--yellow);
+}
+
+.sound-group__rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sound-group__more {
+  margin: 0.1rem 0.5rem;
+  border: 0;
+  background: transparent;
+  color: var(--snd-muted);
+  font-size: 0.75rem;
+  text-decoration: underline;
+}
+
+/* ---- selection tray (creating tracks) ---- */
+.selection-tray {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  border-top: 2px solid var(--yellow);
+  background: rgba(17, 17, 17, 0.88);
+}
+
+.selection-tray__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 4.5rem;
+  overflow-y: auto;
+}
+
+.selection-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.1rem 0.2rem 0.1rem 0.65rem;
+  border: 1px solid rgba(255, 206, 85, 0.5);
+  border-radius: 1rem;
+  background: rgba(255, 206, 85, 0.16);
+  color: var(--snd-ink);
+  font-size: 0.75rem;
+}
+
+.selection-chip button {
+  border: 0;
+  background: transparent;
+  color: var(--snd-ink);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 0.3rem;
+}
+
+.selection-tray__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.selection-tray__btn {
+  flex: 1;
+  font-size: 0.75rem;
+  padding: 0.6rem 0.3rem;
+}
+
+.selection-tray__btn--primary {
+  background: var(--yellow);
+  color: #111;
+}
+
+@media (max-width: 767px) {
+  .sound-hints {
+    display: none; /* no keyboard on a phone */
+  }
+
+  .sound-row {
+    min-height: 3rem;
+  }
+
+  .sound-row__use {
+    position: static; /* no hover to reveal it: always there, in the row's flow */
+    transform: none;
+    opacity: 1;
+    pointer-events: auto;
+    background: transparent; /* outlined on every row, filled on the one you are on */
+    color: var(--yellow);
+    box-shadow: inset 0 0 0 1px var(--yellow);
+  }
+
+  .sound-row--selected .sound-row__use {
+    background: var(--yellow);
+    color: #111;
+  }
+
+  .sound-row__badge:not(.sound-row__badge--quiet) {
+    display: none;
+  }
+}
+
+/* a kit's button holds a dot per sampler and "3 / 4 samplers": it grows past the fixed width of the others */
+.source-kit {
+  min-width: 8rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  white-space: nowrap;
 }

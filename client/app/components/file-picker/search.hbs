@@ -1,35 +1,59 @@
-<div class='flex flex-wrap justify-between drum-file-picker ph2 ph3-ns'>
-  <Input
-    aria-label='Search for Drum Sounds'
-    class='ba bw1 b--yellow grow-1 light-gray bg-transparent f5 pa3'
-    placeholder='Search for drums sounds'
-    @value={{this.searchQuery}}
-    {{on 'keyup' this.search}} 
-  />
-  {{#if this.searchResults.length}}
-    <ButtonPrimary class="f6" {{on 'click' this.backToBrowse}} @label='← browse' />
-  {{/if}}
+<div class='sound-search' role='search'>
+  <div class='sound-search__field'>
+    <span class='sound-search__icon' aria-hidden='true'></span>
+    <Input
+      aria-label='Search for Drum Sounds'
+      class='sound-search__input'
+      placeholder='Search sounds…'
+      data-test-sound-search
+      @value={{this.searchQuery}}
+      {{on 'keyup' this.search}}
+    />
+    {{#if this.searchResults.length}}
+      <button type='button' class='sound-search__clear' data-test-search-clear {{on 'click' this.backToBrowse}}>Clear</button>
+    {{else}}
+      <kbd class='sound-search__key' aria-hidden='true'></kbd>
+    {{/if}}
+  </div>
 </div>
 
 <ProgressBar class={{concat 'fixed top-0 mv1 mh3 ' (unless this.searchTask.isRunning 'hidden')}} />
 
 {{#if this.searchResults.length}}
-  <div
-    class='flex justify-between flex-column mv3 overflow-y-auto sidebar-fill'
-  >
-    <ul
-      class='flex flex-column shrink-1 grow-1 list ma0 ph3'
-    >
-      {{#each this.searchResults as |result|}}
-        <FileSearchResultDirectory
-          @filePathRelative={{@filePathRelative}}
-          @result={{result}}
-          @onSelect={{this.onSelectSearchResult}}
-        />
+  <div class='sound-results sidebar-fill' data-test-search-results>
+    <ul class='sound-list sound-list--plain' aria-label='Search results'>
+      {{#each this.groups as |group|}}
+        <li class='sound-group'>
+          <h3 class='sound-group__name'>{{group.folder}}</h3>
+          <ul class='sound-group__rows'>
+            {{#each group.rows as |row|}}
+              <Sounds::Row
+                @role='listitem'
+                @name={{row.name}}
+                @path={{row.path}}
+                @playing={{row.playing}}
+                @loading={{row.loading}}
+                @badge={{row.badge}}
+                @showCheck={{@showCheck}}
+                @checked={{row.checked}}
+                @showUse={{not @showCheck}}
+                @onPlay={{fn this.audition row.path}}
+                @onSelect={{fn this.audition row.path}}
+                @onUse={{fn this.onSelectSearchResult row.path}}
+                @onToggle={{fn this.onSelectSearchResult row.path}}
+              />
+            {{/each}}
+          </ul>
+          {{#if group.canExpand}}
+            <button type='button' class='sound-group__more' {{on 'click' (fn this.toggleExpanded group.folder)}}>
+              {{if group.open 'Show fewer' (concat 'Show all ' group.total)}}
+            </button>
+          {{/if}}
+        </li>
       {{/each}}
     </ul>
     <SearchPagination
-      class='pv2 grow-1'
+      class='pv2'
       @currentPage={{this.currentPage}}
       @lastPage={{this.lastPage}}
       @search={{fn this.search this.searchQuery}}

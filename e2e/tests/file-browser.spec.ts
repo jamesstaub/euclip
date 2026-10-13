@@ -39,7 +39,7 @@ test.describe('file browser', () => {
       __().sampler({ id: 'snare', path: this.files[1] }).channelStrip().connect('#main-output');
     `;
   const menuTab = (page: Page, id: string) => page.locator('.track-footer .tab-btn', { hasText: id });
-  const sidebarTab = (page: Page, id: string) => sidebar(page).locator('.tab-btn', { hasText: id });
+  const sidebarTab = (page: Page, id: string) => sidebar(page).locator(`[data-test-target-slot="${id === 'kick' ? 1 : 2}"]`); // the target card's sampler chips
 
   test('the source menu shows the sample of the selected node only', async ({ page }) => {
     const track = await createProjectWithTrack(page);
@@ -92,7 +92,8 @@ test.describe('file browser', () => {
     await sidebar(page).getByText('Korg', { exact: true }).click();
     await sidebar(page).getByText('Korg 01W', { exact: true }).click();
     const saved = page.waitForResponse((r) => r.request().method() === 'POST' && /\/v1\/filepath-controls/.test(r.url()));
-    await sidebar(page).getByText('AGG', { exact: true }).click();
+    await sidebar(page).getByText('AGG', { exact: true }).click(); // hears it
+    await sidebar(page).locator('[data-test-sound-row][data-sound-name="AGG"] [data-test-sound-use]').click(); // Use puts it there
 
     const body = await (await saved).json();
     expect(body.data.attributes['node-order']).toBe(1); // slot 1 = the second sampler
