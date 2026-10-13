@@ -5,6 +5,7 @@ import {
   valueCompletions,
   rootCompletions,
   selectorCompletions,
+  argValueCompletions,
 } from './completions';
 
 const WORD = /^[\w$]*$/;
@@ -50,6 +51,23 @@ export function crackedCompletionSource(context) {
         options: selectorCompletions(context.state.doc.toString()),
         validFor: SELECTOR_TOKEN,
       };
+    }
+
+    case 'arg': {
+      const options = argValueCompletions(
+        found.method,
+        found.index,
+        found.quote
+      );
+      if (options.length) {
+        return { from: found.from, options, validFor: /^[\w$]*$/ };
+      }
+      // not an enumerated argument: inside a string there is nothing to offer,
+      // otherwise it is an expression like any other
+      if (found.quote) return null;
+      return found.query.length || context.explicit
+        ? { from: found.from, options: rootCompletions(), validFor: WORD }
+        : null;
     }
 
     case 'root': {

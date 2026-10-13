@@ -11,6 +11,7 @@
  *   { kind: 'member', from, receiver }                   after a `.`, e.g. `__().sine().|`
  *   { kind: 'key', from, method, used }                  object key in `.sine({ | })`
  *   { kind: 'value', from, method, key }                 object value in `.sampler({ path: | })`
+ *   { kind: 'arg', from, method, index, quote, query }       an argument of a call; `quote` is set inside a string
  *   { kind: 'root', from, query }                        an identifier at the start of an expression
  *   null                                                 nothing to complete (comments, other strings)
  *
@@ -25,7 +26,7 @@
 const IDENT = /[\w$]/;
 
 function isChainStart(callee) {
-  return callee === '__' || callee === 'this.select';
+  return callee === '__' || callee === 'cracked' || callee === 'this.select';
 }
 
 /**
@@ -66,7 +67,7 @@ function describeReceiver(text, end, pairs) {
   const emptyArgs = ({ args }) =>
     args && text.slice(args.open + 1, args.close).trim() === '';
   const first = segments.length === 1 && emptyArgs(root);
-  if (root.name === '__') {
+  if (root.name === '__' || root.name === 'cracked') {
     if (!root.called && segments.length === 1) return { type: 'util' };
     return {
       type: 'chain',
@@ -144,9 +145,21 @@ export function analyzeContext(text) {
   if (str) {
     if (str.quote === '`' && /\$\{/.test(text.slice(str.start))) return null;
     const call = top && top.ch === '(' ? top : null;
-    if (!call || !isChainStart(call.callee)) return null;
+    if (!call || !call.callee) return null;
     // only the first argument of __() / this.select() is a selector
-    if (text.slice(call.pos + 1, str.start).trim() !== '') return null;
+    if (
+      !isChainStart(call.callee) ||
+      text.slice(call.pos + 1, str.start).trim() !== ''
+    ) {
+      return {
+        kind: 'arg',
+        from: str.start + 1,
+        method: call.callee.split('.').pop(),
+        index: splitTopLevel(text.slice(call.pos + 1, str.start)).length - 1,
+        quote: str.quote,
+        query: text.slice(str.start + 1),
+      };
+    }
     return {
       kind: 'selector',
       quote: str.quote,
@@ -169,8 +182,21 @@ export function analyzeContext(text) {
     top && top.ch === '{' ? analyzeObject(text, stack) : null;
   if (objectContext) return objectContext;
 
-  // a bare identifier, e.g. the start of a new statement
   const word = /[\w$]*$/.exec(text)[0];
+
+  // an argument of a call: `.scales(|`, `.loop(|`
+  if (top && top.ch === '(' && top.callee) {
+    return {
+      kind: 'arg',
+      from: text.length - word.length,
+      method: top.callee.split('.').pop(),
+      index: splitTopLevel(text.slice(top.pos + 1)).length - 1,
+      quote: null,
+      query: word,
+    };
+  }
+
+  // a bare identifier, e.g. the start of a new statement
   return { kind: 'root', from: text.length - word.length, query: word };
 }
 

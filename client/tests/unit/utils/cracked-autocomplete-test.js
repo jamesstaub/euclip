@@ -48,6 +48,12 @@ module('Unit | Utility | cracked autocomplete', function () {
     assert.notOk(labels(result).includes('frequency'));
   });
 
+  test('string arguments complete from the values a method accepts', function (assert) {
+    assert.ok(labels(complete('__.scales(')).includes('lydian'));
+    assert.ok(labels(complete('cracked.chords("ma')).includes('major_seventh'));
+    assert.notOk(complete('__.scales("major", '));
+  });
+
   test('values complete for path', function (assert) {
     assert.deepEqual(labels(complete('__().sampler({ path: ')), [
       'this.filepath',

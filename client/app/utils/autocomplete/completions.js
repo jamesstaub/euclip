@@ -1,9 +1,16 @@
 import { snippet, startCompletion } from '@codemirror/autocomplete';
 import { objectCompletions } from './object-completions';
 import { argCompletions } from './arg-completions';
+import { supplementalArgs } from './supplemental-args';
 import { supportedAudioNodes } from '../audio-node-config';
 import { getSelectorLookupKeys } from '../cracked';
 import { SCRIPT_SCOPE_DOCS } from '../script-scope-docs';
+
+// documented arguments of a method; hand-written ones fill gaps in the generated data
+function argsFor(name) {
+  const generated = argCompletions[name];
+  return generated?.length ? generated : supplementalArgs[name] || [];
+}
 
 /**
  * Builds the CodeMirror `Completion` lists for each context found by `analyzeContext`.
@@ -47,9 +54,6 @@ const UTIL_TYPES = [
   'Control',
   'Find',
 ];
-
-// properties rather than methods, so no `()` is applied
-const NOT_CALLABLE = new Set(['scales', 'chords']);
 
 // Keys any node accepts in its params object, whatever the node
 const COMMON_KEYS = [
@@ -106,9 +110,42 @@ function infoNode(c) {
   };
 }
 
-// methods whose first argument is a params object (`.lowpass({ frequency: 440 })`)
-function takesParamsObject(name) {
-  return (argCompletions[name] || []).some((a) => a.label.includes('.'));
+// How a method is called, from its documented arguments:
+//   `.lowpass({ frequency, q })`   params object, when every documented arg is a `userParams.x` key
+//   `.ramp(target, timeToRamp)`    positional args, as named placeholders to tab through
+//   `.start()`                     nothing documented
+function callTemplate(name) {
+  const args = argsFor(name);
+  const positional = [];
+  args.forEach((a) => {
+    if (a.label && !a.label.includes('.') && !positional.includes(a.label)) {
+      positional.push(a.label);
+    }
+  });
+  if (ARG_VALUES[name]) {
+    // leave the first argument empty so its list of values opens straight away
+    return `${name}(\${})`;
+  }
+  if (positional.length) {
+    return `${name}(${positional.map((p) => `\${${p}}`).join(', ')})`;
+  }
+  if (args.some((a) => a.label.includes('.'))) return `${name}({ \${} })`;
+  return `${name}(\${})`;
+}
+
+// "(target, timeToRamp)" or "({ frequency, q })", shown beside the method name in the menu
+function signature(name) {
+  const args = argsFor(name);
+  const positional = [
+    ...new Set(
+      args.filter((a) => a.label && !a.label.includes('.')).map((a) => a.label)
+    ),
+  ];
+  if (positional.length) return `(${positional.join(', ')})`;
+  const keys = args
+    .filter((a) => a.label.includes('.'))
+    .map((a) => a.label.split('.').pop());
+  return keys.length ? `({ ${keys.join(', ')} })` : '()';
 }
 
 // apply a snippet, then open the next completion menu (option keys or selector)
@@ -121,19 +158,12 @@ function applySnippet(template) {
 }
 
 function methodCompletion(c, boost) {
-  const callable = !NOT_CALLABLE.has(c.label);
-  let apply = c.label;
-  if (callable) {
-    apply = takesParamsObject(c.label)
-      ? applySnippet(`${c.label}({ \${} })`)
-      : applySnippet(`${c.label}(\${})`);
-  }
   return {
     label: c.label,
-    type: callable ? 'method' : 'property',
-    detail: c.type,
+    type: 'method',
+    detail: `${c.type} · ${signature(c.label)}`,
     info: infoNode(c),
-    apply,
+    apply: applySnippet(callTemplate(c.label)),
     boost,
   };
 }
@@ -219,7 +249,7 @@ function chainCompletions({ first, lastCall }) {
 
 /** Keys for the params object of `method`, minus those already present. */
 export function keyCompletions(method, used = []) {
-  const keys = (argCompletions[method] || [])
+  const keys = argsFor(method)
     .filter((a) => a.label.includes('.'))
     .map((a) => ({
       key: a.label.split('.').pop(),
@@ -250,11 +280,55 @@ export function keyCompletions(method, used = []) {
     });
 }
 
+// Accepted string values for positional arguments, by method then argument index.
+// Taken from the lookup tables in cracked (scales, chords) and its documented modes.
+const SCALES = [
+  'major',
+  'minor',
+  'wholetone',
+  'overtone',
+  'lydian',
+  'mixolydian',
+  'ionian',
+];
+const CHORDS = [
+  'major',
+  'minor',
+  'seventh',
+  'ninth',
+  'major_seventh',
+  'minor_seventh',
+  'suspended',
+  'diminished',
+  'eleventh',
+  'thirteenth',
+];
+const ARG_VALUES = {
+  scales: [SCALES],
+  random_scale: [SCALES],
+  chords: [CHORDS],
+  random_arpeggio: [CHORDS],
+  loop: [['start', 'stop', 'reset']],
+};
+
+/** String values for argument `index` of `method`; `quote` is the quote already typed, if any. */
+export function argValueCompletions(method, index, quote) {
+  const values = ARG_VALUES[method]?.[index];
+  if (!values) return [];
+  const argName = argsFor(method)[index]?.label;
+  return values.map((value, i) => ({
+    label: value,
+    displayLabel: value,
+    type: 'enum',
+    detail: argName,
+    apply: quote ? value : `'${value}'`,
+    boost: 100 - i,
+  }));
+}
+
 /** Values for `key` in `method`'s params object. */
 export function valueCompletions(method, key) {
-  const def = (argCompletions[method] || []).find(
-    (a) => a.label.split('.').pop() === key
-  );
+  const def = argsFor(method).find((a) => a.label.split('.').pop() === key);
   const values = [...(EXPLICIT_VALUES[key] || [])];
   if (def?.type === 'Boolean') values.push('true', 'false');
   return values.map((value, i) => ({
