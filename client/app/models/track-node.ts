@@ -31,7 +31,7 @@ export const FILE_LOAD_STATES = {
 type FileLoadState = typeof FILE_LOAD_STATES[keyof typeof FILE_LOAD_STATES];
 
 // sampler controls that exist in euclip only: they never reach the audio node (see toAudioAttrs)
-const SAMPLER_ONLY_IN_EUCLIP = ['snap', 'startSlice', 'endSlice'];
+const SAMPLER_ONLY_IN_EUCLIP = ['snap'];
 
 // TrackNodeModel class definition
 export default class TrackNodeModel extends Model {
@@ -133,72 +133,82 @@ export default class TrackNodeModel extends Model {
   }
 
   /**
-   * The region the slice controls ask for, in seconds, or undefined when they aren't in use (startSlice is
-   * -1) or the sample hasn't been analysed. `endSlice` is the last slice played (inclusive); -1 means
-   * the same as startSlice. Indexes past the last slice stick to the last slice.
+   * The region start and end name right now, in seconds, when either is in the Slice unit (a script may be
+   * changing it every step); undefined otherwise. Used to highlight what plays on the waveform.
    */
   sliceRegion(): { start: number; end: number } | undefined {
-    if (this.nodeType !== 'sampler') return undefined;
-    const boundaries = this.sliceBoundaries;
-    const count = boundaries.length - 1;
-    if (count < 1) return undefined;
-
-    const controls = this.trackControls ?? [];
-    const valueOf = (attr: string) => {
-      const control = controls.find((c: any) => !c.isDeleted && c.nodeAttr === attr);
-      return control ? control.modulation ?? control.controlValue : undefined;
-    };
-    const startSlice = valueOf('startSlice');
-    if (!Number.isFinite(startSlice) || startSlice < 0) return undefined;
-
-    const first = Math.min(Math.round(startSlice), count - 1);
-    const endSlice = valueOf('endSlice');
-    const last = Number.isFinite(endSlice) && endSlice >= 0 ? Math.min(Math.max(Math.round(endSlice), first), count - 1) : first;
-    return { start: boundaries[first], end: boundaries[last + 1] };
+    if (this.nodeType !== 'sampler' || this.sliceCount < 1) return undefined;
+    const start = this.controlFor('start');
+    const end = this.controlFor('end');
+    if (start?.currentParamUnitLabel !== 'Slice' && end?.currentParamUnitLabel !== 'Slice') return undefined;
+    const from = start?.effectiveValue();
+    const to = end?.effectiveValue();
+    return Number.isFinite(from) && Number.isFinite(to) ? { start: from, end: to } : undefined;
   }
 
-  // The start and end the time controls ask for (what plays when the slice controls aren't in use), in seconds
-  regionFromTimeControls(): Record<string, number> {
-    const region: Record<string, number> = {};
-    ['start', 'end'].forEach((attr) => {
-      const control = (this.trackControls ?? []).find((c: any) => !c.isDeleted && c.nodeAttr === attr);
-      const value = control?.effectiveValue();
-      if (Number.isFinite(value)) region[attr] = value;
-    });
-    return region;
+  controlFor(attr: string): any {
+    return (this.trackControls ?? []).find((c: any) => !c.isDeleted && c.nodeAttr === attr);
   }
 
   /**
-   * Turns control values into what the audio node understands: the euclip-only settings (snap, the slice
-   * indexes) are not audio attributes and are dropped, and when the slice controls are in use the region
-   * they name replaces `start` and `end`.
+   * The slice a position in the sample (seconds) belongs to, as the index the Slice unit uses: for a start the slice
+   * it falls in, for an end the slice that ends at or after it. 0 until the sample has been analysed.
+   */
+  sliceIndexFor(seconds: number, edge: 'start' | 'end'): number {
+    const bounds = this.sliceBoundaries;
+    const count = bounds.length - 1;
+    if (count < 1 || !Number.isFinite(seconds)) return 0;
+    const epsilon = 1e-6;
+    let index = 0;
+    if (edge === 'start') {
+      for (let i = 0; i < count; i++) if (bounds[i] <= seconds + epsilon) index = i;
+    } else {
+      index = count - 1;
+      for (let i = count - 1; i >= 0; i--) if (bounds[i + 1] >= seconds - epsilon) index = i;
+    }
+    return index;
+  }
+
+  /**
+   * Turns control values into what the audio node understands: the euclip-only settings (snap) are not
+   * audio attributes and are dropped.
    */
   toAudioAttrs(attrs: Record<string, any>): Record<string, any> {
     const audio = { ...attrs };
     SAMPLER_ONLY_IN_EUCLIP.forEach((attr) => delete audio[attr]);
-    const region = this.sliceRegion();
-    if (region) {
-      audio.start = region.start;
-      audio.end = region.end;
-    }
     return audio;
   }
 
   /**
-   * Once the sample's onsets are known the slice controls can only go as high as there are slices:
-   * set their range (their index starts at -1 for "not in use").
+   * Once the sample's onsets are known, start and end in the Slice unit can only go as high as there are
+   * slices: fit their range, and an untouched end goes to the last slice.
    */
-  syncSliceControlRanges(): void {
+  syncSliceRanges(): void {
     const count = this.sliceCount;
     if (!count) return;
-    this.trackControls
-      .filter((c: any) => !c.isDeleted && (c.nodeAttr === 'startSlice' || c.nodeAttr === 'endSlice'))
-      .forEach((control: any) => {
-        if (control.max === count - 1 && control.min === -1) return;
-        control.min = -1;
-        control.max = count - 1;
+    ['start', 'end'].forEach((attr) => {
+      const control = this.controlFor(attr);
+      if (!control || control.currentParamUnitLabel !== 'Slice') return;
+      const max = count - 1;
+      let changed = false;
+      if (control.min !== 0 || control.max !== max) {
+        control.min = 0;
+        control.max = max;
+        changed = true;
+      }
+      if (control.defaultValue > max) {
+        control.defaultValue = max;
+        changed = true;
+      }
+      if (control.controlValue > max) {
+        control.controlValue = max;
+        changed = true;
+      }
+      if (changed) {
+        control.applyToAudio();
         control.saveTrackControl.perform();
-      });
+      }
+    });
   }
 
   // Computed property for checking if the sample is loaded
@@ -336,7 +346,7 @@ export default class TrackNodeModel extends Model {
     const path = this.filepathControl?.controlValue;
     if (!path || this.nodeType !== 'sampler') return;
     await this.samplePool.ensureAnalysis(this.track?.project, path, buffer);
-    this.syncSliceControlRanges();
+    this.syncSliceRanges();
   }
 
   // Set sampler controls to a given buffer (used for setting the buffer duration)

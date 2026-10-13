@@ -181,11 +181,9 @@ export const AudioNodeConfig = {
       start: [0, 1, 0, oneD],
       end: [0, 1, 1, oneD],
       loop: [0, 1, 1, bool],
-      // euclip-only: not audio attributes. `snap` makes the waveform's markers jump to onsets; the slice
-      // indexes pick a region of the sample by its onset slices instead of by time (-1 = not used)
+      // euclip-only: not an audio attribute. `snap` makes the waveform's markers jump to onsets.
+      // (Choosing a region by onset slice is the 'Slice' unit of start and end, not controls of its own.)
       snap: [0, 1, 1, bool],
-      startSlice: [-1, 63, -1, oneD],
-      endSlice: [-1, 63, -1, oneD],
       path: [null, null, null, filepath],
     },
   },
@@ -396,22 +394,6 @@ export const defaultParams = {
     max: 1,
     defaultValue: 1,
     interfaceName: bool,
-  },
-  startSlice: {
-    min: -1,
-    max: 63,
-    stepSize: 1,
-    defaultValue: -1,
-    interfaceName: oneD,
-    unit: 'slice',
-  },
-  endSlice: {
-    min: -1,
-    max: 63,
-    stepSize: 1,
-    defaultValue: -1,
-    interfaceName: oneD,
-    unit: 'slice',
   },
   pan: {
     min: -1,

@@ -80,17 +80,6 @@ const seconds = {
   },
 };
 
-// an onset slice of a sample, by index; -1 means "not using slices" (see TrackNode#sliceRegion)
-const sliceIndex = {
-  [SLICE]: {
-    func: (index) => index,
-    min: -1,
-    max: 63,
-    stepSize: 1,
-    defaultValue: -1,
-  },
-};
-
 const delaySeconds = dm(seconds, {
   [S]: {
     defaultValue: 0.25,
@@ -370,13 +359,30 @@ const lfoDepth = dm(amplitude, {
   [AMP]: { min: 0, max: 1000, stepSize: 0.1, defaultValue: 1 },
 });
 
-const sampleStartEnd = (defaultPct) => ({
+// `edge` is 'start' or 'end': the Slice unit reads them differently (see below)
+const sampleStartEnd = (defaultPct, edge) => ({
   [PRCNT]: {
     func: (pct, { sampleLenSec }) => (pct / 100) * (sampleLenSec || 0),
     min: 0,
     max: 100,
     stepSize: 1,
     defaultValue: defaultPct,
+  },
+  // An onset slice of the sample, by index (the slices are where the sample's onsets cut it; see TrackNode#sliceBoundaries).
+  // `start` is the first slice that plays and `end` the last one (inclusive), so a single slice is start === end.
+  // Until the sample has been analysed it is one slice: the whole file. The range is fitted to the real number of
+  // slices once they are known (TrackNode#syncSliceRanges).
+  [SLICE]: {
+    func: (index, { sliceBoundaries = [], sampleLenSec = 0 }) => {
+      const count = sliceBoundaries.length - 1;
+      if (count < 1) return edge === 'end' ? sampleLenSec : 0;
+      const slice = Math.min(Math.max(Math.round(index), 0), count - 1);
+      return edge === 'end' ? sliceBoundaries[slice + 1] : sliceBoundaries[slice];
+    },
+    min: 0,
+    max: 63,
+    stepSize: 1,
+    defaultValue: edge === 'end' ? 63 : 0,
   },
 });
 
@@ -413,16 +419,14 @@ export const unitOptionsForNode = {
   postCut: [HZ, HALFSTEPS, CENTS],
   distortion: [CURVE],
   knee: [DB],
-  start: [S, MS, LOOPSTEPS, PRCNT],
+  start: [S, MS, LOOPSTEPS, PRCNT, SLICE],
   threshold: [DB],
   ratio: [RATIO],
-  end: [S, MS, LOOPSTEPS, PRCNT],
+  end: [S, MS, LOOPSTEPS, PRCNT, SLICE],
   reverse: [BOOL],
   loop: [BOOL],
   path: [PATH],
   pan: [PAN],
-  startSlice: [SLICE],
-  endSlice: [SLICE],
   snap: [BOOL],
 };
 
@@ -504,12 +508,10 @@ export const defaultNodeParamsByUnit = {
   },
   sampler: {
     speed: speed,
-    start: dm(seconds, sampleStartEnd(0)),
-    end: dm(seconds, sampleStartEnd(100)),
+    start: dm(seconds, sampleStartEnd(0, 'start')),
+    end: dm(seconds, sampleStartEnd(100, 'end')),
     loop: boolean,
     snap: boolean,
-    startSlice: sliceIndex,
-    endSlice: sliceIndex,
     path: {},
   },
   sine: {

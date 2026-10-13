@@ -1,3 +1,5 @@
+{{! template-lint-disable no-down-event-binding }}
+{{! the markers are dragged: a drag has to start on press, not release }}
 <div
   class='surface-wrapper waveform-surface {{unless this.isLooping "is-loop-off"}} flex flex-column items-center mr2 ba b--dark-gray bw1 bg-dark-yellow'
   data-test-waveform-surface
@@ -48,12 +50,29 @@
       ></div>
     </div>
   </div>
+  {{!-- start and end are drawn here, so their unit is chosen here: seconds, ms, % of the sample, loop steps or slices --}}
   <div class='flex items-center justify-between w-100 ph2 pb1 f7 dark-gray'>
-    <span>start {{display-float this.startSeconds}}s</span>
-    <span>end {{display-float this.endSeconds}}s</span>
+    <div class='flex items-center'>
+      <span class='mr1'>start</span>
+      <select class='f7 bn bg-transparent dark-gray' aria-label='Unit of the sample start' data-test-start-unit {{on 'change' (fn this.setUnit @startControl)}}>
+        {{#each @startControl.paramUnitNames as |name idx|}}
+          <option value={{idx}} selected={{eq name @startControl.currentParamUnitLabel}}>{{name}}</option>
+        {{/each}}
+      </select>
+      <span class='ml1' data-test-start-value>{{display-float @startControl.controlValue}}</span>
+    </div>
+    <div class='flex items-center'>
+      <span class='mr1'>end</span>
+      <select class='f7 bn bg-transparent dark-gray' aria-label='Unit of the sample end' data-test-end-unit {{on 'change' (fn this.setUnit @endControl)}}>
+        {{#each @endControl.paramUnitNames as |name idx|}}
+          <option value={{idx}} selected={{eq name @endControl.currentParamUnitLabel}}>{{name}}</option>
+        {{/each}}
+      </select>
+      <span class='ml1' data-test-end-value>{{display-float @endControl.controlValue}}</span>
+    </div>
   </div>
   <div class='flex items-center justify-between w-100 ph2 pb2 f7 dark-gray'>
-    {{#if @snapControl}}
+    {{#if this.showSnap}}
       <label class='flex items-center' title='Markers jump to the nearest onset, or the start or end of the file'>
         <input
           type='checkbox'

@@ -115,11 +115,6 @@ export default class TrackControlModel extends Model {
     return this.interfaceName === 'slider';
   }
 
-  // startSlice / endSlice: a sampler region chosen by onset slice instead of by time
-  get isSliceControl() {
-    return this.nodeAttr === 'startSlice' || this.nodeAttr === 'endSlice';
-  }
-
   // a choice setting (e.g. a macro's waveform): the control value is an index into `choices`
   get isSelect() {
     return this.interfaceName === 'select';
@@ -182,10 +177,6 @@ export default class TrackControlModel extends Model {
         return 2;
       case 'loop':
         return 3;
-      case 'startSlice':
-        return 4;
-      case 'endSlice':
-        return 5;
       default:
         return this.nodeAttr;
     }
@@ -218,7 +209,8 @@ export default class TrackControlModel extends Model {
     const ret = paramsForUnit.func(value, {
       intervalMs: this.track.project.loopInterval,
       sampleLenSec: sampleLenSec,
-      seqSteps: this.track.currentSequence?.steps || 1,
+      seqSteps: this.track.currentSequence?.length || 1,
+      sliceBoundaries: this.trackNode.sliceBoundaries,
     });
 
     if (typeof ret === 'string' || isFinite(ret)) {
@@ -277,15 +269,11 @@ export default class TrackControlModel extends Model {
   }
 
   // Everything that reaches the audio goes through the node first (see TrackNode#toAudioAttrs): euclip-only
-  // settings are dropped and the slice controls can replace a sampler's start and end.
+  // settings are dropped.
   private applyAttrsToNode(attrs: Record<string, any>) {
     const node = this.trackNode;
     if (!node?.uniqueSelector) return;
     let audioAttrs = node.nodeType === 'sampler' ? node.toAudioAttrs(attrs) : attrs;
-    // a slice control just went back to "not in use": the region the time controls name plays again
-    if (node.nodeType === 'sampler' && this.isSliceControl && !node.sliceRegion()) {
-      audioAttrs = node.regionFromTimeControls();
-    }
     if (Object.keys(audioAttrs).length) applyNodeAttrs(node.uniqueSelector, node.nodeType, audioAttrs);
   }
 
@@ -487,6 +475,11 @@ export default class TrackControlModel extends Model {
   setParamUnit({ index, value }) {
     if (this.currentUnitTransformIdx === index) return;
 
+    // start and end are positions in the sample: moving to or from the Slice unit keeps the position, not the number
+    const edge = this.nodeAttr === 'end' ? 'end' : this.nodeAttr === 'start' ? 'start' : undefined;
+    const wasSlice = this.currentParamUnitLabel === 'Slice';
+    const position = this.trackNode?.nodeType === 'sampler' && edge ? this.attrValueForType() : undefined;
+
     this.currentUnitTransformIdx = index;
 
     const { min, max, stepSize, defaultValue } =
@@ -509,12 +502,32 @@ export default class TrackControlModel extends Model {
       this.controlValue = defaultValue;
     }
 
-    // TODO:
-    // when changing units, attempt to set the current controlValue intelligently
-    // depending on which unit we're going to from.
-    // if we're going from index non-0 to 0
+    // TODO: for other parameters, when changing units attempt to set the current controlValue intelligently
+    if (edge && Number.isFinite(position) && (wasSlice || this.currentParamUnitLabel === 'Slice')) {
+      const converted = this.valueForNative(position as number);
+      if (converted !== undefined) this.controlValue = Math.min(Math.max(converted, this.min), this.max);
+    }
     this.applyToAudio();
+    this.trackNode?.syncSliceRanges?.();
     this.saveTrackControl.perform();
+  }
+
+  /**
+   * The value in this control's current unit for a position in the sample given in seconds (the unit of what
+   * the audio node takes). For the Slice unit, the slice index; otherwise seconds divided by the unit's size.
+   * undefined when the unit is not a plain multiple of seconds.
+   */
+  valueForNative(seconds: number): number | undefined {
+    if (this.currentParamUnitLabel === 'Slice') {
+      return this.trackNode?.sliceIndexFor(seconds, this.nodeAttr === 'end' ? 'end' : 'start');
+    }
+    const scale = this.unitScale;
+    return scale ? Math.round((seconds / scale) * 10000) / 10000 : undefined;
+  }
+
+  /** Whether a waveform can drag this (start or end) control: its unit is seconds-like, or it is the Slice unit. */
+  get supportsRegionHandles(): boolean {
+    return this.currentParamUnitLabel === 'Slice' || this.unitScale !== undefined;
   }
 
   @restartableTask
@@ -566,6 +579,29 @@ export default class TrackControlModel extends Model {
         Object.defineProperty(entry, 'slices', {
           enumerable: true,
           get: () => trackNode.sliceBoundaries.slice(1).map((end, i) => [trackNode.sliceBoundaries[i], end]),
+        });
+      }
+      if (trackNode.nodeType === 'sampler') {
+        // Aliases: a script can still say `sampler.startSlice = 3` (the first slice that plays) and
+        // `sampler.endSlice = 3` (the last, inclusive). They move start and end, which hold the Slice unit's
+        // meaning in seconds for the audio. Negative or unknown slices are ignored.
+        const controlFor = (attr: string) => trackNode.controlFor(attr);
+        const slicePosition = (edge: 'start' | 'end', slice: number) => {
+          const bounds = trackNode.sliceBoundaries;
+          if (!(slice >= 0) || bounds.length < 2) return undefined;
+          const index = Math.min(Math.round(slice), bounds.length - 2);
+          return edge === 'start' ? bounds[index] : bounds[index + 1];
+        };
+        (['start', 'end'] as const).forEach((edge) => {
+          Object.defineProperty(entry, `${edge}Slice`, {
+            enumerable: false,
+            configurable: true,
+            get: () => trackNode.sliceIndexFor(controlFor(edge)?.attrValueForType(stepIndex), edge),
+            set: (slice) => {
+              const seconds = slicePosition(edge, slice);
+              if (seconds !== undefined) controlFor(edge)?.modulate(seconds);
+            },
+          });
         });
       }
       trackNode.trackControls.forEach((trackControl) => {

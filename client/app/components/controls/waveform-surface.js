@@ -98,6 +98,15 @@ export default class ControlsWaveformSurfaceComponent extends Component {
 
   // ---- snap ----
 
+  // in the Slice unit a marker can only be on a cut already: the snap switch has nothing to do
+  get sliceUnit() {
+    return this.args.startControl?.currentParamUnitLabel === 'Slice' || this.args.endControl?.currentParamUnitLabel === 'Slice';
+  }
+
+  get showSnap() {
+    return Boolean(this.args.snapControl) && !this.sliceUnit;
+  }
+
   get snapOn() {
     const control = this.args.snapControl;
     return control ? control.controlValue > 0 : false;
@@ -120,6 +129,12 @@ export default class ControlsWaveformSurfaceComponent extends Component {
     );
     if (!allowed.length) return fraction;
     return allowed.reduce((best, point) => (Math.abs(point - fraction) < Math.abs(best - fraction) ? point : best));
+  }
+
+  @action
+  setUnit(control, event) {
+    const index = Number(event.target.value);
+    control.setParamUnit({ index, value: control.paramUnitNames[index] });
   }
 
   // ---- the onset threshold ----
@@ -167,7 +182,9 @@ export default class ControlsWaveformSurfaceComponent extends Component {
       : Math.max(wanted, this.startFraction + MIN_GAP);
 
     const seconds = Math.max(limited, 0) * this.duration;
-    const value = Math.round((seconds / control.unitScale) * 10000) / 10000;
+    // in the Slice unit this is the index of the slice (so the marker lands on a cut), otherwise seconds / unit
+    const value = control.valueForNative(seconds);
+    if (value === undefined) return;
     this.args.onChange(control, Math.min(Math.max(value, control.min), control.max));
   }
 }

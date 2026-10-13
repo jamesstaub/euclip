@@ -703,6 +703,24 @@ export default class TrackModel extends Model.extend(Evented) {
 
     // Controls left over belong to nodes the script no longer creates. Only discard them when the script
     // ran cleanly: a script error also leaves nodes missing, and the user's settings must survive that.
+    // Projects saved while the slice was a parameter of its own (startSlice / endSlice, -1 = not used): when one was in
+    // use, it becomes the Slice unit of start / end, which is where it belongs now. The old controls are then left
+    // over, and discarded below like any control whose node no longer has it.
+    if (scriptOk) {
+      pool
+        .filter((c) => c.nodeType === 'sampler' && (c.nodeAttr === 'startSlice' || c.nodeAttr === 'endSlice') && c.controlValue >= 0)
+        .forEach((old) => {
+          const node = trackNodes.find((n) => n.nodeType === 'sampler' && n.order === old.nodeOrder);
+          const edge = old.nodeAttr === 'startSlice' ? 'start' : 'end';
+          const target = node && linked.get(node)?.find((c) => c.nodeAttr === edge);
+          const unit = target?.paramUnitNames.indexOf('Slice') ?? -1;
+          if (!target || unit < 0 || target.currentParamUnitLabel === 'Slice') return;
+          target.setParamUnit({ index: unit, value: 'Slice' });
+          target.controlValue = old.controlValue;
+          target.saveTrackControl.perform();
+        });
+    }
+
     if (scriptOk) {
       pool.forEach((control) => {
         if (control.isNew) this.store.unloadRecord(control);
