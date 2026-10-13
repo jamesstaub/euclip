@@ -1,6 +1,6 @@
 # Sample browser, sample pool and sampler assignment: UX review and redesign proposal
 
-Status: proposal, nothing implemented. Follows `snapshots-and-sample-pool.md` (decision 4 there: "uploads come later, after the
+Status: phases 0, 1, 2 and 4 are built (section 11); uploads and a catalog index are not. Follows `snapshots-and-sample-pool.md` (decision 4 there: "uploads come later, after the
 file browser is refactored"; this is that refactor).
 Audience: the project owner, and whoever builds it.
 Method: every flow below was walked in the running app (Playwright, 1440x900 and 390x800) with a screenshot at each step, then
@@ -260,3 +260,46 @@ Samples button in the project bar was removed in this session, so `sample-pool.s
 3. **Kit from selection:** is one track with N samplers (new) the right default over N tracks (today)? The mock offers both.
 4. **Audition while the sequencer plays:** route previews to a separate bus at reduced level (the pool's preview path already bypasses the track graph) and show the playing row.
 5. **Where do project-level sound operations live** (rename, remove unused, replace everywhere)? A row menu in "In this project" is the minimum; a "Manage" sheet is the next step if the pool grows.
+
+## 11. Implementation status
+
+Built in four commits (phase 0, 1, 2, 4), each with e2e coverage (`e2e/tests/sound-browser.spec.ts` and the updated
+`file-browser`, `files`, `sample-pool`, `track-types` and `source-surfaces` specs).
+
+| Phase | Built |
+|---|---|
+| 0 | audition service (`samplePool.previewPath`, quieter bus, own cache), kit button `●●○○ 2 / 4 samplers`, no phantom first-row highlight, readable breadcrumb, target advances after a pick |
+| 1 | the "Sounds" browser: target card with sampler chips and an **Adding to** menu, segmented *In this project / All sounds*, one-column list with up button and readable breadcrumb, ▶ on every row, arrow-key navigation (↑↓ hear, → open, ← up, Enter use, Space play, `/` search), **Use** with **Undo** toast, pool as a shelf (row menu for rename/remove), search results as the same rows, **From sounds…** with the selection tray (*N tracks* / *1 kit track*) |
+| 2 | `Source::SamplerRack` in the Source tab (cards with name, mini waveform, length, audition, folder caption = *show in browser*, change, clear + Undo, "adding here" ring), the row's source button aims the browser at the first empty sampler, the browser marks and scrolls to the sampler's current sound |
+| 4 | drag a sound onto a sampler card, a track row or the New Track button (HTML5 drag and drop; touch screens keep the buttons) |
+
+Where it differs from the sketch above:
+
+- **Use** is an overlay on the hovered / focused / selected row (transparent but focusable otherwise), always visible on a phone.
+- Only the **latest** change can be undone. Notifications have a `group`; starting a pick retires the previous Undo *immediately*,
+  because the new pick has no toast until it has saved, and an old Undo in that window would empty the sampler that was just filled.
+  Undo reads the previous sound inside a per-track queue (`utils/sampler-files.ts`) so it restores the right one.
+- The target advances **when the pick starts**, not when it finishes saving, so two quick picks fill two samplers.
+- The kit action needs **two to four** selected sounds (a kit has four samplers).
+- The pool's "Slot n" matrix is gone; the sampler chips in the target card and the cards in the rack replace it.
+- Oscillator and macro tracks keep their node tabs; the rack is for tracks whose source nodes are all samplers.
+
+### Questions (section 10), as resolved while building
+
+The answers written next to the questions were not visible when this was built, so the defaults recommended above were used.
+Change them if they are wrong.
+
+1. **Catalog metadata:** none was added. A sound's length shows once it has been auditioned or loaded.
+2. **Undo:** yes, a toast with **Undo** after every pick, drop and clear.
+3. **Kit from selection:** both actions are offered (*N tracks* and *1 kit track*); the default is not forced.
+4. **Audition while playing:** previews use their own gain bus at 0.7 and bypass the track graph; the playing row shows animated bars.
+5. **Project-level operations:** a row menu (rename, remove) in *In this project*. No separate Manage sheet yet.
+
+### Not built
+
+- **Uploads (phase 3).** Needs decisions first: where files are stored and who can read them, size and format limits, per-user
+  quota, whether a project's uploads travel with it when it is shared or copied, and a server endpoint and signed-URL flow. The seam is ready:
+  the segmented control takes a third shelf and `project-sample` already carries a path.
+- **Catalog index** (durations, kick/snare/hat kinds) for filter chips and category-first browsing. Needs a one-off scan of the bucket.
+- Arrow-key navigation inside **search results** (they are a plain list of buttons today), and ⇧/⌘-click multi-select outside the *New tracks* target.
+- The `current-*.png` screenshots in this document show the old UI, on purpose.
