@@ -54,7 +54,7 @@ RSpec.describe 'V1 track types', type: :request do
       expect(track.sequences.pluck(:hits, :steps)).to eq([[1, 8]])
     end
 
-    it 'copies a multi-sample kit: four sampler pads' do
+    it 'copies a multi-sample kit: four samplers' do
       track = Track.find(create_track('multi_sampler').dig(:data, :id))
 
       expect(track.init_script.safe_code.scan(/this\.files\[i\]/).size).to eq(1) # one loop over four slots

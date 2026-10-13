@@ -151,7 +151,7 @@ A **track** is built from two scripts (setup and play, ordinary editable JavaScr
 its sampler files and its controls.
 
 - **Track types** (the "New Track" menu) live in [`server/app/models/track_type.rb`](server/app/models/track_type.rb):
-  Sampler, Looped sampler (speed in *Loop Sync* units), Multi-sample kit (four sampler pads, one file each)
+  Sampler, Looped sampler (speed in *Loop Sync* units), Multi-sample kit (four samplers, one file each)
   and Polysynth (cracked's `polysynth` macro). Each is a set of starting scripts, sequences and control
   defaults that is *copied* onto the track on creation (`POST /v1/projects/:slug/tracks` with `track-type`;
   `GET /v1/track-types` lists them). To add a type, add an entry there; no migration needed. Control

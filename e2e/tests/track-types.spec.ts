@@ -183,25 +183,26 @@ test.describe('track types in the New Track menu', () => {
     expect(warnings).toEqual([]);
   });
 
-  test('a multi-sample kit has four sampler pads, each with its own file slot', async ({ page }) => {
+  test('a multi-sample kit has four samplers, each with its own file slot', async ({ page }) => {
     const { row, order } = await addTrack(page, 'Multi-sample kit');
     expect(await nodes(page, `sampler .track-${order}`)).toBe(4);
-    // the track list shows one multi-sample button; the source tab has a tab per pad and shows the selected pad's sample
+    // the track list shows one multi-sample button; the source tab has a tab per sampler and shows the selected sampler's sample
     await expect(row.locator('[data-test-source-kind]')).toHaveCount(1);
     await expect(row.locator('[data-test-source-kind="multi-sample"]')).toContainText('4 samples');
-    await row.locator('[data-test-source-kind]').click();
-    const padTabs = page.locator('.tab-btn.horizontal').filter({ has: page.locator('[data-test-tab-sublabel]') });
-    await expect(padTabs).toHaveCount(4);
-    await expect(page.locator('[data-test-source-sample]')).toHaveAttribute('data-source-node-id', 'pad1');
+    await row.locator('[data-test-source-kind]').click(); // opens the sound sidebar
+    await page.getByRole('button', { name: 'source' }).click(); // the footer's source tab
+    const samplerTabs = page.locator('.track-footer .tab-btn.horizontal').filter({ has: page.locator('[data-test-tab-sublabel]') });
+    await expect(samplerTabs).toHaveCount(4);
+    await expect(page.locator('[data-test-source-sample]')).toHaveAttribute('data-source-node-id', 'sampler1');
     await expect(page.locator('[data-test-source-sample]').getByRole('button', { name: 'Pick a Sound' })).toHaveCount(1);
 
-    // choosing another pad shows that pad's (still empty) sample
-    await padTabs.nth(3).click();
-    await expect(page.locator('[data-test-source-sample]')).toHaveAttribute('data-source-node-id', 'pad4');
+    // choosing another sampler shows its (still empty) sample
+    await samplerTabs.nth(3).click();
+    await expect(page.locator('[data-test-source-sample]')).toHaveAttribute('data-source-node-id', 'sampler4');
     await expect(page.locator('[data-test-source-sample]').getByRole('button', { name: 'Pick a Sound' })).toHaveCount(1);
   });
 
-  test('a multi-sample kit loads a file per pad and plays them round-robin', async ({ page }) => {
+  test('a multi-sample kit loads a file per sampler and plays them round-robin', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
@@ -215,14 +216,15 @@ test.describe('track types in the New Track menu', () => {
     await page.reload();
     const row = page.locator(`[data-track-id="${id}"]`);
     await expect(row.locator('[data-test-source-kind="multi-sample"]')).toContainText('4 samples');
-    await row.locator('[data-test-source-kind]').click(); // opens this track's source tab
+    await row.locator('[data-test-source-kind]').click(); // opens the sound sidebar
+    await page.getByRole('button', { name: 'source' }).click(); // the footer's source tab
     const sample = page.locator('[data-test-source-sample]');
-    const padTabs = page.locator('.tab-btn.horizontal').filter({ has: page.locator('[data-test-tab-sublabel]') });
-    await expect(sample).toContainText('01W TOM'); // pad 1
-    await padTabs.nth(1).click();
-    await expect(sample).toContainText('AGG'); // pad 2
-    await padTabs.nth(3).click();
-    await expect(sample.getByRole('button', { name: 'Pick a Sound' })).toHaveCount(1); // pad 4 still has no file
+    const samplerTabs = page.locator('.track-footer .tab-btn.horizontal').filter({ has: page.locator('[data-test-tab-sublabel]') });
+    await expect(sample).toContainText('01W TOM'); // sampler 1
+    await samplerTabs.nth(1).click();
+    await expect(sample).toContainText('AGG'); // sampler 2
+    await samplerTabs.nth(3).click();
+    await expect(sample.getByRole('button', { name: 'Pick a Sound' })).toHaveCount(1); // sampler 4 still has no file
     await expect.poll(() => [...loaded].join(',')).toBe('200');
 
     await page.getByRole('button', { name: 'play' }).click();
@@ -245,7 +247,7 @@ test.describe('track types in the New Track menu', () => {
       });
     const baseline = (await probe()).nodes;
 
-    await page.getByRole('button', { name: 'play' }).click();
+    await page.getByRole('button', { name: 'play', exact: true }).click();
     let sawVoice = false;
     let maxVoices = 0;
     for (let i = 0; i < 40; i++) { // ~4s of steps, sampled every 100ms
@@ -257,7 +259,7 @@ test.describe('track types in the New Track menu', () => {
     expect(sawVoice).toBe(true);
     expect(maxVoices).toBeLessThanOrEqual(2); // a note is released before the next one is a step away
 
-    await page.getByRole('button', { name: 'stop' }).click();
+    await page.getByRole('button', { name: 'stop', exact: true }).click();
     await expect.poll(async () => (await probe()).voices, { timeout: 3000 }).toBe(0);
     // released voices are removed, not left connected (their nodes would pile up and keep sounding)
     await expect.poll(async () => (await probe()).nodes, { timeout: 4000 }).toBeLessThanOrEqual(baseline + 2);
