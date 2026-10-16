@@ -2,9 +2,30 @@
 
 const EmberApp = require('ember-cli/lib/broccoli/ember-app');
 const { Webpack } = require('@embroider/webpack');
+const fs = require('fs');
+const path = require('path');
+
+/**
+ * app/styles/app.css is a list of @imports of the other stylesheets. In development the browser fetches
+ * them next to euclip.css, but in a production build those files are fingerprinted away and the CSS
+ * minifier does not inline them, so the app shipped without most of its styles. For production the imports
+ * are inlined into one file up front (the same order, relative to each file).
+ */
+function inlinedStyles() {
+  const stylesDir = path.resolve(__dirname, 'app/styles');
+  const inline = (file) =>
+    fs.readFileSync(file, 'utf8').replace(/@import\s+['"]([^'"]+)['"]\s*;?/g, (_, target) =>
+      inline(path.resolve(path.dirname(file), target))
+    );
+  const outDir = path.resolve(__dirname, 'tmp/inlined-styles');
+  fs.mkdirSync(outDir, { recursive: true });
+  fs.writeFileSync(path.join(outDir, 'app.css'), inline(path.join(stylesDir, 'app.css')));
+  return outDir;
+}
 
 module.exports = function (defaults) {
   let app = new EmberApp(defaults, {
+    ...(process.env.EMBER_ENV === 'production' ? { trees: { styles: inlinedStyles() } } : {}),
     fingerprint: {
       prepend: '/',
     },

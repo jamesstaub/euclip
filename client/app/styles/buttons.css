@@ -44,7 +44,6 @@ button:disabled {
 
 
 .light-yellow-button {
-  @extend .dark-fill;
   color: var(--dark-gray);
   background-color: var(--light-yellow);
 }
@@ -52,72 +51,82 @@ button[disabled] {
   cursor: default;
 }
 
-button:not([disabled]):not(.selected):hover {
-  &.bg-dark-gray {
-    background-color: var(--dark-gray);
-  }
-  &.bg-light-gray {
-    background-color: var(--near-white);
-  }
-  &.bg-light-yellow, &.light-yellow-button {
-    background-color: var(--light-yellow);
-  }
-  &.bg-yellow {
-    background-color: var(--dark-yellow);
-  }
-  &.bg-light-blue {
-    background-color: var(--light-blue);
-  }
-  &.bg-transparent {
-    background-color: rgba(255, 255, 255, .25);
-  }
-  &.bg-near-black {
-    background-color: var(--dark-gray);
-  }
+button:not([disabled]):not(.selected):hover.bg-dark-gray {
+  background-color: var(--dark-gray);
 }
 
-button:not([disabled]):active {
-  &.bg-dark-gray {
-    background-color: var(--dark-gray);
-  }
-  &.bg-light-gray {
-    background-color: var(--mid-gray);
-  }
-  &.bg-light-yellow, &.light-yellow-button {
-    background-color: var(--light-yellow);
-    backdrop-filter: brightness(1.2);
-  }
-  &.bg-yellow {
-    background-color: var(--dark-yellow);
-  }
-  &.bg-light-blue {
-    background-color: var(--light-blue);
-  }
-  &.bg-transparent {
-    background-color: rgba(255, 255, 255, .25);
-  }
+button:not([disabled]):not(.selected):hover.bg-light-gray {
+  background-color: var(--near-white);
 }
 
-button:not([disabled]):focus {
-  &.bg-dark-gray {
-    outline-color: var(--dark-yellow);
-  }
-  &.bg-light-gray {
-    outline-color: var(--moon-gray);
-  }
-  &.bg-light-yellow, &.light-yellow-button {
-    outline-color: var(--dark-yellow);
-    backdrop-filter: brightness(1.2);
-  }
-  &.bg-yellow {
-    outline-color: var(--dark-blue);
-  }
-  &.bg-light-blue {
-    outline-color: var(--dark-blue);
-  }
-  &.bg-transparent {
-    outline-color: var(--dark-blue);
-  }
+button:not([disabled]):not(.selected):hover.bg-light-yellow, button:not([disabled]):not(.selected):hover.light-yellow-button {
+  background-color: var(--light-yellow);
+}
+
+button:not([disabled]):not(.selected):hover.bg-yellow {
+  background-color: var(--dark-yellow);
+}
+
+button:not([disabled]):not(.selected):hover.bg-light-blue {
+  background-color: var(--light-blue);
+}
+
+button:not([disabled]):not(.selected):hover.bg-transparent {
+  background-color: rgba(255, 255, 255, .25);
+}
+
+button:not([disabled]):not(.selected):hover.bg-near-black {
+  background-color: var(--dark-gray);
+}
+
+button:not([disabled]):active.bg-dark-gray {
+  background-color: var(--dark-gray);
+}
+
+button:not([disabled]):active.bg-light-gray {
+  background-color: var(--mid-gray);
+}
+
+button:not([disabled]):active.bg-light-yellow, button:not([disabled]):active.light-yellow-button {
+  background-color: var(--light-yellow);
+  backdrop-filter: brightness(1.2);
+}
+
+button:not([disabled]):active.bg-yellow {
+  background-color: var(--dark-yellow);
+}
+
+button:not([disabled]):active.bg-light-blue {
+  background-color: var(--light-blue);
+}
+
+button:not([disabled]):active.bg-transparent {
+  background-color: rgba(255, 255, 255, .25);
+}
+
+button:not([disabled]):focus.bg-dark-gray {
+  outline-color: var(--dark-yellow);
+}
+
+button:not([disabled]):focus.bg-light-gray {
+  outline-color: var(--moon-gray);
+}
+
+button:not([disabled]):focus.bg-light-yellow, button:not([disabled]):focus.light-yellow-button {
+  outline-color: var(--dark-yellow);
+  backdrop-filter: brightness(1.2);
+}
+
+button:not([disabled]):focus.bg-yellow {
+  outline-color: var(--dark-blue);
+}
+
+button:not([disabled]):focus.bg-light-blue {
+  outline-color: var(--dark-blue);
+}
+
+button:not([disabled]):focus.bg-transparent {
+  outline-color: var(--dark-blue);
 }
 
 /* One keyboard focus ring for everything interactive (:where keeps its specificity at zero, so a component can still
