@@ -6,6 +6,11 @@ export interface SequenceSettings {
   hits: number;
   steps: number;
   offset: number;
+  kind?: 'euclidean' | 'binary' | 'onoff'; // snapshots saved before the other kinds existed have none of these
+  value?: number;
+  onSteps?: number;
+  offSteps?: number;
+  times?: number;
   customSequence: number[] | null;
 }
 

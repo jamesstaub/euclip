@@ -3,6 +3,10 @@ import Model, { attr, belongsTo } from '@ember-data/model';
 import type TrackModel from 'euclip/models/track';
 // @ts-ignore - No type definitions available
 import E from '../utils/euclidean';
+// @ts-ignore - No type definitions available
+import { binaryPattern, onOffPattern } from '../utils/sequence-patterns';
+
+export type SequenceKind = 'euclidean' | 'binary' | 'onoff';
 
 export default class SequenceModel extends Model {
   // @ts-ignore - Model registry types are not working properly
@@ -11,7 +15,13 @@ export default class SequenceModel extends Model {
   // position within the track; the primary sequence (order 0) drives the track's step display
   @attr('number', { defaultValue: 0 }) declare order: number;
 
-  // euclidean rhythm params (should eventually move to a Sequence model)
+  // how the pattern is made: euclidean uses hits/steps/offset, binary uses value, onoff uses onSteps/offSteps/times
+  @attr('string', { defaultValue: 'euclidean' }) declare kind: SequenceKind;
+  @attr('number', { defaultValue: 0 }) declare value: number;
+  @attr('number', { defaultValue: 1 }) declare onSteps: number;
+  @attr('number', { defaultValue: 1 }) declare offSteps: number;
+  @attr('number', { defaultValue: 1 }) declare times: number;
+
   @attr('number', {
     defaultValue() {
       return 0;
@@ -35,12 +45,18 @@ export default class SequenceModel extends Model {
 
   @attr() declare customSequence: number[] | undefined;
 
+  // the number of steps the pattern actually has (`steps` only describes euclidean sequences)
+  get length(): number {
+    return this.sequence.length;
+  }
+
   get sequence(): number[] {
     if (this.customSequence?.length) {
       return this.customSequence;
-    } else {
-      // @ts-ignore - E function types
-      return E(this.hits, this.steps, this.offset);
     }
+    if (this.kind === 'binary') return binaryPattern(this.value);
+    if (this.kind === 'onoff') return onOffPattern(this.onSteps, this.offSteps, this.times);
+    // @ts-ignore - E function types
+    return E(this.hits, this.steps, this.offset);
   }
 }

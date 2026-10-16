@@ -170,3 +170,45 @@ export async function spyOnOscillatorStarts(page: Page) {
 }
 
 export const oscillatorStarts = (page: Page): Promise<number> => page.evaluate(() => (window as any).__oscStarts ?? 0);
+
+/**
+ * Records every value set on a sampler's loopStart (cracked's `start` attribute): the offset a sample
+ * plays from. Not an AudioParam, so it is watched on the node itself. Call before the page loads.
+ */
+export async function spyOnLoopStarts(page: Page) {
+  await page.addInitScript(() => {
+    const w = window as any;
+    w.__loopStarts = [];
+    const descriptor = Object.getOwnPropertyDescriptor(AudioBufferSourceNode.prototype, 'loopStart')!;
+    Object.defineProperty(AudioBufferSourceNode.prototype, 'loopStart', {
+      ...descriptor,
+      set(value: number) {
+        w.__loopStarts.push(Math.round(value * 1000) / 1000);
+        descriptor.set!.call(this, value);
+      },
+    });
+  });
+}
+
+export const loopStartsSeen = (page: Page): Promise<number[]> => page.evaluate(() => (window as any).__loopStarts ?? []);
+
+/**
+ * Records connections from a sampler (an AudioBufferSourceNode) to a gain, by the nodes' cracked uuids:
+ * `{ from, to }`. Call before the page loads.
+ */
+export async function spyOnSamplerConnections(page: Page) {
+  await page.addInitScript(() => {
+    const w = window as any;
+    w.__connections = [];
+    const original = AudioNode.prototype.connect as any;
+    (AudioNode.prototype as any).connect = function (destination: any, ...rest: any[]) {
+      if (this instanceof AudioBufferSourceNode && destination instanceof GainNode) {
+        w.__connections.push({ from: (this as any).uuid, to: destination.uuid });
+      }
+      return original.call(this, destination, ...rest);
+    };
+  });
+}
+
+export const samplerConnections = (page: Page): Promise<{ from: string; to: string }[]> =>
+  page.evaluate(() => (window as any).__connections ?? []);

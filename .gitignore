@@ -3,3 +3,7 @@
 .env
 .env.*
 !.env.example
+
+# test run output
+test-results/
+playwright-report/

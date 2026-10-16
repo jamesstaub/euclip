@@ -1,31 +1,69 @@
 <div class='flex grow-1'>
   <div class='flex justify-between grow-1'>
     <div class='sequence-control-sliders flex flex-column mh2 w-100'>
-      <Console::Header>Euclidean Rhythm</Console::Header>
+      <Console::Header>Sequencer</Console::Header>
       {{#if @showReference}}
         {{yield}}
       {{else}}
-        <Sequence::Slider
-          @label="hits"
-          @value={{@sequence.hits}}
-          @min={{0}}
-          @max={{@sequence.steps}}
-          @onChange={{fn @updateTrackSequence @sequence 'hits'}}
+        <Ui::Segmented
+          @label='Sequencer type'
+          @items={{this.kinds}}
+          @selected={{this.kind}}
+          @onSelect={{fn @updateTrackSequence @sequence 'kind'}}
         />
-        <Sequence::Slider
-          @label="steps"
-          @value={{@sequence.steps}}
-          @min={{0}}
-          @max={{@maxSteps}}
-          @onChange={{fn @updateTrackSequence @sequence 'steps'}}
-        />
-        <Sequence::Slider
-          @label="offset"
-          @value={{@sequence.offset}}
-          @min={{0}}
-          @max={{@maxSteps}}
-          @onChange={{fn @updateTrackSequence @sequence 'offset'}}
-        />
+        {{#if (eq this.kind 'binary')}}
+          <Sequence::Slider
+            @label="value"
+            @value={{@sequence.value}}
+            @min={{0}}
+            @max={{127}}
+            @onChange={{fn @updateTrackSequence @sequence 'value'}}
+          />
+        {{else if (eq this.kind 'onoff')}}
+          <Sequence::Slider
+            @label="on"
+            @value={{@sequence.onSteps}}
+            @min={{0}}
+            @max={{16}}
+            @onChange={{fn @updateTrackSequence @sequence 'onSteps'}}
+          />
+          <Sequence::Slider
+            @label="off"
+            @value={{@sequence.offSteps}}
+            @min={{0}}
+            @max={{16}}
+            @onChange={{fn @updateTrackSequence @sequence 'offSteps'}}
+          />
+          <Sequence::Slider
+            @label="times"
+            @value={{@sequence.times}}
+            @min={{1}}
+            @max={{16}}
+            @onChange={{fn @updateTrackSequence @sequence 'times'}}
+          />
+        {{else}}
+          <Sequence::Slider
+            @label="hits"
+            @value={{@sequence.hits}}
+            @min={{0}}
+            @max={{@sequence.steps}}
+            @onChange={{fn @updateTrackSequence @sequence 'hits'}}
+          />
+          <Sequence::Slider
+            @label="steps"
+            @value={{@sequence.steps}}
+            @min={{0}}
+            @max={{@maxSteps}}
+            @onChange={{fn @updateTrackSequence @sequence 'steps'}}
+          />
+          <Sequence::Slider
+            @label="offset"
+            @value={{@sequence.offset}}
+            @min={{0}}
+            @max={{@maxSteps}}
+            @onChange={{fn @updateTrackSequence @sequence 'offset'}}
+          />
+        {{/if}}
       {{/if}}
     </div>
   </div>

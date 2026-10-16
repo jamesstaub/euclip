@@ -23,7 +23,8 @@ const CONTROL_FIELDS: (keyof ControlSettings)[] = [
   'stepSize',
 ];
 
-const SEQUENCE_FIELDS: (keyof SequenceSettings)[] = ['hits', 'steps', 'offset'];
+const SEQUENCE_FIELDS: (keyof SequenceSettings)[] = ['hits', 'steps', 'offset', 'kind', 'value', 'onSteps', 'offSteps', 'times'];
+const SEQUENCE_DEFAULTS: Partial<SequenceSettings> = { kind: 'euclidean', value: 0, onSteps: 1, offSteps: 1, times: 1 };
 
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
@@ -62,6 +63,11 @@ export default class SnapshotRuntimeService extends Service {
         hits: sequence.hits,
         steps: sequence.steps,
         offset: sequence.offset,
+        kind: sequence.kind,
+        value: sequence.value,
+        onSteps: sequence.onSteps,
+        offSteps: sequence.offSteps,
+        times: sequence.times,
         customSequence: sequence.customSequence?.length ? sequence.customSequence.slice() : null,
       }));
       const script = track.onstepScript;
@@ -109,7 +115,8 @@ export default class SnapshotRuntimeService extends Service {
     if (!wanted?.length) return;
     let changed = false;
 
-    for (const target of wanted) {
+    for (const saved of wanted) {
+      const target = { ...SEQUENCE_DEFAULTS, ...saved } as SequenceSettings;
       let sequence = track.sequences.find((s: SequenceModel) => s.order === target.order && !s.isDeleted);
       if (!sequence) {
         sequence = this.store.createRecord('sequence', { track, order: target.order }) as SequenceModel;

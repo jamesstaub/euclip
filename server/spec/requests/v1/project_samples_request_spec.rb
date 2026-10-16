@@ -18,6 +18,30 @@ RSpec.describe 'V1 project samples (the pool)', type: :request do
     api(:post, "projects/#{project.slug}/samples", { data: { type: 'project-sample', attributes: attributes } })
   end
 
+  describe 'the onset detection threshold' do
+    it 'starts at a default and is part of the sample' do
+      body = add_sample('/a/loop.mp3')
+      expect(body.dig(:data, :attributes, :'onset-threshold')).to eq(0.25)
+    end
+
+    it 'is changed through an update, and persists' do
+      sample = ProjectSample.find(add_sample('/a/loop.mp3').dig(:data, :id))
+      api(:patch, "samples/#{sample.id}", { data: { type: 'project-sample', id: sample.id.to_s, attributes: { 'onset-threshold': 0.6 } } })
+
+      expect(response).to have_http_status(200)
+      expect(sample.reload.onset_threshold).to eq(0.6)
+    end
+
+    it 'must be between 0 and 1' do
+      sample = ProjectSample.find(add_sample('/a/loop.mp3').dig(:data, :id))
+      [-0.1, 1.5].each do |bad|
+        api(:patch, "samples/#{sample.id}", { data: { type: 'project-sample', id: sample.id.to_s, attributes: { 'onset-threshold': bad } } })
+        expect(response).to have_http_status(422)
+      end
+      expect(sample.reload.onset_threshold).to eq(0.25)
+    end
+  end
+
   describe 'adding samples' do
     it 'adds a sample under a label taken from the file name' do
       body = add_sample('/Roland/TR 808/kick.mp3')

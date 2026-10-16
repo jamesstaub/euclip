@@ -8,6 +8,12 @@ class Sequence < ApplicationRecord
   # nil until assigned, so "no order given" is distinguishable from an explicit 0
   attribute :order, :integer, default: nil
 
+  KINDS = %w[euclidean binary onoff].freeze
+  validates :kind, inclusion: { in: KINDS }
+  validates :value, numericality: { only_integer: true, in: 0..127 }
+  validates :on_steps, :off_steps, numericality: { only_integer: true, in: 0..64 }
+  validates :times, numericality: { only_integer: true, in: 1..64 }
+
   # position within the track: the track's primary sequence has the lowest order
   validates :order, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validates :order, uniqueness: { scope: :track_id }, if: :track_id?

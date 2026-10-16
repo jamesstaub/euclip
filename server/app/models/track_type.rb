@@ -51,7 +51,9 @@ class TrackType
            the slider doesn't move and next step starts from it again, so nothing builds up.
 
         Try it: replace the code above with this for a little random pitch drift on every hit.
-        (controls are addressed by node type, or by the id you give a node: .lowpass({ id: 'filter' }))
+        (controls are addressed by node type: this.controls.lowpass.frequency; use this.controls[0] etc. to pick
+        between several nodes of one type. Avoid giving nodes an { id: ... }: it is a selector for the whole page, so
+        a duplicated track would clash with it. this.select('lowpass') and this.selector('lowpass') find this track's own.)
 
         // __.random(min, max) is cracked's random whole number: -20..20 here, so +/- 2% after the division
         if (data) {
@@ -97,21 +99,23 @@ class TrackType
     description: 'Four samplers, each with its own file, sharing one channel strip. Hits play the samplers in turn.',
     init_script: <<~JS,
       // Four samplers. Pick a file for each in the Source tab: slot n of `this.files`
-      // is the file for sampler n + 1. All samplers share one bus with a single channel strip.
-      __().gain({ id: 'samplers' }).channelStrip().connect('#main-output');
+      // is the file for sampler n + 1. All samplers share one bus (a gain) with a single channel strip.
+      __().gain().channelStrip().connect('#main-output');
 
+      // Connect each sampler to THIS track's gain. (An id selector, like #bus, matches the gain of every track, so
+      // duplicating this track would wire its samplers into both buses; this.selector('gain') is only this track's.)
       [0, 1, 2, 3].forEach((i) => {
         __()
-          .sampler({ id: 'sampler' + (i + 1), path: this.files[i] })
-          .connect('#samplers');
+          .sampler({ path: this.files[i] })
+          .connect(this.selector('gain'));
       });
     JS
     onstep_script: <<~JS,
       // Every hit plays the next sampler in turn (round-robin), so the files play as one instrument.
       // Tip: add a second sequence and use `sequenceIndex` to give a sampler its own rhythm:
       //   this.playSourceNode(sequenceIndex)
-      // Tip: each sampler has its own controls, addressed by the ids in the Setup script, e.g. to
-      // pitch one sampler down for a single step: this.controls.sampler2.speed *= 0.5
+      // Tip: play one sampler differently for a single step, e.g. the second one at half speed:
+      //   this.playSourceNode(1, { speed: 0.5 })
       if (data) {
         this.playSourceNode(index % 4);
       }
@@ -195,13 +199,13 @@ class TrackType
     description: 'Every hit varies a little in pitch, level and brightness around wherever the sliders are set.',
     init_script: <<~JS,
       // The numbers here are the starting values of the matching controls (see the Source and
-      // Controls tabs). The `id`s let the play script find a node by name: this.controls.level, ...
+      // Controls tabs). The play script finds each node by its type: this.controls.lowpass, this.controls.gain.
       __()
         .sampler({
           path: this.files[0],
         })
-        .lowpass({ id: 'filter', frequency: 8000 })
-        .gain({ id: 'level', gain: 0.8 })
+        .lowpass({ frequency: 8000 })
+        .gain({ gain: 0.8 })
         .channelStrip()
         .connect('#main-output')
     JS
@@ -216,10 +220,10 @@ class TrackType
 
       if (data) {
         this.controls.sampler.speed *= around(0.03); // +/- 3% pitch
-        this.controls.level.gain *= around(0.15);    // +/- 15% level
-        this.controls.filter.frequency *= around(0.25); // +/- 25% brightness
+        this.controls.gain.gain *= around(0.15);    // +/- 15% level
+        this.controls.lowpass.frequency *= around(0.25); // +/- 25% brightness
         // __.chance(20) is true one time in five: now and then a hit is a soft "ghost" note
-        if (__.chance(20)) this.controls.level.gain *= 0.4;
+        if (__.chance(20)) this.controls.gain.gain *= 0.4;
         this.play(); // plays with the offsets above
       }
     JS
@@ -238,17 +242,17 @@ class TrackType
           path: this.files[0],
           loop: true,
         })
-        .lowpass({ id: 'filter', frequency: 1200, q: 6 })
+        .lowpass({ frequency: 1200, q: 6 })
         .channelStrip()
         .connect('#main-output')
     JS
     onstep_script: <<~JS,
       // Sweep the cutoff over the sequence, one octave either side of the slider.
-      // this.controls.filter.frequency is the slider's value, so dragging it moves the whole sweep.
+      // this.controls.lowpass.frequency is the slider's value, so dragging it moves the whole sweep.
       // The red ring on the slider shows where the sweep is right now; the slider itself doesn't move.
-      const cutoff = this.controls.filter.frequency;
+      const cutoff = this.controls.lowpass.frequency;
       const position = Math.sin((index / array.length) * 2 * Math.PI); // -1 .. 1 over one cycle
-      this.controls.filter.frequency = cutoff * Math.pow(2, position);
+      this.controls.lowpass.frequency = cutoff * Math.pow(2, position);
 
       if (data) {
         this.play({ loop: true });
@@ -265,7 +269,7 @@ class TrackType
       // An oscillator is a sound source, so its controls are in the Source tab.
       // The frequency control is the ROOT note: 220 Hz to start with.
       __()
-        .sine({ id: 'lead', frequency: 220 })
+        .sine({ frequency: 220 })
         .adsr('fast')
         .channelStrip()
         .connect('#main-output');
@@ -280,15 +284,15 @@ class TrackType
       // __.scales('minor') is the scale as semitones above the root: [0, 2, 3, 5, 7, 8, 10]
       // (also: 'major', 'wholetone', 'overtone', 'lydian', 'mixolydian' and 'ionian').
       //
-      // Assigning this.controls.lead.frequency sets the pitch for this step only; the control keeps
+      // Assigning this.controls.sine.frequency sets the pitch for this step only; the control keeps
       // the root, and the next step reads it back.
       const scale = __.scales('minor');
 
       if (data) {
-        const root = this.controls.lead.frequency;
+        const root = this.controls.sine.frequency;
         // __.chance(20) is true one time in five: that note goes up an octave
         const semitones = scale[index % scale.length] + (__.chance(20) ? 12 : 0);
-        this.controls.lead.frequency = root * Math.pow(2, semitones / 12);
+        this.controls.sine.frequency = root * Math.pow(2, semitones / 12);
         this.playADSRNodes(); // open the envelope
       }
     JS

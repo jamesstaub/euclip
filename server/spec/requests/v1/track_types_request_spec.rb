@@ -19,8 +19,30 @@ RSpec.describe 'V1 track types', type: :request do
     types = json_parse(response.body)[:data]
 
     expect(response).to have_http_status(200)
-    expect(types.map { |t| t[:id] }).to eq(%w[sampler looped_sampler multi_sampler humanized_sampler filter_sweep oscillator_arp polysynth])
+    expect(types.map { |t| t[:id] }).to eq(%w[sampler looped_sampler multi_sampler chopped_loop humanized_sampler filter_sweep oscillator_arp polysynth])
     expect(types).to all(satisfy { |t| t[:attributes][:title].present? && t[:attributes][:description].present? })
+  end
+
+  it "writes every preset's play script with cracked's helpers (__.random, __.chance, __.scales...), not Math.random" do
+    TrackType.all.each do |type|
+      expect(type.onstep_script).not_to include('Math.random'), "#{type.key} uses Math.random"
+    end
+    expect(TrackType.find('chopped_loop').onstep_script).to include('__.shuffle', '__.fill_array', '__.chance', '__.random')
+    expect(TrackType.find('humanized_sampler').onstep_script).to include('__.random', '__.chance')
+    expect(TrackType.find('oscillator_arp').onstep_script).to include("__.scales('minor')", '__.chance')
+    expect(TrackType.find('polysynth').onstep_script).to include("__.scales('minor')")
+  end
+
+  it 'never hard-codes node ids: an id is a selector for the whole page, so a duplicated track would clash' do
+    TrackType.all.each do |type|
+      # ({ id: 'x' } in a node's options, or a '#x' selector; the project's shared main output is the one global)
+      scripts = [type.init_script, type.onstep_script].map { |code| code.gsub('#main-output', '') }
+      scripts.each do |code|
+        expect(code).not_to match(/\bid:\s*['"]/), "#{type.key} gives a node an id"
+        expect(code).not_to match(/['"]#[a-z]/i), "#{type.key} selects by an id"
+      end
+    end
+    expect(TrackType.find('multi_sampler').init_script).to include("this.selector('gain')")
   end
 
   it 'says looped samplers should use Loop Sync speed' do
@@ -70,13 +92,14 @@ RSpec.describe 'V1 track types', type: :request do
       end
     end
 
-    it 'seeds the ids and starting values that the play scripts address' do
+    it 'seeds the starting values the play scripts read, addressing nodes by type' do
       humanized = Track.find(create_track('humanized_sampler').dig(:data, :id))
-      expect(humanized.init_script.safe_code).to include("id: 'filter'", "id: 'level'")
-      expect(humanized.onstep_script.safe_code).to include('this.controls.filter.frequency', 'this.controls.level.gain')
+      expect(humanized.init_script.safe_code).to include('frequency: 8000', 'gain: 0.8')
+      expect(humanized.onstep_script.safe_code).to include('this.controls.lowpass.frequency', 'this.controls.gain.gain')
 
       arp = Track.find(create_track('oscillator_arp').dig(:data, :id))
-      expect(arp.init_script.safe_code).to include("id: 'lead'", 'frequency: 220')
+      expect(arp.init_script.safe_code).to include('frequency: 220')
+      expect(arp.onstep_script.safe_code).to include('this.controls.sine.frequency')
     end
 
     it 'copies a polysynth built on the cracked polysynth macro' do

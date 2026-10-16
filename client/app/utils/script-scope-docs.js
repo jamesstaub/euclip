@@ -18,8 +18,16 @@ export const SCRIPT_SCOPE_DOCS = [
     kind: 'method',
     description:
       'Select nodes belonging to this track. The selector is scoped to the track, so this.select("lowpass") only matches this track’s lowpass nodes.',
-    example: 'this.select("#bass").frequency(200);',
+    example: 'this.select("lowpass").frequency(200);',
     boost: 10,
+  },
+  {
+    name: 'selector',
+    kind: 'method',
+    description:
+      'The track-scoped selector for a node type, as a string: what this.select(type) selects, for places that take a selector, like .connect(). Prefer it to an id (#name), which matches nodes in every track, so it breaks when a track is duplicated.',
+    example: "__().sampler().connect(this.selector('gain'));",
+    boost: 8,
   },
   {
     name: 'play',
@@ -75,7 +83,7 @@ export const SCRIPT_SCOPE_DOCS = [
     name: 'controls',
     kind: 'property',
     description:
-      'Live values of this track’s controls, by node id or type (or index). Reading gives the slider’s value (native units, current step for multisliders); assigning sets a one-step offset that is applied to the audio only for this step and never changes the slider. A node id that is also an array method (e.g. \'filter\') still addresses the node. A sampler also has sliceCount and slices (read-only) and the startSlice / endSlice controls, which pick a region of the sample by its onset slices.',
+      'Live values of this track’s controls, by node type (or index, or an id you gave the node; an id is also a selector for the whole page, so prefer the type). Reading gives the slider’s value (native units, current step for multisliders); assigning sets a one-step offset that is applied to the audio only for this step and never changes the slider. A node id that is also an array method (e.g. \'filter\') still addresses the node. A sampler also has sliceCount and slices (read-only) and the startSlice / endSlice controls, which pick a region of the sample by its onset slices.',
     example:
       'this.controls.lead.frequency = this.controls.lead.frequency * (1 + Math.random() * 0.02)',
     boost: 6,

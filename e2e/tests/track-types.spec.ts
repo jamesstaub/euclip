@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { addFilepath, createProject, login, oscillatorStarts, rampsSeen, scheduledOn, setScript, spyOnOscillatorStarts, spyOnParams, spyOnRamps } from './helpers';
+import { addFilepath, createProject, login, loopStartsSeen, samplerConnections, spyOnSamplerConnections, oscillatorStarts, rampsSeen, scheduledOn, setScript, spyOnLoopStarts, spyOnOscillatorStarts, spyOnParams, spyOnRamps } from './helpers';
 
 const rows = (page: Page) => page.locator('[data-test-track-item]:not(:has-text("Main Output"))');
 
@@ -26,6 +26,8 @@ test.describe('track types in the New Track menu', () => {
     await spyOnParams(page);
     await spyOnRamps(page);
     await spyOnOscillatorStarts(page);
+    await spyOnLoopStarts(page);
+    await spyOnSamplerConnections(page);
     await login(page);
     await createProject(page);
   });
@@ -92,8 +94,15 @@ test.describe('track types in the New Track menu', () => {
     await page.waitForTimeout(3500);
 
     const pitches = new Set(await scheduledOn(page, OSC_FREQ));
-    [220, 247.5, 275, 330].forEach((hz) => expect(pitches.has(hz)).toBe(true));
-    expect([...pitches].every((hz) => hz >= 220 && hz <= 220 * (5 / 3) + 0.01)).toBe(true);
+
+    // the notes are a minor scale above the root (__.scales('minor') = 0, 2, 3, 5, 7, 8, 10 semitones), some an octave up
+    const hz = (semitones: number) => Math.round(220 * Math.pow(2, semitones / 12) * 100) / 100;
+    const scale = [0, 2, 3, 5, 7, 8, 10];
+    const allowed = new Set(scale.flatMap((k) => [hz(k), hz(k + 12)]));
+    expect([...pitches].filter((p) => !allowed.has(p))).toEqual([]);
+    // several different scale degrees were played (not just the root)
+    expect(scale.filter((k) => pitches.has(hz(k)) || pitches.has(hz(k + 12))).length).toBeGreaterThanOrEqual(3);
+    expect(pitches.has(220)).toBe(true); // the root
   });
 
   test('an oscillator arpeggio opens its envelope on every hit (otherwise it is silent)', async ({ page }) => {
@@ -112,6 +121,28 @@ test.describe('track types in the New Track menu', () => {
     await page.getByRole('button', { name: 'play' }).click();
     await page.waitForTimeout(2500);
     expect(await oscillatorStarts(page)).toBeGreaterThan(before);
+  });
+
+  test('a chopped loop plays the loop slice by slice, in a different order each bar', async ({ page }) => {
+    const { id } = await addTrack(page, 'Chopped loop');
+    await addFilepath(page, { id } as any, 0, '/Roland/Roland CR-78 CompuRhythm/CR-78 Kit 03/LOOP1.mp3');
+    await page.reload();
+    const row = page.locator(`[data-track-id="${id}"]`);
+    await row.click();
+    await page.getByRole('button', { name: 'source' }).click();
+    await expect.poll(async () => Number(/(\d+) slices/.exec(await page.locator('[data-test-slice-count]').innerText())?.[1] ?? 0), { timeout: 15_000 }).toBeGreaterThan(3);
+    const cuts = await page.locator('[data-test-onset-marker]').evaluateAll((els) => [0, ...els.map((el) => Number(el.getAttribute('data-time')))]);
+
+    await page.getByRole('button', { name: 'play' }).first().click();
+    await page.waitForTimeout(6500); // bars of 2 s: in order, shuffled, reversed
+    const played = (await loopStartsSeen(page)).filter((start) => cuts.some((cut) => Math.abs(cut - start) < 0.002));
+
+    // every value it played from is the start of a slice, and several different slices were played
+    expect(new Set(played).size).toBeGreaterThanOrEqual(4);
+    // in order on one bar (rising) and reversed on another (falling)
+    const steps = played.slice(1).map((start, i) => Math.sign(start - played[i]));
+    expect(steps.filter((s) => s > 0).length).toBeGreaterThan(3);
+    expect(steps.filter((s) => s < 0).length).toBeGreaterThan(3);
   });
 
   // a guard: cracked's trigger acts on the selection, so one track playing must not open another's envelope
@@ -193,9 +224,36 @@ test.describe('track types in the New Track menu', () => {
     await page.getByRole('button', { name: 'source' }).click(); // the footer's source tab
     const cards = page.locator('[data-test-sampler-card]');
     await expect(cards).toHaveCount(4);
-    await expect(cards.nth(0)).toHaveAttribute('data-source-node-id', 'sampler1');
-    await expect(cards.nth(3)).toHaveAttribute('data-source-node-id', 'sampler4');
     await expect(page.locator('[data-test-sampler-add]')).toHaveCount(4); // every sampler is waiting for a sound
+  });
+
+  test("duplicating a multi-sample kit doesn't wire its samplers into the original's bus", async ({ page }) => {
+    const { row } = await addTrack(page, 'Multi-sample kit');
+    await row.getByRole('button').last().click(); // the track's dropdown menu
+    await page.getByText('duplicate', { exact: true }).click();
+    await expect(rows(page)).toHaveCount(3); // the starting sampler, the kit and its copy
+
+    // rebuild everything, then look at which bus each sampler last connected to. Two kits, four samplers each:
+    // a '#bus' selector would have matched both buses and wired every sampler into both.
+    await page.evaluate(() => ((window as any).__connections = [])); // only the rebuild playing causes
+    await page.getByRole('button', { name: 'play' }).click();
+    await page.waitForTimeout(2000);
+    await page.getByRole('button', { name: 'stop' }).click();
+
+    const connections = await samplerConnections(page);
+    const busOf = new Map<string, string>(); // sampler -> the bus it connected to last
+    connections.forEach(({ from, to }) => busOf.set(from, to));
+    const samplersOnBus = new Map<string, Set<string>>();
+    connections.forEach(({ from, to }) => {
+      if (busOf.get(from) === to) samplersOnBus.set(to, (samplersOnBus.get(to) ?? new Set()).add(from));
+    });
+    const kitBuses = [...samplersOnBus.values()].filter((samplers) => samplers.size >= 2);
+    expect(kitBuses.length).toBe(2);
+    kitBuses.forEach((samplers) => expect(samplers.size).toBe(4));
+
+    // and no sampler is connected to more than one bus in the final graph
+    const allConnected = connections.filter(({ from, to }) => busOf.get(from) === to);
+    expect(new Set(allConnected.map((c) => c.from)).size).toBe(8);
   });
 
   test('a multi-sample kit loads a file per sampler and plays them round-robin', async ({ page }) => {
@@ -220,9 +278,9 @@ test.describe('track types in the New Track menu', () => {
     await expect(page.locator('[data-test-sampler-card="4"] [data-test-sampler-add]')).toBeVisible(); // sampler 4 still has no file
     await expect.poll(() => [...loaded].join(',')).toBe('200');
 
-    await page.getByRole('button', { name: 'play' }).click();
+    await page.getByRole('button', { name: 'play', exact: true }).click();
     await page.waitForTimeout(3000);
-    await page.getByRole('button', { name: 'stop' }).click();
+    await page.getByRole('button', { name: 'stop', exact: true }).click();
     expect(errors).toEqual([]);
   });
 
@@ -240,7 +298,7 @@ test.describe('track types in the New Track menu', () => {
       });
     const baseline = (await probe()).nodes;
 
-    await page.getByRole('button', { name: 'play', exact: true }).click();
+    await page.getByRole('button', { name: 'play' }).click();
     let sawVoice = false;
     let maxVoices = 0;
     for (let i = 0; i < 40; i++) { // ~4s of steps, sampled every 100ms
@@ -252,7 +310,7 @@ test.describe('track types in the New Track menu', () => {
     expect(sawVoice).toBe(true);
     expect(maxVoices).toBeLessThanOrEqual(2); // a note is released before the next one is a step away
 
-    await page.getByRole('button', { name: 'stop', exact: true }).click();
+    await page.getByRole('button', { name: 'stop' }).click();
     await expect.poll(async () => (await probe()).voices, { timeout: 3000 }).toBe(0);
     // released voices are removed, not left connected (their nodes would pile up and keep sounding)
     await expect.poll(async () => (await probe()).nodes, { timeout: 4000 }).toBeLessThanOrEqual(baseline + 2);

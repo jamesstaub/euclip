@@ -62,9 +62,8 @@ if (data) {
 * `this.playSourceNodes()` is equivalent to writing
 * `__(this.trackSelector).start()`
 * but with some euclip-specific behavior. 
-* if you've given your sampler an ID 
-* you can also trigger it like so:
-* `__('#my-sampler-id').start()`
+* to start just this track's sampler (not other tracks'):
+* `this.select('sampler').start()`
 **/ 
 
 EOS

@@ -260,7 +260,9 @@ export default class TrackModel extends Model.extend(Evented) {
   updateTrackSequence(sequenceRecord: SequenceModel, key: string, value: any): void {
     if (sequenceRecord.get(key) === value) return;
 
-    if (key === 'hits') {
+    // Hand-toggled steps (customSequence) override the generated pattern, so any parameter change
+    // drops them: otherwise the length and rhythm would stay frozen while the sliders move.
+    if (key !== 'customSequence' && sequenceRecord.customSequence?.length) {
       sequenceRecord.set('customSequence', []);
     }
     if (key === 'steps' && value < sequenceRecord.hits) {
@@ -701,8 +703,6 @@ export default class TrackModel extends Model.extend(Evented) {
       node.applyDeclaredRanges();
     });
 
-    // Controls left over belong to nodes the script no longer creates. Only discard them when the script
-    // ran cleanly: a script error also leaves nodes missing, and the user's settings must survive that.
     // Projects saved while the slice was a parameter of its own (startSlice / endSlice, -1 = not used): when one was in
     // use, it becomes the Slice unit of start / end, which is where it belongs now. The old controls are then left
     // over, and discarded below like any control whose node no longer has it.
@@ -721,6 +721,8 @@ export default class TrackModel extends Model.extend(Evented) {
         });
     }
 
+    // Controls left over belong to nodes the script no longer creates. Only discard them when the script
+    // ran cleanly: a script error also leaves nodes missing, and the user's settings must survive that.
     if (scriptOk) {
       pool.forEach((control) => {
         if (control.isNew) this.store.unloadRecord(control);
@@ -880,6 +882,13 @@ export default class TrackModel extends Model.extend(Evented) {
       sequences: this.sortedSequences.map((sequence) => sequence.sequence), // every sequence's steps, primary first
       controls: controls, // live: read a control's current value, assign one to modulate it for this step
       sliders: this.trackControlData,
+      // The same track-scoped selector `select` uses, as a string, e.g. for connecting a node to one of this
+      // track's own nodes without giving it an id:  __().sampler().connect(this.selector('gain'))
+      // (an id is a selector for the WHOLE page, so two tracks with the same id, for instance after duplicating
+      // a track, would both match it)
+      selector(type) {
+        return `${type} ${stableSelector}`;
+      },
       select() {
         let selector = typeof arguments[0] === 'string' ? arguments[0] : null;
         if (selector) {
