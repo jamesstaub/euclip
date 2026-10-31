@@ -19,7 +19,7 @@ RSpec.describe 'V1 track types', type: :request do
     types = json_parse(response.body)[:data]
 
     expect(response).to have_http_status(200)
-    expect(types.map { |t| t[:id] }).to eq(%w[sampler looped_sampler multi_sampler chopped_loop humanized_sampler filter_sweep oscillator_arp polysynth])
+    expect(types.map { |t| t[:id] }).to eq(%w[sampler looped_sampler multi_sampler sliced_sample chopped_loop humanized_sampler filter_sweep oscillator_arp polysynth])
     expect(types).to all(satisfy { |t| t[:attributes][:title].present? && t[:attributes][:description].present? })
   end
 

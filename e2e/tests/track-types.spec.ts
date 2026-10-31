@@ -37,7 +37,7 @@ test.describe('track types in the New Track menu', () => {
 
   test('lists the types the API offers', async ({ page }) => {
     await page.getByRole('button', { name: 'New Track' }).locator('..').getByRole('button').last().click();
-    for (const title of ['Sampler', 'Looped sampler', 'Multi-sample kit', 'Chopped loop', 'Humanized sampler', 'Filter sweep', 'Oscillator arpeggio', 'Polysynth', 'From sounds…']) {
+    for (const title of ['Sampler', 'Looped sampler', 'Multi-sample kit', 'Sliced sample', 'Random chopped loop', 'Humanized sampler', 'Filter sweep', 'Oscillator arpeggio', 'Polysynth', 'From sounds…']) {
       await expect(page.getByText(title, { exact: true })).toBeVisible();
     }
   });
@@ -123,8 +123,30 @@ test.describe('track types in the New Track menu', () => {
     expect(await oscillatorStarts(page)).toBeGreaterThan(before);
   });
 
-  test('a chopped loop plays the loop slice by slice, in a different order each bar', async ({ page }) => {
-    const { id } = await addTrack(page, 'Chopped loop');
+  test('a sliced sample plays the loop slice by slice in order, once over the sequence', async ({ page }) => {
+    const { id } = await addTrack(page, 'Sliced sample');
+    await addFilepath(page, { id } as any, 0, '/Roland/Roland CR-78 CompuRhythm/CR-78 Kit 03/LOOP1.mp3');
+    await page.reload();
+    const row = page.locator(`[data-track-id="${id}"]`);
+    await row.click();
+    await page.getByRole('button', { name: 'source' }).click();
+    await expect.poll(async () => Number(/(\d+) slices/.exec(await page.locator('[data-test-slice-count]').innerText())?.[1] ?? 0), { timeout: 15_000 }).toBeGreaterThan(3);
+    const cuts = await page.locator('[data-test-onset-marker]').evaluateAll((els) => [0, ...els.map((el) => Number(el.getAttribute('data-time')))]);
+
+    await page.getByRole('button', { name: 'play' }).first().click();
+    await page.waitForTimeout(4500); // a bar of 2 s, then some
+    const played = (await loopStartsSeen(page)).filter((start) => cuts.some((cut) => Math.abs(cut - start) < 0.002));
+
+    // every bar walks up through the slices from the first, never going back inside a bar
+    expect(played.length).toBeGreaterThanOrEqual(8);
+    expect(played[0]).toBe(0);
+    const steps = played.slice(0, 8).slice(1).map((start, i) => start - played.slice(0, 8)[i]);
+    expect(steps.every((s) => s >= 0)).toBe(true);
+    expect(new Set(played).size).toBeGreaterThanOrEqual(4);
+  });
+
+  test('a random chopped loop plays the loop slice by slice, in a different order each bar', async ({ page }) => {
+    const { id } = await addTrack(page, 'Random chopped loop');
     await addFilepath(page, { id } as any, 0, '/Roland/Roland CR-78 CompuRhythm/CR-78 Kit 03/LOOP1.mp3');
     await page.reload();
     const row = page.locator(`[data-track-id="${id}"]`);

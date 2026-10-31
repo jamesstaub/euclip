@@ -123,9 +123,54 @@ class TrackType
     sequences: [{ hits: 4, steps: 8, offset: 0 }]
   )
 
+  SLICED_SAMPLE = new(
+    key: 'sliced_sample',
+    title: 'Sliced sample',
+    description: 'A loop cut into slices at its hits (onsets), played one slice per step in order, so the whole sample passes once over the sequence.',
+    init_script: <<~JS,
+      // Pick a loop (any recording of several hits) in the Source tab. euclip finds where the hits are and
+      // draws them as slice markers on the waveform; the "onset threshold" under it sets how sensitive that is.
+      // loop: true makes a slice keep repeating until the next step plays the next one.
+      __()
+        .sampler({
+          path: this.files[0],
+          loop: true,
+        })
+        .channelStrip()
+        .connect('#main-output')
+    JS
+    onstep_script: <<~JS,
+      // Step through the slices over the length of the sequence: the first step plays slice 0 and the last
+      // step plays the last slice, with the others spread evenly between (a loop with 4 slices on 8 steps
+      // plays each slice twice; with 16 slices on 8 steps it plays every other one).
+      //   this.controls.sampler.sliceCount   how many slices the loop has (0 until it has been analysed)
+      // startSlice and endSlice choose a region by SLICE NUMBER; setting both to the same number plays
+      // just that slice. They change for this step only; the controls keep their own values.
+      //   index        this step's number, 0 to array.length - 1
+      //   array.length how many steps the sequence has
+      const sampler = this.controls.sampler;
+      const slices = sampler.sliceCount;
+
+      if (slices > 0) {
+        const slice = Math.floor((index / array.length) * slices);
+        sampler.startSlice = slice;
+        sampler.endSlice = slice;
+      }
+
+      // every step has a hit (see the sequence), so each one plays its slice
+      if (data) {
+        this.play({ loop: true });
+      }
+
+      // Try it: make the sequence fewer hits and the slices that land on empty steps are skipped.
+      // For the same idea in a random order, see the "Random chopped loop" preset.
+    JS
+    sequences: [{ hits: 8, steps: 8, offset: 0 }]
+  )
+
   CHOPPED_LOOP = new(
     key: 'chopped_loop',
-    title: 'Chopped loop',
+    title: 'Random chopped loop',
     description: 'A drum loop cut into slices at its hits (onsets), played back in a shuffled order that changes every bar.',
     init_script: <<~JS,
       // Pick a loop (any recording of several hits) in the Source tab. euclip finds where the hits are and
@@ -336,7 +381,7 @@ class TrackType
     sequences: [{ hits: 5, steps: 8, offset: 0 }]
   )
 
-  ALL = [SAMPLER, LOOPED_SAMPLER, MULTI_SAMPLER, CHOPPED_LOOP, HUMANIZED_SAMPLER, FILTER_SWEEP, OSCILLATOR_ARP, POLYSYNTH].freeze
+  ALL = [SAMPLER, LOOPED_SAMPLER, MULTI_SAMPLER, SLICED_SAMPLE, CHOPPED_LOOP, HUMANIZED_SAMPLER, FILTER_SWEEP, OSCILLATOR_ARP, POLYSYNTH].freeze
 
   def self.all
     ALL
