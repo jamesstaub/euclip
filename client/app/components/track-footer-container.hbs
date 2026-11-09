@@ -81,48 +81,40 @@
           </Source::Container>
         {{/if}}
         {{#if this.showControls}}
-          <div
-            class='z-0 justify-between overflow-hidden grow-1 shrink-1 ml1 min-w-0'
-          >
-            <div
-              class='flex flex-column flex-grow-1 shrink-1 min-w-0'
-            >
-              <div class='flex flex-wrap items-center justify-between'>
-                <Console::Header>Audio Node Controls</Console::Header>
-                  <ButtonText
-                    class={{concat 'ph1 pa2 f7 yellow-fill w4 flex-0 bg-yellow underline' (if this.media.isMobile '' ' absolute right-0 mr2 mt2' )}}
-                    {{on 'click' this.toggleReference}}
-                    @label='Toggle Reference'
-                  >
-                    {{if this.showReference 'controls' 'reference'}}
-                  </ButtonText>
-              </div>
-              <div
-                class='flex overflow-y-hidden h-100 flex-column grow-1 shrink-1 min-w-0'
+          {{!-- a column that fills the footer, so the parameter rows below know how tall they can be (and stack in it) --}}
+          <div class='z-0 flex flex-column flex-auto overflow-hidden ml1 min-w-0 min-h-0'>
+            <div class='flex flex-none flex-wrap items-center justify-between'>
+              <Console::Header>Audio Node Controls</Console::Header>
+              <ButtonText
+                class={{concat 'ph1 pa2 f7 yellow-fill w4 flex-0 bg-yellow underline' (if this.media.isMobile '' ' absolute right-0 mr2 mt2' )}}
+                {{on 'click' this.toggleReference}}
+                @label='Toggle Reference'
               >
-
-                <Source::NodeTabs
-                  @nodes={{@track.effectNodesForControls}}
-                  @onSelect={{fn this.setUi 'visibleNodeIdx'}}
-                  @selectedValue={{this.visibleNodeIdx}}
+                {{if this.showReference 'controls' 'reference'}}
+              </ButtonText>
+            </div>
+            <div class='flex flex-column flex-auto min-w-0 min-h-0 overflow-y-hidden'>
+              <Source::NodeTabs
+                @nodes={{@track.effectNodesForControls}}
+                @onSelect={{fn this.setUi 'visibleNodeIdx'}}
+                @selectedValue={{this.visibleNodeIdx}}
+              />
+              {{#if this.showReference}}
+                <TrackReference
+                  @track={{@track}}
+                  @controlUiState={{'controls'}}
+                  @validTrackNodes={{@track.validTrackNodes}}
+                  @visibleNodeIdx={{this.visibleNodeIdx}}
                 />
-                {{#if this.showReference}}
-                  <TrackReference
-                    @track={{@track}}
-                    @controlUiState={{'controls'}}
-                    @validTrackNodes={{@track.validTrackNodes}}
-                    @visibleNodeIdx={{this.visibleNodeIdx}}
-                  />
-                {{else}}
-                  <TrackControls
-                    @track={{@track}}
-                    @trackNodesForControls={{@track.effectNodesForControls}}
-                    @visibleNodeIdx={{this.visibleNodeIdx}}
-                    @updateControl={{this.setControlValue}}
-                    @updateControlAttr={{this.updateControlAttr}}
-                  />
-                {{/if}}
-              </div>
+              {{else}}
+                <TrackControls
+                  @track={{@track}}
+                  @trackNodesForControls={{@track.effectNodesForControls}}
+                  @visibleNodeIdx={{this.visibleNodeIdx}}
+                  @updateControl={{this.setControlValue}}
+                  @updateControlAttr={{this.updateControlAttr}}
+                />
+              {{/if}}
             </div>
           </div>
         {{/if}}

@@ -23,6 +23,18 @@
           />
         </div>
         <div class='project-bar__actions'>
+          {{!-- shows and hides the snapshots bar (a snapshot is a saved tempo and set of track settings to switch between) --}}
+          <Ui::Button
+            @pressed={{uiState.snapshotsOpen}}
+            @size='s'
+            class='flex items-center mr2'
+            aria-label='Snapshots'
+            title={{if uiState.snapshotsOpen 'Hide the snapshots bar' 'Show the snapshots bar'}}
+            data-test-snapshots-toggle
+            {{on 'click' uiState.toggleSnapshots}}
+          >
+            {{svg-jar 'snapshots' class=(if uiState.snapshotsOpen 'dark-fill' 'yellow-fill') width='20px' height='20px' aria-hidden='true' focusable='false'}}
+          </Ui::Button>
           <ButtonPrimary @label={{'New Track'}} {{on 'click' (fn this.createTrack 'sampler')}} {{sound-drop this.createTrackFromSound}} />
           <DropdownMenu
             class='h-100 grow-1 bg-dark-gray ba bl-0 bw1 b--yellow ph2'
@@ -34,15 +46,17 @@
         </div>
       </header>
 
-      <div class='ph3 pv1 bg-light-gray bt b--moon-gray'>
-        <Project::SnapshotStrip
-          @project={{this.model}}
-          @onSwitch={{this.switchSnapshot}}
-          @onSave={{this.saveSnapshot}}
-          @onRename={{this.renameSnapshot}}
-          @onDelete={{this.deleteSnapshot}}
-        />
-      </div>
+      {{#if uiState.snapshotsOpen}}
+        <div class='ph3 pv1 bg-light-gray bt b--moon-gray'>
+          <Project::SnapshotStrip
+            @project={{this.model}}
+            @onSwitch={{this.switchSnapshot}}
+            @onSave={{this.saveSnapshot}}
+            @onRename={{this.renameSnapshot}}
+            @onDelete={{this.deleteSnapshot}}
+          />
+        </div>
+      {{/if}}
 
       <div class='project-workspace'>
         {{#if (or uiState.createFromDirectory uiState.leftSidebarOpen)}}
@@ -124,6 +138,13 @@
                   <br />Select node classes with:
                   <code>__('.someClass')</code>
                 </p>
+                <p class='f6 mb3 mt0' data-test-macros-script-note><b class='ttu'>Macros</b>
+                  script is shared by every track in this project and runs before the tracks'
+                  setup scripts. Register macros (instruments made of several audio nodes) and describe
+                  their controls here once with
+                  <code>this.defineMacro()</code>
+                  and
+                  <code>this.declareControls()</code>; tracks then just use them by name.</p>
                 <p class='mv0'><a
                     class='blue fw6 ttu'
                     href='https://billorcutt.github.io/i_dropped_my_phone_the_screen_cracked/cracked.html'

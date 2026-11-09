@@ -166,7 +166,7 @@ export default class NexusUi extends Modifier {
     return optionsIfchanged.length > 0;
   }
 
-  colorize() {
+  colorize(options) {
     this.nexusElement.colorize('accent', '#52ebff');
 
     // NOTE:
@@ -182,7 +182,9 @@ export default class NexusUi extends Modifier {
       this.nexusElement.element.style.overflow = 'visible';
     }
     if (this.nexusElement instanceof Nexus.Number) {
-      this.nexusElement.colorize('fill', 'transparent');
+      // on the yellow footer the box is transparent with dark text; on a dark panel pass `fill` and `text`
+      this.nexusElement.colorize('fill', options?.fill ?? 'transparent');
+      if (options?.text) this.nexusElement.colorize('dark', options.text);
     }
 
     if (this.nexusElement instanceof Nexus.Select) {

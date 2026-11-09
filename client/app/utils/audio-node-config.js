@@ -384,14 +384,16 @@ export const defaultParams = {
     unit: 'decibels',
   },
   loop: {
-    min: false,
-    max: true,
-    defaultValue: false,
+    min: 0,
+    max: 1,
+    stepSize: 1,
+    defaultValue: 0,
     interfaceName: bool,
   },
   snap: {
     min: 0,
     max: 1,
+    stepSize: 1,
     defaultValue: 1,
     interfaceName: bool,
   },
@@ -436,6 +438,7 @@ export const defaultParams = {
   reverse: {
     min: 0,
     max: 1,
+    stepSize: 1,
     defaultValue: 0,
     interfaceName: bool,
   },

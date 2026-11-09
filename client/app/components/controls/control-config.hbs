@@ -1,6 +1,7 @@
 <div class='flex flex-column slider-control-width ph2 f7'>
   <label class='flex items-center justify-between tl f7'>{{'max'}}
     <Controls::NumberBox
+      @on='dark'
       @onChange={{(fn this.setControlProperty 'max')}}
       @value={{@trackControl.max}}
       @min={{@trackControl.min}}
@@ -10,6 +11,7 @@
   <label
     class='flex items-center justify-between tl f7'
   >{{'min'}}<Controls::NumberBox
+      @on='dark'
       @onChange={{(fn this.setControlProperty 'min')}}
       @value={{@trackControl.min}}
       @max={{@trackControl.max}}
@@ -19,6 +21,7 @@
   <label
     class='flex items-center justify-between tl f7'
   >{{'step size'}}<Controls::NumberBox
+      @on='dark'
       @onChange={{(fn this.setControlProperty 'stepSize')}}
       @value={{@trackControl.stepSize}}
       @min={{0.0001}}
@@ -29,6 +32,7 @@
   <label
     class='flex items-center justify-between tl f7'
   >{{'default'}}<Controls::NumberBox
+      @on='dark'
       @onChange={{(fn this.setControlProperty 'defaultValue')}}
       @value={{@trackControl.defaultValue}}
       @min={{@trackControl.min}}

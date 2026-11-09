@@ -93,10 +93,7 @@
   {{/if}}
 
   {{#if this.showMacrosScript}}
-    {{!-- project-wide: one script for the whole project, run before any track's script --}}
-    <p class="light-gray f7 mt2 mb2" data-test-macros-script-note>
-      Macros script: shared by every track in this project. It runs before the tracks' setup scripts.
-    </p>
+    {{!-- project-wide: one script for the whole project, run before any track's script (explained in the sidebar's info box) --}}
     <ScriptEditor
       @scriptModel={{@project.macrosScript}}
       @editorContent={{@project.macrosScript.editorContent}}

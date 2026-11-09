@@ -9,12 +9,12 @@
     <span>{{display-float this.duration}} sec</span>
   </div>
   <div class='pa2'>
-    <div class='waveform-area relative'>
+    <div class='waveform-area relative bg-dark-gray'>
       <canvas
         class='waveform-canvas db'
         width='720'
         height='200'
-        {{audio-waveform @buffer}}
+        {{audio-waveform @buffer color='#52ebff' cursorColor='#f4f4f4'}}
       ></canvas>
       {{#if this.activeSliceStyle}}
         <div class='waveform-active-slice absolute' style={{this.activeSliceStyle}} data-test-active-slice></div>

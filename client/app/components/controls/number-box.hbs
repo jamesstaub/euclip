@@ -1,4 +1,5 @@
 <div
+  class={{if @on 'ba bw1 b--mid-gray br1'}}
   ...attributes
   {{nexus-ui
     'Number'
@@ -9,6 +10,8 @@
     dragStep=this.step
     dragPerPixel=this.dragPerPixel
     onChange=@onChange
+    fill=this.fill
+    text=this.text
     size=(or @size (array 60 30))
   }}
 ></div>

@@ -3,7 +3,19 @@
   data-test-param={{@trackControl.nodeAttr}}
   ...attributes
 >
-  <span class='flex-none w4 mr2 f7 ttu fw6 dark-gray truncate' title={{@trackControl.nodeAttr}}>{{@trackControl.nodeAttr}}</span>
+  {{!-- give this parameter a value for every step of the sequence (and back) --}}
+  <IconButton
+    class='flex-none bg-transparent pa0 mr1 pointer dim'
+    @icon='multislider'
+    @iconClass='dark-fill'
+    @iconWidth='18px'
+    @iconHeight='18px'
+    @label='Toggle Multislider Mode'
+    title='Give this parameter a value for every step of the sequence'
+    data-test-multislider-toggle
+    {{on 'click' this.toggleInterface}}
+  />
+  <span class='flex-none w3 w4-ns mr2 f7 ttu fw6 dark-gray truncate' title={{@trackControl.nodeAttr}}>{{@trackControl.nodeAttr}}</span>
 
   <div class='flex items-center flex-auto min-w-0'>
     {{yield}}
@@ -34,14 +46,6 @@
     <dd.Content class='bg-dark-gray ba bw2 b--light-gray shadow-3 pa2 light-gray' data-test-control-config-panel>
       <p class='f7 ttu fw6 yellow mt0 mb2'>{{@trackControl.nodeAttr}}</p>
       <Controls::ControlConfig @trackControl={{@trackControl}} />
-      <Ui::Button
-        @size='s'
-        class='mt2 mr2'
-        aria-label='Toggle Multislider Mode'
-        title='Give this parameter a value for every step of the sequence'
-        data-test-multislider-toggle
-        {{on 'click' this.toggleInterface}}
-      >Per-step values</Ui::Button>
       <Ui::Button
         @size='s'
         class='mt2'

@@ -1,15 +1,20 @@
 <div class='flex grow-1'>
   <div class='flex justify-between grow-1'>
-    <div class='sequence-control-sliders flex flex-column mh2 w-100'>
+    <div class='sequence-control-sliders flex flex-column mh2 w-100 mw7'>
       <Console::Header>Sequencer</Console::Header>
       {{#if @showReference}}
         {{yield}}
       {{else}}
-        <Ui::Segmented
-          @label='Sequencer type'
-          @items={{this.kinds}}
-          @selected={{this.kind}}
+        {{!-- the same tab buttons as the node tabs: the chosen one dark, the rest outlined, square corners --}}
+        <Console::TabMenu
+          class='mb2 flex-nowrap grow-0 shrink-0'
+          aria-label='Sequencer type'
+          @selectedClass='bn mr2 bg-dark-gray light-gray'
+          @buttonClass='ba bw1 mr2 bg-transparent b--dark-gray dark-gray'
           @onSelect={{fn @updateTrackSequence @sequence 'kind'}}
+          @items={{this.kinds}}
+          @selectedValue={{this.kind}}
+          data-test-sequencer-kinds
         />
         {{#if (eq this.kind 'binary')}}
           <Sequence::Slider

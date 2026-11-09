@@ -223,12 +223,15 @@ export default class TrackControlModel extends Model {
   /**
    * Helper the track-control's usable value at a given time  */
   attrValueForType(index) {
+    // an on/off is 0 or 1 whatever is stored (per-step values saved before they snapped can be fractions)
+    const binary = (value) => (this.isBinary && Number.isFinite(value) ? (value >= 0.5 ? 1 : 0) : value);
+
     if (this.isMultislider) {
       const stepValue = this.controlArrayComputed[index];
-      if (!isNaN(stepValue)) return this.transformCurrentUnit(stepValue);
+      if (!isNaN(stepValue)) return binary(this.transformCurrentUnit(stepValue));
     } else {
       if (!isNaN(this.controlValue)) {
-        return this.transformCurrentUnit(this.controlValue);
+        return binary(this.transformCurrentUnit(this.controlValue));
       }
     }
   }
@@ -694,7 +697,17 @@ export default class TrackControlModel extends Model {
       }, {});
   }
 
+  // on/off: its only unit is the plain "Boolean" one (loop, snap, reverse...)
+  get isBinary(): boolean {
+    const names = this.paramUnitNames;
+    return names.length === 1 && names[0] === 'Boolean';
+  }
+
+  // The interface a control has when it is not per-step: what it is made of, not always a slider. (Going back from
+  // per-step mode used to turn an on/off or a choice into a slider.)
   get defaultInterfaceName() {
+    if (this.isBinary) return 'toggle';
+    if (this.macroSpec?.type === 'choice') return 'select';
     return 'slider';
   }
 }

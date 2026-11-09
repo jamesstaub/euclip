@@ -75,7 +75,8 @@
       {{on 'click' this.resetControl}}
     >reset</button>
   </div>
-  <div class='flex items-start justify-between flex-column h-100'>
+  {{!-- what is left of the panel: a multislider fills it rather than running past it --}}
+  <div class='flex flex-column flex-auto min-h-0 w-100'>
     {{#if this.isShowingConfig}}
       <Controls::ControlConfig @trackControl={{@trackControl}} />
     {{else}}

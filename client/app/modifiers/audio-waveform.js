@@ -1,10 +1,10 @@
 import { modifier } from 'ember-modifier';
 
 export default modifier(
-  (canvas, [buffer], { color = '#333' }) => {
+  (canvas, [buffer], { color = '#333', cursorColor = '#333' }) => {
     drawBuffer(canvas, buffer, color);
 
-    const onMouseMove = (e) => moveCursor(e, canvas, buffer, color);
+    const onMouseMove = (e) => moveCursor(e, canvas, buffer, color, cursorColor);
     const onMouseLeave = () => drawBuffer(canvas, buffer, color); // drop the cursor
 
     canvas.addEventListener('mousemove', onMouseMove);
@@ -46,19 +46,19 @@ function drawBuffer(canvas, buffer, color) {
 
 // draw a thin vertical line that moves from left to right across the canvas
 // taking up the full height of the canvas
-function drawCursor(canvas, x) {
+function drawCursor(canvas, x, cursorColor) {
   var ctx = canvas.getContext('2d');
   var height = canvas.height;
-  ctx.fillStyle = '#333';
+  ctx.fillStyle = cursorColor;
   ctx.fillRect(x, 0, 1, height);
 }
 
 // bind a mousemove event to the canvas that will move the cursor
 // by clearing it and redrawing it on each event
 // pass the mouse x position to drawCursor function
-function moveCursor(e, canvas, buffer, color) {
+function moveCursor(e, canvas, buffer, color, cursorColor) {
   const { width } = canvas.getBoundingClientRect();
   const offsetX = e.offsetX * (canvas.width / width);
   drawBuffer(canvas, buffer, color); // clears first
-  drawCursor(canvas, offsetX);
+  drawCursor(canvas, offsetX, cursorColor);
 }

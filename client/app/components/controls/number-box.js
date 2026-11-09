@@ -5,7 +5,21 @@ const FALLBACK_STEP = 0.01;
 
 const finite = (n, fallback) => (Number.isFinite(n) ? n : fallback);
 
+// What the box is drawn in. On the yellow footer it is transparent with dark text (the default); on a dark
+// panel (@on='dark') a lighter field with near-white text, otherwise it vanishes until clicked.
+const LOOKS = {
+  dark: { fill: '#4a4a4a', text: '#f4f4f4' },
+};
+
 export default class ControlsNumberBoxComponent extends Component {
+  get fill() {
+    return LOOKS[this.args.on]?.fill;
+  }
+
+  get text() {
+    return LOOKS[this.args.on]?.text;
+  }
+
   // `or` in the template treated 0 as missing, so a min or max of 0 was replaced
   // by +/-20000 and drags produced arbitrary values
   get min() {

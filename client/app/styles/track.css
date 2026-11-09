@@ -90,7 +90,6 @@
 .waveform-area {
   width: 360px;
   height: 100px;
-  background: #f7f7f7;
   user-select: none;
 }
 
@@ -103,7 +102,7 @@
 .waveform-shade {
   top: 0;
   bottom: 0;
-  background: rgba(51, 51, 51, 0.45);
+  background: rgba(0, 0, 0, 0.55);
   pointer-events: none;
 }
 
@@ -156,8 +155,7 @@
   top: 0;
   bottom: 0;
   width: 0;
-  border-left: 1px dashed #333;
-  opacity: 0.7;
+  border-left: 1px dashed rgba(244, 244, 244, 0.6);
   pointer-events: none;
 }
 
@@ -168,7 +166,7 @@
   left: -3px;
   width: 5px;
   height: 5px;
-  background: #333;
+  background: #f4f4f4;
 }
 
 /* the slice region the slice controls are playing */
@@ -193,5 +191,5 @@
 }
 
 .is-loop-off .waveform-shade {
-  background: rgba(51, 51, 51, 0.25);
+  background: rgba(0, 0, 0, 0.3);
 }

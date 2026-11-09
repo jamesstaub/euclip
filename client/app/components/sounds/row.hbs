@@ -21,7 +21,7 @@
   {{draggable-sound (unless @folder @path)}}
 >
   {{#if @folder}}
-    <button type='button' class='bn bg-transparent pa0 pv2 flex-auto tl light-gray f6 fw5 pointer flex items-center justify-between min-w-0' data-test-sound-folder {{on 'click' @onOpen}}>
+    <button type='button' class='no-hover-bg bn bg-transparent pa0 pv2 flex-auto tl light-gray f6 fw5 pointer flex items-center justify-between min-w-0' data-test-sound-folder {{on 'click' @onOpen}}>
       <span class='truncate'>{{@name}}</span>
       <span class='moon-gray f4 ml2' aria-hidden='true'>›</span>
     </button>
@@ -45,15 +45,16 @@
       data-test-sound-play
       {{on 'click' @onPlay}}
     >
-      {{#if @playing}}
-        <span class='eq' aria-hidden='true'><i></i><i></i><i></i></span>
-      {{else if @loading}}
+      {{#if @loading}}
         <span aria-hidden='true'>…</span>
       {{else}}
-        <span aria-hidden='true'>▶</span>
+        {{!-- a drawn triangle, not the ▶ character (whose box is off-centre in the circle); nudged right by its weight --}}
+        <svg class='db' width='10' height='10' viewBox='0 0 10 10' fill='currentColor' aria-hidden='true' data-test-play-icon>
+          <path d='M2.6 0.8 L9.2 5 L2.6 9.2 Z' />
+        </svg>
       {{/if}}
     </button>
-    <button type='button' class='bn bg-transparent pa0 pv2 flex-auto tl light-gray f6 pointer min-w-0' {{on 'click' @onSelect}} {{on 'dblclick' @onUse}}>
+    <button type='button' class='no-hover-bg bn bg-transparent pa0 pv2 flex-auto tl light-gray f6 pointer min-w-0' {{on 'click' @onSelect}} {{on 'dblclick' @onUse}}>
       <span class='truncate db'>{{@name}}</span>
     </button>
     {{#if @detail}}<span class='f7 moon-gray flex-none ml2' data-test-sound-detail>{{@detail}}</span>{{/if}}

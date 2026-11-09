@@ -71,7 +71,8 @@ button:not([disabled]):not(.selected):hover.bg-light-blue {
   background-color: var(--light-blue);
 }
 
-button:not([disabled]):not(.selected):hover.bg-transparent {
+/* (.no-hover-bg: a button inside something that already shows hover, e.g. a list row, does not add its own) */
+button:not([disabled]):not(.selected):not(.no-hover-bg):hover.bg-transparent {
   background-color: rgba(255, 255, 255, .25);
 }
 
@@ -100,7 +101,7 @@ button:not([disabled]):active.bg-light-blue {
   background-color: var(--light-blue);
 }
 
-button:not([disabled]):active.bg-transparent {
+button:not([disabled]):not(.no-hover-bg):active.bg-transparent {
   background-color: rgba(255, 255, 255, .25);
 }
 

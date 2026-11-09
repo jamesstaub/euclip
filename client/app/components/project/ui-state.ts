@@ -10,6 +10,25 @@ type Args = {
   project?: any;
 };
 
+// whether the snapshots bar is showing: off until asked for, then remembered in this browser
+const SNAPSHOTS_KEY = 'euclip.snapshotsOpen';
+
+function readSnapshotsOpen(): boolean {
+  try {
+    return window.localStorage.getItem(SNAPSHOTS_KEY) === 'true';
+  } catch {
+    return false; // storage can be blocked (private windows)
+  }
+}
+
+function writeSnapshotsOpen(open: boolean): void {
+  try {
+    window.localStorage.setItem(SNAPSHOTS_KEY, String(open));
+  } catch {
+    /* not remembered; it still works for this visit */
+  }
+}
+
 export type AudioSelectMode = 'current_track' | 'create_tracks';
 // the left sidebar has two tabs: the project's sample pool, and the file browser (search the catalog)
 export type LeftTab = 'pool' | 'browse';
@@ -19,6 +38,7 @@ export interface ProjectUiStateProps {
   rightSidebarOpen: boolean;
   poolOpen: boolean;
   leftTab: LeftTab;
+  snapshotsOpen: boolean;
   audioSelectMode: AudioSelectMode;
 }
 
@@ -27,6 +47,7 @@ export interface ProjectUiStateActions {
   closeSidebar(direction: 'left' | 'right'): void;
   setAudioSelectMode(mode: AudioSelectMode): void;
   togglePool(): void;
+  toggleSnapshots(): void;
   setSelectedSourceIdx(idx: number, trackId?: string): void;
   setLeftTab(tab: LeftTab): void;
   openCreateFromDirectory(): void;
@@ -40,6 +61,7 @@ export default class ProjectUiStateComponent extends Component<Args> {
   @tracked leftSidebarOpen = false;
   @tracked rightSidebarOpen = false;
   @tracked leftTab: LeftTab = 'browse';
+  @tracked snapshotsOpen = readSnapshotsOpen();
   // The source node (index into the active track's `sourceNodeRecords`) being edited. The source menu and
   // the file sidebar both show and set it, so they always agree on which node of which track is selected.
   @tracked private selection: { trackId?: string; idx: number } = { idx: 0 };
@@ -66,6 +88,8 @@ export default class ProjectUiStateComponent extends Component<Args> {
       rightSidebarOpen: this.rightSidebarOpen,
       poolOpen: this.poolOpen,
       leftTab: this.leftTab,
+      snapshotsOpen: this.snapshotsOpen,
+      toggleSnapshots: this.toggleSnapshots,
       setLeftTab: this.setLeftTab,
       selectedSourceIdx: this.selectedSourceIdx,
       setSelectedSourceIdx: this.setSelectedSourceIdx,
@@ -119,6 +143,12 @@ export default class ProjectUiStateComponent extends Component<Args> {
     if (tree && path) {
       await tree.appendDirectoriesData(path);
     }
+  }
+
+  @action
+  toggleSnapshots() {
+    this.snapshotsOpen = !this.snapshotsOpen;
+    writeSnapshotsOpen(this.snapshotsOpen);
   }
 
   @action

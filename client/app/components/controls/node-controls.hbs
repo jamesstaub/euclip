@@ -3,7 +3,7 @@
   Custom UIs for particular node types (piano for oscillators, X-Y for filters, ...) belong here:
   branch on @trackNode.nodeType and render them for the controls they claim, leaving the rest to the loop.
 --}}
-<div class='flex min-w-0 w-100 h-100 bg-yellow'>
+<div class='flex flex-auto min-w-0 min-h-0 bg-yellow'>
   {{!-- the node's own controls: one reset for all of its parameters --}}
   <div class='flex-none flex flex-column items-start pr2 mr2 br bw1 b--black-20' data-test-node-rail>
     <Ui::Button
@@ -18,7 +18,7 @@
   </div>
 
   {{!-- the one place that scrolls: sideways, when the parameters do not fit --}}
-  <div class='node-controls flex items-stretch flex-auto min-w-0 bg-yellow overflow-x-scroll overflow-y-hidden h-100 pb2'>
+  <div class='node-controls flex items-stretch flex-auto min-w-0 min-h-0 bg-yellow overflow-x-scroll overflow-y-hidden pb2'>
     {{#if this.pianoControl}}
       <Controls::PianoSurface
         @control={{this.pianoControl}}
@@ -71,7 +71,7 @@
 
     {{#each this.multisliderControls as |trackControl|}}
       <Controls::Wrapper
-        class='justify-start multislider-wrapper multislider-width'
+        class='flex-none justify-start multislider-wrapper multislider-width'
         @trackControl={{trackControl}}
       >
         <SequencePagination
@@ -86,9 +86,9 @@
             @sequence={{pgn.sequencePaginated}}
             @values={{pgn.valuesPaginated}}
             @transformedValue={{invoke-on-record trackControl 'attrValueForType' @track.stepIndex}}
-            @min={{trackControl.min}}
-            @max={{trackControl.max}}
-            @stepSize={{trackControl.stepSize}}
+            @min={{if trackControl.isBinary 0 trackControl.min}}
+            @max={{if trackControl.isBinary 1 trackControl.max}}
+            @stepSize={{if trackControl.isBinary 1 trackControl.stepSize}}
             @defaultValue={{trackControl.defaultValue}}
             @onChange={{fn pgn.updateSequencePage trackControl}}
           />

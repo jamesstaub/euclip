@@ -311,10 +311,6 @@
     right: 0;
   }
 
-  /* the track footer needs its fixed content height, so the whole column scrolls rather than the list */
-  .project-main {
-    grid-template-rows: minmax(0, auto) auto;
-  }
 }
 
 /* ---------- < 768px: phone ---------- */
@@ -341,6 +337,10 @@
   /* one scroll container for the whole track area instead of nested ones */
   .track-list {
     overflow-y: visible;
+  }
+  /* the list takes at least its content (the column scrolls), and any spare height, so the footer stays at the bottom */
+  .project-main {
+    grid-template-rows: minmax(auto, 1fr) auto;
   }
 
   /* sidebars become full-screen panels, above the app header too; closing returns to the tracks */
@@ -480,19 +480,38 @@
     flex-direction: row;
     height: auto;
     flex-wrap: nowrap;
+    /* the same quarter-rem gutter the channel strip has (its ma1), on the sides that face the edge */
+    margin: 0.25rem 0.25rem 0 0;
+    padding: 0;
   }
 
   .track-footer > .tab-menu .tab-btn.vertical {
     flex: 1 1 0;
     min-width: 0;
+    flex-direction: row;
+    justify-content: center;
+    padding: 0.25rem 0.5rem;
   }
 
+  /* neighbouring tabs share one border instead of doubling it */
+  .track-footer > .tab-menu .tab-btn.vertical + .tab-btn.vertical {
+    margin-left: -0.125rem;
+  }
+
+  .track-footer > .tab-menu .tab-btn.vertical[aria-pressed='true'] {
+    position: relative; /* the chosen tab's border is on top of its neighbours' */
+  }
+
+  /* the icon beside its label (not above it), a little bigger */
   .track-footer > .tab-menu .tab-btn.vertical svg {
-    width: 1.5rem;
-    height: 1.5rem;
+    width: 2rem;
+    height: 2rem;
+    flex: none;
+    margin-right: 0.4rem;
   }
 
   .track-footer > .tab-menu .tab-btn.vertical > div {
+    flex-direction: row;
     margin-bottom: 0;
   }
 
@@ -504,22 +523,32 @@
   }
 }
 
-/* ---------- Track sequencer: page buttons first, steps after, stacking when there is no room ---------- */
+/* ---------- Track sequencer: the steps (always left-aligned), then the page buttons to their right; on a phone the
+   page buttons sit above the steps and the row grows taller to make room ---------- */
 
 .track-sequencer {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-start; /* the step grid hugs the pager instead of drifting to the far edge */
+  justify-content: flex-start; /* steps hug the left edge, never centred or pushed to the far side */
   gap: 0.25rem 1rem;
   padding: 0.5rem;
 }
 
-/* <SequencePagination> is full-width by default (it heads the multislider in the footer); here it is just the pager */
+/* <SequencePagination> is full-width by default (it heads the multislider in the footer); here it is just the pager,
+   and it comes after the steps */
 .track-sequencer > .w-100 {
   flex: 0 0 auto;
   width: auto;
   margin: 0;
+  order: 1;
+}
+
+@media (max-width: 767px) {
+  .track-sequencer > .w-100 {
+    order: -1;
+    flex: 1 0 100%;
+  }
 }
 
 /* no pages (<= 16 steps): no empty pager box taking up a gap */
@@ -609,10 +638,14 @@
 
 /* ---- sampler rack ---- */
 .rack-grid {
+  /* one row of cards that scrolls sideways on its own (independently of the controls below); they never stack */
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(14rem, 18rem);
+  overflow-x: auto;
+  overflow-y: hidden;
   gap: 0.5rem;
-  padding: 0.35rem 0.1rem 0.1rem; /* room for the "adding here" label above a card */
+  padding: 0.35rem 0.1rem 0.5rem; /* room for the "adding here" label above a card, and the scrollbar below */
 }
 
 .h-wave {
@@ -686,8 +719,13 @@ body.dragging-sound .accepts-sound {
   display: grid;
   grid-auto-flow: column;
   grid-template-rows: repeat(auto-fill, minmax(2.6rem, 1fr));
-  grid-auto-columns: minmax(25rem, 26rem);
+  /* wide enough for name, slider, value, unit and menu on one line without any of them overlapping */
+  grid-auto-columns: minmax(min(30rem, 100%), 32rem);
   gap: 0.4rem;
   align-self: stretch;
   margin-right: 0.5rem !important;
+  /* it keeps its width: next to a wide panel (per-step sliders) the row scrolls sideways instead of squashing the
+     parameters; on a phone it is no wider than the row it sits in */
+  flex: 0 0 auto;
+  max-width: 100%;
 }
