@@ -64,14 +64,15 @@ test.describe('node controls', () => {
     await expect(reset).toBeDisabled();
   });
 
-  test("a parameter's range, step, default and reset are in its settings menu", async ({ page }) => {
+  test("a parameter's range, step, default and reset are in its settings menu, its per-step switch in the row", async ({ page }) => {
     await polysynthSourceTab(page);
     await param(page, 'lp_frequency').locator('[data-test-control-config]').click();
     const panel = page.locator('[data-test-control-config-panel]');
     await expect(panel).toBeVisible();
     for (const label of ['max', 'min', 'step size', 'default']) await expect(panel).toContainText(label);
     await expect(panel.locator('[data-test-reset-control]')).toBeDisabled(); // nothing moved yet
-    await expect(panel.getByRole('button', { name: 'Toggle Multislider Mode' })).toBeVisible();
+    await expect(panel.getByRole('button', { name: 'Toggle Multislider Mode' })).toHaveCount(0); // the per-step switch is in the row, not the menu
+    await expect(param(page, 'lp_frequency').getByRole('button', { name: 'Toggle Multislider Mode' })).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(panel).toHaveCount(0);
   });

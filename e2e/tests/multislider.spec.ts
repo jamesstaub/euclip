@@ -33,8 +33,7 @@ test('multislider values for a 32-step sequence persist across both pages and a 
   };
 
   const speed = await openSpeedMultislider();
-  await speed.locator('[data-test-control-config]').click(); // the parameter's settings: the per-step switch lives there
-  await page.getByRole('button', { name: 'Toggle Multislider Mode' }).click();
+  await speed.getByRole('button', { name: 'Toggle Multislider Mode' }).click(); // the per-step switch is in the parameter's row
   const canvas = page.locator('.multislider-bg svg').first();
   await expect(canvas).toBeVisible();
   await page.waitForTimeout(1500); // let the control re-layout before measuring it

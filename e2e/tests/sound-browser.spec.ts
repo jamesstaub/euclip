@@ -346,12 +346,15 @@ test.describe('sound browser', () => {
     await expect(page.locator('[data-test-target]')).toContainText('Sampler 30');
     await expect(page.locator('[data-test-target-slot="30"]')).toBeInViewport();
 
-    // the rack in the footer: about two rows of cards, scrolling
+    // the rack in the footer: one row of cards that scrolls sideways (the cards never stack)
     await page.getByRole('button', { name: 'source' }).click();
     const rack = page.locator('[data-test-rack-cards]');
     await expect(rack).toBeVisible();
-    expect((await rack.boundingBox())!.height).toBeLessThanOrEqual(180);
-    expect(await rack.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
+    expect((await rack.boundingBox())!.height).toBeLessThanOrEqual(130);
+    expect(await rack.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
+    expect(await rack.evaluate((el) => getComputedStyle(el).overflowY)).toBe('hidden');
+    const tops = await page.locator('[data-test-sampler-card]').evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
+    expect(new Set(tops).size).toBe(1); // all on one row
     await expect(page.locator('[data-test-sampler-card="30"]')).toBeInViewport(); // the selected card is in view
   });
 });

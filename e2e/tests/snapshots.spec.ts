@@ -35,6 +35,8 @@ const seq = (steps: number, hits = 1) => ({ order: 0, hits, steps, offset: 0, cu
 
 test.describe('snapshots', () => {
   test.beforeEach(async ({ page }) => {
+    // the snapshots bar is off until asked for (and then remembered): these tests are about the bar, so it starts on
+    await page.addInitScript(() => window.localStorage.setItem('euclip.snapshotsOpen', 'true'));
     await login(page);
   });
 

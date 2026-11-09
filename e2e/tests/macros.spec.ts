@@ -201,6 +201,9 @@ test.describe('macro controls', () => {
 
     // a third tab, with the project script and a note that it is shared
     await page.getByRole('button', { name: 'macros', exact: true }).click();
+    // the explanation lives in the sidebar's info box with the other script descriptions, not between the tabs and the editor
+    await expect(page.locator('.script-wrapper [data-test-macros-script-note]')).toHaveCount(0);
+    await page.getByRole('button', { name: 'More information' }).click();
     await expect(page.locator('[data-test-macros-script-note]')).toBeVisible();
     await expect(page.locator('.cm-content')).toContainText('MACROS');
 
