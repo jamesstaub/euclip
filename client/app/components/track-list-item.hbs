@@ -50,6 +50,7 @@
         <TrackSequencer 
           @sequence={{@track.currentSequence.sequence}}
           @stepIndex={{@track.stepIndex}}
+          @maxValue={{@track.currentSequence.maxValue}}
           @onClickStep={{this.updateTrackSequence}}
           @isCurrentTrack={{@isActive}}
         />

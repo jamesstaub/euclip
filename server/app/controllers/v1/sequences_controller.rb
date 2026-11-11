@@ -58,6 +58,6 @@ class V1::SequencesController < V1::BaseController
   end
 
   def cleaned_params
-    @attributes.permit(:hits, :steps, :offset, :order, :kind, :value, :on_steps, :off_steps, :times, :custom_sequence => [])
+    @attributes.permit(:hits, :steps, :offset, :order, :kind, :value, :on_steps, :off_steps, :times, :rate, :max_value, :custom_sequence => [])
   end
 end

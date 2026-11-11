@@ -96,7 +96,7 @@ class TrackType
   MULTI_SAMPLER = new(
     key: 'multi_sampler',
     title: 'Multi-sample kit',
-    description: 'Four samplers, each with its own file, sharing one channel strip. Hits play the samplers in turn.',
+    description: 'Four samplers, each with its own file, sharing one channel strip. Each step picks which sampler plays: click a step to cycle through them.',
     init_script: <<~JS,
       // Four samplers. Pick a file for each in the Source tab: slot n of `this.files`
       // is the file for sampler n + 1. All samplers share one bus (a gain) with a single channel strip.
@@ -111,16 +111,18 @@ class TrackType
       });
     JS
     onstep_script: <<~JS,
-      // Every hit plays the next sampler in turn (round-robin), so the files play as one instrument.
-      // Tip: add a second sequence and use `sequenceIndex` to give a sampler its own rhythm:
-      //   this.playSourceNode(sequenceIndex)
+      // A step's value (`data`) says which sampler plays: 0 is a rest, 1 plays the first sampler, 2 the second...
+      // Click a step in the sequencer to cycle its value (right click goes back). The sequencer's highest value is
+      // set to the number of samplers, and can be changed in the Sequencer tab.
       // Tip: play one sampler differently for a single step, e.g. the second one at half speed:
       //   this.playSourceNode(1, { speed: 0.5 })
+      // Tip: a script can write steps too, e.g. give the next step a random sampler (or a rest):
+      //   this.setStep(index + 1, __.random(0, 4))
       if (data) {
-        this.playSourceNode(index % 4);
+        this.playSourceNode(data - 1);
       }
     JS
-    sequences: [{ hits: 4, steps: 8, offset: 0 }]
+    sequences: [{ hits: 4, steps: 8, offset: 0, max_value: 4, custom_sequence: [1, 0, 2, 0, 3, 0, 4, 0] }]
   )
 
   SLICED_SAMPLE = new(
@@ -236,6 +238,56 @@ class TrackType
       }
     JS
     sequences: [{ hits: 8, steps: 8, offset: 0 }]
+  )
+
+  EVOLVING_RHYTHM = new(
+    key: 'evolving_rhythm',
+    title: 'Evolving rhythm',
+    description: 'Rewrites its own sequence every loop: the euclidean dials turn to a new rhythm each bar, and every fourth bar is a random fill.',
+    init_script: <<~JS,
+      __()
+        .sampler({
+          path: this.files[0],
+        })
+        .lowpass()
+        .gain()
+        .channelStrip()
+        .connect('#main-output')
+    JS
+    onstep_script: <<~JS,
+      // this.sequences[0] is the track's sequence: its steps (this.sequences[0][i]) and the sequencer's own
+      // settings (hits, steps, offset...). Setting one here turns the matching dial in the Sequencer tab, and the new
+      // rhythm plays from the next step. The last step of a loop is the moment to set up the next one,
+      // so the new rhythm starts from its first step.
+      const sequence = this.sequences[0];
+      if (index === array.length - 1) {
+        const next = this.bar + 1; // `this.bar` counts the loops so far, from 0
+
+        if (next % 4 === 3) {
+          // every fourth loop: a fill. this.euclidean(hits, steps, offset) is the sequencer's generator as a
+          // plain function; it returns steps, which set() writes over the dials' pattern.
+          sequence.set(this.euclidean(__.random(5, 8), 8, __.random(0, 7)));
+        } else {
+          // the other loops: set the dials. The "hits" and "offset" sliders move, and so does "steps" now and then.
+          sequence.euclidean(
+            [3, 5, 4, 7][next % 4],
+            next % 8 < 4 ? 8 : 12,
+            next % 3
+          );
+        }
+      }
+
+      if (data) {
+        this.play();
+      }
+
+      // More to try:
+      //   sequence.rate = 2;      // the clock rate (0.25, 0.5, 1, 2 or 4)
+      //   sequence.maxValue = 3;  // each step can hold 0 to 3: read it as `data`
+      //   sequence.length = 16;   // resize the steps (they become hand-made)
+      //   sequence[index + 1] = 0;  // write a single step
+    JS
+    sequences: [{ hits: 3, steps: 8, offset: 0 }]
   )
 
   HUMANIZED_SAMPLER = new(
@@ -381,7 +433,7 @@ class TrackType
     sequences: [{ hits: 5, steps: 8, offset: 0 }]
   )
 
-  ALL = [SAMPLER, LOOPED_SAMPLER, MULTI_SAMPLER, SLICED_SAMPLE, CHOPPED_LOOP, HUMANIZED_SAMPLER, FILTER_SWEEP, OSCILLATOR_ARP, POLYSYNTH].freeze
+  ALL = [SAMPLER, LOOPED_SAMPLER, MULTI_SAMPLER, SLICED_SAMPLE, CHOPPED_LOOP, EVOLVING_RHYTHM, HUMANIZED_SAMPLER, FILTER_SWEEP, OSCILLATOR_ARP, POLYSYNTH].freeze
 
   def self.all
     ALL

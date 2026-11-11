@@ -33,6 +33,11 @@ import filterNumericAttrs from 'euclip/utils/filter-numeric-attrs';
 import { macroSchemaFor } from 'euclip/utils/macros/library';
 import { choiceIndex, mergeSchema } from 'euclip/utils/macros/schema';
 import { tracked } from '@glimmer/tracking';
+// @ts-ignore - No type definitions available
+import E from 'euclip/utils/euclidean';
+// @ts-ignore - No type definitions available
+import { binaryPattern, onOffPattern, MAX_PATTERN_STEPS } from 'euclip/utils/sequence-patterns';
+import { CLOCK_RATES } from 'euclip/models/sequence';
 
 import { isPresent } from '@ember/utils';
 
@@ -44,6 +49,23 @@ import byKey from 'euclip/utils/by-key';
 
 declare const __: any;
 declare const cracked: any;
+
+// updateTrackSequence keeps hand-made steps when one of these changes
+const KEEPS_CUSTOM_STEPS = ['customSequence', 'rate', 'maxValue'];
+
+// What a script may set on a sequence (`this.sequences[0].hits = 5`), and the range each takes
+const SEQUENCE_SETTING_LIMITS: Record<string, [number, number]> = {
+  hits: [0, MAX_PATTERN_STEPS],
+  steps: [1, MAX_PATTERN_STEPS],
+  offset: [0, MAX_PATTERN_STEPS],
+  value: [0, 127],
+  onSteps: [0, MAX_PATTERN_STEPS],
+  offSteps: [0, MAX_PATTERN_STEPS],
+  times: [1, MAX_PATTERN_STEPS],
+  maxValue: [1, MAX_PATTERN_STEPS],
+};
+const LIMITS = (setting: string): [number, number] => SEQUENCE_SETTING_LIMITS[setting]!;
+const SEQUENCE_KINDS = ['euclidean', 'binary', 'onoff'];
 
 // Track state management
 export enum TrackState {
@@ -74,6 +96,8 @@ export default class TrackModel extends Model.extend(Evented) {
   declaredMacroControls: Record<string, Record<string, any>> = {};
   // how many times the primary sequence has started since the project last started from the top (`this.bar` in scripts)
   barCount = 0;
+  // the step arrays the cracked listeners are stepping through right now, one per sequence (see `setStep`)
+  boundSteps: number[][] = [];
   // `this.state` in scripts: a plain object that keeps its values from step to step (a script's `this` is rebuilt every step)
   scriptState: Record<string, any> = {};
   // set the moment deletion starts: blocks audio rebuilds and hides transient UI states.
@@ -258,27 +282,53 @@ export default class TrackModel extends Model.extend(Evented) {
 
   @action
   updateTrackSequence(sequenceRecord: SequenceModel, key: string, value: any): void {
-    if (sequenceRecord.get(key) === value) return;
-
-    // Hand-toggled steps (customSequence) override the generated pattern, so any parameter change
-    // drops them: otherwise the length and rhythm would stay frozen while the sliders move.
-    if (key !== 'customSequence' && sequenceRecord.customSequence?.length) {
-      sequenceRecord.set('customSequence', []);
-    }
-    if (key === 'steps' && value < sequenceRecord.hits) {
-      sequenceRecord.set('hits', value);
-    }
-
-    sequenceRecord.set(key, value);
+    if (!this.applySequenceChange(sequenceRecord, key, value)) return;
     unbindFromSequencer(this.stableSelector);
     this.bindToSequencer();
     this.saveTrackSequence.perform(sequenceRecord);
   }
 
+  // Writes one setting of a sequence (what the sliders, clicks and scripts all do) without rebinding the loop
+  // or saving. Returns false when nothing changed.
+  applySequenceChange(sequenceRecord: SequenceModel, key: string, value: any): boolean {
+    const current = sequenceRecord.get(key);
+    if (Array.isArray(value) ? JSON.stringify(current ?? []) === JSON.stringify(value) : current === value) {
+      return false;
+    }
+
+    // Hand-toggled steps (customSequence) override the generated pattern, so any parameter that shapes the
+    // pattern drops them: otherwise the length and rhythm would stay frozen while the sliders move.
+    // The clock rate and the highest step value leave the pattern alone (a lower highest value only clamps it).
+    if (!KEEPS_CUSTOM_STEPS.includes(key) && sequenceRecord.customSequence?.length) {
+      sequenceRecord.set('customSequence', []);
+    }
+    if (key === 'steps' && value < sequenceRecord.hits) {
+      sequenceRecord.set('hits', value);
+    }
+    if (key === 'maxValue' && sequenceRecord.customSequence?.length) {
+      sequenceRecord.set(
+        'customSequence',
+        sequenceRecord.customSequence.map((step) => Math.min(step, value))
+      );
+    }
+
+    sequenceRecord.set(key, value);
+    return true;
+  }
+
+  // Saves a sequence a moment after its last change. The task keeps only the latest call, so the sequences
+  // changed meanwhile are collected here and all saved together.
+  unsavedSequences = new Set<SequenceModel>();
+
   @keepLatestTask
   *saveTrackSequence(sequenceRecord: SequenceModel): Generator<Promise<void>, void, unknown> {
+    this.unsavedSequences.add(sequenceRecord);
     yield timeout(1000);
-    yield sequenceRecord.save();
+    const sequences = [...this.unsavedSequences];
+    this.unsavedSequences.clear();
+    for (const sequence of sequences) {
+      if (!sequence.isDeleted) yield sequence.save();
+    }
   }
 
   @keepLatestTask
@@ -758,24 +808,159 @@ export default class TrackModel extends Model.extend(Evented) {
   }
 
   // Position to resume a sequence's loop at: -1 means "not started yet" (the first step is index 0).
-  loopIndexFor(sequenceLength: number): number {
+  // `stepIndex` is the project's last tick, and the sequence steps `rate` times per tick (see clockRateOf),
+  // so it has played (stepIndex + 1) * rate steps by now (or, slower than the clock, one per 1 / rate ticks).
+  loopIndexFor(sequenceLength: number, rate = 1): number {
     const stepIndex = this.project.stepIndex;
-    return typeof stepIndex === 'number' && stepIndex >= 0 && sequenceLength > 0
-      ? stepIndex % sequenceLength
-      : -1;
+    if (typeof stepIndex !== 'number' || stepIndex < 0 || sequenceLength <= 0) return -1;
+    const played = rate < 1 ? Math.floor(stepIndex / Math.round(1 / rate)) + 1 : (stepIndex + 1) * Math.round(rate);
+    return (played - 1) % sequenceLength;
+  }
+
+  // The clock rate a sequence really steps at. The master track is the project's clock and always runs at 1.
+  clockRateOf(sequence: SequenceModel): number {
+    return this.isMaster ? 1 : sequence.rate || 1;
   }
 
   // One step listener per sequence. They share the track's stable selector, so a single unbind
   // (unbindAndRemoveCrackedNodes / unbindFromSequencer) removes all of them.
-  bindToSequencer() {
-    this.sortedSequences.forEach((sequence, sequenceIndex) => {
+  // `startAtTop`: sequences to start over from their first step instead of resuming at the project's position
+  // (a script that rewrites the pattern as it comes to its end wants the new one to begin at its beginning).
+  bindToSequencer(startAtTop: SequenceModel[] = []) {
+    // the arrays the listeners step through, so a script can change steps while they play (see `setStep`)
+    this.boundSteps = this.sortedSequences.map((sequence, sequenceIndex) => {
       const steps = sequence.sequence;
+      const rate = this.clockRateOf(sequence);
       bindToLoopStep(
         this.stableSelector,
         (index, data, array) => this.onStepCallback(index, data, array, sequenceIndex),
         steps,
-        { loopIndex: this.loopIndexFor(steps.length) }
+        { loopIndex: startAtTop.includes(sequence) ? -1 : this.loopIndexFor(steps.length, rate), rate }
       );
+      return steps;
+    });
+  }
+
+  /**
+   * Writes one step of a sequence: what `this.setStep(index, value)` does in a script. The value is clamped to
+   * 0..maxValue and `index` wraps around the sequence. The running listener sees the change on its very next step
+   * (its array is written in place, so nothing is rebound mid-step), and the model gets the same steps as a
+   * hand-made pattern, so the sequencer shows (and saves) them like steps the user clicked.
+   */
+  setStep(index: number, value: number, sequenceIndex = 0): void {
+    const sequence = this.sortedSequences[sequenceIndex];
+    if (!sequence || this.isRemoved) return;
+    const live = this.boundSteps[sequenceIndex] ?? sequence.sequence.slice();
+    if (!live.length) return;
+
+    const at = ((Math.floor(Number(index) || 0) % live.length) + live.length) % live.length;
+    live[at] = Math.round(Math.min(Math.max(Number(value) || 0, 0), sequence.maxValue));
+    if (this.boundSteps[sequenceIndex] !== live) this.boundSteps[sequenceIndex] = live;
+
+    sequence.customSequence = live.slice();
+    this.saveTrackSequence.perform(sequence);
+  }
+
+  // Changes a script made through `this.sequences`, held until its step is over so the loop is not rebound mid-step
+  pendingSequenceChanges = new Map<SequenceModel, Record<string, any>>();
+  runningStepScript = false;
+
+  queueSequenceChanges(sequence: SequenceModel, changes: Record<string, any>): void {
+    const pending = this.pendingSequenceChanges.get(sequence) ?? {};
+    // a later change goes last, so it wins over an earlier one that would have cleared it (see applySequenceChange)
+    Object.entries(changes).forEach(([key, value]) => {
+      delete pending[key];
+      pending[key] = value;
+    });
+    this.pendingSequenceChanges.set(sequence, pending);
+    if (!this.runningStepScript) this.flushSequenceChanges(); // e.g. from the setup script: nothing else will
+  }
+
+  // `endingSequence`: the sequence that just played its last step, if any: a changed one begins again from its first step
+  flushSequenceChanges(endingSequence?: SequenceModel): void {
+    if (!this.pendingSequenceChanges.size) return;
+    const pending = this.pendingSequenceChanges;
+    this.pendingSequenceChanges = new Map();
+    if (this.isRemoved) return;
+
+    const changed: SequenceModel[] = [];
+    pending.forEach((changes, sequence) => {
+      if (sequence.isDeleted) return;
+      const results = Object.entries(changes).map(([key, value]) => this.applySequenceChange(sequence, key, value));
+      if (results.some(Boolean)) changed.push(sequence);
+    });
+    if (!changed.length) return;
+
+    unbindFromSequencer(this.stableSelector);
+    this.bindToSequencer(changed.filter((sequence) => sequence === endingSequence));
+    changed.forEach((sequence) => this.saveTrackSequence.perform(sequence));
+  }
+
+  /**
+   * One sequence as a script sees it in `this.sequences`: its steps, as an array (read `[i]`, `.length`, `.map`...;
+   * `[i] = v` writes a step), with the sequencer's own settings as properties (`hits`, `steps`, `offset`, `kind`,
+   * `value`, `onSteps`, `offSteps`, `times`, `rate`, `maxValue`) and the generators as methods. Anything set moves the
+   * sequencer's controls and changes the pattern from the next step on.
+   */
+  scriptSequence(sequence: SequenceModel, sequenceIndex: number): number[] {
+    const queue = (changes: Record<string, any>) => this.queueSequenceChanges(sequence, changes);
+    const settings = Object.keys(SEQUENCE_SETTING_LIMITS).concat('kind', 'rate');
+    const int = (n: unknown, [min, max]: [number, number]) => Math.min(max, Math.max(min, Math.round(Number(n) || 0)));
+    const stepValue = (n: unknown) => int(n, [0, sequence.maxValue]);
+    // the steps the listener is playing (so a step written earlier in this same script shows up when read)
+    const target = this.boundSteps[sequenceIndex] ?? sequence.sequence.slice();
+
+    const methods: Record<string, (...args: any[]) => void> = {
+      euclidean: (hits, steps, offset = 0) => {
+        const total = int(steps, LIMITS('steps'));
+        queue({ kind: 'euclidean', steps: total, hits: int(hits, [0, total]), offset: int(offset, LIMITS('offset')) });
+      },
+      binary: (value) => queue({ kind: 'binary', value: int(value, LIMITS('value')) }),
+      onOff: (on, off, times = 1) =>
+        queue({
+          kind: 'onoff',
+          onSteps: int(on, LIMITS('onSteps')),
+          offSteps: int(off, LIMITS('offSteps')),
+          times: int(times, LIMITS('times')),
+        }),
+      // replace every step at once ([] goes back to the pattern the sequencer's dials make)
+      set: (steps) => queue({ customSequence: Array.from(steps ?? [], stepValue) }),
+    };
+
+    return new Proxy(target, {
+      get: (steps, prop, receiver) => {
+        if (typeof prop === 'string') {
+          if (prop in methods) return methods[prop];
+          if (settings.includes(prop)) return (sequence as any)[prop];
+        }
+        return Reflect.get(steps, prop, receiver);
+      },
+      set: (steps, prop, value) => {
+        if (typeof prop !== 'string') return false;
+        if (/^\d+$/.test(prop)) {
+          this.setStep(Number(prop), value, sequenceIndex);
+          return true;
+        }
+        if (prop === 'length') {
+          // a new length keeps the steps it has and pads with rests: the steps become hand-made
+          const length = int(value, [1, MAX_PATTERN_STEPS]);
+          queue({ customSequence: Array.from({ length }, (_, i) => steps[i] ?? 0) });
+          return true;
+        }
+        if (prop in SEQUENCE_SETTING_LIMITS) {
+          queue({ [prop]: int(value, LIMITS(prop)) });
+          return true;
+        }
+        if (prop === 'kind' && SEQUENCE_KINDS.includes(value)) {
+          queue({ kind: value });
+          return true;
+        }
+        if (prop === 'rate' && CLOCK_RATES.includes(value)) {
+          queue({ rate: value });
+          return true;
+        }
+        return false;
+      },
     });
   }
 
@@ -810,7 +995,14 @@ export default class TrackModel extends Model.extend(Evented) {
     const controls = this.trackControls.filter((control) => control.sequenceRecord === sequence);
     controls.forEach((control) => control.clearModulation()); // last step's script offsets end here
     this.applyControls(controls, index, sequence.sequence);
-    this.onstepScript.invokeFunctionRef(index, data, array, sequenceIndex);
+    this.runningStepScript = true;
+    try {
+      this.onstepScript.invokeFunctionRef(index, data, array, sequenceIndex);
+    } finally {
+      this.runningStepScript = false;
+    }
+    // what the script set through `this.sequences` takes effect for the next step
+    this.flushSequenceChanges(index === array.length - 1 ? sequence : undefined);
   }
 
   // TODO: create property "trackCreatedOrder" and use that here
@@ -878,8 +1070,15 @@ export default class TrackModel extends Model.extend(Evented) {
       filepath: this.downloadedFilepaths[0],
       id: this.id,
       trackSelector: this.classSelector,
-      stepMs: this.project.loopInterval, // length of one step in milliseconds (from the bpm)
-      sequences: this.sortedSequences.map((sequence) => sequence.sequence), // every sequence's steps, primary first
+      stepMs: this.project.loopInterval, // length of one tick of the project's clock in milliseconds (from the bpm)
+      // every sequence, primary first: its steps as an array, plus its sequencer settings to read and change
+      sequences: this.sortedSequences.map((sequence, i) => this.scriptSequence(sequence, i)),
+      // the generators the sequencer uses, as plain functions that return steps: this.sequences[0].set(this.euclidean(5, 8))
+      euclidean: (hits: number, steps: number, offset = 0): number[] => E(hits, steps, offset),
+      binary: (value: number): number[] => binaryPattern(value),
+      onOff: (on: number, off: number, times = 1): number[] => onOffPattern(on, off, times),
+      // writes a step of a sequence (clamped to 0..its highest value), e.g. this.setStep(index + 1, 2)
+      setStep: (index: number, value: number, sequenceIndex = 0) => this.setStep(index, value, sequenceIndex),
       controls: controls, // live: read a control's current value, assign one to modulate it for this step
       sliders: this.trackControlData,
       // The same track-scoped selector `select` uses, as a string, e.g. for connecting a node to one of this

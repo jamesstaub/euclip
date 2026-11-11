@@ -2,7 +2,7 @@
   <ScriptVariablesList
     @variables={{array 'data' 'index' 'array'}}
     @title={{'sequence'}}
-    @description='In the Play script, data is a 1 or 0 representing the current step in the sequence. index is the current step in the sequence, array is an array of 1s and 0s representing the sequence. '
+    @description='In the Play script, data is the value of the current step in the sequence: 0 is a rest, 1 is a hit, and a sequence with a higher max value lets steps hold 2, 3... (a Multi-sample kit plays sampler number data). index is the current step in the sequence, array is an array of the step values representing the sequence. '
   />
 {{/if}}
 {{#if (eq @controlUiState 'source')}}

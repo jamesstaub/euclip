@@ -69,6 +69,30 @@
             @onChange={{fn @updateTrackSequence @sequence 'offset'}}
           />
         {{/if}}
+        {{!-- how many values a step can hold, and how fast this sequence steps: both apply to any kind of pattern.
+              The master track is the project's clock and always plays on/off steps at its pace. --}}
+        {{#unless @isMaster}}
+        <Sequence::Slider
+          @label="values"
+          @value={{@sequence.maxValue}}
+          @min={{1}}
+          @max={{this.maxStepValue}}
+          @onChange={{fn @updateTrackSequence @sequence 'maxValue'}}
+        />
+        <div class='flex items-center ma3'>
+          <span class="fw7 w3">clock:</span>
+          <Console::TabMenu
+            class='flex-nowrap grow-0 shrink-0'
+            aria-label='Clock rate'
+            @selectedClass='bn mr2 bg-dark-gray light-gray'
+            @buttonClass='ba bw1 mr2 bg-transparent b--dark-gray dark-gray'
+            @onSelect={{fn @updateTrackSequence @sequence 'rate'}}
+            @items={{this.rates}}
+            @selectedValue={{@sequence.rate}}
+            data-test-sequencer-rates
+          />
+        </div>
+        {{/unless}}
       {{/if}}
     </div>
   </div>

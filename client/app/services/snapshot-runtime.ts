@@ -23,8 +23,8 @@ const CONTROL_FIELDS: (keyof ControlSettings)[] = [
   'stepSize',
 ];
 
-const SEQUENCE_FIELDS: (keyof SequenceSettings)[] = ['hits', 'steps', 'offset', 'kind', 'value', 'onSteps', 'offSteps', 'times'];
-const SEQUENCE_DEFAULTS: Partial<SequenceSettings> = { kind: 'euclidean', value: 0, onSteps: 1, offSteps: 1, times: 1 };
+const SEQUENCE_FIELDS: (keyof SequenceSettings)[] = ['hits', 'steps', 'offset', 'kind', 'value', 'onSteps', 'offSteps', 'times', 'rate', 'maxValue'];
+const SEQUENCE_DEFAULTS: Partial<SequenceSettings> = { kind: 'euclidean', value: 0, onSteps: 1, offSteps: 1, times: 1, rate: 1, maxValue: 1 };
 
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
@@ -68,6 +68,8 @@ export default class SnapshotRuntimeService extends Service {
         onSteps: sequence.onSteps,
         offSteps: sequence.offSteps,
         times: sequence.times,
+        rate: sequence.rate,
+        maxValue: sequence.maxValue,
         customSequence: sequence.customSequence?.length ? sequence.customSequence.slice() : null,
       }));
       const script = track.onstepScript;

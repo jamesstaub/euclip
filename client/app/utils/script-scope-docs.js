@@ -97,14 +97,42 @@ export const SCRIPT_SCOPE_DOCS = [
     name: 'sequences',
     kind: 'property',
     description:
-      'Every sequence’s steps as an array of arrays, primary sequence first.',
-    example: 'this.sequences[0][index]',
+      'Every sequence, primary first. Each is its steps as an array (read sequences[0][index], .length, .map...; sequences[0][i] = 2 writes a step) with the sequencer’s own settings as properties: hits, steps, offset (the euclidean dials), kind, value, onSteps, offSteps, times, rate and maxValue. Setting one moves that dial in the sequencer menu and changes the pattern from the next step on. The methods euclidean(hits, steps, offset), binary(value), onOff(on, off, times) switch the generator, set(steps) replaces every step, and setting length resizes the hand-made steps.',
+    example: 'this.sequences[0].euclidean(5, 8, 2);',
+  },
+  {
+    name: 'euclidean',
+    kind: 'method',
+    description:
+      'The sequencer’s euclidean generator as a plain function: euclidean(hits, steps, offset) returns an array of steps, without changing the sequencer. Hand them to a sequence with set().',
+    example: 'this.sequences[0].set(this.euclidean(3, 8));',
+  },
+  {
+    name: 'binary',
+    kind: 'method',
+    description:
+      'The sequencer’s binary generator as a plain function: binary(value) returns the digits of a number (0 to 127) as steps.',
+    example: 'this.sequences[0].set(this.binary(37));',
+  },
+  {
+    name: 'onOff',
+    kind: 'method',
+    description:
+      'The sequencer’s on/off generator as a plain function: onOff(on, off, times) returns `on` hits then `off` rests, `times` times over.',
+    example: 'this.sequences[0].set(this.onOff(3, 2, 2));',
+  },
+  {
+    name: 'setStep',
+    kind: 'method',
+    description:
+      'Write a step of a sequence from the script: setStep(index, value, sequenceIndex = 0). The value is kept between 0 (a rest) and the sequence’s highest step value, and the index wraps around the sequence. The next time the sequence reaches that step, `data` is the new value, and the sequencer shows it. The steps become hand-made (like clicked steps).',
+    example: 'this.setStep(index + 1, __.random(0, 4));',
   },
   {
     name: 'stepMs',
     kind: 'property',
     description:
-      'Length of one sequencer step in milliseconds, derived from the project’s bpm.',
+      'Length of one tick of the project’s clock in milliseconds, derived from the bpm. A sequence with a faster or slower clock rate steps every stepMs / rate.',
   },
   {
     name: 'trackSelector',

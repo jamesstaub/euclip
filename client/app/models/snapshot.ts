@@ -11,6 +11,8 @@ export interface SequenceSettings {
   onSteps?: number;
   offSteps?: number;
   times?: number;
+  rate?: number; // older snapshots have none of these either
+  maxValue?: number;
   customSequence: number[] | null;
 }
 

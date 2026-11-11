@@ -8,8 +8,10 @@
     <div class="sequencer-width flex justify-start shrink-0 mr3">
       {{#each pgn.sequencePaginated as |step idx|}}
         <SequencerStep 
-          {{on "click" (fn @onClickStep (add pgn.pageOffset idx))}}
+          {{on "click" (fn @onClickStep (add pgn.pageOffset idx) 1)}}
+          {{on "contextmenu" (fn this.stepBackwards (add pgn.pageOffset idx))}}
           @step={{step}} 
+          @maxValue={{@maxValue}}
           @stepIndex={{seq-step-offset @stepIndex @sequence}} 
           @idx={{add idx pgn.currentPageStartIdx}}
         />

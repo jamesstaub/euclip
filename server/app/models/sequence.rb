@@ -14,6 +14,12 @@ class Sequence < ApplicationRecord
   validates :on_steps, :off_steps, numericality: { only_integer: true, in: 0..64 }
   validates :times, numericality: { only_integer: true, in: 1..64 }
 
+  # steps per tick of the project clock: 0.5 and 2 are half and double speed (cracked takes whole divisions: 1/n and n)
+  RATES = [0.25, 0.5, 1.0, 2.0, 4.0].freeze
+  validates :rate, inclusion: { in: RATES }
+  # the highest value a step can hold (1: on/off). A multi-sample kit uses one value per sampler
+  validates :max_value, numericality: { only_integer: true, in: 1..64 }
+
   # position within the track: the track's primary sequence has the lowest order
   validates :order, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validates :order, uniqueness: { scope: :track_id }, if: :track_id?

@@ -6,6 +6,7 @@ import { keepLatestTask, timeout } from 'ember-concurrency';
 import { defineChannelStripMacro } from '../../../utils/cracked';
 import byKey from 'euclip/utils/by-key';
 import applyTrackTypeControls from 'euclip/utils/apply-track-type-controls';
+import { samplerSlots } from 'euclip/utils/sampler-files';
 
 /**
  * Controller focused on model state and business logic.
@@ -213,7 +214,22 @@ export default class UserCreatorProjectController extends Controller {
     for (const [slot, path] of paths.entries()) {
       await track.setFile(slot, path);
     }
+    this.chooseSamplerOnEachHit(track, paths.length);
     return track;
+  }
+
+  // A kit's steps choose the sampler that plays (1 is the first, 0 a rest), so the highest value is the number of
+  // sounds it was made from, and its hits take turns through them in order.
+  chooseSamplerOnEachHit(track, soundCount) {
+    const sequence = track.currentSequence;
+    const samplers = samplerSlots(track).length;
+    if (!sequence || !samplers) return;
+
+    const choices = Math.min(Math.max(soundCount, 1), samplers);
+    track.updateTrackSequence(sequence, 'maxValue', choices);
+    let hit = 0;
+    const steps = sequence.sequence.map((step) => (step ? (hit++ % choices) + 1 : 0));
+    track.updateTrackSequence(sequence, 'customSequence', steps);
   }
 
   @action

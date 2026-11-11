@@ -35,7 +35,7 @@ Once you have defined an audio signal chain in the Setup Script, use the Play sc
 The play script is a function that gets called on every step of the step. Play functions have the following variables available.
 
 `index` a number representing the current step in this track's sequencer.
-`data` 0 or 1 indicating the value of the current step.
+`data` the value of the current step: 0 is a rest, anything else is a hit. With a highest step value above 1 (see Sequencer below), a step can hold 1, 2, 3... and the script can use the number, e.g. to choose a sampler.
 `array` the array value of the entire sequence
 
 The simplest PLAY script could look like this.
@@ -93,6 +93,22 @@ The `playSample` helper does applies the `controls` under the hood, but you can 
 ### Sequencer
 By default Euclip tracks use a [https://www.computermusicdesign.com/simplest-euclidean-rhythm-algorithm-explained/#:~:text=Essentially%2C%20a%20euclidean%20rhythm%20consists,length%20of%20a%20rhythmic%20cycle.](Euclidean Rhythm Generator)
 But you can manually change the sequence however you like.
+
+#### Step values
+Each step holds a number from 0 up to the sequence's **max value** (set in the Sequencer tab; 1 is a plain on/off step).
+Click a step to cycle its value up (0, 1, 2, ... then back to 0) and right click to cycle down. Steps with a value above 1 show the number and a different color.
+`data` in the Play script is the step's value, so `if (data)` still means "play on every hit" and `data` can also pick *what* plays.
+
+A Multi-sample kit sets its max value to the number of samplers, and its Play script plays sampler number `data` (1 is the first sampler):
+```js
+if (data) {
+  this.playSourceNode(data - 1);
+}
+```
+Scripts can write steps too: `this.setStep(index + 1, 3)` sets the next step to 3 (values are kept between 0 and the max value, and the index wraps around the sequence).
+
+#### Clock rate
+The project has one clock, and its ticks are the steps of the master sequence. A track's sequence can run at a **rate** of that clock: `1` steps once per tick, `1/2` and `1/4` step every 2nd or 4th tick, `2` and `4` step two or four times per tick. This is cracked's `bind('step', fn, data, { rate })` option: its single timer worker still only ticks once per step, and `loopStep` divides those ticks (slower rates, counted from the start of the loop so tracks stay in phase) or schedules evenly spaced extra steps within one tick (faster rates). Only whole divisions and multiples are supported for now.
 
 <!-- Coming soon:
     multiple sequences per track

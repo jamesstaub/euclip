@@ -49,6 +49,24 @@ RSpec.describe 'V1 track resources', type: :request do
       expect(seq.reload.custom_sequence).to eq([1, 0, 1, 0])
     end
 
+    it 'stores a clock rate and the highest value a step can hold, with steps that use those values' do
+      seq = track.sequences.first
+      body = patch_json('sequences', seq.id, 'sequences', { rate: 0.5, max_value: 4, custom_sequence: [1, 0, 3, 4] })
+      expect(response).to have_http_status(200)
+      expect(body.dig(:data, :attributes)).to include(rate: 0.5, 'max-value': 4)
+      expect(seq.reload.custom_sequence).to eq([1, 0, 3, 4])
+    end
+
+    it 'defaults to the clock rate of the project with on/off steps' do
+      expect(track.sequences.first).to have_attributes(rate: 1.0, max_value: 1)
+    end
+
+    it 'rejects a clock rate that is not a whole division or multiple' do
+      seq = track.sequences.first
+      patch_json('sequences', seq.id, 'sequences', { rate: 1.5 })
+      expect(response).to have_http_status(422)
+    end
+
     it 'deletes a secondary sequence but never the last one' do
       second = Sequence.create!(track: track, steps: 4)
       delete "/v1/sequences/#{second.id}", headers: @headers

@@ -37,7 +37,7 @@ test.describe('track types in the New Track menu', () => {
 
   test('lists the types the API offers', async ({ page }) => {
     await page.getByRole('button', { name: 'New Track' }).locator('..').getByRole('button').last().click();
-    for (const title of ['Sampler', 'Looped sampler', 'Multi-sample kit', 'Sliced sample', 'Random chopped loop', 'Humanized sampler', 'Filter sweep', 'Oscillator arpeggio', 'Polysynth', 'From sounds…']) {
+    for (const title of ['Sampler', 'Looped sampler', 'Multi-sample kit', 'Sliced sample', 'Random chopped loop', 'Evolving rhythm', 'Humanized sampler', 'Filter sweep', 'Oscillator arpeggio', 'Polysynth', 'From sounds…']) {
       await expect(page.getByText(title, { exact: true })).toBeVisible();
     }
   });
@@ -60,6 +60,27 @@ test.describe('track types in the New Track menu', () => {
     await addTrack(page, 'Sampler');
     await expect.poll(() => created['lowpass.frequency']).toBe(20000);
     expect(created['lowpass.q']).toBe(0); // flat: no resonant bump until the user adds one
+  });
+
+  test('a multi-sample kit lets each step pick its sampler: values up to the number of samplers', async ({ page }) => {
+    await addTrack(page, 'Multi-sample kit');
+    const steps = page.locator('[data-test-track-item]:not(:has-text("Main Output"))').last().locator('.track-sequencer svg');
+    const values = () => steps.evaluateAll((els) => els.map((el) => el.querySelector('[data-test-step-value]')?.textContent ?? ''));
+    await expect.poll(values).toEqual(['1', '', '2', '', '3', '', '4', '']);
+
+    await steps.nth(6).click(); // 4 is the number of samplers: one more click is a rest
+    await steps.nth(1).click({ button: 'right' }); // a rest, backwards: the last sampler
+    await expect.poll(values).toEqual(['1', '4', '2', '', '3', '', '', '']);
+  });
+
+  test('an evolving rhythm rewrites its sequence every loop: the sequencer dials follow', async ({ page }) => {
+    await addTrack(page, 'Evolving rhythm');
+    const steps = page.locator('[data-test-track-item]:not(:has-text("Main Output"))').last().locator('.track-sequencer svg');
+    await expect(steps).toHaveCount(8);
+
+    await page.getByRole('button', { name: 'play' }).click();
+    // 8 steps a loop at 250 ms each. From the fourth loop the script turns the "steps" dial up to 12
+    await expect(steps).toHaveCount(12, { timeout: 30_000 });
   });
 
   test('a humanized sampler varies every hit around the sliders without moving them', async ({ page }) => {

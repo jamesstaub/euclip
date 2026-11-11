@@ -14,7 +14,7 @@ export default class ScriptVariablesComponent extends Component {
   @controller('user.creator.project') project;
 
   vars = {
-    data: 'Number value of the current step in the sequence (0 or 1)',
+    data: 'Number value of the current step in the sequence: 0 is a rest, 1 a hit (up to the sequence’s max value, e.g. which sampler plays)',
     index: 'Number of Which step the sequence is on.',
     array: 'The array representing the entire sequence',
     'this.filepath':

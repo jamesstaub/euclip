@@ -19,7 +19,7 @@ RSpec.describe 'V1 track types', type: :request do
     types = json_parse(response.body)[:data]
 
     expect(response).to have_http_status(200)
-    expect(types.map { |t| t[:id] }).to eq(%w[sampler looped_sampler multi_sampler sliced_sample chopped_loop humanized_sampler filter_sweep oscillator_arp polysynth])
+    expect(types.map { |t| t[:id] }).to eq(%w[sampler looped_sampler multi_sampler sliced_sample chopped_loop evolving_rhythm humanized_sampler filter_sweep oscillator_arp polysynth])
     expect(types).to all(satisfy { |t| t[:attributes][:title].present? && t[:attributes][:description].present? })
   end
 
@@ -81,7 +81,14 @@ RSpec.describe 'V1 track types', type: :request do
 
       expect(track.init_script.safe_code.scan(/this\.files\[i\]/).size).to eq(1) # one loop over four slots
       expect(track.init_script.safe_code).to include('[0, 1, 2, 3]')
-      expect(track.onstep_script.safe_code).to include('playSourceNode')
+      expect(track.onstep_script.safe_code).to include('playSourceNode(data - 1)') # a step's value is the sampler, 1-based
+      expect(track.sequences.first).to have_attributes(max_value: 4, custom_sequence: [1, 0, 2, 0, 3, 0, 4, 0])
+    end
+
+    it 'copies an evolving rhythm: a play script that rewrites its sequence on the last step of each loop' do
+      track = Track.find(create_track('evolving_rhythm').dig(:data, :id))
+
+      expect(track.onstep_script.safe_code).to include('this.sequences[0]', 'sequence.euclidean(', 'sequence.set(this.euclidean(')
     end
 
     it 'copies the scripts that show off this.controls (read a slider, offset it for one step)' do

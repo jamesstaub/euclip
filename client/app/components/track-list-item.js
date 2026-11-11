@@ -89,19 +89,16 @@ export default class TrackListItemComponent extends Component {
     ].slice().sort(byKey('order'));
   }
 
+  // Clicking a step cycles its value through 0..maxValue (1 is a plain on / off toggle); `direction` is 1 for
+  // a click and -1 for a right click. A track with several sampler files has a value for each, to choose which plays.
   @action
-  updateTrackSequence(idx) {
-    //if sequence is different than euclidean output
-    // manually override sequence
-    const seq = [...this.args.track.currentSequence.sequence];
-    // user toggle on or off a step in the sequence
-    seq[idx] = Number(!seq[idx]);
+  updateTrackSequence(idx, direction = 1) {
+    const sequence = this.args.track.currentSequence;
+    const values = sequence.maxValue + 1;
+    const steps = [...sequence.sequence];
+    steps[idx] = (((Math.round(steps[idx]) + direction) % values) + values) % values;
 
-    // which means this is now  a custom sequence (not euclidean algorithm)
-    this.args.track.updateTrackSequence(
-      this.args.track.currentSequence,
-      'customSequence',
-      seq
-    );
+    // which means this is now a custom sequence (not euclidean algorithm)
+    this.args.track.updateTrackSequence(sequence, 'customSequence', steps);
   }
 }

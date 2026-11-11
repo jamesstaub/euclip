@@ -203,6 +203,12 @@ export const argCompletions = {
       detail: 'should the same length as the number of steps',
       defaultValue: undefined,
     },
+    {
+      label: 'opts',
+      type: 'Object',
+      detail: '{ loopIndex: step to continue from, rate: steps per tick of the loop (0.5 half speed, 2 double speed) }',
+      defaultValue: undefined,
+    },
   ],
   begin: [
     {

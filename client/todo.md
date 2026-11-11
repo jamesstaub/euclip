@@ -2,9 +2,6 @@
 # TODO LIST
 
 ## Versioning
-- implement a ProjectState model that takes a serialized snapshot of the whole project 
-- add the ability to snapshot, restore from version, sequence snapshots\
-- research: is it necessary to build 2 simultaneous project's web audio trees to do preset sequencing? or can we get away with instant switch?
 
 
 Mobile UI:
