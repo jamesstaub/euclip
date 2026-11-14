@@ -1,0 +1,172 @@
+/*
+ * Header: the site nav bar (logo, links, account) over the project bar (sounds toggle, title, transport,
+ * actions). On phones the project bar is two rows: toggle, title and transport, then the actions.
+ */
+
+.app-header {
+  padding-block-start: var(--safe-top);
+}
+
+/* ---- nav bar ---- */
+
+.app-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  block-size: var(--nav-height);
+  padding-inline: var(--space-3);
+  color: var(--light-gray);
+}
+
+.app-nav__logo {
+  display: flex;
+  align-items: center;
+  flex: 0 1 auto;
+  min-inline-size: 0;
+  min-block-size: var(--target-min);
+  padding: var(--space-2);
+
+  & img {
+    display: block;
+    inline-size: 180px;
+    max-inline-size: 100%;
+    block-size: auto;
+  }
+}
+
+.app-nav__links {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: var(--space-2);
+}
+
+.app-nav__link {
+  min-block-size: var(--target-min);
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--white);
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.app-nav__link--accent {
+  color: var(--yellow);
+}
+
+.app-nav__account {
+  display: grid;
+  place-items: center;
+  inline-size: var(--target-min);
+  block-size: var(--target-min);
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.app-nav__avatar {
+  display: grid;
+  place-items: center;
+  inline-size: 2rem;
+  block-size: 2rem;
+  background: var(--yellow);
+  color: var(--dark-gray);
+  font-size: var(--font-size-3);
+  line-height: var(--line-height-solid);
+}
+
+/* ---- project bar ---- */
+
+.project-bar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "toggle title transport actions";
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-bar);
+  color: var(--text-on-light);
+}
+
+.project-bar__toggle {
+  grid-area: toggle;
+}
+
+.project-bar__title {
+  grid-area: title;
+  min-inline-size: 0;
+  font-size: var(--font-size-4);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-title);
+}
+
+.project-bar__transport {
+  grid-area: transport;
+}
+
+.project-bar__actions {
+  grid-area: actions;
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-2);
+}
+
+/* New Track and its menu of track types share one outline */
+.project-bar__new {
+  display: flex;
+
+  & .btn + .btn {
+    padding-inline: var(--space-2);
+    border-inline-start: 0;
+  }
+}
+
+@media (width < 48rem) {
+  .app-nav {
+    padding-inline: var(--space-2);
+  }
+
+  .app-nav__logo img {
+    inline-size: 120px;
+  }
+
+  .project-bar {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "toggle title transport"
+      "actions actions actions";
+    gap: var(--space-2);
+    padding: var(--space-2);
+  }
+
+  /* the buttons share the full-width second row rather than fighting the title for space */
+  .project-bar__new {
+    flex: 1 1 auto;
+
+    & .btn:first-child {
+      flex: 1 1 auto;
+    }
+  }
+
+  .project-bar__title {
+    font-size: var(--font-size-5);
+  }
+}
+
+/* phones: the toggle keeps its icon and drops its word (the button is still named for assistive tech) */
+@media (width < 30rem) {
+  .project-bar__toggle {
+    padding-inline: var(--space-2);
+  }
+
+  .project-bar__toggle-label {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

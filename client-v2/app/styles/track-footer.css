@@ -1,0 +1,200 @@
+/*
+ * Footer: the selected track's detail, yellow as in v1. Its bar (always there) names the track and holds
+ * the script button and the collapse control. The body is one of:
+ *   the UI      channel strip, the sequence / source / controls menu and the chosen pane
+ *               (for the main output: the master controls)
+ *   the script  the code editor, filling the whole body
+ *
+ *   >= 48rem wide   a region of fixed height under the track list (v1's clamp), collapsible to its bar
+ *   <  48rem        a bottom sheet: collapsed to its bar by default, expanded to 60% of the screen
+ *
+ * It is a row of the shell's grid, not an overlay, so it can never cover the header (where the transport is);
+ * the track list above it gives up the height and scrolls.
+ *
+ * The UI lays itself out by the footer's own width (a container query), so it responds to the sidebar too:
+ *   narrow (< 36rem)   the menu as a row, the channel strip as a row, then the chosen pane
+ *   wider              channel strip | menu | the chosen pane
+ */
+
+.track-footer {
+  container: track-footer / inline-size;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-columns: minmax(
+    0,
+    1fr
+  ); /* without this a long line of code would widen the footer */
+
+  padding-block-end: var(--safe-bottom);
+  border-block-start: var(--border-dark);
+  background: var(--surface-selected);
+  color: var(--text-on-light);
+
+  &[data-open="true"] {
+    block-size: clamp(var(--footer-min), 42dvh, var(--footer-max));
+    max-block-size: 70dvh;
+  }
+}
+
+@media (width < 48rem) {
+  .track-footer {
+    box-shadow: var(--shadow-drawer);
+
+    &[data-open="true"] {
+      block-size: 60dvh;
+      max-block-size: none;
+    }
+  }
+}
+
+/* ---- the bar ---- */
+
+.track-footer__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: max(2.25rem, var(--target-min));
+  padding-inline: var(--space-3) var(--space-2);
+  border-block-end: var(--border-width-1) solid var(--black-20);
+  background: var(--dark-yellow);
+}
+
+.track-footer__title {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  font-size: var(--font-size-6);
+  font-weight: var(--font-weight-normal);
+
+  & b {
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+  }
+
+  & span {
+    margin-inline-start: var(--space-2);
+  }
+}
+
+.track-footer__script-btn,
+.track-footer__collapse {
+  flex: none;
+  text-transform: uppercase;
+}
+
+/* phones: the two controls keep their icons and drop their words, so the track's name has the room */
+@media (width < 30rem) {
+  .track-footer__bar {
+    gap: var(--space-1);
+    padding-inline: var(--space-2) var(--space-1);
+  }
+
+  .track-footer__btn-label {
+    display: none;
+  }
+}
+
+/* ---- the body: the UI ---- */
+
+.track-footer__body {
+  display: grid;
+  grid-template:
+    "tabs" auto
+    "strip" auto
+    "pane" minmax(0, 1fr)
+    / minmax(0, 1fr);
+  gap: var(--space-1);
+  min-block-size: 0;
+  padding: var(--space-1);
+}
+
+.track-footer__strip {
+  grid-area: strip;
+}
+
+.track-footer__pane {
+  grid-area: pane;
+  min-inline-size: 0;
+  min-block-size: 0;
+  padding: 0 var(--space-2) var(--space-2);
+}
+
+/* ---- the body: the script, or the main output's controls: one thing, filling it ---- */
+
+.track-footer__body--script,
+.track-footer__body--master {
+  grid-template: "pane" minmax(0, 1fr) / minmax(0, 1fr);
+}
+
+.track-footer__body--script {
+  display: flex;
+  padding: var(--space-2);
+}
+
+/* ---- the menu: sequence / source / controls ---- */
+
+.footer-tabs {
+  grid-area: tabs;
+  display: flex;
+  min-inline-size: 0;
+}
+
+.footer-tab {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  min-block-size: max(2.25rem, var(--target-min));
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-dark);
+  background: var(--yellow);
+  color: var(--black);
+  font-size: var(--font-size-6);
+
+  /* neighbouring tabs share one border instead of doubling it */
+  & + & {
+    margin-inline-start: calc(-1 * var(--border-width-2));
+  }
+
+  &[aria-pressed="true"] {
+    background: var(--light-blue);
+  }
+
+  & .icon {
+    inline-size: 1.5rem;
+    block-size: 1.5rem;
+  }
+
+  /* v1 draws the automation icon larger than the others: its artwork sits small in its box */
+  & .icon--l {
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+  }
+}
+
+@container track-footer (min-width: 36rem) {
+  .track-footer__body:not(
+    .track-footer__body--script,
+    .track-footer__body--master
+  ) {
+    grid-template:
+      "strip tabs pane" minmax(0, 1fr)
+      / auto auto minmax(0, 1fr);
+  }
+
+  .footer-tabs {
+    flex-direction: column;
+    inline-size: 5.5rem;
+  }
+
+  .footer-tab {
+    flex-direction: column;
+    gap: var(--space-1);
+
+    & + & {
+      margin-block-start: calc(-1 * var(--border-width-2));
+      margin-inline-start: 0;
+    }
+  }
+}

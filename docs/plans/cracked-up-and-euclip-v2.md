@@ -1,6 +1,8 @@
 # cracked-up and Euclip v2: refactor plan
 
-Status: decisions made (section 0, 2026-11-11). cracked-up Phase 0 in progress; nothing else is implemented.
+Status: decisions made (section 0, 2026-11-11). cracked-up Phases 0 and 1 are done (API approved; graph core implemented and tested). Next is Phase 2, the transport. Nothing in Euclip has changed yet.
+
+The cracked-up API was reviewed after this plan was written. Where section 3 and the library differ, the library's `design/README.md` (in `../cracked-up`) is authoritative: it records the API decisions and what is implemented.
 Audience: the project owner, and whoever (person or agent) implements a phase. Each phase is written to be picked up without the conversation that produced this plan.
 Date: 2026-11-11.
 
@@ -24,7 +26,7 @@ The plan rests on three read-only code audits made on 2026-11-10/11 (the Cracked
 | D4 | **Existing production projects are not kept** | No converter. v2 starts with an empty database |
 | D5 | **Expect realtime collaboration, and design for script security (XSS) from the start** | Every document change is a recorded operation from day one. Because a shared project runs another person's scripts in your browser, D7 is no longer optional |
 | D6 | **All modern browsers**: Chrome, Firefox and Safari on desktop, plus mobile Safari and Chrome | Web MIDI availability differs by browser and is checked before Phase 6; features that a browser lacks degrade with a clear message |
-| D7 | **User scripts run sandboxed** (follows from D5). The mechanism is designed in initiative 2 | Scripts must not be able to read the session token, call the API as the viewer, or touch the page. cracked-up therefore makes every node operation expressible as a plain timed command (section 3.6) |
+| D7 | **User scripts run sandboxed when they may be someone else's** (follows from D5). Amended 2026-11-12 by the owner: a user working alone on their own project runs scripts directly, with no sandbox; the sandbox is used only in collaboration mode (and for any project whose scripts the user did not write). cracked-up makes the two interchangeable (`scope.build` and `remote.build` run the same script text; see `../cracked-up/demo/collaboration.html`) | Scripts must not be able to read the session token, call the API as the viewer, or touch the page. cracked-up therefore makes every node operation expressible as a plain timed command (section 3.6) |
 
 On D7: a Worker alone is not a sufficient boundary, because a same-origin Worker can still make authenticated same-origin requests and read IndexedDB. The candidates to evaluate in initiative 2 are a sandboxed iframe with an opaque origin hosting the script runtime, combined with a strict content security policy; the session token also moves out of `localStorage`, where any injected script can read it today.
 
@@ -318,6 +320,7 @@ Each phase ends with something demonstrable and tested. Phases 5 and 6 can run i
 | 2. Transport | Clock source interface, look-ahead scheduler, tempo map, sequences, swing, `at`/`every`, display sync, offline scheduling, seeded randomness | A rendered 3-against-4 pattern has onsets at the exact expected samples; a tempo change mid-render lands correctly; a live soak test shows no dropped events under main-thread load |
 | 3. Instruments and effects | Sampler voices, buffer store, slices, envelopes, macro system, synth macros, the ported effects, bitcrusher and meter worklets | Every node in table 3.11 exists with metadata and a render test |
 | 4. Reconciliation | `scope.apply`, `scope.build`, introspection events | Re-applying a changed description while playing leaves untouched nodes running, verified by render |
+| 4b. Remote | `cracked-up/remote`: the scripting API inside a sandbox, backed by commands and a mirrored snapshot; `linkRemote` on the host | A script run through the remote renders the same audio as the same script run locally; the sequence round trip is measured against the look-ahead |
 | 5. Recording | Recorder worklet, input, latency compensation, looper, WAV encoding, stem export | Two recorders armed together return sample-aligned buffers; a looper overdub stays in phase for 100 cycles |
 | 6. MIDI | Devices, messages, learn, notes out, clock in and out | Measured sync error against a hardware or virtual clock is documented and inside the agreed tolerance |
 | 7. Release | Docs site, examples, `/global` entry, API freeze | 1.0 tagged |
@@ -337,6 +340,8 @@ The core (engine, params, selection, transport) is designed and reviewed central
 Each delegated task gets the relevant declarations, one finished node as a pattern, and the test it must pass. Work is merged only after its render tests pass in CI.
 
 ## 6. Initiative 2 outline: script API and parameter state
+
+**Superseded on 2026-11-13 by [euclip-v2-code-and-ui.md](euclip-v2-code-and-ui.md)**, which is authoritative. In particular, chains are no longer stored as data with the script as a generated view: structure lives in code and values in the document. The outline below is kept for the record.
 
 Designed in detail after cracked-up Phase 2, when `Param`, scopes and the transport are real. Direction:
 
@@ -405,6 +410,27 @@ Steps 1 to 3 change nothing in the running app.
 - **Browser differences.** Worklet loading under strict content security policies, timer throttling in background tabs (the reason the scheduler's timer is in a Worker), Web MIDI availability and timing. Each is checked in the phase that depends on it.
 - **Recording memory.** Long multitrack takes held as PCM in memory will not scale. Phase 5 starts in memory and measures; streaming to disk is a follow-up if needed.
 - **Sandbox latency.** Sandboxed scripts add a message round trip to every scheduled callback. If it approaches the look-ahead window, either the window grows (slower response to live edits) or simple scripts need a faster path. Measured in initiative 2 before the script API is fixed.
+
+## 10. Ideas kept for later: pattern generators
+
+Recorded 2026-11-12. The owner chose to build pattern transforms, binary patterns and sieves now (in `cracked-up/util`). The rest of the list is kept here for future consideration. Each would return a plain array like `euclid` does, and anything random would take the engine's seeded random source so offline renders repeat.
+
+| Idea | What it gives | Notes |
+|---|---|---|
+| Turing machine (looping shift register) | A random pattern that repeats, with one control for how often a step mutates: 0 is a fixed loop, 1 is noise, in between it drifts | The strongest candidate. Needs state between cycles, so it is a small object with `next()`, not a pure function |
+| Random walk ("drunk") | Each value is the last plus a small random step, kept inside a range. Melodies that move by step | Simple. Options: step size, range, reflect or wrap at the edges, quantise to a scale |
+| Markov chain | New sequences with the same local habits as a transition table or a seed sequence | Order 1 first. Learning from a seed is the useful entry point |
+| Cellular automata (rules 30, 90, 110) | A row derived from the previous row, so a pattern evolves bar by bar from a seed | Cheap; musically hit-and-miss |
+| L-systems | Rewrite rules applied repeatedly (`a -> ab`, `b -> a`) give self-similar sequences | Useful for structure over longer spans |
+| Thue-Morse and similar fixed sequences | Balanced, never-repeating on/off patterns from a one-line rule | Good for accents; deterministic |
+| Smooth noise | Slowly wandering values for sweeps, velocity or density, with a threshold to make gates | Value noise is enough; no need for Perlin proper |
+| Arpeggiator orders | Up, down, up-down, converge, random over a set of notes | Overlaps with `randomArpeggio`; decide on one shape |
+| Phasing | A pattern against a copy that shifts by a step every n cycles (Steve Reich) | Could be a transport feature (sequence `offset` changed per cycle) rather than an array helper |
+
+Considered and set aside:
+
+- **Mutable Instruments "Grids"-style drum maps.** They depend on trained data tables, and the reference implementation is GPL.
+- **A Tidal-style mini-notation.** It is a language of its own and deserves a separate decision, not a helper.
 
 ## Appendix A: audit findings this plan depends on
 

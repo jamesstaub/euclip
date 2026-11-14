@@ -1,0 +1,26 @@
+# compiled output
+/dist/
+/tmp/
+
+# dependencies
+/node_modules/
+
+# misc
+*.local
+/.pnp*
+/.eslintcache
+/coverage/
+/npm-debug.log*
+/testem.log
+/yarn-error.log
+
+# broccoli-debug
+/DEBUG/
+
+# test and tooling output
+/test-results/
+/playwright-report/
+/.prettiercache
+/.stylelintcache
+/node_modules/.cache/
+*.tsbuildinfo

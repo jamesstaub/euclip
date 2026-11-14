@@ -1,0 +1,23 @@
+/*
+ * Euclip v2 styles. Plain CSS: custom properties, grid, nesting, container queries.
+ * Imported from app/app.ts, so Vite bundles it (and resolves these imports) with the app.
+ * tokens first, then element defaults and shared pieces, then one file per region or component.
+ */
+
+@import url("./fonts.css");
+@import url("./tokens.css");
+@import url("./base.css");
+@import url("./scrollbars.css");
+@import url("./buttons.css");
+@import url("./range.css");
+@import url("./app-shell.css");
+@import url("./app-header.css");
+@import url("./sound-browser.css");
+@import url("./track-list.css");
+@import url("./track-row.css");
+@import url("./step-grid.css");
+@import url("./transport.css");
+@import url("./track-footer.css");
+@import url("./channel-strip.css");
+@import url("./footer-panes.css");
+@import url("./code-editor.css");

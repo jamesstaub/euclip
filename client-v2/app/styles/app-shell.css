@@ -1,0 +1,110 @@
+/*
+ * The app frame: one viewport tall, four named areas. Nothing here scrolls; each region scrolls itself.
+ *
+ *   >= 64rem   sidebar beside the track list (the list gives up the width)
+ *   <  64rem   sidebar is a drawer over the track list and footer, under the header, with a scrim behind it
+ *
+ * The drawer and scrim are placed in grid cells rather than positioned, so the header (and the transport
+ * in it) stays visible and usable while the sound browser is open. As in v1, the sidebar runs the full
+ * height beside both the track list and the footer.
+ */
+
+.app-shell {
+  display: grid;
+  grid-template:
+    "header header" auto
+    "sidebar tracks" minmax(0, 1fr)
+    "sidebar footer" auto
+    / 0 minmax(0, 1fr);
+  block-size: 100vh;
+  block-size: 100dvh;
+  min-inline-size: 0;
+  overflow: hidden;
+  padding-inline: var(--safe-left) var(--safe-right);
+
+  &[data-sidebar="open"] {
+    grid-template-columns:
+      clamp(
+        var(--sidebar-min),
+        var(--sidebar-width),
+        calc(100% - var(--tracks-min))
+      )
+      minmax(0, 1fr);
+  }
+}
+
+.app-shell__header {
+  grid-area: header;
+  min-inline-size: 0;
+}
+
+.app-shell__sidebar {
+  grid-area: sidebar;
+  min-inline-size: 0;
+  min-block-size: 0;
+}
+
+.app-shell__tracks {
+  grid-area: tracks;
+  min-inline-size: 0;
+  min-block-size: 0;
+}
+
+.app-shell__footer {
+  grid-area: footer;
+  min-inline-size: 0;
+}
+
+.app-shell__scrim {
+  display: none;
+}
+
+@media (width < 64rem) {
+  .app-shell,
+  .app-shell[data-sidebar="open"] {
+    grid-template-areas:
+      "header"
+      "tracks"
+      "footer";
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* the drawer and its scrim cover the tracks and the footer, never the header */
+  .app-shell__sidebar,
+  .app-shell__scrim {
+    grid-area: 2 / 1 / 4 / 2;
+  }
+
+  .app-shell__sidebar {
+    z-index: var(--layer-drawer);
+    justify-self: start;
+    inline-size: min(var(--sidebar-width), 100% - 3rem);
+    box-shadow: var(--shadow-drawer);
+    animation: drawer-in var(--duration-fast) ease-out;
+  }
+
+  /* the rest of the track list, dimmed: pressing it closes the drawer */
+  .app-shell__scrim {
+    display: block;
+    z-index: var(--layer-scrim);
+    inline-size: 100%;
+    block-size: 100%;
+    padding: 0;
+    border: 0;
+    background: var(--black-50);
+    cursor: default;
+  }
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(-1.5rem);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell__sidebar {
+    animation: none;
+  }
+}

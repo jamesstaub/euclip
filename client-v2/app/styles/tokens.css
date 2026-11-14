@@ -1,0 +1,164 @@
+/*
+ * Design tokens: the look of Euclip v1 (Tachyons plus its overrides) as custom properties.
+ * Nothing but :root declarations lives here; every other stylesheet reads these.
+ */
+
+:root {
+  /* ---- colour: neutrals ---- */
+  --black: #000;
+  --near-black: #111;
+  --dark-gray: #333;
+  --medium-gray: #404040;
+  --mid-gray: #555;
+  --gray: #808080;
+  --silver: #999;
+  --light-silver: #aaa;
+  --moon-gray: #ccc;
+  --light-gray: #eee;
+  --near-white: #f7f7f7;
+  --white: #fff;
+
+  /* ---- colour: accents ---- */
+  --yellow: #ffce55;
+  --dark-yellow: #eab849;
+  --light-yellow: #ffebbb;
+  --blue: #0fe3ff;
+  --light-blue: #30e7ff; /* v1's #52ebff, 10% darker (same hue and saturation) */
+  --dark-blue: #075f68;
+  --red: #9d534f;
+  --light-red: #e7040f;
+
+  /* ---- colour: translucent overlays ---- */
+  --black-10: rgb(0 0 0 / 10%);
+  --black-20: rgb(0 0 0 / 20%);
+  --black-30: rgb(0 0 0 / 30%);
+  --black-50: rgb(0 0 0 / 50%);
+  --white-30: rgb(255 255 255 / 30%);
+
+  /* ---- colour: roles ---- */
+  --surface-app: radial-gradient(
+    circle,
+    var(--dark-blue) 0%,
+    var(--dark-gray) 100%
+  );
+  --surface-panel: var(--dark-gray);
+  --surface-bar: var(--light-gray);
+  --surface-selected: var(--yellow);
+  --text-on-dark: var(--light-gray);
+  --text-on-light: var(--dark-gray);
+  --text-muted: var(--moon-gray);
+  --accent: var(--yellow);
+  --text-on-accent: var(--near-black);
+
+  /* a keyboard focus ring that shows on the surface it is on (see base.css for where each applies) */
+  --focus-ring: var(--light-blue);
+  --focus-ring-on-light: var(--dark-blue);
+
+  /* states. Hover darkens on every surface, so text that was readable stays readable */
+  --surface-inset: var(--black-20);
+  --surface-inset-strong: var(--black-30);
+  --surface-hover-on-dark: var(--black-30);
+  --surface-hover-on-light: var(--black-10);
+  --surface-hover: var(--surface-hover-on-dark);
+  --surface-selected-hover: var(--dark-yellow);
+  --surface-button-hover: var(--near-black);
+  --control-outline-on-dark: var(--moon-gray);
+
+  /*
+   * Sequencer steps: off is light grey, on is the cyan, and the step being played is red with a dark
+   * ring. A dark line around every step separates neighbours and is what shows an off step on the
+   * yellow of the selected row, where light grey alone would merge with it.
+   */
+  --step-off: var(--light-gray);
+  --step-on: var(--light-blue);
+  --step-current: #d9534f;
+  --step-current-ring: var(--near-black);
+  --step-line: var(--dark-gray);
+
+  /* ---- type ---- */
+  --font-sans: "Poppins", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono:
+    "Monaco", "Menlo", "Ubuntu Mono", "Consolas", "source-code-pro", monospace;
+  --font-size-1: 3rem;
+  --font-size-2: 2.25rem;
+  --font-size-3: 1.5rem;
+  --font-size-4: 1.25rem;
+  --font-size-5: 1rem;
+  --font-size-6: 0.875rem;
+  --font-size-7: 0.75rem;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 600;
+  --font-weight-heavy: 700;
+  --line-height-solid: 1;
+  --line-height-title: 1.25;
+  --line-height-copy: 1.5;
+  --letter-spacing-spaced: 0.1rem;
+
+  /* ---- spacing scale ---- */
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 1rem;
+  --space-4: 2rem;
+  --space-5: 4rem;
+  --space-6: 8rem;
+
+  /* ---- borders (every corner is square: there are no radii) ---- */
+  --border-width-1: 0.0625rem;
+  --border-width-2: 0.125rem;
+  --border-width-3: 0.25rem;
+  --border-accent: var(--border-width-2) solid var(--yellow);
+  --border-dark: var(--border-width-2) solid var(--dark-gray);
+  --border-row: var(--border-width-1) solid var(--silver);
+
+  /* ---- shadows ---- */
+  --shadow-drawer: 0 0 2rem var(--black-50);
+
+  /* ---- scrollbars (see scrollbars.css) ---- */
+  --scrollbar-thumb: var(--yellow);
+  --scrollbar-track: transparent;
+
+  /* ---- sizes ---- */
+  --nav-height: 4.2rem;
+  --sidebar-width: 28rem;
+  --sidebar-min: 18rem;
+  --tracks-min: 24rem; /* the track list never gets narrower than this beside the sidebar */
+  --track-row-min: 3.5rem;
+  --footer-min: 22rem;
+  --footer-max: 28rem;
+  --source-width: 8rem;
+  --step-size: 2rem;
+  --step-size-max: 3.5rem; /* when the grid wraps to 2 x 8 and its steps fill the width */
+
+  /* the smallest box anything pressable gets */
+  --target-min: 2rem;
+
+  /* ---- layers ---- */
+  --layer-scrim: 10;
+  --layer-drawer: 20;
+
+  /* ---- motion ---- */
+  --duration-fast: 0.15s;
+
+  /* ---- device edges (notches, home indicator) ---- */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+}
+
+/* fingers need 44px; a mouse can keep the denser desktop sizes */
+@media (pointer: coarse) {
+  :root {
+    --target-min: 2.75rem;
+    --step-size: 2.75rem;
+  }
+}
+
+/* phones: a shorter nav bar leaves more room for tracks */
+@media (width < 48rem) {
+  :root {
+    --nav-height: 3.25rem;
+  }
+}

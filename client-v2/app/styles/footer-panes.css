@@ -1,0 +1,161 @@
+/*
+ * What the footer's panes (sequence, source, controls) are made of: a heading, a row of tabs, a row per
+ * parameter, and the sampler card. Static placeholders in v1's arrangement.
+ */
+
+.footer-pane {
+  min-inline-size: 0;
+}
+
+.pane-heading {
+  padding-block: var(--space-2);
+  font-size: var(--font-size-5);
+  font-weight: var(--font-weight-bold);
+  text-transform: capitalize;
+}
+
+/* ---- tabs within a pane: the track's nodes, the kinds of sequence ---- */
+
+.pane-tabs {
+  display: flex;
+  gap: var(--space-2);
+  padding-block-end: var(--space-2);
+}
+
+.pane-tab {
+  flex: none;
+  inline-size: 8rem;
+  min-block-size: 2.75rem;
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-dark);
+  background: transparent;
+  color: var(--dark-gray);
+  font-size: var(--font-size-6);
+  text-transform: uppercase;
+
+  &[aria-pressed="true"] {
+    background: var(--dark-gray);
+    color: var(--light-gray);
+  }
+}
+
+/* ---- parameter rows ---- */
+
+.param-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  align-content: start;
+  gap: 0.4rem;
+}
+
+.param-row {
+  display: flex;
+  flex-wrap: wrap; /* only on the very narrowest phones: the value and menu drop to a second line */
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0 var(--space-1);
+  min-inline-size: 0;
+  min-block-size: max(2.6rem, var(--target-min));
+  padding-inline: var(--space-1) 0;
+  border: var(--border-dark);
+  background: var(--dark-yellow);
+}
+
+.param-row__per-step {
+  flex: none;
+  margin-inline-end: calc(-1 * var(--space-1));
+}
+
+.param-row__name {
+  flex: none;
+  inline-size: 5.5rem;
+  font-size: var(--font-size-7);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+}
+
+.param-row__slider {
+  flex: 1 1 3.5rem;
+  min-inline-size: 3.5rem;
+  block-size: var(--target-min);
+  margin: 0;
+  accent-color: var(--light-blue);
+}
+
+.param-row__value {
+  flex: none;
+  inline-size: 3.75rem;
+  min-block-size: var(--target-min);
+  padding: 0 var(--space-1);
+  border: 0;
+  background: transparent;
+  font-size: var(--font-size-5);
+  text-align: center;
+  appearance: textfield;
+}
+
+.param-row__unit {
+  flex: none;
+  min-inline-size: 1.5rem;
+  font-size: var(--font-size-7);
+  white-space: nowrap;
+}
+
+.param-row__menu {
+  flex: none;
+  font-size: var(--font-size-5);
+  font-weight: var(--font-weight-heavy);
+}
+
+/* ---- the sampler card of the source pane ---- */
+
+.sampler-card {
+  max-inline-size: 22rem;
+  margin-block-end: var(--space-2);
+  padding: var(--space-2);
+  border: var(--border-width-2) solid var(--near-black);
+  background: var(--dark-gray);
+  color: var(--near-white);
+}
+
+.sampler-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--font-size-6);
+
+  & b {
+    font-weight: var(--font-weight-bold);
+  }
+
+  & span {
+    flex: none;
+    color: var(--moon-gray);
+    font-size: var(--font-size-7);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+  }
+}
+
+/* where the waveform will be drawn */
+.sampler-card__wave {
+  display: grid;
+  place-items: center;
+  block-size: 3rem;
+  margin-block: var(--space-1);
+  border: var(--border-width-1) dashed var(--white-30);
+  color: var(--moon-gray);
+  font-size: var(--font-size-7);
+}
+
+.sampler-card__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-7);
+
+  & .btn {
+    color: var(--moon-gray);
+  }
+}

@@ -1,0 +1,138 @@
+/*
+ * One track: a compact row of number (which selects it), source, step grid and actions. The selected
+ * track is yellow; its detail and its script are in the footer. A row carries no script.
+ *
+ * The row is laid out by the width of the track list (a container query), not the window, so it responds to the
+ * sidebar opening as well as to the device:
+ *   wide      number | source | steps | actions   on one line
+ *   narrower  number | source | actions, then the step grid on a line of its own
+ * The thresholds are larger on touch screens, where each step is 44px instead of 32px.
+ */
+
+.track {
+  border-block-end: var(--border-row);
+  background: var(--dark-gray);
+  color: var(--light-gray);
+}
+
+.track--active {
+  background: var(--surface-selected);
+  color: var(--dark-gray);
+}
+
+.track__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "order source actions"
+    "seq seq seq";
+  align-items: center;
+  column-gap: var(--space-2);
+  min-block-size: var(--track-row-min);
+  padding-inline: var(--space-3) var(--space-2);
+}
+
+.track__order {
+  grid-area: order;
+  min-inline-size: var(--target-min);
+  min-block-size: var(--target-min);
+  margin-inline-start: calc(-1 * var(--space-2));
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--yellow);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-3);
+  line-height: var(--line-height-solid);
+
+  .track--active & {
+    color: inherit;
+  }
+}
+
+.track__source {
+  grid-area: source;
+  display: flex;
+  align-items: center;
+  min-inline-size: 0;
+}
+
+/* the source button: what the track plays (a sample's file name, an oscillator, a kit...) */
+.track__source-btn {
+  inline-size: var(--source-width);
+  max-inline-size: 100%;
+  margin: var(--space-2);
+  font-size: var(--font-size-7);
+
+  & span {
+    min-inline-size: 0;
+  }
+}
+
+.track__output-label {
+  inline-size: var(--source-width);
+  margin: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-accent);
+  background: var(--dark-gray);
+  color: var(--yellow);
+  font-size: var(--font-size-7);
+  line-height: var(--line-height-title);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.track__sequence {
+  grid-area: seq;
+  min-inline-size: 0;
+  padding-block-end: var(--space-2);
+}
+
+.track__actions {
+  grid-area: actions;
+  display: flex;
+  align-items: center;
+  justify-self: end;
+  gap: var(--space-1);
+}
+
+.track__menu {
+  color: var(--yellow);
+
+  .track--active & {
+    color: var(--dark-gray);
+  }
+}
+
+/* the main output has no number of its own: it sits a little further in, as in v1 */
+.track--output .track__row {
+  padding-inline-start: var(--space-4);
+}
+
+/* ---- one line, when there is room for it ---- */
+
+@media (pointer: fine) {
+  @container track-list (min-width: 46rem) {
+    .track__row {
+      grid-template-columns: auto auto minmax(0, 1fr) auto;
+      grid-template-areas: "order source seq actions";
+    }
+
+    .track__sequence {
+      padding-block-end: 0;
+    }
+  }
+}
+
+@media (pointer: coarse) {
+  @container track-list (min-width: 66rem) {
+    .track__row {
+      grid-template-columns: auto auto minmax(0, 1fr) auto;
+      grid-template-areas: "order source seq actions";
+    }
+
+    .track__sequence {
+      padding-block-end: 0;
+    }
+  }
+}

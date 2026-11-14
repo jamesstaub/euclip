@@ -1,0 +1,33 @@
+/*
+ * Scrollbars: thin, yellow thumb, coloured for the surface they sit on.
+ * Set --scrollbar-thumb / --scrollbar-track on the element (or an ancestor) to recolour.
+ */
+
+.scroll-y,
+.scroll-x {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  -webkit-overflow-scrolling: touch;
+}
+
+.scroll-y {
+  overflow: hidden auto;
+  overscroll-behavior-y: contain;
+}
+
+.scroll-x {
+  overflow: auto hidden;
+  overscroll-behavior-x: contain;
+}
+
+/* on a dark panel */
+.scroll--on-dark {
+  --scrollbar-thumb: var(--yellow);
+  --scrollbar-track: var(--dark-gray);
+}
+
+/* on the yellow of a selected track */
+.scroll--on-yellow {
+  --scrollbar-thumb: var(--dark-gray);
+  --scrollbar-track: var(--yellow);
+}

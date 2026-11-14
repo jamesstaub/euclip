@@ -1,0 +1,52 @@
+/*
+ * The code editor (cracked-up/editor, CodeMirror 6), themed to v1's look through the editor's own
+ * custom properties: a dark pane with a light outline, sitting on dark rows or on the yellow of the
+ * selected track. The editor scrolls long lines inside itself; the page never scrolls sideways.
+ */
+
+.code-editor {
+  --cu-bg: var(--dark-gray);
+  --cu-text: var(--light-gray);
+  --cu-muted: var(--light-silver);
+  --cu-border: var(--mid-gray);
+  --cu-accent: var(--yellow);
+  --cu-panel-bg: var(--near-black);
+  --cu-hover-bg: var(--black-30);
+  --cu-selection: rgb(82 235 255 / 30%);
+  --cu-active-line: var(--black-20);
+  --cu-code-comment: var(--light-silver);
+  --cu-code-string: var(--light-yellow);
+  --cu-code-number: var(--light-blue);
+  --cu-code-keyword: var(--dark-yellow);
+  --cu-code-dunder: var(--yellow);
+  --cu-code-property: var(--light-blue);
+  --cu-font-mono: var(--font-mono);
+  --cu-font-ui: var(--font-sans);
+  --cu-font-size: var(--font-size-6);
+  --cu-line-height: var(--line-height-copy);
+
+  min-inline-size: 0;
+  min-block-size: 4rem; /* holds the space while the editor code loads */
+  overflow: hidden;
+  border: var(--border-width-2) solid var(--light-gray);
+  background: var(--dark-gray);
+}
+
+/* square corners inside the editor too: its popups, its source panel. The editor's own theme sets
+   radii from generated class names, which only !important reaches. */
+.code-editor * {
+  border-radius: 0 !important;
+}
+
+/* 16px on touch screens: iOS zooms the page when a focused field's text is smaller */
+@media (pointer: coarse) {
+  .code-editor {
+    --cu-font-size: var(--font-size-5);
+  }
+}
+
+/* an editor that fills a pane of fixed height (the footer) instead of growing with its text */
+.code-editor--fill {
+  flex: 1 1 0;
+  min-block-size: 8rem;
+}

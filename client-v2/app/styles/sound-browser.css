@@ -1,0 +1,382 @@
+/*
+ * Sidebar: the sound browser (where the next sound goes, search, folders, sounds).
+ * Square corners throughout, like the rest of the app.
+ * Every text/background pair here, with its hover, selected and pressed states, is checked for
+ * contrast from the tokens (see the note on states in tokens.css).
+ */
+
+.sound-browser {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-inline-end: var(--border-accent);
+  background: var(--surface-app) var(--dark-gray);
+  color: var(--yellow);
+}
+
+.sound-browser__header {
+  display: flex;
+  align-items: center;
+  flex: none;
+  padding-inline: var(--space-3) var(--space-2);
+}
+
+.sound-browser__title {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  padding-block: var(--space-3);
+  color: var(--text-on-dark);
+  font-size: var(--font-size-5);
+  font-weight: var(--font-weight-bold);
+  text-transform: capitalize;
+}
+
+.sound-browser__close {
+  min-inline-size: 3rem;
+  min-block-size: 3rem;
+  color: var(--text-on-dark);
+}
+
+/* ---- where the next sound goes ---- */
+
+.target-card {
+  flex: none;
+  margin: 0 var(--space-3) var(--space-2);
+  padding: var(--space-2);
+  border: var(--border-accent);
+  background: var(--surface-inset);
+  color: var(--text-on-dark);
+}
+
+.target-card__label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-size: var(--font-size-7);
+  text-transform: uppercase;
+}
+
+.target-card__change {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-block-size: var(--target-min);
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--yellow);
+  font-size: var(--font-size-7);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+}
+
+.target-card__target {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block: var(--space-1);
+  font-size: var(--font-size-6);
+  font-weight: var(--font-weight-bold);
+
+  & span {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    color: var(--yellow);
+    font-weight: var(--font-weight-normal);
+  }
+}
+
+/* ---- search ---- */
+
+.sound-search {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: var(--space-2);
+  margin-inline: var(--space-3);
+  padding-inline: var(--space-3);
+  border: var(--border-accent);
+  background: var(--surface-inset);
+  color: var(--text-muted);
+
+  &:focus-within {
+    border-color: var(--focus-ring);
+  }
+
+  & input {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    padding: var(--space-3) 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text-on-dark);
+    font-size: var(
+      --font-size-5
+    ); /* 16px: iOS does not zoom the page on focus */
+  }
+
+  & input::placeholder {
+    color: var(--text-muted);
+  }
+
+  & kbd {
+    min-inline-size: 1.5rem;
+    padding-inline: var(--space-1);
+    border: var(--border-width-1) solid var(--text-muted);
+    font-size: var(--font-size-6);
+    text-align: center;
+  }
+}
+
+/* ---- which shelf: every sound, or the ones in this project ---- */
+
+.segmented {
+  display: flex;
+  flex: none;
+  gap: var(--space-1);
+  margin: var(--space-2) var(--space-3);
+  padding: var(--space-1);
+  background: var(--surface-inset-strong);
+
+  & .btn {
+    flex: 1 1 0;
+    color: var(--text-on-dark);
+  }
+
+  & .btn[aria-pressed="true"] {
+    border-color: var(--yellow);
+    color: var(--text-on-accent);
+  }
+}
+
+/* ---- folder path ---- */
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  flex: none;
+  padding: var(--space-1) var(--space-3);
+  color: var(--text-on-dark);
+  font-size: var(--font-size-6);
+
+  & ol {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    min-inline-size: 0;
+  }
+
+  & li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+  }
+
+  & li > .icon {
+    color: var(--text-muted);
+  }
+}
+
+.breadcrumbs__up {
+  margin-inline-end: var(--space-1);
+  color: var(--yellow);
+}
+
+.breadcrumbs__crumb {
+  min-block-size: var(--target-min);
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--text-on-dark);
+  font-size: var(--font-size-6);
+
+  &[aria-current] {
+    font-weight: var(--font-weight-heavy);
+  }
+}
+
+/* ---- the list ---- */
+
+.sound-list {
+  flex: 1 1 0;
+  min-block-size: 0;
+  padding-inline: var(--space-2);
+}
+
+.sound-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: max(2.6rem, var(--target-min));
+  padding-inline: var(--space-2);
+  border-inline-start: var(--border-width-3) solid transparent;
+  color: var(--text-on-dark);
+  font-size: var(--font-size-6);
+
+  /* the sound the target sampler holds now */
+  &[data-current] {
+    border-inline-start-color: var(--yellow);
+  }
+
+  /* the row the pointer or keyboard is on: solid yellow with dark text, as v1's selected list rows */
+  &[data-selected] {
+    --focus-ring: var(--focus-ring-on-light);
+    --surface-hover: var(--surface-hover-on-light);
+
+    background: var(--surface-selected);
+    color: var(--text-on-accent);
+  }
+}
+
+.sound-row__name {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1 1 auto;
+  align-self: stretch;
+  min-inline-size: 0;
+  padding: var(--space-2) 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: start;
+}
+
+.sound-row__name--folder {
+  font-weight: var(--font-weight-medium);
+}
+
+.sound-row__chevron {
+  margin-inline-start: var(--space-2);
+  color: var(--text-muted);
+}
+
+/* the audition button: a 2rem square, inside a box big enough for a finger */
+.sound-row__play {
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: var(--target-min);
+  block-size: var(--target-min);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+
+  & span {
+    display: grid;
+    place-items: center;
+    inline-size: 2rem;
+    block-size: 2rem;
+    border: var(--border-width-2) solid var(--control-outline-on-dark);
+  }
+
+  .sound-row[data-selected] & span {
+    border-color: var(--dark-gray);
+    background: var(--dark-gray);
+    color: var(--yellow);
+  }
+}
+
+.sound-row__badge {
+  flex: none;
+  max-inline-size: 8rem;
+  padding-inline: var(--space-2);
+  border: var(--border-width-1) solid currentcolor;
+  color: var(--yellow);
+  font-size: var(--font-size-7);
+
+  .sound-row[data-selected] & {
+    color: var(--text-on-accent);
+  }
+}
+
+/* Use shows on the selected row; with a mouse also on the row under it; on touch screens on every row */
+.sound-row__use {
+  display: none;
+  flex: none;
+
+  .sound-row[data-selected] & {
+    display: inline-flex;
+    border-color: var(--dark-gray);
+    background: var(--dark-gray);
+    color: var(--yellow);
+  }
+}
+
+@media (hover: hover) {
+  .sound-row:hover {
+    background: var(--surface-hover-on-dark);
+  }
+
+  .sound-row[data-selected]:hover {
+    background: var(--surface-selected-hover);
+  }
+
+  .sound-row:hover .sound-row__use,
+  .sound-row:focus-within .sound-row__use {
+    display: inline-flex;
+  }
+
+  .breadcrumbs__crumb:hover,
+  .target-card__change:hover {
+    background: var(--surface-hover-on-dark);
+  }
+}
+
+@media (hover: none) {
+  .sound-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .sound-row__use {
+    display: inline-flex;
+  }
+
+  /* one filled Use (the selected row's); the rest are outlines, so the list is not a wall of yellow */
+  .sound-row:not([data-selected]) .sound-row__use {
+    background: transparent;
+    color: var(--yellow);
+  }
+
+  .sound-row__badge {
+    display: none;
+  }
+}
+
+/* ---- keyboard hints: only where there is likely to be a keyboard ---- */
+
+.sound-hints {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-block-start: var(--border-width-1) solid var(--white-30);
+  color: var(--text-muted);
+  font-size: var(--font-size-6);
+
+  & kbd {
+    display: inline-block;
+    min-inline-size: 1.75rem;
+    margin-inline-end: var(--space-2);
+    padding-inline: var(--space-1);
+    border: var(--border-width-1) solid var(--text-muted);
+    color: var(--text-on-dark);
+    font-size: var(--font-size-5);
+    line-height: var(--line-height-title);
+    text-align: center;
+  }
+}
+
+@media (hover: none), (width < 48rem) {
+  .sound-hints {
+    display: none;
+  }
+}

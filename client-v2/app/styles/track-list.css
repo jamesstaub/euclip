@@ -1,0 +1,11 @@
+/* Main area: the vertical list of tracks. It is the size container its rows lay themselves out by. */
+
+.track-list {
+  container: track-list / inline-size;
+  background: var(--surface-panel);
+}
+
+.track-list__items {
+  display: flex;
+  flex-direction: column;
+}

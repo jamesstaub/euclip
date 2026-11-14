@@ -1,0 +1,144 @@
+/*
+ * Buttons. Every button is variant x surface x size:
+ *   .btn            outline: the default action (dark, yellow outline)
+ *   .btn--solid     the one that matters most, or a pressed toggle (yellow fill)
+ *   .btn--ghost     text only
+ *   .btn--on-yellow the same three on the yellow of a selected track
+ *   .btn--s         small
+ *   .icon-btn       a bare icon
+ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-block-size: var(--target-min);
+  min-inline-size: var(--target-min);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-accent);
+  background: var(--dark-gray);
+  color: var(--yellow);
+  font-size: var(--font-size-6);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-title);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.btn--solid,
+.btn[aria-pressed="true"] {
+  background: var(--yellow);
+  color: var(--near-black);
+}
+
+.btn--ghost {
+  border-color: transparent;
+  background: transparent;
+}
+
+.btn--quiet {
+  border-color: var(--light-gray);
+  color: var(--light-gray);
+}
+
+.btn--s {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-7);
+  text-transform: none;
+}
+
+.btn--on-yellow {
+  border-color: var(--dark-gray);
+  background: transparent;
+  color: var(--dark-gray);
+
+  &.btn--solid,
+  &[aria-pressed="true"] {
+    background: var(--dark-gray);
+    color: var(--yellow);
+  }
+
+  &.btn--ghost {
+    border-color: transparent;
+  }
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: var(--target-min);
+  min-inline-size: var(--target-min);
+  padding: var(--space-1);
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+/* an inlined SVG from app/assets/icons (see components/icon.gts), in the colour of the text around it */
+.icon {
+  display: block;
+  flex: none;
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  fill: currentcolor;
+
+  & svg {
+    inline-size: 100%;
+    block-size: 100%;
+  }
+
+  /* the multislider icon draws its bars with a black outline of its own */
+  & [style*="stroke"] {
+    stroke: currentcolor !important;
+  }
+}
+
+.icon--s {
+  inline-size: 0.75rem;
+  block-size: 0.75rem;
+}
+
+/* v1's menu caret is the play triangle turned to point down */
+.icon--down {
+  rotate: 90deg;
+}
+
+.icon--up {
+  rotate: -90deg;
+}
+
+.icon--m {
+  inline-size: 1rem;
+  block-size: 1rem;
+}
+
+.icon--back {
+  rotate: 180deg;
+}
+
+/*
+ * Hover and pressed states. Hover is decoration only: nothing is reachable by hover alone. States change
+ * a background to another token and never fade the button, so its text keeps its contrast.
+ */
+@media (hover: hover) {
+  .btn:not(:disabled, [aria-pressed="true"], .btn--solid, .btn--ghost):hover {
+    background: var(--surface-button-hover);
+  }
+
+  .btn--solid:not(:disabled):hover {
+    background: var(--surface-selected-hover);
+  }
+
+  .icon-btn:not(:disabled):hover,
+  .btn--ghost:not(:disabled, [aria-pressed="true"]):hover,
+  .btn--on-yellow:not(:disabled, [aria-pressed="true"], .btn--solid):hover {
+    background: var(--surface-hover);
+  }
+}
+
+.btn:not(:disabled):active,
+.icon-btn:not(:disabled):active {
+  translate: 0 1px;
+}

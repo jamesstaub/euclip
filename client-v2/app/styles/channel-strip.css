@@ -1,0 +1,100 @@
+/*
+ * Channel strip: gain and pan. Beside the panes it is v1's narrow column with a vertical fader; in a
+ * narrow footer it lies down as one row of two horizontal sliders, so the panes keep the full width.
+ */
+
+.channel-strip {
+  display: flex;
+  align-items: stretch;
+  min-inline-size: 0;
+  border: var(--border-dark);
+  font-size: var(--font-size-7);
+  letter-spacing: var(--letter-spacing-spaced);
+  text-transform: uppercase;
+}
+
+.channel-strip__title {
+  display: flex;
+  align-items: center;
+  flex: none;
+  inline-size: 5rem;
+  padding: var(--space-2);
+  background: var(--dark-gray);
+  color: var(--light-gray);
+  font-size: inherit;
+  font-weight: var(--font-weight-heavy);
+  line-height: var(--line-height-title);
+}
+
+.channel-strip__controls {
+  display: flex;
+  flex: 1 1 auto;
+  gap: var(--space-3);
+  min-inline-size: 0;
+  padding: 0 var(--space-2);
+}
+
+.channel-strip__control {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  font-weight: var(--font-weight-heavy);
+
+  & input {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    block-size: var(--target-min);
+    margin: 0;
+    accent-color: var(--light-blue);
+  }
+}
+
+@container track-footer (min-width: 36rem) {
+  .channel-strip {
+    flex-direction: column;
+    inline-size: 6.5rem;
+    text-align: center;
+  }
+
+  .channel-strip__title {
+    inline-size: auto;
+    justify-content: center;
+  }
+
+  .channel-strip__controls {
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    min-block-size: 0;
+    padding: var(--space-2);
+  }
+
+  .channel-strip__control {
+    flex: none;
+    flex-direction: column;
+    inline-size: 100%;
+
+    & input {
+      flex: none;
+      inline-size: 100%;
+    }
+  }
+
+  /* the gain fader stands up and takes the height that is left */
+  .channel-strip__control--gain {
+    flex: 1 1 0;
+    min-block-size: 0;
+
+    & input {
+      flex: 1 1 0;
+      inline-size: var(--target-min);
+      block-size: auto;
+      min-block-size: 3rem;
+      writing-mode: vertical-lr;
+      direction: rtl;
+    }
+  }
+}

@@ -1,0 +1,35 @@
+/* The transport (play, stop, tempo). It sits in the project bar; see app-header.css for where. */
+
+.transport {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.transport__btn {
+  inline-size: max(2.5rem, var(--target-min));
+  block-size: max(2.5rem, var(--target-min));
+}
+
+.transport__tempo {
+  display: flex;
+  align-items: center;
+  margin-inline-start: var(--space-2);
+  border: var(--border-dark);
+
+  & input {
+    inline-size: 3.5rem;
+    min-block-size: max(2.25rem, var(--target-min));
+    padding: 0 var(--space-1);
+    border: 0;
+    background: transparent;
+    font-size: var(--font-size-5);
+    text-align: center;
+    appearance: textfield;
+  }
+
+  & span {
+    padding-inline-end: var(--space-2);
+    font-size: var(--font-size-7);
+  }
+}
