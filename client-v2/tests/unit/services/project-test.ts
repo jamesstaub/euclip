@@ -82,13 +82,7 @@ module('Unit | Service | project', function (hooks) {
     }
     project.apply({ type: 'setScript', scope: 't-hat', script: 'x' });
     project.apply(
-      {
-        type: 'setSteps',
-        scope: 't-kick',
-        sequence: 'steps',
-        steps: [1],
-        code: [0],
-      },
+      { type: 'setControlValue', scope: 't-kick', key: 'density', value: 0.5 },
       { derived: true },
     );
 
@@ -140,11 +134,16 @@ module('Unit | Service | project', function (hooks) {
         pan: -0.5,
       });
       doc = applyOperation(doc, {
-        type: 'setSteps',
+        type: 'setControlValue',
         scope: 't-hat',
-        sequence: 'steps',
-        steps: [1, 0, 2],
-        code: [1, 1, 1],
+        key: 'sequencer › steps',
+        value: [1, 0, 2],
+      });
+      doc = applyOperation(doc, {
+        type: 'setControlValue',
+        scope: 't-kick',
+        key: '#filter › frequency',
+        value: 440,
       });
       assert.true(await storage.save(doc));
 
@@ -159,11 +158,11 @@ module('Unit | Service | project', function (hooks) {
   test('what is in storage is only trusted if it is a document this version knows', async function (assert) {
     const project = this.owner.lookup('service:project');
     const storage = new MemoryStorage();
-    storage.saved = { ...defaultProject(), schemaVersion: 2 } as never;
+    storage.saved = { ...defaultProject(), schemaVersion: 3 } as never;
     // MemoryStorage hands back what it has; the real storage validates. Check the real one's rule:
     const real = new IndexedDbStorage(`euclip-test-bad-${Date.now()}`);
     try {
-      await real.save({ ...defaultProject(), schemaVersion: 2 } as never);
+      await real.save({ ...defaultProject(), schemaVersion: 3 } as never);
       assert.strictEqual(
         await real.load(),
         null,
@@ -172,7 +171,7 @@ module('Unit | Service | project', function (hooks) {
     } finally {
       await real.clear();
     }
-    assert.strictEqual(project.doc.schemaVersion, 1);
+    assert.strictEqual(project.doc.schemaVersion, 2);
   });
 
   test('a storage that fails does not break the app', async function (assert) {

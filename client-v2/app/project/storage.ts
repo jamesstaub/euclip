@@ -2,10 +2,7 @@
  * Where a project is kept between visits: IndexedDB, one record. Every failure (no IndexedDB, private
  * mode, a full disk, a blocked upgrade) resolves quietly: the app then works from memory only.
  */
-import {
-  isProjectDocument,
-  type ProjectDocument,
-} from 'client-v2/project/schema';
+import { migrateProject, type ProjectDocument } from 'client-v2/project/schema';
 
 export interface ProjectStorage {
   /** The saved project, or null when there is none (or it cannot be read or is not a document we know). */
@@ -51,7 +48,8 @@ export class IndexedDbStorage implements ProjectStorage {
         const value: unknown = await request(
           db.transaction(STORE, 'readonly').objectStore(STORE).get(KEY),
         );
-        return isProjectDocument(value) ? value : null;
+        // an older version's document is brought up to date; anything else is not opened
+        return migrateProject(value);
       } finally {
         db.close();
       }
@@ -103,7 +101,7 @@ export class MemoryStorage implements ProjectStorage {
   saves = 0;
 
   load(): Promise<ProjectDocument | null> {
-    return Promise.resolve(this.saved);
+    return Promise.resolve(migrateProject(this.saved));
   }
 
   save(doc: ProjectDocument): Promise<boolean> {

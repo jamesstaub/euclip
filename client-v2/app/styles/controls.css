@@ -1,0 +1,420 @@
+/*
+ * The app's own controls: slider, knob, toggle, the readout you can type into, the select and the
+ * popup menu. Drawn here from tokens, square like everything else (a knob's dial is an arc; that is its
+ * shape, not a rounded corner). Each takes at least --target-min in the direction a finger meets it.
+ */
+
+/* ---- slider ---- */
+
+.slider {
+  --pos: 0;
+  --fill-start: 0;
+  --fill-size: 0;
+  --inset: 0.5rem; /* half the handle: the travel stops this far from each end */
+  --track: 0.5rem;
+
+  position: relative;
+  flex: 1 1 4rem;
+  min-inline-size: 3.5rem;
+  block-size: var(--target-min);
+  cursor: ew-resize;
+  touch-action: pan-y; /* a drag along it moves it; a drag across it still scrolls the pane */
+  user-select: none;
+}
+
+.slider__track,
+.slider__fill,
+.slider__handle,
+.slider__effective {
+  position: absolute;
+  inset-block-start: 50%;
+  translate: 0 -50%;
+  pointer-events: none;
+}
+
+/* the track is the travel: the handle's centre runs from one end of it to the other */
+.slider__track {
+  inset-inline: var(--inset);
+  block-size: var(--track);
+  background: var(--dark-gray);
+}
+
+.slider__fill {
+  inset-inline-start: calc(
+    var(--inset) + var(--fill-start) * (100% - 2 * var(--inset))
+  );
+  inline-size: calc(var(--fill-size) * (100% - 2 * var(--inset)));
+  block-size: var(--track);
+  background: var(--light-blue);
+}
+
+.slider__handle {
+  inset-inline-start: calc(var(--pos) * (100% - 2 * var(--inset)));
+  inline-size: calc(2 * var(--inset));
+  block-size: 1.25rem;
+  border: var(--border-dark);
+  background: var(--light-blue);
+}
+
+/* where the parameter really is, when code has moved it away from the handle */
+.slider__effective {
+  inset-inline-start: calc(
+    var(--inset) + var(--effective) * (100% - 2 * var(--inset)) - 0.125rem
+  );
+  inline-size: 0.25rem;
+  block-size: 1.5rem;
+  background: var(--step-current);
+  outline: var(--border-width-1) solid var(--near-black);
+}
+
+.slider--vertical {
+  flex: 1 1 4rem;
+  inline-size: var(--target-min);
+  min-inline-size: 0;
+  block-size: auto;
+  min-block-size: 3.5rem;
+  cursor: ns-resize;
+  touch-action: pan-x;
+
+  & .slider__track,
+  & .slider__fill,
+  & .slider__handle,
+  & .slider__effective {
+    inset-block-start: auto;
+    inset-inline-start: 50%;
+    translate: -50% 0;
+  }
+
+  & .slider__track {
+    inset-block: var(--inset);
+    inset-inline-end: auto;
+    inline-size: var(--track);
+    block-size: auto;
+  }
+
+  & .slider__fill {
+    inset-block-end: calc(
+      var(--inset) + var(--fill-start) * (100% - 2 * var(--inset))
+    );
+    inline-size: var(--track);
+    block-size: calc(var(--fill-size) * (100% - 2 * var(--inset)));
+  }
+
+  & .slider__handle {
+    inset-block-end: calc(var(--pos) * (100% - 2 * var(--inset)));
+    inline-size: 1.25rem;
+    block-size: calc(2 * var(--inset));
+  }
+
+  & .slider__effective {
+    inset-block-end: calc(
+      var(--inset) + var(--effective) * (100% - 2 * var(--inset)) - 0.125rem
+    );
+    inline-size: 1.5rem;
+    block-size: 0.25rem;
+  }
+}
+
+/* ---- knob ---- */
+
+.knob {
+  flex: none;
+  inline-size: max(2.75rem, var(--target-min));
+  block-size: max(2.75rem, var(--target-min));
+  cursor: ns-resize;
+  touch-action: none;
+  user-select: none;
+
+  & svg {
+    inline-size: 100%;
+    block-size: 100%;
+  }
+
+  & path {
+    fill: none;
+    stroke-linecap: butt;
+  }
+}
+
+.knob__track {
+  stroke: var(--dark-gray);
+  stroke-width: 5;
+}
+
+.knob__fill {
+  stroke: var(--light-blue);
+  stroke-width: 3;
+}
+
+.knob__pointer {
+  stroke: var(--dark-gray);
+  stroke-width: 3;
+}
+
+.knob__effective {
+  stroke: var(--step-current);
+  stroke-width: 3;
+}
+
+/* ---- toggle ---- */
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--target-min);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: var(--font-size-6);
+}
+
+.toggle__track {
+  position: relative;
+  inline-size: 2.75rem;
+  block-size: 1.5rem;
+  border: var(--border-dark);
+  background: var(--dark-gray);
+}
+
+.toggle__handle {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 50%;
+  background: var(--light-gray);
+}
+
+.toggle[aria-checked="true"] {
+  & .toggle__track {
+    background: var(--light-blue);
+  }
+
+  & .toggle__handle {
+    inset-inline-start: 50%;
+    background: var(--dark-gray);
+  }
+}
+
+/* the parameter is the other way round from the switch */
+.toggle[data-effective] .toggle__track {
+  outline: var(--border-width-3) solid var(--step-current);
+  outline-offset: 1px;
+}
+
+.toggle__text {
+  min-inline-size: 1.75rem;
+  text-align: start;
+}
+
+/* ---- the readout, and typing a value into it ---- */
+
+.number-entry {
+  flex: none;
+  inline-size: 5.5rem;
+  min-block-size: var(--target-min);
+  padding: 0 var(--space-1);
+  border: var(--border-width-1) solid transparent;
+  background: transparent;
+  font-size: var(--font-size-6);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  white-space: nowrap;
+}
+
+.number-entry--editing {
+  border-color: var(--dark-gray);
+  background: var(--white);
+  color: var(--near-black);
+  font-size: var(--font-size-5); /* 16px: iOS does not zoom the page on focus */
+
+  &[aria-invalid] {
+    border-color: var(--step-current);
+    outline: var(--border-width-2) solid var(--step-current);
+  }
+}
+
+@media (hover: hover) {
+  button.number-entry:hover {
+    border-color: var(--dark-gray);
+  }
+}
+
+/* ---- select ---- */
+
+.select {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  min-block-size: var(--target-min);
+  padding: 0 var(--space-2);
+  border: var(--border-dark);
+  background: var(--yellow);
+  font-size: var(--font-size-5);
+}
+
+/* ---- popup menu ---- */
+
+.popup-menu {
+  position: relative;
+  flex: none;
+}
+
+.menu {
+  position: absolute;
+  inset-block-start: 100%;
+  inset-inline-end: 0;
+  z-index: var(--layer-menu);
+  min-inline-size: 11rem;
+  border: var(--border-width-3) solid var(--light-gray);
+  background: var(--dark-gray);
+  box-shadow: var(--shadow-drawer);
+}
+
+.menu__separated {
+  border-block-start: var(--border-width-1) solid var(--mid-gray);
+}
+
+.menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  inline-size: 100%;
+  min-block-size: var(--target-min);
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  background: transparent;
+  color: var(--text-on-dark);
+  font-size: var(--font-size-6);
+  text-align: start;
+  white-space: nowrap;
+
+  /* one of a set of choices: a square that is filled when it is the chosen one */
+  &[role="menuitemradio"]::before {
+    content: "";
+    flex: none;
+    inline-size: 0.625rem;
+    block-size: 0.625rem;
+    border: var(--border-width-1) solid var(--text-muted);
+  }
+
+  &[aria-checked="true"]::before {
+    border-color: var(--yellow);
+    background: var(--yellow);
+  }
+
+  &[aria-disabled] {
+    color: var(--silver);
+    cursor: default;
+  }
+}
+
+@media (hover: hover) {
+  .menu__item:not([aria-disabled]):hover {
+    background: var(--surface-hover-on-dark);
+  }
+}
+
+/* ---- the controls pane: groups of rows ---- */
+
+.control-group {
+  margin-block-end: var(--space-3);
+}
+
+.control-group__title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  padding-block: var(--space-1);
+  font-size: var(--font-size-6);
+  font-weight: var(--font-weight-normal);
+
+  & b {
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+  }
+
+  & span {
+    font-size: var(--font-size-7);
+  }
+}
+
+.control-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  align-content: start;
+  gap: 0.4rem;
+}
+
+.control-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  min-block-size: max(2.75rem, var(--target-min));
+  padding-inline-start: var(--space-2);
+  border: var(--border-dark);
+  background: var(--dark-yellow);
+}
+
+/* the project holds a value for it: the script's own number is no longer what you hear */
+.control-row[data-stored] {
+  background: var(--light-yellow);
+}
+
+.control-row__label {
+  flex: none;
+  inline-size: 5.5rem;
+  font-size: var(--font-size-7);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+}
+
+.control-row__widget {
+  /* (the widget sizes itself: a slider takes the room, a knob and a toggle their own) */
+}
+
+.control-row--knob .control-row__value,
+.control-row--toggle .popup-menu,
+.control-row--select .popup-menu {
+  margin-inline-start: auto;
+}
+
+.control-row__effective {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-start: calc(5.5rem + var(--space-3));
+  color: var(--near-black);
+  font-size: 0.625rem;
+  line-height: var(--line-height-solid);
+  pointer-events: none;
+}
+
+.control-row__unknown {
+  flex: 1 1 auto;
+  font-size: var(--font-size-7);
+}
+
+/* controls declared all at once by controls('#node') */
+.control-more {
+  margin-block-start: 0.4rem;
+
+  & summary {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: var(--target-min);
+    padding-inline: var(--space-2);
+    border: var(--border-dark);
+    font-size: var(--font-size-7);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  &[open] summary {
+    margin-block-end: 0.4rem;
+    background: var(--dark-gray);
+    color: var(--yellow);
+  }
+}

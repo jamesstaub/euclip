@@ -1,4 +1,9 @@
-import { createEngine, type Engine } from 'cracked-up';
+import {
+  createEngine,
+  defineNode,
+  type Engine,
+  type NodeDefinition,
+} from 'cracked-up';
 import { ProjectRunner } from 'client-v2/audio/runner';
 import { defaultProject } from 'client-v2/project/default-project';
 import { applyOperation, type Operation } from 'client-v2/project/operations';
@@ -12,7 +17,7 @@ export interface Harness {
   context: OfflineAudioContext;
   runner: ProjectRunner;
   doc: ProjectDocument;
-  /** operations the runner derived itself (dropped overrides) */
+  /** operations that came from scripts (`control.set`): stored, but not steps to undo */
   derived: Operation[];
   /** what a user action does: change the document, then tell the runner */
   apply(op: Operation | null): void;
@@ -29,9 +34,10 @@ export interface Harness {
 export async function startProject(
   doc: ProjectDocument = defaultProject(),
   seconds = 2,
+  nodes: readonly NodeDefinition[] = [],
 ): Promise<Harness> {
   const context = new OfflineAudioContext(2, RATE * seconds, RATE);
-  const engine = await createEngine({ context });
+  const engine = await createEngine({ context, nodes });
   const harness: Harness = {
     engine,
     context,
@@ -61,6 +67,7 @@ export async function startProject(
     dispatch: (op) => {
       harness.derived.push(op);
       harness.doc = applyOperation(harness.doc, op);
+      harness.runner.handle(op, true);
     },
     changed: () => undefined,
     playheadMoved: () => undefined,
@@ -112,3 +119,25 @@ export function peak(
   }
   return max;
 }
+
+/**
+ * A node type with a parameter that takes one of a list of values. None of cracked-up's own types has
+ * one, so tests of the `select` control bring this.
+ */
+export const chooser = defineNode({
+  type: 'chooser',
+  category: 'utility',
+  description: 'Passes sound through. For tests: it has a choice parameter.',
+  params: {
+    shape: { default: 'soft', choices: ['soft', 'hard', 'fold'] },
+    amount: { default: 0.5, min: 0, max: 1 },
+  },
+  build(context) {
+    const node = new GainNode(context.audio);
+    return {
+      input: node,
+      output: node,
+      params: { shape: () => undefined, amount: node.gain },
+    };
+  },
+});

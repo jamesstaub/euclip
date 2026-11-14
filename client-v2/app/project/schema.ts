@@ -1,48 +1,63 @@
 /**
  * The project document: everything a project is, as one plain JSON value.
  *
- * Structure lives in code and values live here. A script creates nodes, chains and sequences; what the
- * user then changes in the UI (a step pattern, the channel strip) is stored next to the script,
- * and never rewrites it. How the project is being looked at (which pane, script or UI) is not here: that
- * belongs to the person and the device (see services/view.ts).
+ * Structure lives in code and values live here. A script creates nodes, chains and sequences, and
+ * declares the controls it wants (`slider('#filter', 'frequency')`, `sequencer('steps')`). What the user
+ * then sets on those controls is stored here, next to the script, and never rewrites it. How the project
+ * is being looked at (which pane, script or UI) is not here: that belongs to the person and the device
+ * (see services/view.ts).
  */
 
 /** Bumped whenever the shape below changes in a way old documents need migrating for. */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
-/**
- * A value the user set in the UI, with what the script gave the same thing at that time.
- *
- * "Last touched wins": after each run of the script, the value the script produces now is compared with
- * `code`. If they are the same the script has not touched it since, and `value` is applied again. If they
- * differ the script was edited after the user's change, and the override is dropped.
- */
-export interface ValueOverride<T> {
-  /** what the user set */
-  value: T;
-  /** what the script produced when it last ran: the baseline the next run is compared with */
-  code: T;
+/** A parameter's value, or a sequencer's pattern. */
+export type StoredValue = number | boolean | string | number[];
+
+/** What is stored for one declared control. */
+export interface ControlState {
+  /**
+   * The control's value: a parameter's value in its own unit, or a sequencer's steps. Absent until the
+   * control is first moved (and after a reset): what the script itself says (the number in the node,
+   * the steps in the `transport.sequence` call) is then the value, and is the default.
+   */
+  value?: StoredValue;
+  /** Settings the user has changed on the control itself. */
+  options?: ControlUserOptions;
+}
+
+export interface ControlUserOptions {
+  /** the slider mode the user chose (see controls/modes.ts); absent: the declared or default one */
+  mode?: string;
 }
 
 /**
- * The values the user has set for what one script makes (a track's, or the project script's).
- *
- * Only step patterns for now. Parameter values are deliberately not here: a control will exist only
- * where a script declares one, and how that is declared (and so how its value is keyed) is not settled.
+ * The values the user has set for what one script declares (a track's script, or the project script).
  */
 export interface ScopeValues {
   /**
-   * Step patterns the user has edited, by sequence name. An entry whose sequence is not in the script
-   * at the moment is kept, and applies again if the sequence comes back.
+   * Declared controls by key (see `controlKey`, `sequencerKey`; a control of its own is keyed by its
+   * name). An entry whose declaration is not in the script at the moment is kept, dormant, and applies
+   * again if the declaration comes back.
    */
-  sequences: Record<string, ValueOverride<number[]>>;
+  controls: Record<string, ControlState>;
+}
+
+/** The key of a control bound to a parameter. The separator cannot appear in a parameter name. */
+export function controlKey(selector: string, param: string): string {
+  return `${selector} › ${param}`;
+}
+
+/** The key of a sequencer: the grid of a named sequence. */
+export function sequencerKey(sequence: string): string {
+  return `sequencer › ${sequence}`;
 }
 
 export interface TrackDocument {
   /** Made by the client when the track is added. Never reused, never shown; it names the track's scope. */
   id: string;
   name: string;
-  /** The track's script: its chain, then its sequences. Runs in a scope of its own. */
+  /** The track's script: its chain, its sequences, the controls it declares. Runs in a scope of its own. */
   script: string;
   /** Channel strip: the level of the track's `out` bus, as a gain (1 is unity). */
   level: number;
@@ -65,7 +80,7 @@ export interface ProjectDocument {
   crackedUpVersion: string;
   /** The project script: buses, the master chain. Runs on the root scope, before the tracks. */
   script: string;
-  /** The values set for what the project script makes. */
+  /** The values set for what the project script declares. */
   values: ScopeValues;
   /** In the order they are listed. */
   tracks: TrackDocument[];
@@ -77,7 +92,7 @@ export interface ProjectDocument {
 export const PROJECT_SCOPE = 'project';
 
 export function emptyValues(): ScopeValues {
-  return { sequences: {} };
+  return { controls: {} };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -85,20 +100,22 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isValues(value: unknown): value is ScopeValues {
-  return isRecord(value) && isRecord(value['sequences']);
+  return isRecord(value) && isRecord(value['controls']);
 }
 
-/**
- * Whether a value read from storage is a document this version can open. Anything else (another schema
- * version, a half-written record) is ignored in favour of the default project rather than trusted.
- */
+/** Whether a value is a document of the current schema version. */
 export function isProjectDocument(value: unknown): value is ProjectDocument {
   if (!isRecord(value)) return false;
   if (value['schemaVersion'] !== SCHEMA_VERSION) return false;
-  if (typeof value['name'] !== 'string' || typeof value['script'] !== 'string')
+  if (
+    typeof value['name'] !== 'string' ||
+    typeof value['script'] !== 'string'
+  ) {
     return false;
-  if (typeof value['bpm'] !== 'number' || !Number.isFinite(value['bpm']))
+  }
+  if (typeof value['bpm'] !== 'number' || !Number.isFinite(value['bpm'])) {
     return false;
+  }
   if (!isValues(value['values']) || !isRecord(value['samples'])) return false;
   if (!Array.isArray(value['tracks'])) return false;
   return value['tracks'].every(
@@ -111,4 +128,49 @@ export function isProjectDocument(value: unknown): value is ProjectDocument {
       typeof track['pan'] === 'number' &&
       isValues(track['values']),
   );
+}
+
+/**
+ * Version 1's values: step patterns by sequence name, each with the pattern the script had given
+ * (`code`), which decided whether the stored one still applied.
+ */
+function valuesFromV1(values: unknown): unknown {
+  if (!isRecord(values) || !isRecord(values['sequences'])) return values;
+  const controls: Record<string, ControlState> = {};
+  for (const [name, stored] of Object.entries(values['sequences'])) {
+    if (isRecord(stored) && Array.isArray(stored['value'])) {
+      controls[sequencerKey(name)] = { value: stored['value'] as number[] };
+    }
+  }
+  return { controls };
+}
+
+/**
+ * Brings a stored document up to the current schema version, one version at a time. Returns null for
+ * anything that is not a document this app wrote (or is from a newer version than this one knows):
+ * that is ignored in favour of the default project rather than trusted.
+ *
+ *   1 -> 2   Controls are declared in scripts. A scope's `sequences` (step patterns, each with a copy of
+ *            the script's pattern) become entries of its new `controls` record, keyed as sequencers,
+ *            without the copy. The scripts themselves are not edited: a version 1 script has no
+ *            `sequencer('…')` line, so its stored pattern is kept but dormant until one is added.
+ */
+export function migrateProject(value: unknown): ProjectDocument | null {
+  if (!isRecord(value)) return null;
+  let doc: Record<string, unknown> = value;
+  if (doc['schemaVersion'] === 1) {
+    doc = {
+      ...doc,
+      schemaVersion: 2,
+      values: valuesFromV1(doc['values']),
+      tracks: Array.isArray(doc['tracks'])
+        ? doc['tracks'].map((track: unknown) =>
+            isRecord(track)
+              ? { ...track, values: valuesFromV1(track['values']) }
+              : track,
+          )
+        : doc['tracks'],
+    };
+  }
+  return isProjectDocument(doc) ? doc : null;
 }

@@ -102,6 +102,20 @@
   }
 }
 
+/* something wrong with a control's declaration: the rest of the script is running */
+.track-footer__warnings {
+  padding: var(--space-1) var(--space-3);
+  background: var(--near-black);
+  color: var(--text-on-dark);
+  font-size: var(--font-size-7);
+  overflow-wrap: anywhere;
+
+  & b {
+    color: var(--yellow);
+    font-weight: var(--font-weight-bold);
+  }
+}
+
 /* ---- the body: the UI ---- */
 
 .track-footer__body {

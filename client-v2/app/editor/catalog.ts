@@ -12,10 +12,17 @@ import {
   type EditorCatalog,
 } from 'cracked-up/editor';
 import type { LiveCatalog } from 'client-v2/audio/runner';
+import { CONTROL_FUNCTIONS } from 'client-v2/controls/declarations';
 import { getLiveCatalog, onLiveCatalog } from 'client-v2/editor/live-catalog';
 
 function fromLive(live: LiveCatalog): EditorCatalog {
   return {
+    // Euclip's own functions, beside the library's helpers: completed by name, with their docs
+    globals: CONTROL_FUNCTIONS.map(({ name, signature, description }) => ({
+      name,
+      signature,
+      description,
+    })),
     buffers: live.buffers.map((key) => ({ key })),
     ids: live.ids,
     buses: live.buses,

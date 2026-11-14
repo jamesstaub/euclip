@@ -6,10 +6,13 @@ import { buildWaiter, waitForPromise } from '@ember/test-waiters';
 import { createEngine, type Engine } from 'cracked-up';
 import {
   ProjectRunner,
+  type ControlView,
   type ScriptError,
-  type SequenceView,
+  type SequencerView,
 } from 'client-v2/audio/runner';
 import { setLiveCatalog } from 'client-v2/editor/live-catalog';
+import type { DeclarationWarning } from 'client-v2/controls/declarations';
+import type { StoredValue } from 'client-v2/project/schema';
 import type ProjectService from 'client-v2/services/project';
 import type { ProjectChange } from 'client-v2/services/project';
 
@@ -147,21 +150,48 @@ export default class AudioService extends Service {
     return this.runner?.error(scopeId) ?? null;
   }
 
-  sequences(scopeId: string): SequenceView[] {
+  warnings(scopeId: string): DeclarationWarning[] {
+    void this.revision;
+    return this.runner?.warnings(scopeId) ?? [];
+  }
+
+  /** The controls the scope's script declares (not its sequencers), in declaration order. */
+  controls(scopeId: string): ControlView[] {
+    void this.revision;
+    return this.runner?.controls(scopeId) ?? [];
+  }
+
+  /** The sequencers the scope's script declares, in declaration order. */
+  sequencers(scopeId: string): SequencerView[] {
     void this.revision;
     void this.playheadRevision;
-    return this.runner?.sequences(scopeId) ?? [];
+    return this.runner?.sequencers(scopeId) ?? [];
   }
 
   // --- What the UI does ------------------------------------------------------------------------------
 
+  /** The user moved a control. */
+  setControl(scopeId: string, key: string, value: StoredValue): void {
+    this.project.apply({ type: 'setControlValue', scope: scopeId, key, value });
+  }
+
+  /** Forgets a control's value: what the script itself says applies again. */
+  resetControl(scopeId: string, key: string): void {
+    this.project.apply({ type: 'resetControl', scope: scopeId, key });
+  }
+
+  setControlMode(scopeId: string, key: string, mode: string | undefined): void {
+    this.project.apply({
+      type: 'setControlOptions',
+      scope: scopeId,
+      key,
+      options: { mode },
+    });
+  }
+
   toggleStep(scopeId: string, sequence: string, index: number): void {
     const op = this.runner?.toggleStepOperation(scopeId, sequence, index);
     if (op) this.project.apply(op);
-  }
-
-  resetSteps(scopeId: string, sequence: string): void {
-    this.project.apply({ type: 'clearSteps', scope: scopeId, sequence });
   }
 
   /** Runs a script now instead of after the pause. For tests, and for anything that cannot wait. */
@@ -185,7 +215,8 @@ export default class AudioService extends Service {
       return;
     }
     if (change.op.type === 'setScript') this.#runSoon(change.op.scope);
-    runner.handle(change.op);
+    // a derived operation records what a script did itself (control.set): the engine is already there
+    runner.handle(change.op, change.derived);
   }
 
   #runSoon(scopeId: string): void {

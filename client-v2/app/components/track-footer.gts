@@ -4,9 +4,11 @@ import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import ChannelStrip from 'client-v2/components/channel-strip';
 import CodeEditor from 'client-v2/components/code-editor';
+import ControlsPane from 'client-v2/components/controls-pane';
 import Icon, { type IconName } from 'client-v2/components/icon';
 import SequencePane from 'client-v2/components/sequence-pane';
 import type { ScriptError } from 'client-v2/audio/runner';
+import type { DeclarationWarning } from 'client-v2/controls/declarations';
 import { PROJECT_SCOPE, type TrackDocument } from 'client-v2/project/schema';
 import type AudioService from 'client-v2/services/audio';
 import type ViewService from 'client-v2/services/view';
@@ -43,9 +45,9 @@ export interface TrackFooterSignature {
  * button, which swaps the whole footer between its UI and the track's script, and the collapse control.
  * A script that has an error says so here, under the bar, until it runs cleanly again.
  *
- * The UI is the channel strip and a menu of sequence (the script's named sequences, derived from what
- * is running), source and controls. Those last two, and the main output's, are empty states for now:
- * how a script declares a control is being redesigned. This is the only place a script is shown.
+ * The UI is the channel strip and a menu of sequence (the sequencers the script declares), source (a
+ * placeholder still) and controls (the controls the script declares, by node). For the main output it
+ * is the project script's controls. This is the only place a script is shown.
  */
 export default class TrackFooter extends Component<TrackFooterSignature> {
   @service declare audio: AudioService;
@@ -65,6 +67,10 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
 
   get error(): ScriptError | null {
     return this.audio.error(this.scopeId);
+  }
+
+  get warnings(): DeclarationWarning[] {
+    return this.audio.warnings(this.scopeId);
   }
 
   isChosen = (pane: FooterPane): 'true' | 'false' =>
@@ -137,6 +143,21 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
         </p>
       {{/if}}
 
+      {{#if this.warnings.length}}
+        <ul
+          class="track-footer__warnings"
+          role="status"
+          data-test-script-warnings
+        >
+          {{#each this.warnings as |warning|}}
+            <li>
+              {{#if warning.line}}<b>Line {{warning.line}}.</b>{{/if}}
+              {{warning.message}}
+            </li>
+          {{/each}}
+        </ul>
+      {{/if}}
+
       {{#if this.view.footerOpen}}
         {{#if this.view.scriptOpen}}
           <div
@@ -193,16 +214,7 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
                     script.</p>
                 </section>
               {{else}}
-                <section
-                  class="footer-pane"
-                  aria-label="{{this.name}} controls"
-                  data-test-pane="controls"
-                >
-                  <h3 class="pane-heading">Audio node controls</h3>
-                  <p class="pane-empty" data-test-pane-empty>Controls are
-                    coming. A slider or toggle will appear here where the script
-                    declares one; until then, values are set in the script.</p>
-                </section>
+                <ControlsPane @scopeId={{this.scopeId}} @heading="Controls" />
               {{/if}}
             </div>
           </div>
@@ -214,17 +226,11 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
             data-test-footer-ui
           >
             <div class="track-footer__pane scroll-y scroll--on-yellow">
-              <section
-                class="footer-pane"
-                aria-label="Main output"
+              <ControlsPane
+                @scopeId={{this.scopeId}}
+                @heading="Main output"
                 data-test-pane="master"
-              >
-                <h3 class="pane-heading">Main output</h3>
-                <p class="pane-empty" data-test-pane-empty>Every track's
-                  <code>out</code>
-                  arrives at the main bus. Its inserts and level are set in the
-                  project script (press Script); controls for them are coming.</p>
-              </section>
+              />
             </div>
           </div>
         {{/if}}

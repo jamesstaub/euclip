@@ -4,8 +4,11 @@
  * off. Operations are plain data: they can be logged, sent and replayed.
  */
 import type {
+  ControlState,
+  ControlUserOptions,
   ProjectDocument,
   ScopeValues,
+  StoredValue,
   TrackDocument,
 } from 'client-v2/project/schema';
 import { PROJECT_SCOPE } from 'client-v2/project/schema';
@@ -20,15 +23,20 @@ export type Operation =
   | { type: 'renameTrack'; id: string; name: string }
   | { type: 'setTrackLevel'; id: string; level: number }
   | { type: 'setTrackPan'; id: string; pan: number }
-  /** The user edited a named sequence's steps. `code` is the pattern the script gave it. */
+  /**
+   * A declared control was moved: a slider's value, a sequencer's steps. `key` is its key in the
+   * scope's `controls`.
+   */
+  | { type: 'setControlValue'; scope: string; key: string; value: StoredValue }
+  /** Forgets a control's value: what the script itself says applies again. */
+  | { type: 'resetControl'; scope: string; key: string }
+  /** A setting of the control itself (its slider mode). A setting given as undefined is removed. */
   | {
-      type: 'setSteps';
+      type: 'setControlOptions';
       scope: string;
-      sequence: string;
-      steps: number[];
-      code: number[];
+      key: string;
+      options: ControlUserOptions;
     }
-  | { type: 'clearSteps'; scope: string; sequence: string }
   | { type: 'setSample'; name: string; url: string }
   | { type: 'removeSample'; name: string };
 
@@ -68,10 +76,44 @@ function withTrack(
   return { ...doc, tracks };
 }
 
+/** Changes what is stored for one control. A control left with nothing stored has no entry. */
+function withControl(
+  doc: ProjectDocument,
+  scope: string,
+  key: string,
+  change: (state: ControlState) => ControlState,
+): ProjectDocument {
+  return withValues(doc, scope, (values) => {
+    const before = values.controls[key];
+    const after = change(before ?? {});
+    if (after === before) return values;
+    if (!before && Object.keys(after).length === 0) return values;
+    return {
+      ...values,
+      controls:
+        Object.keys(after).length > 0
+          ? { ...values.controls, [key]: after }
+          : without(values.controls, key),
+    };
+  });
+}
+
 function without<T>(record: Record<string, T>, key: string): Record<string, T> {
   const rest = { ...record };
   delete rest[key];
   return rest;
+}
+
+export function sameValue(
+  a: StoredValue | undefined,
+  b: StoredValue | undefined,
+): boolean {
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return (
+      a.length === b.length && a.every((value, index) => value === b[index])
+    );
+  }
+  return a === b;
 }
 
 const clamp = (value: number, min: number, max: number): number =>
@@ -134,21 +176,39 @@ export function applyOperation(
         pan: clamp(op.pan, -1, 1),
       }));
 
-    case 'setSteps':
-      return withValues(doc, op.scope, (values) => ({
-        ...values,
-        sequences: {
-          ...values.sequences,
-          [op.sequence]: { value: [...op.steps], code: [...op.code] },
-        },
-      }));
-
-    case 'clearSteps':
-      return withValues(doc, op.scope, (values) =>
-        op.sequence in values.sequences
-          ? { ...values, sequences: without(values.sequences, op.sequence) }
-          : values,
+    case 'setControlValue':
+      return withControl(doc, op.scope, op.key, (state) =>
+        sameValue(state.value, op.value)
+          ? state
+          : {
+              ...state,
+              value: Array.isArray(op.value) ? [...op.value] : op.value,
+            },
       );
+
+    case 'resetControl':
+      return withControl(doc, op.scope, op.key, (state) => {
+        if (state.value === undefined) return state;
+        const rest = { ...state };
+        delete rest.value;
+        return rest;
+      });
+
+    case 'setControlOptions':
+      return withControl(doc, op.scope, op.key, (state) => {
+        const options: Record<string, unknown> = { ...state.options };
+        for (const [name, value] of Object.entries(op.options)) {
+          if (value === undefined) delete options[name];
+          else options[name] = value;
+        }
+        if (JSON.stringify(options) === JSON.stringify(state.options ?? {})) {
+          return state;
+        }
+        const rest: ControlState = { ...state };
+        if (Object.keys(options).length > 0) rest.options = options;
+        else delete rest.options;
+        return rest;
+      });
 
     case 'setSample':
       return {
@@ -163,7 +223,7 @@ export function applyOperation(
   }
 }
 
-/** Typing in a script, or dragging a fader, is many operations but one thing to undo. */
+/** Typing in a script, or dragging a control, is many operations but one thing to undo. */
 export function sameTarget(a: Operation, b: Operation): boolean {
   if (a.type !== b.type) return false;
   switch (a.type) {
@@ -172,6 +232,15 @@ export function sameTarget(a: Operation, b: Operation): boolean {
     case 'setTrackLevel':
     case 'setTrackPan':
       return a.id === (b as typeof a).id;
+    case 'setControlValue': {
+      // dragging a slider is one gesture; each step pressed in a grid is its own
+      const other = b as typeof a;
+      return (
+        a.scope === other.scope &&
+        a.key === other.key &&
+        !Array.isArray(a.value)
+      );
+    }
     case 'setBpm':
     case 'setProjectName':
       return true;

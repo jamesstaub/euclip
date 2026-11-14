@@ -90,7 +90,6 @@
 
 .track__actions {
   grid-area: actions;
-  position: relative; /* the menu opens under it */
   display: flex;
   align-items: center;
   justify-self: end;
@@ -138,32 +137,14 @@
   line-height: var(--line-height-solid);
 }
 
-/* the row's menu */
-.menu {
-  position: absolute;
-  inset-block-start: 100%;
-  inset-inline-end: 0;
-  z-index: var(--layer-menu);
-  min-inline-size: 9rem;
-  border: var(--border-width-3) solid var(--light-gray);
-  background: var(--dark-gray);
-  box-shadow: var(--shadow-drawer);
-}
+/* a track whose script declares no sequencer */
+.track__no-grid {
+  padding: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--font-size-7);
 
-.menu__item {
-  display: block;
-  inline-size: 100%;
-  min-block-size: var(--target-min);
-  padding: var(--space-2) var(--space-3);
-  border: 0;
-  background: transparent;
-  color: var(--text-on-dark);
-  text-align: start;
-}
-
-@media (hover: hover) {
-  .menu__item:hover {
-    background: var(--surface-hover-on-dark);
+  .track--active & {
+    color: var(--text-on-light);
   }
 }
 
