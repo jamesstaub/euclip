@@ -1,10 +1,11 @@
 /*
- * The step sequencer of one track: 16 square buttons that touch (light grey = off, cyan = on, red with a
- * dark ring = the step being played).
+ * One named sequence of a track: a square button per step, touching (light grey = off, cyan = on, red
+ * with a dark ring = the step being heard). A sequence has as many steps as its script gives it.
  *
- * In a narrow track list the 16 steps wrap to 2 rows of 8 that fill the width, so each step stays big
- * enough to press (about 46px on a 390px phone) and nothing scrolls sideways. In a wide one they are
- * one row. On a mouse the row may shrink its steps a little (never below 1.25rem) before it wraps.
+ * In a narrow track list the steps are laid 8 to a row and fill the width, so each stays big enough to
+ * press (about 46px on a 390px phone) and nothing scrolls sideways. In a wide one they are 16 to a row,
+ * and a longer sequence wraps onto further rows of 16. On a mouse the steps may shrink a little (never
+ * below 1.25rem) before the row gives up its place beside the track's name.
  */
 
 .step-grid {
@@ -15,12 +16,18 @@
 }
 
 .step {
-  display: block;
+  display: grid;
+  place-items: center;
   inline-size: 100%;
   aspect-ratio: 1;
   padding: 0;
+  overflow: hidden;
   border: var(--border-width-1) solid var(--step-line);
   background: var(--step-off);
+  color: var(--text-on-accent);
+  font-size: var(--font-size-7);
+  font-weight: var(--font-weight-heavy);
+  line-height: var(--line-height-solid);
 
   &[aria-pressed="true"] {
     background: var(--step-on);
@@ -37,16 +44,16 @@
   }
 }
 
-/* one row of 16 */
+/* 16 to a row */
 @media (pointer: fine) {
   @container track-list (min-width: 36rem) {
     .step-grid {
-      grid-template-columns: repeat(16, var(--step-size));
-      max-inline-size: none;
+      grid-template-columns: repeat(auto-fill, var(--step-size));
+      max-inline-size: calc(16 * var(--step-size) + 2 * var(--space-2));
     }
   }
 
-  /* beside the source and the actions: give up a little size before giving up the line */
+  /* beside the name and the menu: give up a little size before giving up the line */
   @container track-list (min-width: 46rem) {
     .step-grid {
       --step-size: clamp(1.25rem, calc((100cqi - 23rem) / 16), 2rem);
@@ -57,8 +64,8 @@
 @media (pointer: coarse) {
   @container track-list (min-width: 48rem) {
     .step-grid {
-      grid-template-columns: repeat(16, var(--step-size));
-      max-inline-size: none;
+      grid-template-columns: repeat(auto-fill, var(--step-size));
+      max-inline-size: calc(16 * var(--step-size) + 2 * var(--space-2));
     }
   }
 }

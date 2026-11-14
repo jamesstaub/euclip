@@ -15,29 +15,45 @@ Arbitrary two-way editing between code and UI was considered and rejected: a loo
 | # | Requirement |
 |---|---|
 | R1 | **The script is the only definition of structure.** Nodes, chains, sequences and their callbacks exist because code created them. Sequencer construction is in the script, not hidden as it was in v1 |
-| R2 | **Values are data.** Parameter values, step patterns, per-step lanes, slider modes and MIDI bindings are stored in the document, keyed by scope, node id and parameter name |
-| R3 | **The UI is derived.** Controls come from cracked-up's parameter metadata; grids come from named sequences. A script can curate its UI (label, order, hide, suggested slider mode) only as plain data, so the same script works sandboxed and cannot inject markup |
+| R2 | **Values are data.** Control values, step patterns, per-step lanes, slider modes and MIDI bindings are stored in the document, keyed by scope, node id and parameter name |
+| R3 | **The UI is declared.** A control exists where the script declares one (section 3); grids come from named sequences. Declarations are plain data, so the same script works sandboxed and cannot inject markup |
 | R4 | **UI edits never rewrite code**, with the two exceptions in R7 and section 5 |
 | R5 | **Re-running never loses state.** A code edit rebuilds that script only: untouched nodes keep sounding, sequences keep phase, document values are reapplied, and a failed run leaves the previous version playing. This is cracked-up's `build` |
 | R6 | **Identity is stable** (section 5) |
 | R7 | **Non-coders never need the editor.** Structural actions (add a track, add an effect, add a sequence) are code edits Euclip makes from templates. Where a script is in a shape Euclip cannot locate the edit in, the action is disabled and says why |
 | R8 | **Precedence is fixed and visible:** document value, then per-step lane, then what a sequence callback does for that event, then audio-rate modulators. A control shows its base value and its effective value |
 
-## 3. Values written in the code
+## 3. Controls are declared in the code
 
-A value in the code is the default for that parameter. The document stores an override only once the user moves the control. Whichever was touched last wins:
+Decided 2026-11-13. It replaces two earlier designs: "last touched wins" between a number in the code and an automatically made slider, and control markers written inside a node's options (which needed the library to treat those parameters specially). Where sections below still speak of overrides, this section wins.
 
-| The user does | Result |
-|---|---|
-| Changes the value in the code | The override for that parameter is dropped; the control jumps to the new value |
-| Moves the control (or a bound MIDI knob) | An override is stored; the code is untouched |
-| Re-runs with the value unchanged | The override stays |
+A control exists only because the script declares one, on its own line, bound to a node by selector. Nodes are built as they always are.
 
-- The change is detected by comparing the value the script produced on this run with the previous run, not by reading the text, so it holds for computed values (`frequency: base * 2`).
-- A control that differs from its code default is marked and has "reset to code".
-- Snapshots keep their own overrides. A change in the code clears the override in the current state only.
-- A `set` inside a sequence callback is the script playing the parameter: it wins for that event and the control shows it move. A callback that should ride on top of the slider uses an offset, not an absolute value.
-- There is no "write this value into the code" action.
+```js
+__()
+  .sampler({ id: 'kick', buffer: 'kick' })
+  .lowpass({ id: 'filter', frequency: 2000, q: 6 })
+  .gain({ id: 'level', gain: 0.8 })
+  .to('out');
+
+slider('#filter', 'frequency');
+knob('#level', 'gain', { label: 'Level' });
+```
+
+- **`slider`, `knob` and `toggle`** are functions Euclip puts in scope: a selector, a parameter name, and optional plain-data options (label, slider mode, range overrides). More kinds may follow. cracked-up knows nothing about them.
+- **Moving a control** calls `set` on the selected nodes and stores the value in the document. The script does not re-run and no node is rebuilt.
+- **When the script re-runs,** the declaration line does the same `set` with the stored value, so the value passes through the script as an ordinary `set` and the rebuild ends on it by the library's normal rules.
+- **The number in the node is the default:** it applies when nothing is stored, and it is what "reset" returns to. A parameter with no control is fixed by the code.
+- **Range, unit and curve** come from the parameter metadata of the node the selector finds.
+- **Identity** is the selector plus the parameter name. A selector may match several nodes (`slider('.voice', 'detune')`), which gives one control for all of them. A selector that matches nothing is shown as a warning on that line.
+- **`controls('#kick')`** declares a control for every parameter of the node, of the kind that suits each; `controls('#kick', ['speed', 'start'])` for those named. With no list, the less common ones are shown collapsed under "more" in the footer.
+- **A control with no node:** `const density = slider('density', { min: 0, max: 1 })`, read as `density.value`.
+- **Changing a value from code** can be done two ways:
+  - `__('#filter').set({ frequency: 900 })` moves the parameter and not the control. The control shows that the parameter is away from its value (R8).
+  - A declaration returns the control: `const cutoff = slider('#filter', 'frequency'); cutoff.set(900)` moves the control and the parameter together, as if the user had moved it. Inside a sequence callback the change lands on the step, like any other `set`, and the control is redrawn at that moment. Changes made this way are stored but are not undo steps.
+- **In the sandbox** nothing differs: the `set` is an ordinary command and the declaration is plain data sent to the host.
+- **In the UI,** a node lists its declared controls. "Add control" lists the node's other parameters and writes the declaration line into the code; "remove control" deletes the line. These are code edits of the same kind as R7.
+- Step grids follow the same principle: a grid exists because the script constructs a named sequence. Its pattern is stored in the document and re-applied after a re-run unless the pattern in the code changed.
 
 ## 4. Scripts and where things live
 
@@ -106,9 +122,8 @@ Already there: `build` reconciliation, parameter metadata, named sequences with 
 Likely additions, to confirm when implementation starts:
 
 - A shared set of named curves, so a slider, a lane and a MIDI binding use one mapping.
-- A way for the host to hold a base value under what scripts set, so R8's order is enforced by the library, not re-sent by the app.
+- Nothing for controls (section 3): they are Euclip functions that call `set`. One behaviour is relied on and pinned by a test in the library: a re-run that ends in a `set` to the value a parameter already has causes no jump.
 - Where a node or sequence was created in the script (line and column), for "jump to the line" and for the code edits in R7 and section 5.
-- A plain-data way for a script to describe its UI (R3).
 
 ## 9. The v2 app
 

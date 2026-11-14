@@ -1,22 +1,25 @@
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { on } from '@ember/modifier';
+import { service } from '@ember/service';
 import AppHeader from 'client-v2/components/app-header';
 import SoundBrowser from 'client-v2/components/sound-browser';
 import TrackFooter from 'client-v2/components/track-footer';
 import TrackList from 'client-v2/components/track-list';
 import onEscape from 'client-v2/modifiers/on-escape';
-import {
-  initialScripts,
-  PROJECT_ID,
-  TRACKS,
-  type TrackPlaceholder,
-} from 'client-v2/utils/placeholder-tracks';
+import shortcuts from 'client-v2/modifiers/shortcuts';
+import { newTrack } from 'client-v2/project/default-project';
+import { PROJECT_SCOPE, type TrackDocument } from 'client-v2/project/schema';
+import type AudioService from 'client-v2/services/audio';
+import type ProjectService from 'client-v2/services/project';
 
 /** At this width and above the sidebar sits beside the tracks, so it starts open. Keep in step with app-shell.css. */
 const SIDEBAR_BESIDE = '(min-width: 64rem)';
 
 const SIDEBAR_ID = 'sound-browser';
+
+/** How long "Removed … Undo" stays up. */
+const NOTICE_MS = 8000;
 
 export interface AppShellSignature {
   Element: HTMLDivElement;
@@ -28,24 +31,61 @@ export interface AppShellSignature {
 
 /**
  * The app frame: a CSS grid with the areas header, sidebar, tracks and footer (see styles/app-shell.css).
- * It holds the placeholder project's state (which track is selected, the text of each script, in memory
- * only) and whether the sidebar is open. How the footer is viewed is the `view` service's.
+ *
+ * It starts the project (loads it and boots the audio engine) and holds what belongs to this sitting,
+ * not to the project: which track is selected and whether the sidebar is open. The project itself is
+ * the `project` service's; what is running is the `audio` service's.
  */
 export default class AppShell extends Component<AppShellSignature> {
+  @service declare audio: AudioService;
+  @service declare project: ProjectService;
+
   @tracked sidebarOpen =
     this.args.initialSidebarOpen ?? window.matchMedia(SIDEBAR_BESIDE).matches;
 
-  @tracked selectedTrack: TrackPlaceholder = TRACKS[0]!;
+  /** A track's id, PROJECT_SCOPE for the main output, or undefined: the first track. */
+  @tracked private chosenId: string | undefined;
 
-  @tracked scripts: Readonly<Record<string, string>> = initialScripts();
+  /** What was just removed, while there is still time to take it back. */
+  @tracked notice: string | undefined;
+  #noticeTimer: ReturnType<typeof setTimeout> | undefined;
 
-  /** The main output houses the project script; every other track has its own. */
-  get selectedScriptId(): string {
-    return this.selectedTrack.output ? PROJECT_ID : this.selectedTrack.id;
+  constructor(owner: unknown, args: AppShellSignature['Args']) {
+    super(owner as never, args);
+    void this.audio.boot();
   }
 
+  willDestroy(): void {
+    super.willDestroy();
+    clearTimeout(this.#noticeTimer);
+  }
+
+  /** The selected track, or null when the main output is selected. */
+  get selectedTrack(): TrackDocument | null {
+    const tracks = this.project.tracks;
+    if (this.chosenId === PROJECT_SCOPE) return null;
+    return (
+      tracks.find((track) => track.id === this.chosenId) ?? tracks[0] ?? null
+    );
+  }
+
+  get selectedId(): string {
+    return this.selectedTrack?.id ?? PROJECT_SCOPE;
+  }
+
+  get selectedOrder(): number {
+    return (
+      this.project.tracks.findIndex((track) => track.id === this.selectedId) + 1
+    );
+  }
+
+  /** The main output houses the project script; every track has its own. */
   get selectedScript(): string {
-    return this.scripts[this.selectedScriptId] ?? '';
+    return this.selectedTrack?.script ?? this.project.doc.script;
+  }
+
+  get projectError(): string | undefined {
+    return this.audio.error(PROJECT_SCOPE)?.message;
   }
 
   toggleSidebar = (): void => {
@@ -56,32 +96,66 @@ export default class AppShell extends Component<AppShellSignature> {
     this.sidebarOpen = false;
   };
 
-  selectTrack = (track: TrackPlaceholder): void => {
-    this.selectedTrack = track;
+  select = (id: string): void => {
+    this.chosenId = id;
   };
 
-  /** An edit in an editor. Nothing runs: the text is only kept. */
-  setScript = (id: string, value: string): void => {
-    if (this.scripts[id] !== value) {
-      this.scripts = { ...this.scripts, [id]: value };
+  /** An edit in the editor. It is the document's script from this moment; it runs after a pause. */
+  setScript = (script: string): void => {
+    this.project.apply({ type: 'setScript', scope: this.selectedId, script });
+  };
+
+  addTrack = (): void => {
+    const track = newTrack(`track ${this.project.tracks.length + 1}`);
+    this.project.apply({ type: 'addTrack', track });
+    this.chosenId = track.id;
+  };
+
+  removeTrack = (track: TrackDocument): void => {
+    const index = this.project.tracks.findIndex(
+      (candidate) => candidate.id === track.id,
+    );
+    this.project.apply({ type: 'removeTrack', id: track.id });
+    if (this.chosenId === track.id) {
+      // the track that takes its place, or the one before, or the main output
+      const tracks = this.project.tracks;
+      this.chosenId = (tracks[index] ?? tracks[index - 1])?.id ?? PROJECT_SCOPE;
     }
+    this.notice = `Removed ${track.name}.`;
+    clearTimeout(this.#noticeTimer);
+    this.#noticeTimer = setTimeout(() => (this.notice = undefined), NOTICE_MS);
   };
 
-  setSelectedScript = (value: string): void =>
-    this.setScript(this.selectedScriptId, value);
+  undo = (): void => {
+    this.project.undo();
+    this.dismissNotice();
+  };
+
+  redo = (): void => this.project.redo();
+
+  dismissNotice = (): void => {
+    clearTimeout(this.#noticeTimer);
+    this.notice = undefined;
+  };
+
+  togglePlay = (): void => this.audio.toggle();
 
   <template>
     <div
       class="app-shell"
       data-sidebar={{if this.sidebarOpen "open" "closed"}}
+      data-ready={{if this.audio.ready "true" "false"}}
       data-test-app-shell
       ...attributes
+      {{shortcuts onSpace=this.togglePlay onUndo=this.undo onRedo=this.redo}}
     >
       <AppHeader
         class="app-shell__header"
+        @projectName={{this.project.doc.name}}
         @sidebarOpen={{this.sidebarOpen}}
         @sidebarId={{SIDEBAR_ID}}
         @onToggleSidebar={{this.toggleSidebar}}
+        @onNewTrack={{this.addTrack}}
       />
 
       {{#if this.sidebarOpen}}
@@ -104,15 +178,37 @@ export default class AppShell extends Component<AppShellSignature> {
 
       <TrackList
         class="app-shell__tracks"
-        @tracks={{TRACKS}}
-        @selected={{this.selectedTrack}}
-        @onSelect={{this.selectTrack}}
+        @tracks={{this.project.tracks}}
+        @selectedId={{this.selectedId}}
+        @onSelect={{this.select}}
+        @onRemove={{this.removeTrack}}
+        @projectError={{this.projectError}}
       />
+
+      {{#if this.notice}}
+        <p class="app-shell__notice" role="status" data-test-notice>
+          <span>{{this.notice}}</span>
+          <button
+            type="button"
+            class="btn btn--s"
+            data-test-undo
+            {{on "click" this.undo}}
+          >Undo</button>
+          <button
+            type="button"
+            class="btn btn--s btn--ghost"
+            aria-label="Dismiss"
+            {{on "click" this.dismissNotice}}
+          >×</button>
+        </p>
+      {{/if}}
+
       <TrackFooter
         class="app-shell__footer"
         @track={{this.selectedTrack}}
+        @order={{this.selectedOrder}}
         @script={{this.selectedScript}}
-        @onScriptChange={{this.setSelectedScript}}
+        @onScriptChange={{this.setScript}}
       />
     </div>
   </template>

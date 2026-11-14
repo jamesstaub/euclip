@@ -90,6 +90,7 @@
 
 .track__actions {
   grid-area: actions;
+  position: relative; /* the menu opens under it */
   display: flex;
   align-items: center;
   justify-self: end;
@@ -101,6 +102,68 @@
 
   .track--active & {
     color: var(--dark-gray);
+  }
+}
+
+/* a track with more than one named sequence: a grid for each, named */
+.track__grid {
+  min-inline-size: 0;
+}
+
+.track__grid-name {
+  display: block;
+  padding-inline: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--font-size-7);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+
+  .track--active & {
+    color: var(--text-on-light);
+  }
+}
+
+/* the track's script has an error */
+.track__alert,
+.track-footer__alert {
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  background: var(--step-current);
+  color: var(--white);
+  font-size: var(--font-size-6);
+  font-weight: var(--font-weight-heavy);
+  line-height: var(--line-height-solid);
+}
+
+/* the row's menu */
+.menu {
+  position: absolute;
+  inset-block-start: 100%;
+  inset-inline-end: 0;
+  z-index: var(--layer-menu);
+  min-inline-size: 9rem;
+  border: var(--border-width-3) solid var(--light-gray);
+  background: var(--dark-gray);
+  box-shadow: var(--shadow-drawer);
+}
+
+.menu__item {
+  display: block;
+  inline-size: 100%;
+  min-block-size: var(--target-min);
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  background: transparent;
+  color: var(--text-on-dark);
+  text-align: start;
+}
+
+@media (hover: hover) {
+  .menu__item:hover {
+    background: var(--surface-hover-on-dark);
   }
 }
 

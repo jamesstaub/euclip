@@ -6,14 +6,16 @@ import Transport from 'client-v2/components/transport';
 export interface AppHeaderSignature {
   Element: HTMLElement;
   Args: {
+    projectName: string;
     sidebarOpen: boolean;
     /** the id of the sidebar element, for aria-controls */
     sidebarId: string;
     onToggleSidebar: () => void;
+    onNewTrack: () => void;
   };
 }
 
-/** Header region: the site nav bar over the project bar. It holds the transport, as in v1. Static apart from the sidebar toggle. */
+/** Header region: the site nav bar over the project bar. It holds the transport, as in v1. The site links, snapshots and the track-type menu are inert. */
 const AppHeader: TOC<AppHeaderSignature> = <template>
   <header class="app-header" data-test-app-header ...attributes>
     <nav class="app-nav" aria-label="Site">
@@ -49,8 +51,10 @@ const AppHeader: TOC<AppHeaderSignature> = <template>
         <span class="project-bar__toggle-label">Sounds</span>
       </button>
 
-      <h1 class="project-bar__title truncate" data-test-project-title>Untitled
-        project</h1>
+      <h1
+        class="project-bar__title truncate"
+        data-test-project-title
+      >{{@projectName}}</h1>
 
       <Transport class="project-bar__transport" />
 
@@ -64,7 +68,12 @@ const AppHeader: TOC<AppHeaderSignature> = <template>
           <Icon @name="snapshots" />
         </button>
         <div class="project-bar__new">
-          <button type="button" class="btn">New Track</button>
+          <button
+            type="button"
+            class="btn"
+            data-test-new-track
+            {{on "click" @onNewTrack}}
+          >New Track</button>
           <button type="button" class="btn" aria-label="Choose a kind of track">
             <Icon @name="play" class="icon--s icon--down" />
           </button>

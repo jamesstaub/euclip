@@ -48,7 +48,7 @@ export default class ViewService extends Service {
     this.#stored.footerPane as FooterPane,
   )
     ? (this.#stored.footerPane as FooterPane)
-    : 'controls';
+    : 'sequence';
 
   /** Collapsed to its bar on phones (a bottom sheet) to start with; otherwise open. */
   @tracked footerOpen = !window.matchMedia(PHONE).matches;

@@ -18,13 +18,8 @@
 
 .track-footer {
   container: track-footer / inline-size;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  grid-template-columns: minmax(
-    0,
-    1fr
-  ); /* without this a long line of code would widen the footer */
-
+  display: flex;
+  flex-direction: column;
   padding-block-end: var(--safe-bottom);
   border-block-start: var(--border-dark);
   background: var(--surface-selected);
@@ -93,16 +88,32 @@
   }
 }
 
+/* the script has an error: said under the bar until it runs cleanly again */
+.track-footer__error {
+  padding: var(--space-1) var(--space-3);
+  background: var(--dark-gray);
+  color: var(--text-on-dark);
+  font-size: var(--font-size-6);
+  overflow-wrap: anywhere;
+
+  & b {
+    color: var(--yellow);
+    font-weight: var(--font-weight-bold);
+  }
+}
+
 /* ---- the body: the UI ---- */
 
 .track-footer__body {
   display: grid;
+  flex: 1 1 0;
   grid-template:
     "tabs" auto
     "strip" auto
     "pane" minmax(0, 1fr)
     / minmax(0, 1fr);
   gap: var(--space-1);
+  min-inline-size: 0;
   min-block-size: 0;
   padding: var(--space-1);
 }

@@ -1,0 +1,114 @@
+/**
+ * Where a project is kept between visits: IndexedDB, one record. Every failure (no IndexedDB, private
+ * mode, a full disk, a blocked upgrade) resolves quietly: the app then works from memory only.
+ */
+import {
+  isProjectDocument,
+  type ProjectDocument,
+} from 'client-v2/project/schema';
+
+export interface ProjectStorage {
+  /** The saved project, or null when there is none (or it cannot be read or is not a document we know). */
+  load(): Promise<ProjectDocument | null>;
+  /** Resolves true when the document was written. */
+  save(doc: ProjectDocument): Promise<boolean>;
+}
+
+const STORE = 'projects';
+const KEY = 'current';
+
+function request<T>(req: IDBRequest<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () =>
+      reject(req.error ?? new Error('IndexedDB request failed'));
+  });
+}
+
+export class IndexedDbStorage implements ProjectStorage {
+  constructor(private readonly name = 'euclip-v2') {}
+
+  #open(): Promise<IDBDatabase> {
+    return new Promise((resolve, reject) => {
+      const opening = indexedDB.open(this.name, 1);
+      opening.onupgradeneeded = () => {
+        if (!opening.result.objectStoreNames.contains(STORE)) {
+          opening.result.createObjectStore(STORE);
+        }
+      };
+      opening.onsuccess = () => resolve(opening.result);
+      opening.onerror = () =>
+        reject(opening.error ?? new Error('IndexedDB would not open'));
+      opening.onblocked = () =>
+        reject(new Error('IndexedDB is blocked by another tab'));
+    });
+  }
+
+  async load(): Promise<ProjectDocument | null> {
+    try {
+      const db = await this.#open();
+      try {
+        const value: unknown = await request(
+          db.transaction(STORE, 'readonly').objectStore(STORE).get(KEY),
+        );
+        return isProjectDocument(value) ? value : null;
+      } finally {
+        db.close();
+      }
+    } catch (error) {
+      console.warn('Euclip: the saved project could not be read.', error);
+      return null;
+    }
+  }
+
+  async save(doc: ProjectDocument): Promise<boolean> {
+    try {
+      const db = await this.#open();
+      try {
+        const tx = db.transaction(STORE, 'readwrite');
+        // a plain copy: the document's objects are shared with the app and may be frozen or proxied
+        tx.objectStore(STORE).put(JSON.parse(JSON.stringify(doc)), KEY);
+        await new Promise<void>((resolve, reject) => {
+          tx.oncomplete = () => resolve();
+          tx.onerror = () =>
+            reject(tx.error ?? new Error('IndexedDB write failed'));
+          tx.onabort = () =>
+            reject(tx.error ?? new Error('IndexedDB write aborted'));
+        });
+        return true;
+      } finally {
+        db.close();
+      }
+    } catch (error) {
+      console.warn('Euclip: the project could not be saved.', error);
+      return false;
+    }
+  }
+
+  /** Removes the database. For tests. */
+  clear(): Promise<void> {
+    return new Promise((resolve) => {
+      const deleting = indexedDB.deleteDatabase(this.name);
+      deleting.onsuccess =
+        deleting.onerror =
+        deleting.onblocked =
+          () => resolve();
+    });
+  }
+}
+
+/** Keeps the project in memory only. What tests use, so one test's project never reaches the next. */
+export class MemoryStorage implements ProjectStorage {
+  saved: ProjectDocument | null = null;
+  saves = 0;
+
+  load(): Promise<ProjectDocument | null> {
+    return Promise.resolve(this.saved);
+  }
+
+  save(doc: ProjectDocument): Promise<boolean> {
+    this.saved = JSON.parse(JSON.stringify(doc)) as ProjectDocument;
+    this.saves++;
+    return Promise.resolve(true);
+  }
+}

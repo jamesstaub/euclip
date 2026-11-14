@@ -82,7 +82,7 @@ kbd {
   --surface-hover: var(--surface-hover-on-light);
 }
 
-.sampler-card,
+.menu,
 .code-editor {
   --focus-ring: var(--light-blue);
   --surface-hover: var(--surface-hover-on-dark);

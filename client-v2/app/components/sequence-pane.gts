@@ -1,54 +1,79 @@
-import type { TOC } from '@ember/component/template-only';
-import ParamRows, {
-  type ParamPlaceholder,
-} from 'client-v2/components/param-rows';
+import Component from '@glimmer/component';
+import { fn } from '@ember/helper';
+import { on } from '@ember/modifier';
+import { service } from '@ember/service';
+import StepGrid from 'client-v2/components/step-grid';
+import type { SequenceView } from 'client-v2/audio/runner';
+import type AudioService from 'client-v2/services/audio';
 
-// Placeholder content, after v1's sequencer pane: the kind of pattern, then that kind's parameters.
-const KINDS = ['euclidean', 'on / off', 'binary'] as const;
-const SELECTED_KIND = 'euclidean';
-
-const PARAMS: readonly ParamPlaceholder[] = [
-  { name: 'hits', min: 0, max: 16, value: 4, whole: true },
-  { name: 'steps', min: 0, max: 64, value: 16, whole: true },
-  { name: 'offset', min: 0, max: 64, value: 0, whole: true },
-];
-
-function isSelected(kind: string): 'true' | 'false' {
-  return kind === SELECTED_KIND ? 'true' : 'false';
+function countOf(sequence: SequenceView): string {
+  const on = sequence.steps.filter((value) => value !== 0).length;
+  return `${on} of ${sequence.steps.length} steps on`;
 }
 
 export interface SequencePaneSignature {
   Element: HTMLElement;
   Args: {
-    /** the track's name, for the accessible name */
+    scopeId: string;
+    /** the track's name, for accessible names */
     label: string;
   };
 }
 
-/** The "sequence" pane: how the track's step pattern is made. Static placeholders. */
-const SequencePane: TOC<SequencePaneSignature> = <template>
-  <section
-    class="footer-pane"
-    aria-label="{{@label}} sequence"
-    data-test-pane="sequence"
-    ...attributes
-  >
-    <h3 class="pane-heading">Sequencer</h3>
-    <div
-      class="pane-tabs scroll-x scroll--on-yellow"
-      role="group"
-      aria-label="Sequencer type"
-    >
-      {{#each KINDS as |kind|}}
-        <button
-          type="button"
-          class="pane-tab truncate"
-          aria-pressed={{isSelected kind}}
-        >{{kind}}</button>
-      {{/each}}
-    </div>
-    <ParamRows @params={{PARAMS}} />
-  </section>
-</template>;
+/**
+ * The "sequence" pane: every named sequence the track's script makes, each with its grid. A pattern
+ * edited here (or in the track's row) is marked when it differs from the script's, and can be put back.
+ */
+export default class SequencePane extends Component<SequencePaneSignature> {
+  @service declare audio: AudioService;
 
-export default SequencePane;
+  get sequences(): SequenceView[] {
+    return this.audio.sequences(this.args.scopeId);
+  }
+
+  toggle = (sequence: SequenceView, index: number): void =>
+    this.audio.toggleStep(this.args.scopeId, sequence.name, index);
+
+  reset = (sequence: SequenceView): void =>
+    this.audio.resetSteps(this.args.scopeId, sequence.name);
+
+  <template>
+    <section
+      class="footer-pane"
+      aria-label="{{@label}} sequences"
+      data-test-pane="sequence"
+      ...attributes
+    >
+      <h3 class="pane-heading">Sequences</h3>
+      {{#each this.sequences key="name" as |sequence|}}
+        <div class="sequence-card" data-test-sequence={{sequence.name}}>
+          <p class="sequence-card__head">
+            <b class="truncate">{{sequence.name}}</b>
+            <span>{{countOf sequence}}</span>
+            {{#if sequence.disabled}}
+              <span data-test-sequence-disabled>stopped by an error</span>
+            {{/if}}
+            {{#if sequence.overridden}}
+              <button
+                type="button"
+                class="btn btn--s btn--on-yellow"
+                aria-label="Reset {{sequence.name}} to the script's pattern"
+                data-test-steps-reset
+                {{on "click" (fn this.reset sequence)}}
+              >Reset</button>
+            {{/if}}
+          </p>
+          <StepGrid
+            @sequence={{sequence}}
+            @label={{@label}}
+            @onToggle={{fn this.toggle sequence}}
+          />
+        </div>
+      {{else}}
+        <p class="pane-empty" data-test-pane-empty>This script makes no named
+          sequences. A grid appears for each
+          <code>__.transport.sequence('name', …)</code>.</p>
+      {{/each}}
+    </section>
+  </template>
+}

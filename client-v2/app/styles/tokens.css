@@ -135,6 +135,7 @@
   --target-min: 2rem;
 
   /* ---- layers ---- */
+  --layer-menu: 5;
   --layer-scrim: 10;
   --layer-drawer: 20;
 
