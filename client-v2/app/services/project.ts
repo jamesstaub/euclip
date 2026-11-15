@@ -12,7 +12,9 @@ import {
 import type { ProjectDocument, TrackDocument } from 'client-v2/project/schema';
 import {
   IndexedDbStorage,
+  MemoryFiles,
   MemoryStorage,
+  type FileStorage,
   type ProjectStorage,
 } from 'client-v2/project/storage';
 
@@ -31,6 +33,8 @@ interface HistoryEntry {
   doc: ProjectDocument;
   op: Operation;
   at: number;
+  /** the gesture the operation was part of, when the caller said */
+  group?: string;
 }
 
 /**
@@ -45,6 +49,11 @@ export default class ProjectService extends Service {
   /** Where the project is kept between visits. Tests use memory, so they never share a project. */
   storage: ProjectStorage = macroCondition(isTesting())
     ? new MemoryStorage()
+    : new IndexedDbStorage();
+
+  /** Where the audio the person adds is kept: beside the project, not in it. */
+  files: FileStorage = macroCondition(isTesting())
+    ? new MemoryFiles()
     : new IndexedDbStorage();
 
   @tracked doc: ProjectDocument = defaultProject();
@@ -104,21 +113,34 @@ export default class ProjectService extends Service {
    * Applies one operation: the only way the document changes.
    * @param derived the operation follows from another change (the runner dropping an override the
    *   script has overtaken) and is not a step of its own to undo.
+   * @param group a name for the gesture this is part of (one drag of a handle): every operation of the
+   *   same target given the same name is one step to undo, however long the gesture takes.
    */
-  apply(op: Operation, { derived = false } = {}): void {
+  apply(
+    op: Operation,
+    { derived = false, group }: { derived?: boolean; group?: string } = {},
+  ): void {
     const before = this.doc;
     const after = applyOperation(before, op);
     if (after === before) return;
     if (!derived) {
       const last = this.past.at(-1);
       const now = Date.now();
-      if (last && sameTarget(last.op, op) && now - last.at < UNDO_GROUP_MS) {
+      if (
+        last &&
+        (group !== undefined
+          ? // one named gesture, whatever it touches (a loop start and the loop end that goes with it)
+            last.group === group
+          : last.group === undefined &&
+            sameTarget(last.op, op) &&
+            now - last.at < UNDO_GROUP_MS)
+      ) {
         // part of the same gesture: keep the document from before the gesture began
         this.past = [...this.past.slice(0, -1), { ...last, at: now }];
       } else {
         this.past = [
           ...this.past.slice(-UNDO_LIMIT + 1),
-          { doc: before, op, at: now },
+          { doc: before, op, at: now, ...(group ? { group } : {}) },
         ];
       }
       this.future = [];

@@ -4,12 +4,15 @@ import { isDestroying } from '@ember/destroyable';
 import { isTesting, macroCondition } from '@embroider/macros';
 import { buildWaiter, waitForPromise } from '@ember/test-waiters';
 import { createEngine, type Engine } from 'cracked-up';
+import type { Node } from 'cracked-up';
 import {
   ProjectRunner,
   type ControlView,
   type ScriptError,
   type SequencerView,
+  type WaveformView,
 } from 'client-v2/audio/runner';
+import { newFileId, refusal, sampleNameFor } from 'client-v2/project/pool';
 import { setLiveCatalog } from 'client-v2/editor/live-catalog';
 import type { DeclarationWarning } from 'client-v2/controls/declarations';
 import type { StoredValue } from 'client-v2/project/schema';
@@ -81,6 +84,7 @@ export default class AudioService extends Service {
       playheadMoved: () => {
         if (!isDestroying(this)) this.playheadRevision++;
       },
+      readFile: async (id) => (await this.project.files.get(id))?.bytes ?? null,
     });
     this.runner = runner;
     this.#off.push(
@@ -167,6 +171,46 @@ export default class AudioService extends Service {
     return this.runner?.sendsToChannel(trackId) ?? true;
   }
 
+  /** The waveform editors the scope's script declares. */
+  waveforms(scopeId: string): WaveformView[] {
+    void this.revision;
+    return this.runner?.waveforms(scopeId) ?? [];
+  }
+
+  /** A sampler of a scope's script: for drawing its sound and its play position. */
+  sampler(scopeId: string, nodeId: string): Node | undefined {
+    void this.revision;
+    return this.runner?.sampler(scopeId, nodeId);
+  }
+
+  /** The project's sounds, as a picker lists them. */
+  pool(): PoolEntry[] {
+    void this.revision;
+    const missing = new Set(this.runner?.missingSamples() ?? []);
+    return Object.entries(this.project.doc.samples).map(([name, source]) => {
+      const ref = this.engine?.buffers.get(name);
+      return {
+        name,
+        duration: ref?.duration ?? null,
+        slices: Math.max(1, (source.slices?.length ?? 2) - 1),
+        added: source.file !== undefined,
+        label: source.label ?? null,
+        state: missing.has(name) ? 'error' : (ref?.state ?? 'loading'),
+      };
+    });
+  }
+
+  /** The audio time that is being heard now (the context's time, less what is still on its way out). */
+  get heardTime(): number {
+    const context = this.#context;
+    if (!context) return 0;
+    const latency =
+      'outputLatency' in context
+        ? (context as AudioContext).outputLatency || 0
+        : 0;
+    return context.currentTime - latency;
+  }
+
   /** The sequencers the scope's script declares, in declaration order. */
   sequencers(scopeId: string): SequencerView[] {
     void this.revision;
@@ -176,9 +220,101 @@ export default class AudioService extends Service {
 
   // --- What the UI does ------------------------------------------------------------------------------
 
-  /** The user moved a control. */
-  setControl(scopeId: string, key: string, value: StoredValue): void {
-    this.project.apply({ type: 'setControlValue', scope: scopeId, key, value });
+  /**
+   * The user moved a control.
+   * @param group the gesture it is part of (one drag): one step to undo, however long it takes
+   */
+  setControl(
+    scopeId: string,
+    key: string,
+    value: StoredValue,
+    group?: string,
+  ): void {
+    this.project.apply(
+      { type: 'setControlValue', scope: scopeId, key, value },
+      group === undefined ? {} : { group },
+    );
+  }
+
+  /** Sets a sound's slices: for every track that plays it. */
+  setSlices(name: string, slices: readonly number[], group?: string): void {
+    this.project.apply(
+      { type: 'setSampleSlices', name, slices },
+      group === undefined ? {} : { group },
+    );
+  }
+
+  /**
+   * Plays a sampler for the ear: one slice, or its whole region. Call it from the user's gesture: this
+   * is where a context that has not started yet is allowed to. Resolves false when nothing could play
+   * (no sound yet, or the browser would not start audio).
+   */
+  async audition(
+    scopeId: string,
+    nodeId: string,
+    slice?: number,
+  ): Promise<boolean> {
+    const engine = this.engine;
+    if (!engine || !this.runner) return false;
+    if (!engine.offline && engine.context.state !== 'running') {
+      try {
+        await engine.resume();
+      } catch {
+        return false;
+      }
+    }
+    return this.runner.audition(scopeId, nodeId, slice);
+  }
+
+  /**
+   * Adds an audio file from the person's device to the pool: checks its size, decodes it (so a file
+   * the browser cannot read never gets in), keeps its bytes beside the project, and names it.
+   * Resolves the name it was given, or why it was refused.
+   */
+  async addFile(
+    file: File,
+  ): Promise<{ name: string; error?: string } | { error: string }> {
+    const refused = refusal(file);
+    if (refused) return { error: refused };
+    const engine = this.engine;
+    if (!engine) return { error: 'The audio engine is not ready yet.' };
+    let bytes: ArrayBuffer;
+    try {
+      bytes = await file.arrayBuffer();
+    } catch {
+      return { error: `"${file.name}" could not be read.` };
+    }
+    const name = sampleNameFor(
+      file.name,
+      Object.keys(this.project.doc.samples),
+    );
+    try {
+      // (decoding detaches the bytes it is given: it gets a copy, the store keeps the original)
+      await engine.buffers.add(name, bytes.slice(0)).ready;
+    } catch {
+      engine.buffers.delete(name);
+      return {
+        error: `"${file.name}" is not audio this browser can decode. WAV, MP3, AAC (m4a), FLAC and Ogg usually work.`,
+      };
+    }
+    const id = newFileId();
+    const kept = await this.project.files.put(id, {
+      bytes,
+      name: file.name,
+      type: file.type,
+    });
+    if (isDestroying(this)) return { error: 'Closed.' };
+    this.project.apply({
+      type: 'addSample',
+      name,
+      source: { file: id, label: file.name },
+    });
+    return kept
+      ? { name }
+      : {
+          name,
+          error: `"${file.name}" was added, but could not be kept in this browser's storage: it will be gone after a reload.`,
+        };
   }
 
   /** Forgets a control's value: what the script itself says applies again. */
@@ -245,6 +381,20 @@ export default class AudioService extends Service {
     this.revision++;
     if (this.runner) setLiveCatalog(this.runner.catalog());
   }
+}
+
+/** A sound of the project's pool, as a picker lists it. */
+export interface PoolEntry {
+  name: string;
+  /** seconds, once it has loaded */
+  duration: number | null;
+  /** how many slices it is cut into */
+  slices: number;
+  /** a file the person added (not one of the built-in sounds) */
+  added: boolean;
+  /** for an added file: the name it had on the device */
+  label: string | null;
+  state: 'loading' | 'ready' | 'error';
 }
 
 declare module '@ember/service' {

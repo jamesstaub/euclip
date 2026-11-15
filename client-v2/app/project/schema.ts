@@ -9,7 +9,7 @@
  */
 
 /** Bumped whenever the shape below changes in a way old documents need migrating for. */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 /** A parameter's value, or a sequencer's pattern. */
 export type StoredValue = number | boolean | string | number[];
@@ -71,11 +71,34 @@ export interface TrackDocument {
   values: ScopeValues;
 }
 
-/** Where a sound in the pool comes from. */
+/**
+ * A sound in the pool: where its audio comes from, and what belongs to the sound itself whichever
+ * tracks play it (its slices).
+ */
 export interface SampleSource {
-  /** A URL the app can fetch: one of the built-in sounds for now. */
-  url: string;
+  /** A URL the app can fetch: one of the built-in sounds. */
+  url?: string;
+  /**
+   * A file the person added from their device: the key of its bytes in the file store kept next to
+   * the project (project/storage.ts). The bytes are never in the document.
+   */
+  file?: string;
+  /** For an added file: the name it had on the device. */
+  label?: string;
+  /**
+   * Slice boundaries in seconds, ascending, from 0 to the length of the sound. Absent: the sound is
+   * one slice. They are the sound's, so two tracks playing it share them.
+   */
+  slices?: number[];
 }
+
+/** The built-in two-bar loop: its name in the pool, its length and the slices it starts with (eighths). */
+export const LOOP_SAMPLE = 'loop';
+export const LOOP_SECONDS = 4;
+export const LOOP_SLICES: readonly number[] = Array.from(
+  { length: 17 },
+  (_, index) => (LOOP_SECONDS * index) / 16,
+);
 
 export interface ProjectDocument {
   schemaVersion: typeof SCHEMA_VERSION;
@@ -166,6 +189,8 @@ const V2_TO_OUT = ".to('out')";
  *            exact text `.to('out')` (what the app's own templates wrote) becomes `.to('channel')`.
  *            Nothing else in a script is touched: a script that spelled it another way sends to a bus
  *            that no longer exists, and its channel strip says so.
+ *   3 -> 4   A sound in the pool can have slices and can be a file the person added. Nothing stored
+ *            changes shape; the built-in two-bar loop joins the pool (unless something has its name).
  */
 export function migrateProject(value: unknown): ProjectDocument | null {
   if (!isRecord(value)) return null;
@@ -201,6 +226,23 @@ export function migrateProject(value: unknown): ProjectDocument | null {
               : track,
           )
         : doc['tracks'],
+    };
+  }
+  if (doc['schemaVersion'] === 3) {
+    const samples = isRecord(doc['samples']) ? doc['samples'] : {};
+    doc = {
+      ...doc,
+      schemaVersion: 4,
+      samples:
+        LOOP_SAMPLE in samples
+          ? samples
+          : {
+              ...samples,
+              [LOOP_SAMPLE]: {
+                url: `/samples/${LOOP_SAMPLE}.wav`,
+                slices: [...LOOP_SLICES],
+              },
+            },
     };
   }
   return isProjectDocument(doc) ? doc : null;

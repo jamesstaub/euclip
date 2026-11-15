@@ -380,3 +380,53 @@
     display: none;
   }
 }
+
+/* ---- in this project: the real pool ---- */
+
+.sound-pool-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--font-size-7);
+}
+
+.sound-pool-actions__add {
+  position: relative;
+  cursor: pointer;
+
+  &:focus-within {
+    outline: var(--border-width-3) solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+}
+
+.sound-pool-notice {
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  color: var(--yellow);
+  font-size: var(--font-size-7);
+}
+
+.sound-row__name--pool {
+  padding-inline-start: var(--space-3);
+  font-family: var(--font-mono);
+}
+
+.sound-browser--dropping {
+  outline: var(--border-width-3) dashed var(--yellow);
+  outline-offset: -6px;
+}
+
+/* a sound of the project always shows its length and its Use: there is no row to hover or select first */
+.pool-row__length {
+  flex: none;
+  color: var(--text-muted);
+  font-size: var(--font-size-7);
+  white-space: nowrap;
+}
+
+.pool-row__use {
+  flex: none;
+}

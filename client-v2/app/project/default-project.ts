@@ -1,6 +1,8 @@
 import pkg from 'cracked-up/package.json';
 import {
   emptyValues,
+  LOOP_SAMPLE,
+  LOOP_SLICES,
   SCHEMA_VERSION,
   type ProjectDocument,
   type TrackDocument,
@@ -13,6 +15,7 @@ export const BUILT_IN_SAMPLES = [
   'hat',
   'openhat',
   'clap',
+  LOOP_SAMPLE,
 ] as const;
 
 /**
@@ -30,7 +33,7 @@ export function samplerScript(
   buffer: string,
   steps: readonly number[],
   chain = "  .gain({ id: 'level', gain: 0.8 })",
-  controls = "knob('#level', 'gain', { label: 'level' });\nslider('#sampler', 'speed');",
+  controls = "knob('#level', 'gain', { label: 'level' });\nslider('#sampler', 'speed');\nwaveform('#sampler');",
 ): string {
   return `// Chain
 __()
@@ -90,7 +93,49 @@ export function newTrack(name: string, buffer = 'kick'): TrackDocument {
 const FILTER_CONTROLS = `slider('#filter', 'frequency');
 slider('#filter', 'q');
 knob('#level', 'gain', { label: 'level' });
-slider('#sampler', 'speed');`;
+slider('#sampler', 'speed');
+waveform('#sampler');`;
+
+/**
+ * A track that plays slices of a loop: each step's value says which slice (1 is the first; 0 is a
+ * rest). The slices are the sound's: cut it differently in the source pane and the same steps play the
+ * new pieces.
+ */
+export function slicedLoopScript(buffer: string = LOOP_SAMPLE): string {
+  return `// Chain
+__()
+  .sampler({ id: 'sampler', buffer: '${buffer}' })
+  .gain({ id: 'level', gain: 0.8 })
+  .to('channel');
+
+// Sequences: a step's value is the slice it plays (0 is a rest)
+__.transport.sequence(
+  'slices',
+  { steps: [1, 0, 3, 3, 5, 0, 7, 8, 9, 0, 3, 12, 13, 14, 0, 16], step: '1/8' },
+  (ev) => {
+    if (ev.value) __('#sampler').trigger({ slice: ev.value - 1 });
+  },
+);
+
+// Controls
+sequencer('slices');
+knob('#level', 'gain', { label: 'level' });
+slider('#sampler', 'speed');
+waveform('#sampler');
+`;
+}
+
+/** What "Sliced loop" in the New Track menu adds. */
+export function newSlicedLoopTrack(name: string): TrackDocument {
+  return {
+    id: newTrackId(),
+    name,
+    script: slicedLoopScript(),
+    level: 1,
+    pan: 0,
+    values: emptyValues(),
+  };
+}
 
 function track(
   id: string,
@@ -141,7 +186,12 @@ export function defaultProject(): ProjectDocument {
       ),
     ],
     samples: Object.fromEntries(
-      BUILT_IN_SAMPLES.map((name) => [name, { url: `/samples/${name}.wav` }]),
+      BUILT_IN_SAMPLES.map((name) => [
+        name,
+        name === LOOP_SAMPLE
+          ? { url: `/samples/${name}.wav`, slices: [...LOOP_SLICES] }
+          : { url: `/samples/${name}.wav` },
+      ]),
     ),
   };
 }

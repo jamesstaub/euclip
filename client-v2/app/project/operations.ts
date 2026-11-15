@@ -7,6 +7,7 @@ import type {
   ControlState,
   ControlUserOptions,
   ProjectDocument,
+  SampleSource,
   ScopeValues,
   StoredValue,
   TrackDocument,
@@ -38,6 +39,10 @@ export type Operation =
       options: ControlUserOptions;
     }
   | { type: 'setSample'; name: string; url: string }
+  /** Adds a sound to the pool (a file the person added), or replaces the one of that name. */
+  | { type: 'addSample'; name: string; source: SampleSource }
+  /** Sets a sound's slice boundaries. Fewer than three boundaries is one slice: nothing is stored. */
+  | { type: 'setSampleSlices'; name: string; slices: readonly number[] }
   | { type: 'removeSample'; name: string };
 
 export type OperationType = Operation['type'];
@@ -216,6 +221,28 @@ export function applyOperation(
         samples: { ...doc.samples, [op.name]: { url: op.url } },
       };
 
+    case 'addSample':
+      return {
+        ...doc,
+        samples: { ...doc.samples, [op.name]: { ...op.source } },
+      };
+
+    case 'setSampleSlices': {
+      const before = doc.samples[op.name];
+      if (!before) return doc;
+      const slices = [...op.slices]
+        .filter((time) => Number.isFinite(time) && time >= 0)
+        .sort((a, b) => a - b)
+        .filter((time, index, all) => index === 0 || time !== all[index - 1]);
+      if (sameValue(before.slices ?? [], slices.length > 2 ? slices : [])) {
+        return doc;
+      }
+      const after: SampleSource = { ...before };
+      if (slices.length > 2) after.slices = slices;
+      else delete after.slices;
+      return { ...doc, samples: { ...doc.samples, [op.name]: after } };
+    }
+
     case 'removeSample':
       return op.name in doc.samples
         ? { ...doc, samples: without(doc.samples, op.name) }
@@ -232,6 +259,12 @@ export function sameTarget(a: Operation, b: Operation): boolean {
     case 'setTrackLevel':
     case 'setTrackPan':
       return a.id === (b as typeof a).id;
+    case 'setSampleSlices':
+      // dragging a marker is one gesture (adding and removing change the count: steps of their own)
+      return (
+        a.name === (b as typeof a).name &&
+        a.slices.length === (b as typeof a).slices.length
+      );
     case 'setControlValue': {
       // dragging a slider is one gesture; each step pressed in a grid is its own
       const other = b as typeof a;

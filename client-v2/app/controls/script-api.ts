@@ -16,9 +16,13 @@
  * interface carried over the sandbox's link.
  */
 import type { Bus, Node, ScopeApi } from 'cracked-up';
+import { STORED_BUFFER_CHOICE } from 'client-v2/controls/features';
 import {
+  BUFFER_OPTION,
   CHANNEL_BUS,
   CONTROL_FUNCTIONS,
+  WAVEFORM_PARAMS,
+  WAVEFORM_PART,
   HOST_TAG,
   KIND_FOR_PARAM,
   type Binding,
@@ -82,6 +86,13 @@ function isBus(value: unknown): value is Bus {
     typeof bus.gain === 'object' &&
     bus.gain !== null &&
     typeof bus.gain.set === 'function'
+  );
+}
+
+/** A node a waveform editor can be a view over: it plays a region of a sound. */
+function isSampler(node: Node): boolean {
+  return (
+    'start' in node.params && 'end' in node.params && 'loop' in node.params
   );
 }
 
@@ -182,6 +193,7 @@ export function createControlApi(
     options: ControlOptions,
     implicit: boolean,
     line: number | undefined,
+    hidden = false,
   ): ControlHandle {
     const first = nodes[0];
     if (!first) return INERT;
@@ -230,6 +242,7 @@ export function createControlApi(
       nodes: reached.map((node) => node.id),
       options,
       implicit,
+      ...(hidden ? { hidden } : {}),
       line,
     });
     if (!used) return INERT;
@@ -352,7 +365,7 @@ export function createControlApi(
   const functions: ControlApi = {};
   for (const fn of CONTROL_FUNCTIONS) {
     const kind = fn.kind;
-    if (kind === null || kind === 'sequencer') continue;
+    if (kind === null || kind === 'sequencer' || kind === 'waveform') continue;
     functions[fn.name] = (
       first: unknown,
       second?: unknown,
@@ -480,6 +493,99 @@ export function createControlApi(
         host.moved(key, [...value]);
       },
     };
+  };
+
+  /**
+   * `waveform('#sampler')`: a waveform editor for each sampler found. The editor is a view over
+   * ordinary controls (the sampler's start, end, loop points, loop, reverse and speed, each with the
+   * key a `slider` for it would have) and over the sound the sampler plays; what the project holds for
+   * each is applied here, as any declaration applies its stored value.
+   */
+  functions['waveform'] = (first: unknown, second?: unknown): void => {
+    const line = lineOfCaller();
+    let target: Target | null = null;
+    try {
+      target = isBus(first) ? null : resolve(first);
+    } catch (error) {
+      host.warn({
+        message: `waveform(${typeof first === 'string' ? `'${first}'` : '…'}): ${error instanceof Error ? error.message : String(error)}`,
+        line,
+      });
+      return;
+    }
+    if (!target) {
+      host.warn({
+        message:
+          "waveform() needs a sampler: a selector ('#sampler'), or a chain, a selection or a node.",
+        line,
+      });
+      return;
+    }
+    const call = `waveform(${target.said})`;
+    const samplers = target.nodes.filter(isSampler);
+    if (samplers.length === 0) {
+      host.warn({
+        message:
+          target.nodes.length === 0
+            ? target.selector === null
+              ? `${call}: there are no nodes there, so there is no waveform editor.`
+              : `${call}: the selector matches no node, so there is no waveform editor.`
+            : `${call}: there is no sampler there (found: ${[...new Set(target.nodes.map((node) => node.type))].join(', ')}), so there is no waveform editor. Point it at a sampler.`,
+        line,
+      });
+      return;
+    }
+    const options = isOptions(second) ? second : {};
+    for (const node of samplers) {
+      const selector = idSelector(node);
+      // The sound it plays, first: a stored choice is set here, after the node, so it has the last word.
+      if (STORED_BUFFER_CHOICE) {
+        const key = controlKey(selector, BUFFER_OPTION);
+        host.declare({
+          key,
+          kind: BUFFER_OPTION,
+          bindings: [{ type: 'option', selector, option: BUFFER_OPTION }],
+          nodes: [node.id],
+          options: {},
+          implicit: true,
+          hidden: true,
+          line,
+        });
+        const stored = host.stored(key);
+        if (typeof stored === 'string' && stored !== '') {
+          node.setOption(BUFFER_OPTION, stored);
+        }
+      }
+      const bindings: Binding[] = [];
+      for (const name of WAVEFORM_PARAMS) {
+        if (!(name in node.params)) continue;
+        const meta = node.param(name).meta;
+        bindings.push({ type: 'param', selector, param: name });
+        bound(
+          call,
+          'waveform',
+          KIND_FOR_PARAM[meta.kind],
+          [meta.kind],
+          [node],
+          null,
+          name,
+          {},
+          true,
+          line,
+          true,
+        );
+      }
+      bindings.push({ type: 'option', selector, option: BUFFER_OPTION });
+      host.declare({
+        key: controlKey(selector, WAVEFORM_PART),
+        kind: 'waveform',
+        bindings,
+        nodes: [node.id],
+        options,
+        implicit: false,
+        line,
+      });
+    }
   };
 
   /**

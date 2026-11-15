@@ -17,6 +17,7 @@
  * make their own on an OfflineAudioContext.
  */
 import type {
+  BufferRef,
   Bus,
   Engine,
   GraphError,
@@ -31,7 +32,10 @@ import {
   currentScriptLine,
   type Program,
 } from 'client-v2/audio/compile';
+import { normalizeSlices } from 'cracked-up/util';
+import { STORED_BUFFER_CHOICE } from 'client-v2/controls/features';
 import {
+  BUFFER_OPTION,
   CHANNEL_BUS,
   HOST_TAG,
   type ControlOptions,
@@ -55,6 +59,7 @@ import {
 import { sameValue, type Operation } from 'client-v2/project/operations';
 import {
   PROJECT_SCOPE,
+  controlKey,
   sequencerKey,
   type ProjectDocument,
   type ScopeValues,
@@ -158,10 +163,38 @@ export interface SequencerView {
 
 /** The names the editors' catalog is given from the live project. */
 export interface LiveCatalog {
-  buffers: string[];
-  ids: string[];
-  buses: string[];
-  sequences: string[];
+  buffers: { key: string; duration?: number | null; slices?: number }[];
+  /** node ids, with the node's type so the editor knows its parameters where the id is named */
+  ids: { name: string; type?: string; description?: string }[];
+  buses: { name: string; description?: string }[];
+  sequences: { name: string; description?: string }[];
+}
+
+/** One of a sampler's sounding voices is drawn from this: see ProjectRunner#sampler. */
+export interface WaveformView {
+  /** the declaration's key: the sampler's id and `waveform` */
+  key: string;
+  /** the sampler's id in its scope */
+  nodeId: string;
+  label: string;
+  line?: number;
+  /** the node has no id of its own: stored values follow its position in the script */
+  byPosition: boolean;
+  /** the sound the sampler plays now: its name in the pool, its length and slices. Null: none. */
+  sound: {
+    key: string;
+    state: 'loading' | 'ready' | 'error';
+    duration: number | null;
+    slices: readonly number[];
+  } | null;
+  /** whether the sound can be chosen here and kept in the project (controls/features.ts) */
+  choosable: boolean;
+  /** the project holds a choice of sound for it (so Reset has something to forget) */
+  soundStored: boolean;
+  /** the key the choice of sound is stored under */
+  soundKey: string;
+  /** the controls it is a view over, by parameter name: the same ones a slider for each would be */
+  params: Partial<Record<string, ControlView>>;
 }
 
 export interface RunnerHost {
@@ -173,6 +206,8 @@ export interface RunnerHost {
   changed(): void;
   /** A playhead moved. Separate, because it happens on every step. */
   playheadMoved(): void;
+  /** The bytes of a sound the person added (project/storage.ts), or null if they are gone. */
+  readFile?(id: string): Promise<ArrayBuffer | null>;
 }
 
 interface ScopeRuntime {
@@ -195,8 +230,8 @@ interface ScopeRuntime {
   defaults: Map<string, StoredValue>;
   /** where each controlled parameter is, as far as has been heard: `nodeId/param` to value */
   heard: Map<string, StoredValue>;
-  /** each node's creation options (which buffer a sampler plays), as of the last build */
-  inits: Map<string, Readonly<Record<string, unknown>>>;
+  /** which declaration controls each parameter of each node (`nodeId/param` to its key), as of the last build */
+  claims: Map<string, string>;
   /** controls whose parameter is away from them, and since when (ms): the marker waits a moment */
   differing: Map<string, number>;
   /** sequences muted because their callback threw */
@@ -267,6 +302,10 @@ export class ProjectRunner {
   #loadedSamples = new Map<string, string>();
   /** the audio time of the parameter change most recently made, for `control.set()` in a callback */
   #lastChangeAt: number | null = null;
+  /** the document's slices are being given to a sound: not a change to send back to the document */
+  #settingSlices = false;
+  readonly #missing = new Set<string>();
+  readonly #reading = new Set<Promise<void>>();
   /** a control is being applied: the parameter changes that follow are the user's own move */
   #applying = false;
   readonly #realtime: boolean;
@@ -280,7 +319,12 @@ export class ProjectRunner {
       engine.transport.onDisplay((event) => this.#display(event)),
       engine.transport.on('stop', () => this.#clearPlayheads()),
       // a control's range can depend on a sample (a sampler's start and end): say when one arrives
-      engine.buffers.on('ready', () => this.#host.changed()),
+      engine.buffers.on('ready', (ref) => {
+        this.#missing.delete(ref.key);
+        this.#applySlices(ref.key);
+        this.#host.changed();
+      }),
+      engine.buffers.on('slices', (ref) => this.#onSlices(ref)),
       engine.buffers.on('error', () => this.#host.changed()),
       engine.on('error', (error) => {
         // A callback that throws is dealt with per scope (see #onScopeError). What is left is trouble
@@ -297,6 +341,7 @@ export class ProjectRunner {
     const doc = this.#host.getDoc();
     this.engine.transport.bpm = doc.bpm;
     this.#loadSamples(doc);
+    await this.#filesRead();
     await this.run(PROJECT_SCOPE);
     for (const track of doc.tracks) await this.run(track.id);
   }
@@ -343,27 +388,31 @@ export class ProjectRunner {
     // which declaration controls each parameter of each node, however the declaration was written
     const claims = new Map<string, string>();
     const claimsOf = (declaration: Declaration): string[] =>
-      declaration.bindings.flatMap((binding) =>
-        binding.type === 'param'
-          ? declaration.nodes.map((node) => `${node}/${binding.param}`)
-          : binding.type === 'bus'
-            ? [`bus:${binding.name}/gain`]
-            : [],
+      // (a compound widget lists what it is a view over; the parts are declared, and claimed, themselves)
+      (declaration.kind === 'waveform' ? [] : declaration.bindings).flatMap(
+        (binding) =>
+          binding.type === 'param'
+            ? declaration.nodes.map((node) => `${node}/${binding.param}`)
+            : binding.type === 'bus'
+              ? [`bus:${binding.name}/gain`]
+              : [],
       );
     const host: ControlHost = {
       stored: (key) =>
         valuesOf(this.#host.getDoc(), scopeId)?.controls[key]?.value,
       declare: (declaration) => {
         const wanted = [...new Set(claimsOf(declaration))];
-        if (declaration.implicit) {
-          // controls() gives way to whatever already controls the same parameter of the same node
-          if (wanted.some((claim) => claims.has(claim))) return false;
-        } else {
-          // an explicit slider('#x', 'p') takes over from controls(), wherever each is in the script
-          for (const claim of wanted) {
-            const holder = declared.get(claims.get(claim) ?? '');
-            if (holder?.implicit) declared.delete(holder.key);
-          }
+        // Who has the better claim to a parameter, wherever each is in the script: an explicit
+        // slider('#x', 'p'), then controls(), then a compound widget's own part (a waveform's start).
+        const rank = rankOf(declaration);
+        const holders = wanted
+          .map((claim) => declared.get(claims.get(claim) ?? ''))
+          .filter((holder): holder is Declaration => holder !== undefined);
+        if (rank < 2 && holders.some((holder) => rankOf(holder) >= rank)) {
+          return false;
+        }
+        for (const holder of holders) {
+          if (rankOf(holder) < rank) declared.delete(holder.key);
         }
         declared.set(declaration.key, declaration);
         for (const claim of wanted) claims.set(claim, declaration.key);
@@ -378,6 +427,7 @@ export class ProjectRunner {
       });
       runtime.built = true;
       runtime.declarations = [...declared.values()];
+      runtime.claims = claims;
       runtime.warnings = this.#explain(runtime, warnings);
       // One bad node does not stop the rest of a build applying: what could be built is now running.
       runtime.error = result.errors[0] ? describeError(result.errors[0]) : null;
@@ -401,6 +451,7 @@ export class ProjectRunner {
     const doc = this.#host.getDoc();
     this.engine.transport.bpm = doc.bpm;
     this.#loadSamples(doc);
+    await this.#filesRead();
     for (const id of [...this.#scopes.keys()]) {
       if (
         id !== PROJECT_SCOPE &&
@@ -450,8 +501,12 @@ export class ProjectRunner {
         this.#remove(op.id);
         break;
       case 'setSample':
+      case 'addSample':
       case 'removeSample':
         this.#loadSamples(doc);
+        break;
+      case 'setSampleSlices':
+        if (!fromScript) this.#applySlices(op.name);
         break;
       case 'setScript':
       case 'setControlOptions':
@@ -499,6 +554,11 @@ export class ProjectRunner {
    * node the order they were declared in.
    */
   controls(scopeId: string): ControlView[] {
+    return this.#controlViews(scopeId, false);
+  }
+
+  /** Every declared control as the UI draws it; `all` includes the parts of compound widgets. */
+  #controlViews(scopeId: string, all: boolean): ControlView[] {
     const runtime = this.#scopes.get(scopeId);
     if (!runtime) return [];
     const values = valuesOf(this.#host.getDoc(), scopeId);
@@ -507,7 +567,15 @@ export class ProjectRunner {
     const views: { view: ControlView; order: number }[] = [];
     for (const declaration of runtime.declarations) {
       const binding = declaration.bindings[0];
-      if (!binding || binding.type === 'sequence') continue;
+      if (
+        !binding ||
+        binding.type === 'sequence' ||
+        binding.type === 'option' ||
+        declaration.kind === 'waveform' ||
+        (declaration.hidden && !all)
+      ) {
+        continue;
+      }
       const state = values?.controls[declaration.key];
       const stored = state?.value;
       const options = declaration.options;
@@ -525,10 +593,7 @@ export class ProjectRunner {
         const node = nodes[0];
         if (!node || !(binding.param in node.params)) continue;
         const param = node.param(binding.param);
-        const range = liveRange(
-          { engine: this.engine, node, init: runtime.inits.get(node.id) },
-          binding.param,
-        );
+        const range = liveRange({ engine: this.engine, node }, binding.param);
         meta = this.#metaOf(param, options);
         if (meta.kind === 'number') {
           meta = {
@@ -827,6 +892,66 @@ export class ProjectRunner {
     }
   }
 
+  /** The waveform editors a script declares, in the order it declared them. */
+  waveforms(scopeId: string): WaveformView[] {
+    const runtime = this.#scopes.get(scopeId);
+    if (!runtime) return [];
+    const declarations = runtime.declarations.filter(
+      (declaration) => declaration.kind === 'waveform',
+    );
+    if (declarations.length === 0) return [];
+    const controls = new Map(
+      this.#controlViews(scopeId, true).map((view) => [view.key, view]),
+    );
+    const values = valuesOf(this.#host.getDoc(), scopeId);
+    const views: WaveformView[] = [];
+    for (const declaration of declarations) {
+      const nodeId = declaration.nodes[0];
+      const node =
+        nodeId === undefined ? undefined : this.sampler(scopeId, nodeId);
+      if (!node || nodeId === undefined) continue;
+      const params: WaveformView['params'] = {};
+      for (const binding of declaration.bindings) {
+        if (binding.type !== 'param') continue;
+        // whichever declaration has this parameter: the waveform's own part, or a slider the script has
+        const key = runtime.claims.get(`${nodeId}/${binding.param}`);
+        const view = key === undefined ? undefined : controls.get(key);
+        if (view) params[binding.param] = view;
+      }
+      const ref = node.buffer;
+      const soundKey = controlKey(`#${nodeId}`, BUFFER_OPTION);
+      views.push({
+        key: declaration.key,
+        nodeId,
+        label: declaration.options.label ?? (node.autoId ? node.type : nodeId),
+        ...(declaration.line === undefined ? {} : { line: declaration.line }),
+        byPosition: node.autoId,
+        sound: ref
+          ? {
+              key: ref.key,
+              state: ref.state,
+              duration: ref.duration,
+              slices: ref.slices,
+            }
+          : null,
+        choosable: STORED_BUFFER_CHOICE,
+        soundStored:
+          STORED_BUFFER_CHOICE &&
+          typeof values?.controls[soundKey]?.value === 'string',
+        soundKey,
+        params,
+      });
+    }
+    return views;
+  }
+
+  /** A node of a scope's script by id: for drawing its sound and play position, and auditioning it. */
+  sampler(scopeId: string, nodeId: string): Node | undefined {
+    const runtime = this.#scopes.get(scopeId);
+    if (!runtime) return undefined;
+    return this.#ownNodes(runtime).find((node) => node.id === nodeId);
+  }
+
   /** The declared sequencers, in the order the script declared them. */
   sequencers(scopeId: string): SequencerView[] {
     const runtime = this.#scopes.get(scopeId);
@@ -855,21 +980,63 @@ export class ProjectRunner {
 
   /** What the editors' catalog is to offer from the live project. */
   catalog(): LiveCatalog {
-    const ids = new Set<string>();
-    const buses = new Set<string>([OUT_BUS]);
-    const sequences = new Set<string>();
+    const doc = this.#host.getDoc();
+    const where = (id: string): string =>
+      id === PROJECT_SCOPE
+        ? 'the project script'
+        : `track ${doc.tracks.findIndex((track) => track.id === id) + 1}`;
+    const ids = new Map<string, LiveCatalog['ids'][number]>();
+    const buses = new Map<string, LiveCatalog['buses'][number]>([
+      [
+        OUT_BUS,
+        {
+          name: OUT_BUS,
+          description:
+            "The track's way out, which Euclip makes for every track: sound sent here passes through the channel strip's level and pan, then to main.",
+        },
+      ],
+    ]);
+    const sequences = new Map<string, LiveCatalog['sequences'][number]>();
+    // (What cracked-up/editor's catalogFromScope reads, done here: that module comes with the editor,
+    // which is only loaded when a script is first shown, and the runner is in the app from the start.)
     for (const runtime of this.#scopes.values()) {
-      for (const node of this.#ownNodes(runtime)) ids.add(node.id);
-      for (const bus of runtime.scope.snapshot().buses) buses.add(bus.name);
+      for (const node of this.#ownNodes(runtime)) {
+        if (node.autoId || ids.has(node.id)) continue; // (not ids nobody wrote)
+        ids.set(node.id, {
+          name: node.id,
+          type: node.type,
+          description: `${node.type} in ${where(runtime.id)}`,
+        });
+      }
+      for (const bus of runtime.scope.snapshot().buses) {
+        if (bus.name === 'main' || buses.has(bus.name)) continue;
+        buses.set(bus.name, {
+          name: bus.name,
+          description: `A bus made by ${where(runtime.id)}.`,
+        });
+      }
       for (const sequence of runtime.scope.transport.sequences) {
-        if (sequence.name !== null) sequences.add(sequence.name);
+        if (sequence.name === null || sequences.has(sequence.name)) continue;
+        sequences.set(sequence.name, {
+          name: sequence.name,
+          description: `${sequence.steps.length} steps, in ${where(runtime.id)}`,
+        });
       }
     }
     return {
-      buffers: Object.keys(this.#host.getDoc().samples),
-      ids: [...ids],
-      buses: [...buses],
-      sequences: [...sequences],
+      buffers: Object.keys(doc.samples).map((key) => {
+        const ref = this.engine.buffers.get(key);
+        return {
+          key,
+          duration: ref?.duration ?? null,
+          ...(ref && ref.slices.length > 2
+            ? { slices: ref.slices.length - 1 }
+            : {}),
+        };
+      }),
+      ids: [...ids.values()],
+      buses: [...buses.values()],
+      sequences: [...sequences.values()],
     };
   }
 
@@ -930,6 +1097,11 @@ export class ProjectRunner {
         }
       } finally {
         this.#applying = false;
+      }
+    } else if (binding.type === 'option' && typeof value === 'string') {
+      // the sound a sampler plays: changed in place, so what is sounding finishes on the old one
+      for (const node of this.#select(runtime, binding.selector)) {
+        node.setOption(binding.option, value);
       }
     } else if (binding.type === 'bus' && typeof value === 'number') {
       const bus = this.#busOf(runtime, binding.name);
@@ -998,11 +1170,7 @@ export class ProjectRunner {
     const values = valuesOf(this.#host.getDoc(), runtime.id);
     runtime.heard = new Map();
     runtime.defaults = new Map();
-    runtime.inits = new Map();
     const snapshot = runtime.scope.snapshot();
-    for (const node of snapshot.graph.nodes) {
-      if (node.init) runtime.inits.set(node.id, node.init);
-    }
     // Whether anything the script made goes to the track's channel bus: a node connected to it, or a
     // bus of the script's routed to it. (Names resolve outward, so `channel` here is the host's.)
     runtime.sendsToChannel =
@@ -1140,7 +1308,7 @@ export class ProjectRunner {
       warnings: [],
       defaults: new Map(),
       heard: new Map(),
-      inits: new Map(),
+      claims: new Map(),
       differing: new Map(),
       errored: new Set(),
       stepMemory: new Map(),
@@ -1168,6 +1336,8 @@ export class ProjectRunner {
         this.#onParamChange(created, change),
       ),
       scope.on('error', (error) => this.#onScopeError(created, error)),
+      // a sampler was pointed at another sound: what is drawn of it follows
+      scope.on('option:changed', () => this.#host.changed()),
     );
     return created;
   }
@@ -1212,13 +1382,112 @@ export class ProjectRunner {
     );
   }
 
+  /**
+   * Brings the engine's buffer store in line with the document's pool: loads what is new (a URL, or
+   * the bytes of a file the person added), and gives every sound the slices the document holds for it.
+   */
   #loadSamples(doc: ProjectDocument): void {
     for (const [name, source] of Object.entries(doc.samples)) {
-      if (this.#loadedSamples.get(name) === source.url) continue;
-      this.#loadedSamples.set(name, source.url);
-      // not awaited: a sampler without its sound yet is silent, and plays once it arrives
-      this.engine.buffers.load(source.url, { key: name });
+      const from =
+        source.file !== undefined ? `file:${source.file}` : source.url;
+      if (from === undefined) continue;
+      if (this.#loadedSamples.get(name) !== from) {
+        this.#loadedSamples.set(name, from);
+        // not awaited: a sampler without its sound yet is silent, and plays once it arrives
+        if (source.file !== undefined) {
+          const reading = this.#loadFile(name, source.file).finally(() =>
+            this.#reading.delete(reading),
+          );
+          this.#reading.add(reading);
+        } else if (source.url !== undefined) {
+          this.engine.buffers.load(source.url, { key: name });
+        }
+      }
+      this.#applySlices(name);
     }
+  }
+
+  /**
+   * Resolves when every added file being read has been handed to the buffer store (decoding goes on).
+   * Scripts run after this: a sampler made before its sound has an entry would look for a URL of that
+   * name instead.
+   */
+  async #filesRead(): Promise<void> {
+    await Promise.allSettled([...this.#reading]);
+  }
+
+  async #loadFile(name: string, file: string): Promise<void> {
+    const have = this.engine.buffers.get(name);
+    if (have && have.state === 'ready') return; // (added a moment ago, already decoded)
+    const bytes = (await this.#host.readFile?.(file)) ?? null;
+    if (this.#loadedSamples.get(name) !== `file:${file}`) return;
+    if (!bytes) {
+      console.warn(
+        `Euclip: the audio of "${name}" is not in this browser's storage.`,
+      );
+      this.#missing.add(name);
+      this.#host.changed();
+      return;
+    }
+    // (decoding detaches the bytes it is given: hand it a copy)
+    this.engine.buffers.add(name, bytes.slice(0));
+  }
+
+  /** Gives a sound of the pool the slices the document holds for it (none: one slice, the whole sound). */
+  #applySlices(name: string): void {
+    const ref = this.engine.buffers.get(name);
+    const source = this.#host.getDoc().samples[name];
+    if (!ref || !source || ref.duration === null) return;
+    const wanted = normalizeSlices(
+      source.slices ?? [0, ref.duration],
+      ref.duration,
+    );
+    const slices = wanted.length >= 2 ? wanted : [0, ref.duration];
+    if (!sameValue([...ref.slices], slices)) {
+      this.#settingSlices = true;
+      try {
+        ref.slices = slices;
+      } finally {
+        this.#settingSlices = false;
+      }
+    }
+  }
+
+  /**
+   * A sound's slices were changed by something other than the document (a script: `ref.slices = …`).
+   * They are the sound's, so the document takes them: stored, but not a step to undo.
+   */
+  #onSlices(ref: BufferRef): void {
+    if (this.#settingSlices) return;
+    const source = this.#host.getDoc().samples[ref.key];
+    if (source) {
+      this.#host.dispatch({
+        type: 'setSampleSlices',
+        name: ref.key,
+        slices: [...ref.slices],
+      });
+    }
+    this.#host.changed();
+  }
+
+  /** Sounds of the pool whose audio could not be found or read. */
+  missingSamples(): string[] {
+    const missing = new Set(this.#missing);
+    for (const name of Object.keys(this.#host.getDoc().samples)) {
+      if (this.engine.buffers.get(name)?.state === 'error') missing.add(name);
+    }
+    return [...missing];
+  }
+
+  /**
+   * Plays a sampler now, for the ear: one slice of its sound, or the whole region. The audio must be
+   * running (the caller resumes the context inside the user's gesture).
+   */
+  audition(scopeId: string, nodeId: string, slice?: number): boolean {
+    const node = this.sampler(scopeId, nodeId);
+    if (!node?.buffer?.buffer) return false;
+    node.trigger(slice === undefined ? {} : { slice });
+    return true;
   }
 
   /** Resolves when every sound of the pool has loaded (or failed). For tests and offline rendering. */
@@ -1229,6 +1498,11 @@ export class ProjectRunner {
       ),
     );
   }
+}
+
+/** How good a declaration's claim to a parameter is: a compound widget's part, controls(), an explicit control. */
+function rankOf(declaration: Declaration): number {
+  return declaration.hidden ? 0 : declaration.implicit ? 1 : 2;
 }
 
 /**

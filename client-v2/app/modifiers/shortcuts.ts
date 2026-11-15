@@ -23,17 +23,28 @@ function usesKeys(target: EventTarget | null): boolean {
   );
 }
 
+/** Whether focus is somewhere text is typed, which has an undo of its own. */
+function typesText(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return (
+    target.isContentEditable ||
+    target.closest('input, textarea, .cm-editor') !== null
+  );
+}
+
 /**
  * The app's keyboard shortcuts, for as long as the element is rendered: Space plays and stops, and
- * Cmd/Ctrl-Z and Shift-Cmd/Ctrl-Z undo and redo. None of them fire while focus is in an editor or a
- * control, where those keys already mean something.
+ * Cmd/Ctrl-Z and Shift-Cmd/Ctrl-Z undo and redo. Space is left alone while focus is on anything that uses
+ * it (a button, a control, a field); undo and redo only where text is typed, which has its own. So a
+ * slider or a handle that has just been dragged, and still has focus, can be undone at once.
  */
 export default modifier<ShortcutsSignature>(
   (element, _positional, { onSpace, onUndo, onRedo }) => {
     const onKeydown = (event: KeyboardEvent): void => {
-      if (event.defaultPrevented || usesKeys(event.target)) return;
+      if (event.defaultPrevented) return;
       if (
         event.key === ' ' &&
+        !usesKeys(event.target) &&
         !event.metaKey &&
         !event.ctrlKey &&
         !event.altKey
@@ -42,7 +53,8 @@ export default modifier<ShortcutsSignature>(
         onSpace();
       } else if (
         event.key.toLowerCase() === 'z' &&
-        (event.metaKey || event.ctrlKey)
+        (event.metaKey || event.ctrlKey) &&
+        !typesText(event.target)
       ) {
         event.preventDefault();
         if (event.shiftKey) onRedo();

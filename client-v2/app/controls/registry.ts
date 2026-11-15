@@ -23,6 +23,7 @@ import SliderWidget, {
   type ControlWidgetSignature,
 } from 'client-v2/components/widgets/slider-widget';
 import ToggleWidget from 'client-v2/components/widgets/toggle-widget';
+import type { WaveformView } from 'client-v2/audio/runner';
 import type { Binding } from 'client-v2/controls/declarations';
 
 interface Entry<S> {
@@ -85,6 +86,44 @@ const SEQUENCERS: readonly SequencerEntry[] = [
   },
 ];
 
+/**
+ * A compound kind: one widget over several bindings (a waveform editor over a sampler's start, end,
+ * loop points, loop, reverse and speed, and the sound it plays). Its declaration lists the bindings; the
+ * parts that are parameters are ordinary declared controls, which the runner hands to the widget
+ * together (see `ProjectRunner#waveforms`). The component is loaded when a pane first shows one, so its
+ * code is not part of the app until it is wanted.
+ */
+export interface CompoundEntry<S> {
+  kind: string;
+  binds: readonly Binding['type'][];
+  layout: 'block';
+  /** which footer pane shows it */
+  pane: 'source';
+  load: () => Promise<ComponentLike<S>>;
+}
+
+const COMPOUNDS: readonly CompoundEntry<WaveformWidgetSignature>[] = [
+  {
+    kind: 'waveform',
+    binds: ['param', 'option'],
+    layout: 'block',
+    pane: 'source',
+    load: () =>
+      import('client-v2/waveform/editor').then((module) => module.default),
+  },
+];
+
+/** What the waveform widget is given. (Its own module is only a type here, so it stays out of the app's first load.) */
+export interface WaveformWidgetSignature {
+  Element: HTMLElement;
+  Args: { scopeId: string; waveform: WaveformView };
+}
+
+/** The entry that draws a waveform editor. */
+export function waveformWidget(): CompoundEntry<WaveformWidgetSignature> {
+  return COMPOUNDS[0]!;
+}
+
 /** The entry for a control bound to a value: slider, knob, toggle, select. */
 export function controlWidget(kind: string): ControlEntry | undefined {
   return CONTROLS.find((entry) => entry.kind === kind);
@@ -96,6 +135,8 @@ export function sequencerWidget(): SequencerEntry {
 }
 
 /** Every kind there is, for anything that lists them. */
-export const WIDGET_KINDS: readonly string[] = [...CONTROLS, ...SEQUENCERS].map(
-  (entry) => entry.kind,
-);
+export const WIDGET_KINDS: readonly string[] = [
+  ...CONTROLS,
+  ...SEQUENCERS,
+  ...COMPOUNDS,
+].map((entry) => entry.kind);

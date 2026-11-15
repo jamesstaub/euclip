@@ -115,12 +115,19 @@
 
 /* New Track and its menu of track types share one outline */
 .project-bar__new {
+  position: relative;
   display: flex;
 
   & .btn + .btn {
     padding-inline: var(--space-2);
     border-inline-start: 0;
   }
+}
+
+/* the kinds of track New Track can add */
+.project-bar__kinds {
+  inset-block-start: 100%;
+  inset-inline-end: 0;
 }
 
 @media (width < 48rem) {

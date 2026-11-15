@@ -1,0 +1,412 @@
+/*
+ * The waveform editor (waveform/editor.gts): a sampler's sound with its region, loop and slices.
+ * The picture is a canvas, coloured from the --wf-* properties below (waveform/draw.ts reads them); the
+ * handles, slice flags and play cursors are elements over it. Sizes that the editor's arithmetic also
+ * needs (the ruler's height, a handle's tab) are fixed here per kind of pointer and mirrored in the
+ * component: 20px and 22px for a mouse, 30px and 44px for a finger.
+ */
+
+.waveform {
+  --wf-bg: var(--dark-gray);
+  --wf-ruler: var(--near-black);
+  --wf-ruler-text: var(--light-gray);
+  --wf-wave: var(--light-blue);
+  --wf-dim: rgb(17 17 17 / 66%);
+  --wf-loop: rgb(255 206 85 / 30%);
+  --wf-slice: var(--light-gray);
+  --wf-selected: var(--yellow);
+  --wf-preview: #ff9d99;
+  --wf-font: var(--font-sans);
+  --wf-font-size: 10px;
+  --wf-ruler-h: 20px;
+  --wf-tab: 22px;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-inline-size: 0;
+  margin-block-end: var(--space-3);
+  padding: var(--space-1);
+  border: var(--border-dark);
+  background: var(--dark-yellow);
+  font-size: var(--font-size-7);
+}
+
+@media (pointer: coarse) {
+  .waveform {
+    --wf-font-size: 11px;
+    --wf-ruler-h: 30px;
+    --wf-tab: 44px;
+  }
+}
+
+/* a file is being dragged over it */
+.waveform--dropping {
+  outline: var(--border-width-3) dashed var(--near-black);
+  outline-offset: -4px;
+}
+
+/*
+ * Expanded: the editor takes the whole screen (and gives it back with Done or Escape). On a phone this
+ * is where there is room for the handles; nothing else scrolls here, so the stage takes every gesture.
+ */
+.waveform--expanded {
+  position: fixed;
+  inset: 0;
+  z-index: var(--layer-menu);
+  margin: 0;
+  padding: max(var(--space-2), var(--safe-top, 0px))
+    max(var(--space-2), var(--safe-right, 0px))
+    max(var(--space-2), var(--safe-bottom, 0px))
+    max(var(--space-2), var(--safe-left, 0px));
+  overflow: hidden auto;
+  background: var(--yellow);
+}
+
+/* ---- the bar: what it is, which sound, show in script, expand ---- */
+
+.waveform__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+}
+
+.waveform__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--font-size-6);
+
+  & b {
+    font-weight: var(--font-weight-heavy);
+    letter-spacing: var(--letter-spacing-spaced);
+    text-transform: uppercase;
+  }
+}
+
+.waveform__sound {
+  display: flex;
+  flex: 1 1 12rem;
+  align-items: center;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+.waveform__head-actions {
+  display: flex;
+  gap: var(--space-1);
+  margin-inline-start: auto;
+}
+
+.waveform__select {
+  flex: 0 1 auto;
+  max-inline-size: 100%;
+  font-size: var(--font-size-6);
+}
+
+.waveform__name {
+  font-family: var(--font-mono);
+}
+
+/* the file input is inside its label, which is the button */
+.waveform__file {
+  position: relative;
+  flex: none;
+  cursor: pointer;
+
+  &:focus-within {
+    outline: var(--border-width-3) solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+}
+
+/* ---- tools: zoom, snapping, slices. They wrap; on a tablet and up they sit in one row ---- */
+
+.waveform__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+}
+
+.waveform__tool-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+/*
+ * In a narrow footer (a phone) the editor as it sits in the pane keeps to what fits above the picture:
+ * the sound, zoom, and Expand. Snapping, the slice tools and adding a file are in the expanded editor,
+ * which has the whole screen.
+ */
+@container track-footer (width < 34rem) {
+  .waveform:not(.waveform--expanded) .waveform__tool-group--more {
+    display: none;
+  }
+}
+
+.waveform__panel {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border: var(--border-dark);
+  background: var(--yellow);
+}
+
+.waveform__panel-note {
+  margin: 0;
+}
+
+.waveform__panel-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+}
+
+.waveform__field {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.waveform__sound .waveform__field {
+  flex: 0 1 16rem;
+  min-inline-size: 0;
+}
+
+.waveform__sound .waveform__select {
+  inline-size: 100%;
+}
+
+.waveform__field--grow {
+  flex: 1 1 14rem;
+
+  & .slider {
+    flex: 1 1 6rem;
+  }
+}
+
+.waveform__number {
+  inline-size: 4.5rem;
+  min-block-size: var(--target-min);
+  padding: 0 var(--space-1);
+  border: var(--border-dark);
+  background: var(--light-yellow);
+  font-size: var(--font-size-5);
+}
+
+.waveform__notice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  background: var(--near-black);
+  color: var(--yellow);
+
+  & span {
+    flex: 1 1 auto;
+  }
+
+  & .btn {
+    color: var(--yellow);
+  }
+}
+
+/* ---- the picture ---- */
+
+.waveform__stage {
+  position: relative;
+  block-size: clamp(9rem, 26dvh, 14rem);
+  min-inline-size: 0;
+  overflow: hidden;
+  border: var(--border-dark);
+  background: var(--wf-bg);
+  cursor: crosshair;
+
+  /* a finger moving up or down still scrolls the pane; along it, and two fingers, are the editor's */
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.waveform__canvas {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.waveform--expanded .waveform__stage {
+  flex: 1 1 12rem;
+  block-size: auto;
+  min-block-size: 10rem;
+  touch-action: none;
+}
+
+.waveform__empty {
+  position: absolute;
+  inset: var(--wf-ruler-h) 0 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: var(--space-2);
+  color: var(--light-gray);
+  font-size: var(--font-size-6);
+  text-align: center;
+}
+
+/*
+ * A handle: a line down the sound and a tab to take it by. The stage hears the pointer and decides
+ * which handle a press is on, so these take none; they are here to be seen, focused and read out.
+ */
+.waveform__handle {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.waveform__handle-line {
+  position: absolute;
+  inset-block: var(--wf-ruler-h) 0;
+  inset-inline-start: calc(var(--x) * 1px - 1px);
+  inline-size: 2px;
+  background: var(--yellow);
+}
+
+.waveform__handle-tab {
+  position: absolute;
+  inset-block-start: calc(var(--tab-top) * 1px);
+  inset-inline-start: calc(var(--tab-left) * 1px);
+  display: grid;
+  place-items: center;
+  inline-size: var(--wf-tab);
+  block-size: var(--wf-tab);
+  border: var(--border-width-2) solid var(--near-black);
+  background: var(--yellow);
+  color: var(--near-black);
+  font-size: var(--font-size-7);
+  font-weight: var(--font-weight-heavy);
+  line-height: 1;
+}
+
+/* the loop's handles stand on the bottom and are the loop's colour, with a notch of their own */
+.waveform__handle--bottom {
+  & .waveform__handle-line {
+    background: var(--white);
+  }
+
+  & .waveform__handle-tab {
+    background: var(--white);
+  }
+}
+
+.waveform__handle.is-active .waveform__handle-tab {
+  box-shadow: 0 0 0 2px var(--white);
+}
+
+.waveform__handle:focus-visible .waveform__handle-tab {
+  outline: var(--border-width-3) solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* a slice boundary's flag in the ruler: drawn by the canvas; this is its place for focus and the keys */
+.waveform__marker {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: calc(var(--x) * 1px - var(--wf-ruler-h) / 2);
+  inline-size: var(--wf-ruler-h);
+  block-size: var(--wf-ruler-h);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: none;
+
+  &:focus-visible {
+    outline: var(--border-width-2) solid var(--focus-ring);
+    outline-offset: -2px;
+  }
+}
+
+/* where a voice of the sampler is playing: moved every frame, drawn only while one sounds */
+.waveform__cursor {
+  position: absolute;
+  inset-block: var(--wf-ruler-h) 0;
+  inset-inline-start: -1px;
+  display: none;
+  inline-size: 2px;
+  background: var(--step-current);
+  pointer-events: none;
+  will-change: transform;
+
+  &[data-on] {
+    display: block;
+  }
+}
+
+/* the part of the sound in view, when it is not all of it */
+.waveform__mini {
+  position: relative;
+  block-size: 0.75rem;
+  border: var(--border-dark);
+  background: var(--dark-gray);
+  cursor: pointer;
+}
+
+@media (pointer: coarse) {
+  .waveform__mini {
+    block-size: 1.5rem;
+  }
+}
+
+.waveform__mini-view {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: calc(var(--left) * 1%);
+  inline-size: max(calc(var(--width) * 1%), 4px);
+  background: var(--light-blue);
+}
+
+/* ---- the numbers: the same controls a slider for each would be ---- */
+
+.waveform__values {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+}
+
+.waveform__value {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+
+  & .number-entry {
+    inline-size: auto;
+    min-inline-size: 4.5rem;
+    border-color: var(--dark-gray);
+    font-weight: var(--font-weight-normal);
+    text-transform: none;
+  }
+}
+
+/* the loop points while the loop is off: there, but not in play */
+.waveform__value--faint {
+  opacity: 0.55;
+}
+
+.source-pane .pane-empty code {
+  white-space: nowrap;
+}

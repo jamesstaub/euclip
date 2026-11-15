@@ -4,7 +4,9 @@ import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import type { SequencerView } from 'client-v2/audio/runner';
 import { sequencerWidget } from 'client-v2/controls/registry';
+import Icon from 'client-v2/components/icon';
 import type AudioService from 'client-v2/services/audio';
+import type ViewService from 'client-v2/services/view';
 
 function countOf(sequencer: SequencerView): string {
   const on = sequencer.steps.filter((value) => value !== 0).length;
@@ -29,6 +31,7 @@ export interface SequencePaneSignature {
  */
 export default class SequencePane extends Component<SequencePaneSignature> {
   @service declare audio: AudioService;
+  @service declare view: ViewService;
 
   get sequencers(): SequencerView[] {
     return this.audio.sequencers(this.args.scopeId);
@@ -36,6 +39,21 @@ export default class SequencePane extends Component<SequencePaneSignature> {
 
   reset = (sequencer: SequencerView): void =>
     this.audio.resetControl(this.args.scopeId, sequencer.key);
+
+  showInScript = (sequencer: SequencerView): void => {
+    if (sequencer.line !== undefined) {
+      this.view.showInScript(this.args.scopeId, sequencer.line);
+    }
+  };
+
+  isLinked = (sequencer: SequencerView): boolean => {
+    const linked = this.view.linked;
+    return (
+      linked !== null &&
+      linked.scopeId === this.args.scopeId &&
+      linked.line === sequencer.line
+    );
+  };
 
   <template>
     <section
@@ -62,8 +80,22 @@ export default class SequencePane extends Component<SequencePaneSignature> {
                 {{on "click" (fn this.reset sequencer)}}
               >Reset</button>
             {{/if}}
+            {{#if sequencer.line}}
+              <button
+                type="button"
+                class="btn btn--s btn--ghost btn--on-yellow sequence-card__code"
+                aria-label="Show {{sequencer.label}} in the script"
+                title="Show in script"
+                data-test-show-in-script
+                {{on "click" (fn this.showInScript sequencer)}}
+              ><Icon @name="code" /></button>
+            {{/if}}
           </p>
-          <Grid @scopeId={{@scopeId}} @control={{sequencer}} />
+          <Grid
+            @scopeId={{@scopeId}}
+            @control={{sequencer}}
+            data-linked={{if (this.isLinked sequencer) "true"}}
+          />
         </div>
       {{else}}
         <p class="pane-empty" data-test-pane-empty>This script declares no

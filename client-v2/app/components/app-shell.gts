@@ -8,7 +8,10 @@ import TrackFooter from 'client-v2/components/track-footer';
 import TrackList from 'client-v2/components/track-list';
 import onEscape from 'client-v2/modifiers/on-escape';
 import shortcuts from 'client-v2/modifiers/shortcuts';
-import { newTrack } from 'client-v2/project/default-project';
+import {
+  newSlicedLoopTrack,
+  newTrack,
+} from 'client-v2/project/default-project';
 import { PROJECT_SCOPE, type TrackDocument } from 'client-v2/project/schema';
 import type AudioService from 'client-v2/services/audio';
 import type ProjectService from 'client-v2/services/project';
@@ -79,6 +82,10 @@ export default class AppShell extends Component<AppShellSignature> {
     );
   }
 
+  get selectedName(): string {
+    return this.selectedTrack ? `Track ${this.selectedOrder}` : 'Main output';
+  }
+
   /** The main output houses the project script; every track has its own. */
   get selectedScript(): string {
     return this.selectedTrack?.script ?? this.project.doc.script;
@@ -107,6 +114,13 @@ export default class AppShell extends Component<AppShellSignature> {
 
   addTrack = (): void => {
     const track = newTrack(`track ${this.project.tracks.length + 1}`);
+    this.project.apply({ type: 'addTrack', track });
+    this.chosenId = track.id;
+  };
+
+  /** New Track's other kind: a loop played slice by slice. */
+  addSlicedLoop = (): void => {
+    const track = newSlicedLoopTrack('loop');
     this.project.apply({ type: 'addTrack', track });
     this.chosenId = track.id;
   };
@@ -156,6 +170,7 @@ export default class AppShell extends Component<AppShellSignature> {
         @sidebarId={{SIDEBAR_ID}}
         @onToggleSidebar={{this.toggleSidebar}}
         @onNewTrack={{this.addTrack}}
+        @onNewSlicedLoop={{this.addSlicedLoop}}
       />
 
       {{#if this.sidebarOpen}}
@@ -172,6 +187,8 @@ export default class AppShell extends Component<AppShellSignature> {
           id={{SIDEBAR_ID}}
           class="app-shell__sidebar"
           @onClose={{this.closeSidebar}}
+          @scopeId={{this.selectedId}}
+          @targetName={{this.selectedName}}
           {{onEscape this.closeSidebar}}
         />
       {{/if}}

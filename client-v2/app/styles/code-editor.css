@@ -20,6 +20,11 @@
   --cu-code-keyword: var(--dark-yellow);
   --cu-code-dunder: var(--yellow);
   --cu-code-property: var(--light-blue);
+
+  /* problems the app marks on a line: a warning in the app's yellow, a note in its blue (on the dark
+     pane both are well over 7:1) */
+  --cu-warning-text: var(--yellow);
+  --cu-info-text: var(--light-blue);
   --cu-font-mono: var(--font-mono);
   --cu-font-ui: var(--font-sans);
   --cu-font-size: var(--font-size-6);

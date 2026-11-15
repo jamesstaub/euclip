@@ -359,7 +359,14 @@ module('Integration | Component | app-shell', function (hooks) {
         findAll('[data-test-menu-item]').map((item) =>
           item.textContent?.trim(),
         ),
-        ['Hz', 'Note', 'Note and cents', 'Reset', 'Learn MIDI (coming)'],
+        [
+          'Hz',
+          'Note',
+          'Note and cents',
+          'Reset',
+          'Show in script',
+          'Learn MIDI (coming)',
+        ],
       );
       assert
         .dom('[data-test-menu-item="Hz"]')
@@ -467,6 +474,8 @@ module('Integration | Component | app-shell', function (hooks) {
           '#sampler › start',
           '#sampler › end',
           '#sampler › loop',
+          '#sampler › loopStart',
+          '#sampler › loopEnd',
           '#sampler › reverse',
           '#sampler › gain',
         ],
@@ -834,7 +843,10 @@ slider(__.bus('drums'), 'gain');
         const items = findAll('[data-test-menu-item]')
           .map((item) => item.textContent?.trim())
           .filter(
-            (label) => label !== 'Reset' && label !== 'Learn MIDI (coming)',
+            (label) =>
+              label !== 'Reset' &&
+              label !== 'Show in script' &&
+              label !== 'Learn MIDI (coming)',
           );
         await triggerKeyEvent('[role="menu"]', 'keydown', 'Escape');
         return items;
@@ -848,6 +860,7 @@ slider(__.bus('drums'), 'gain');
       assert.deepEqual(await units('#sampler › start'), [
         'Seconds',
         'Milliseconds',
+        'Steps (tempo)',
         'Percent of the sample',
       ]);
       assert.deepEqual(await units('#filter › q'), [

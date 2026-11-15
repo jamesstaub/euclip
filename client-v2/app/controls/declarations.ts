@@ -5,12 +5,15 @@
  * when scripts run in a sandbox it is what crosses to the page, and it is what the widget registry
  * (controls/registry.ts) turns into something on screen. Nothing here touches the DOM or the app.
  */
+import { MODE_LABELS } from 'client-v2/controls/modes';
 import type { StoredValue } from 'client-v2/project/schema';
 
 /** What a widget is bound to. A kind may use several (a waveform editor: three parameters and a buffer). */
 export type Binding =
   /** a parameter of the nodes a selector finds */
   | { type: 'param'; selector: string; param: string }
+  /** a creation option of a node that can be changed in place: the sound a sampler plays (`buffer`) */
+  | { type: 'option'; selector: string; option: string }
   /** the level of a named bus of the script's scope */
   | { type: 'bus'; name: string }
   /** a value of its own, kept in the document under a name */
@@ -52,6 +55,13 @@ export interface Declaration {
   options: ControlOptions;
   /** made by `controls()`: it gives way to a `slider`, `knob`, `toggle` or `select` for the same node and parameter */
   implicit: boolean;
+  /**
+   * Part of a compound widget (a waveform editor's start, end, loop points): it is a control like any
+   * other, with the key a `slider` for the same parameter would have, but it has no row of its own in
+   * the controls pane. It gives way to any other declaration for the same node and parameter, which the
+   * compound widget then uses.
+   */
+  hidden?: boolean;
   /** the line of the script it was declared on, counted from 1, when that could be told */
   line?: number;
 }
@@ -76,6 +86,53 @@ export const HOST_TAG = 'euclip';
  */
 export const CHANNEL_BUS = 'channel';
 
+/** The parameters of a sampler a waveform editor is a view over, in the order it lists them. */
+export const WAVEFORM_PARAMS = [
+  'start',
+  'end',
+  'loopStart',
+  'loopEnd',
+  'loop',
+  'reverse',
+  'speed',
+] as const;
+
+/** The key part that names a waveform editor, and the sound its sampler plays, among a node's controls. */
+export const WAVEFORM_PART = 'waveform';
+export const BUFFER_OPTION = 'buffer';
+
+/**
+ * How one argument of a script function is described to the editor. The same shape as an argument in
+ * cracked-up/editor's catalog (which this module must not import: it is only loaded with the editor).
+ */
+export interface ArgumentSpec {
+  name: string;
+  kind: 'selector' | 'param' | 'sequence' | 'name' | 'options' | 'list';
+  description?: string;
+  optional?: boolean;
+  /** for `param`: the argument that says which nodes */
+  of?: string;
+  /** for `options`: the keys */
+  options?: readonly OptionSpec[];
+  /** for `list`: what each item is */
+  items?: { kind: 'param'; of?: string };
+}
+
+export interface OptionSpec {
+  name: string;
+  description: string;
+  type?: string;
+  default?: string;
+  values?: readonly (string | number | boolean)[];
+}
+
+export interface SignatureSpec {
+  args: readonly ArgumentSpec[];
+  description?: string;
+  /** what the call gives back: `control` (value, set), `controls` (by node and parameter) or nothing */
+  returns?: 'control' | 'controls';
+}
+
 /** Which kinds of parameter each script function accepts, and how the editor documents it. */
 export interface ControlFunction {
   name: string;
@@ -85,7 +142,95 @@ export interface ControlFunction {
   accepts: readonly ('number' | 'boolean' | 'choice')[];
   signature: string;
   description: string;
+  /** the ways of calling it, argument by argument, for the editor's help inside its brackets */
+  signatures: readonly SignatureSpec[];
 }
+
+const TARGET_ARG: ArgumentSpec = {
+  name: 'target',
+  kind: 'selector',
+  description:
+    "Which nodes: a selector ('#filter'), or a chain, a selection, a node or a bus the script has.",
+};
+
+const LABEL: OptionSpec = {
+  name: 'label',
+  type: 'string',
+  description:
+    'What the control is called on screen. Default: the parameter’s name.',
+};
+
+const NUMBER_OPTIONS: readonly OptionSpec[] = [
+  LABEL,
+  {
+    name: 'mode',
+    description:
+      'The unit the control starts in; the person can change it from its menu. Which are on offer depends on the parameter.',
+    values: Object.keys(MODE_LABELS),
+  },
+  {
+    name: 'min',
+    type: 'number',
+    description: 'A narrower lower end than the parameter’s own.',
+  },
+  {
+    name: 'max',
+    type: 'number',
+    description: 'A narrower upper end than the parameter’s own.',
+  },
+  {
+    name: 'step',
+    type: 'number',
+    description: 'Stepped mode: the distance between values.',
+  },
+  {
+    name: 'values',
+    type: 'number[]',
+    description: 'Stepped mode: the only values allowed.',
+  },
+];
+
+const OWN_NUMBER_OPTIONS: readonly OptionSpec[] = [
+  ...NUMBER_OPTIONS,
+  { name: 'default', type: 'number', description: 'The value it starts at.' },
+  {
+    name: 'unit',
+    type: 'string',
+    description: 'Its unit, as the library names them.',
+    values: ['none', 'hz', 'gain', 'seconds', 'ratio'],
+  },
+];
+
+/** The ways `slider` and `knob` are called. */
+const NUMBER_SIGNATURES: readonly SignatureSpec[] = [
+  {
+    args: [
+      TARGET_ARG,
+      {
+        name: 'param',
+        kind: 'param',
+        of: 'target',
+        description: 'The parameter to control.',
+      },
+      {
+        name: 'options',
+        kind: 'options',
+        optional: true,
+        options: NUMBER_OPTIONS,
+      },
+    ],
+    returns: 'control',
+  },
+  {
+    description:
+      'A control with a value of its own, kept in the project under its name.',
+    args: [
+      { name: 'name', kind: 'name', description: 'A name of your choosing.' },
+      { name: 'options', kind: 'options', options: OWN_NUMBER_OPTIONS },
+    ],
+    returns: 'control',
+  },
+];
 
 const OPTIONS =
   'Options: label, min, max, step, values, and mode: the unit the control starts in, which the person can change from its menu. ' +
@@ -112,6 +257,7 @@ export const CONTROL_FUNCTIONS: readonly ControlFunction[] = [
       'the number in the node is the default. Returns the control: .value reads it, .set(v) moves it and the parameter together. ' +
       "With a name and an object instead, a control of its own: const density = slider('density', { min: 0, max: 1, default: 0.5 }). " +
       OPTIONS,
+    signatures: NUMBER_SIGNATURES,
   },
   {
     name: 'knob',
@@ -124,6 +270,7 @@ export const CONTROL_FUNCTIONS: readonly ControlFunction[] = [
       TARGET +
       ' ' +
       OPTIONS,
+    signatures: NUMBER_SIGNATURES,
   },
   {
     name: 'toggle',
@@ -134,6 +281,45 @@ export const CONTROL_FUNCTIONS: readonly ControlFunction[] = [
       "Declares an on/off switch for a true-or-false parameter: toggle('#sampler', 'loop'). " +
       TARGET +
       " With a name and an object, a switch of its own: const fills = toggle('fills', { default: false }).",
+    signatures: [
+      {
+        args: [
+          TARGET_ARG,
+          {
+            name: 'param',
+            kind: 'param',
+            of: 'target',
+            description: 'A true-or-false parameter.',
+          },
+          {
+            name: 'options',
+            kind: 'options',
+            optional: true,
+            options: [LABEL],
+          },
+        ],
+        returns: 'control',
+      },
+      {
+        description: 'A switch of its own, kept in the project under its name.',
+        args: [
+          { name: 'name', kind: 'name' },
+          {
+            name: 'options',
+            kind: 'options',
+            options: [
+              LABEL,
+              {
+                name: 'default',
+                description: 'Whether it starts on.',
+                values: [true, false],
+              },
+            ],
+          },
+        ],
+        returns: 'control',
+      },
+    ],
   },
   {
     name: 'select',
@@ -143,6 +329,26 @@ export const CONTROL_FUNCTIONS: readonly ControlFunction[] = [
     description:
       "Declares a menu for a parameter that takes one of a list of values: select('#osc', 'shape'). " +
       TARGET,
+    signatures: [
+      {
+        args: [
+          TARGET_ARG,
+          {
+            name: 'param',
+            kind: 'param',
+            of: 'target',
+            description: 'A parameter that takes one of a list of values.',
+          },
+          {
+            name: 'options',
+            kind: 'options',
+            optional: true,
+            options: [LABEL],
+          },
+        ],
+        returns: 'control',
+      },
+    ],
   },
   {
     name: 'sequencer',
@@ -154,6 +360,32 @@ export const CONTROL_FUNCTIONS: readonly ControlFunction[] = [
       "__.transport.sequence('steps', …) call. The steps written in that call are the default; a pattern edited " +
       'in the grid is stored in the project and applied here when the script runs. A sequence with no sequencer() has no grid. ' +
       'Returns the control: .value is the steps, .set(steps) changes grid and sequence together. Options: label, view.',
+    signatures: [
+      {
+        args: [
+          {
+            name: 'name',
+            kind: 'sequence',
+            description: 'A named sequence of this script.',
+          },
+          {
+            name: 'options',
+            kind: 'options',
+            optional: true,
+            options: [
+              LABEL,
+              {
+                name: 'view',
+                description: 'How its steps are drawn.',
+                values: ['toggles'],
+                default: "'toggles'",
+              },
+            ],
+          },
+        ],
+        returns: 'control',
+      },
+    ],
   },
   {
     name: 'controls',
@@ -165,6 +397,74 @@ export const CONTROL_FUNCTIONS: readonly ControlFunction[] = [
       "With a target, for those nodes: controls('#kick'), controls(kick) for every node of a chain, controls(__.bus('drums').compressor(…)) for the inserts that adds to a bus, controls(__.bus('drums')) for the bus's level. " +
       "With a list, only the parameters named: controls('#kick', ['speed', 'start']). " +
       'Each parameter gets the kind that suits it. A slider(), knob(), toggle() or select() for the same node and parameter is used instead of the one from controls().',
+    signatures: [
+      {
+        description: 'Every node the script has made so far.',
+        args: [],
+        returns: 'controls',
+      },
+      {
+        args: [
+          TARGET_ARG,
+          {
+            name: 'names',
+            kind: 'list',
+            optional: true,
+            items: { kind: 'param', of: 'target' },
+            description: 'Only these parameters.',
+          },
+        ],
+        returns: 'controls',
+      },
+    ],
+  },
+  {
+    name: 'waveform',
+    kind: 'waveform',
+    accepts: [],
+    signature: 'waveform(target, options?)',
+    description:
+      "Declares a waveform editor for a sampler, shown in the track's source pane: waveform('#sampler'). " +
+      'It draws the sound the sampler plays and edits its start, end, loop points, loop and reverse, its slices, and which sound it is. ' +
+      'Those are ordinary controls: a slider() for the same parameter shows the same value, and what is set is stored in the project and applied here when the script runs. ' +
+      'The numbers in the sampler are the defaults. Slices belong to the sound, so every track that plays it shares them. ' +
+      'The target can be a selector, a chain, a selection or a node; several samplers get an editor each.',
+    signatures: [
+      {
+        args: [
+          {
+            ...TARGET_ARG,
+            description:
+              "The sampler: a selector ('#sampler'), or a chain, a selection or a node.",
+          },
+          {
+            name: 'options',
+            kind: 'options',
+            optional: true,
+            options: [LABEL],
+          },
+        ],
+      },
+    ],
+  },
+];
+
+/** What a declared control gives back to the script, for the editor's completion after a dot. */
+export const CONTROL_MEMBERS: readonly {
+  name: string;
+  signature?: string;
+  description: string;
+}[] = [
+  {
+    name: 'value',
+    description:
+      'The control’s value now: what the project holds, else the parameter’s own (or the declared default). Read it any time, in a callback too.',
+  },
+  {
+    name: 'set',
+    signature: 'set(value)',
+    description:
+      'Moves the control and its parameter together, as if the person had. In a sequence callback it lands on the step.',
   },
 ];
 

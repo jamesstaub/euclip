@@ -8,6 +8,7 @@ import {
   PROJECT_SCOPE,
   SCHEMA_VERSION,
   sequencerKey,
+  LOOP_SLICES,
 } from 'client-v2/project/schema';
 
 const FREQUENCY = controlKey('#filter', 'frequency');
@@ -24,6 +25,7 @@ module('Unit | Project | operations', function () {
       'hat',
       'openhat',
       'clap',
+      'loop',
     ]);
     assert.true(
       isProjectDocument(JSON.parse(JSON.stringify(doc))),
@@ -363,7 +365,15 @@ module('Unit | Project | migration', function () {
 
     assert.ok(doc, 'it loads');
     assert.true(isProjectDocument(doc));
-    assert.strictEqual(doc?.schemaVersion, 3);
+    assert.strictEqual(doc?.schemaVersion, 4);
+    assert.deepEqual(
+      doc?.samples,
+      {
+        kick: { url: '/samples/kick.wav' },
+        loop: { url: '/samples/loop.wav', slices: [...LOOP_SLICES] },
+      },
+      'the built-in loop joins the pool, with its slices',
+    );
     assert.strictEqual(doc?.name, 'Saved yesterday');
     assert.strictEqual(doc?.bpm, 133);
     assert.strictEqual(doc?.tracks[0]?.level, 0.5);
@@ -391,7 +401,7 @@ module('Unit | Project | migration', function () {
     const current = defaultProject();
     assert.strictEqual(migrateProject(current), current);
     assert.strictEqual(
-      migrateProject({ ...current, schemaVersion: 4 }),
+      migrateProject({ ...current, schemaVersion: 5 }),
       null,
       'a newer version',
     );

@@ -177,18 +177,44 @@ module('Unit | Audio | runner', function () {
       assert.deepEqual(h.runner.sequencers(PROJECT_SCOPE), []);
 
       const catalog = h.runner.catalog();
-      assert.deepEqual(catalog.buffers, [
-        'kick',
-        'snare',
-        'hat',
-        'openhat',
-        'clap',
+      assert.deepEqual(
+        catalog.buffers.map((buffer) => buffer.key),
+        ['kick', 'snare', 'hat', 'openhat', 'clap', 'loop'],
+      );
+      assert.deepEqual(
+        catalog.buffers.find((buffer) => buffer.key === 'loop'),
+        { key: 'loop', duration: 4, slices: 16 },
+        'a sound says how long it is and how it is cut',
+      );
+      assert.deepEqual(
+        catalog.ids.find((id) => id.name === 'glue'),
+        {
+          name: 'glue',
+          type: 'compressor',
+          description: 'compressor in the project script',
+        },
+        'ids from the project script, with their node type',
+      );
+      assert.strictEqual(
+        catalog.ids.find((id) => id.name === 'sampler')?.description,
+        'sampler in track 1',
+        'ids from the tracks',
+      );
+      assert.false(
+        catalog.ids.some((id) => id.name === HOST_PAN_ID),
+        'not the host’s node',
+      );
+      assert.deepEqual(
+        catalog.buses.map((bus) => bus.name),
+        ['channel'],
+      );
+      assert.true(
+        catalog.buses[0]!.description!.includes('channel strip'),
+        'the channel bus says what it is',
+      );
+      assert.deepEqual(catalog.sequences, [
+        { name: 'steps', description: '16 steps, in track 1' },
       ]);
-      assert.true(catalog.ids.includes('glue'), 'ids from the project script');
-      assert.true(catalog.ids.includes('sampler'), 'ids from the tracks');
-      assert.false(catalog.ids.includes(HOST_PAN_ID), 'not the host’s node');
-      assert.deepEqual([...catalog.buses].sort(), ['channel', 'main']);
-      assert.deepEqual(catalog.sequences, ['steps']);
     });
 
     test('each track has a host-made out bus with a pan insert, and both survive rebuilds', async function (assert) {
@@ -530,6 +556,8 @@ __.transport.sequence('steps', { steps: 4 }, () => {});`),
           '#s › start:slider',
           '#s › end:slider',
           '#s › loop:toggle',
+          '#s › loopStart:slider',
+          '#s › loopEnd:slider',
           '#s › reverse:toggle',
           '#s › gain:slider',
         ],
@@ -551,7 +579,7 @@ __.transport.sequence('steps', { steps: 4 }, () => {});`),
         h.runner
           .warnings(ONE)[0]!
           .message.includes(
-            'has no parameter "tempo". It has: speed, start, end, loop, reverse, gain',
+            'has no parameter "tempo". It has: speed, start, end, loop, loopStart, loopEnd, reverse, gain',
           ),
         h.runner.warnings(ONE)[0]!.message,
       );
@@ -575,7 +603,19 @@ __.transport.sequence('steps', { steps: 4 }, () => {});`),
       assert.deepEqual(
         [...sections],
         [
-          ['s', ['speed', 'start', 'end', 'loop', 'reverse', 'gain']],
+          [
+            's',
+            [
+              'speed',
+              'start',
+              'end',
+              'loop',
+              'loopStart',
+              'loopEnd',
+              'reverse',
+              'gain',
+            ],
+          ],
           ['f', ['frequency', 'q']],
           ['g', ['gain']],
         ],
@@ -602,7 +642,7 @@ __.transport.sequence('steps', { steps: 4 }, () => {});`),
       // the same nodes however they are found: the stored value follows the node, not the selector
       await h.setScript(ONE, `${CHAIN}controls('*');`);
       assert.strictEqual(paramOf(h, ONE, 'f', 'frequency').value, 500);
-      assert.strictEqual(h.runner.controls(ONE).length, 9);
+      assert.strictEqual(h.runner.controls(ONE).length, 11);
       await h.setScript(ONE, `${CHAIN}slider('#f', 'frequency');`);
       assert.strictEqual(control(h, ONE, '#f › frequency').value, 500);
 
@@ -1286,7 +1326,7 @@ slider('*', 'pan');`),
       assert.strictEqual(end.effective, null);
       assert.deepEqual(
         start.modes,
-        ['seconds', 'ms', 'percent'],
+        ['seconds', 'ms', 'steps', 'percent'],
         'a place in a sample',
       );
       assert.strictEqual(mapping('percent', end.meta).format(length), '100%');
@@ -1328,6 +1368,7 @@ slider('*', 'pan');`),
       assert.deepEqual(number(h, '#s › start').modes, [
         'seconds',
         'ms',
+        'steps',
         'percent',
         'slice',
       ]);
@@ -1373,10 +1414,13 @@ slider('*', 'pan');`),
       const kick = h.engine.buffers.get('kick')!.buffer!;
       const changes = h.changes;
       assert.true(changes > before);
-      h.engine.buffers.add('late', kick);
-      await h.engine.buffers.get('late')!.ready;
-      await h.setScript(ONE, `${scriptOf(h, ONE)}\n// now it is there`);
+      h.engine.buffers.add('later', kick);
+      await h.engine.buffers.get('later')!.ready;
       assert.true(h.changes > changes, 'the UI is told when a sample arrives');
+      await h.setScript(
+        ONE,
+        REGION.replace("buffer: 'kick'", "buffer: 'later'"),
+      );
       assert.strictEqual(number(h, '#s › start').meta.max, kick.duration);
       assert.strictEqual(number(h, '#s › start').waiting, undefined);
     });

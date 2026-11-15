@@ -11,7 +11,8 @@ export default async function (defaults) {
   return compatBuild(app, buildOnce, {
     // Folders of app/ that are only ever reached by an import, never looked up by name at runtime.
     // Leaving them out of the eagerly loaded module map is what lets app/editor (the code editor and
-    // CodeMirror) be a chunk of its own, loaded the first time an editor is shown.
-    staticAppPaths: ['editor', 'utils', 'assets'],
+    // CodeMirror) be a chunk of its own, loaded the first time an editor is shown, and app/waveform (the
+    // waveform editor) one loaded the first time the source pane shows a waveform.
+    staticAppPaths: ['editor', 'waveform', 'utils', 'assets'],
   });
 }

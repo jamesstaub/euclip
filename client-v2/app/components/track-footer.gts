@@ -8,7 +8,9 @@ import CodeEditor from 'client-v2/components/code-editor';
 import ControlsPane from 'client-v2/components/controls-pane';
 import Icon, { type IconName } from 'client-v2/components/icon';
 import SequencePane from 'client-v2/components/sequence-pane';
+import SourcePane from 'client-v2/components/source-pane';
 import type { ScriptError } from 'client-v2/audio/runner';
+import type { LineProblem } from 'client-v2/modifiers/mount-editor';
 import type { DeclarationWarning } from 'client-v2/controls/declarations';
 import { PROJECT_SCOPE, type TrackDocument } from 'client-v2/project/schema';
 import type AudioService from 'client-v2/services/audio';
@@ -47,8 +49,8 @@ export interface TrackFooterSignature {
  * A script that has an error (or a declaration that cannot work) says so in a strip laid over the bottom
  * of the footer, which moves nothing, until it runs cleanly again.
  *
- * The UI is the channel strip and a menu of sequence (the sequencers the script declares), source (a
- * placeholder still) and controls (the controls the script declares, by node). For the main output it
+ * The UI is the channel strip and a menu of sequence (the sequencers the script declares), source (the
+ * waveform editors it declares) and controls (the controls the script declares, by node). For the main output it
  * is the project script's controls. This is the only place a script is shown.
  */
 export default class TrackFooter extends Component<TrackFooterSignature> {
@@ -74,6 +76,29 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
   get warnings(): DeclarationWarning[] {
     return this.audio.warnings(this.scopeId);
   }
+
+  /** The warnings that have a line, for the editor to underline there. */
+  get problems(): LineProblem[] {
+    return this.warnings.flatMap((warning) =>
+      warning.line === undefined
+        ? []
+        : [
+            {
+              line: warning.line,
+              message: warning.message,
+              severity: 'warning' as const,
+            },
+          ],
+    );
+  }
+
+  /** A line a control has asked the editor to show, when it is of this script. */
+  get reveal(): { line: number; token: number } | null {
+    const reveal = this.view.reveal;
+    return reveal?.scopeId === this.scopeId ? reveal : null;
+  }
+
+  noteCursor = (line: number): void => this.view.noteCursor(this.scopeId, line);
 
   get hasStatus(): boolean {
     return this.error !== null || this.warnings.length > 0;
@@ -160,6 +185,9 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
               @onChange={{@onScriptChange}}
               @label={{this.scriptLabel}}
               @error={{this.error}}
+              @problems={{this.problems}}
+              @reveal={{this.reveal}}
+              @onCursor={{this.noteCursor}}
             />
           </div>
         {{else if @track}}
@@ -190,17 +218,7 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
               {{#if (is this.view.footerPane "sequence")}}
                 <SequencePane @scopeId={{this.scopeId}} @label={{this.name}} />
               {{else if (is this.view.footerPane "source")}}
-                <section
-                  class="footer-pane"
-                  aria-label="{{this.name}} source"
-                  data-test-pane="source"
-                >
-                  <h3 class="pane-heading">Source</h3>
-                  <p class="pane-empty" data-test-pane-empty>Controls for the
-                    track's source are coming. A control will appear here where
-                    the script declares one; until then, values are set in the
-                    script.</p>
-                </section>
+                <SourcePane @scopeId={{this.scopeId}} @label={{this.name}} />
               {{else}}
                 <ControlsPane @scopeId={{this.scopeId}} @heading="Controls" />
               {{/if}}

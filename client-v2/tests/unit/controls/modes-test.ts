@@ -299,18 +299,23 @@ module('Unit | Controls | modes', function () {
       'place',
       'a time the host gave a sample length for is a place in the sample',
     );
-    assert.deepEqual(availableModes(place), ['seconds', 'ms', 'percent']);
+    assert.deepEqual(availableModes(place), [
+      'seconds',
+      'ms',
+      'steps',
+      'percent',
+    ]);
     assert.deepEqual(
       availableModes({
         ...place,
         slices: [0, 0.5, 1, 1.5],
         edge: 'start' as const,
       }),
-      ['seconds', 'ms', 'percent', 'slice'],
+      ['seconds', 'ms', 'steps', 'percent', 'slice'],
     );
     assert.deepEqual(
       availableModes({ ...place, slices: [0, 1.5] }),
-      ['seconds', 'ms', 'percent'],
+      ['seconds', 'ms', 'steps', 'percent'],
       'one slice is nothing to choose between',
     );
 

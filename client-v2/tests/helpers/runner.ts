@@ -25,6 +25,8 @@ export interface Harness {
   derived: Operation[];
   /** how many times the runner has said that something the UI shows changed */
   changes: number;
+  /** the bytes of audio files the document's pool refers to, by file key */
+  files: Map<string, ArrayBuffer>;
   /** what a user action does: change the document, then tell the runner */
   apply(op: Operation | null): void;
   /** a script edit, run at once (the app waits for a pause in typing first) */
@@ -42,6 +44,7 @@ export async function startProject(
   seconds = 2,
   nodes: readonly NodeDefinition[] = [],
   options: RunnerOptions = {},
+  files = new Map<string, ArrayBuffer>(),
 ): Promise<Harness> {
   const context = new OfflineAudioContext(2, RATE * seconds, RATE);
   const engine = await createEngine({ context, nodes });
@@ -51,6 +54,7 @@ export async function startProject(
     doc,
     derived: [],
     changes: 0,
+    files,
     runner: undefined as unknown as ProjectRunner,
     apply(op) {
       if (!op) throw new Error('There was no operation to apply.');
@@ -81,6 +85,7 @@ export async function startProject(
       harness.changes++;
     },
     playheadMoved: () => undefined,
+    readFile: (id) => Promise.resolve(harness.files.get(id)?.slice(0) ?? null),
   };
   harness.runner = new ProjectRunner(engine, host, options);
   await harness.runner.start();
@@ -152,3 +157,52 @@ export const chooser = defineNode({
     };
   },
 });
+
+/** A 16-bit mono WAV file made from a function of time: something to add to a pool as a file. */
+export function makeWav(
+  seconds: number,
+  sample: (t: number) => number,
+  rate = RATE,
+): ArrayBuffer {
+  const frames = Math.round(seconds * rate);
+  const bytes = new ArrayBuffer(44 + frames * 2);
+  const view = new DataView(bytes);
+  const text = (at: number, value: string): void => {
+    for (let i = 0; i < value.length; i++)
+      view.setUint8(at + i, value.charCodeAt(i));
+  };
+  text(0, 'RIFF');
+  view.setUint32(4, 36 + frames * 2, true);
+  text(8, 'WAVEfmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, rate, true);
+  view.setUint32(28, rate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  text(36, 'data');
+  view.setUint32(40, frames * 2, true);
+  for (let i = 0; i < frames; i++) {
+    const value = Math.max(-1, Math.min(1, sample(i / rate)));
+    view.setInt16(44 + i * 2, Math.round(value * 32767), true);
+  }
+  return bytes;
+}
+
+/**
+ * How alike two stretches of samples are, whatever their levels: 1 for the same shape, near 0 for
+ * unrelated ones.
+ */
+export function likeness(a: Float32Array, b: Float32Array): number {
+  const length = Math.min(a.length, b.length);
+  let dot = 0;
+  let aa = 0;
+  let bb = 0;
+  for (let i = 0; i < length; i++) {
+    dot += a[i]! * b[i]!;
+    aa += a[i]! * a[i]!;
+    bb += b[i]! * b[i]!;
+  }
+  return aa > 0 && bb > 0 ? dot / Math.sqrt(aa * bb) : 0;
+}

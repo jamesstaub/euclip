@@ -436,6 +436,29 @@
   }
 }
 
+/* the script was just closed with the cursor on this control's declaration: it is pointed out, briefly */
+.control-row[data-linked],
+[data-linked].step-grid,
+[data-linked].waveform {
+  outline: var(--border-width-3) solid var(--near-black);
+  outline-offset: 2px;
+  animation: linked-flash 0.6s steps(2, jump-none) 2;
+}
+
+@keyframes linked-flash {
+  50% {
+    outline-color: var(--light-blue);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .control-row[data-linked],
+  [data-linked].step-grid,
+  [data-linked].waveform {
+    animation: none;
+  }
+}
+
 /* its range waits on something (a sample still loading) */
 .control-row[data-waiting] {
   border-style: dashed;

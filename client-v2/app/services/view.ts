@@ -12,6 +12,9 @@ export const FOOTER_PANES: readonly FooterPane[] = [
 /** Where the view is remembered. It belongs to the person and the device, never to the project document. */
 export const VIEW_STORAGE_KEY = 'euclip:view';
 
+/** How long the control declared on the cursor's line stays marked after the script is closed. */
+export const LINK_MS = 2400;
+
 /** Below this width the footer is a bottom sheet and starts collapsed. Keep in step with track-footer.css. */
 const PHONE = '(max-width: 47.99rem)';
 
@@ -66,6 +69,44 @@ export default class ViewService extends Service {
   /** Collapsed to its bar on phones (a bottom sheet) to start with; otherwise open. */
   @tracked footerOpen = !window.matchMedia(PHONE).matches;
 
+  // --- code and controls, linked -----------------------------------------------------------------
+
+  /**
+   * A line of a scope's script the editor is asked to show (a control's "show in script"). The token
+   * is new each time, so asking for the same line twice shows it twice.
+   */
+  @tracked reveal: { scopeId: string; line: number; token: number } | null =
+    null;
+
+  /**
+   * The line the cursor was on in a scope's script when the footer last turned from the script back to
+   * its UI: the control declared on that line is marked for a moment.
+   */
+  @tracked linked: { scopeId: string; line: number } | null = null;
+
+  #cursor: { scopeId: string; line: number } | null = null;
+  #linkTimer: ReturnType<typeof setTimeout> | undefined;
+  #token = 0;
+
+  /** Turns the footer to the script and shows a line of it. */
+  showInScript(scopeId: string, line: number): void {
+    this.reveal = { scopeId, line, token: ++this.#token };
+    this.scriptOpen = true;
+    this.footerOpen = true;
+    this.#cursor = { scopeId, line };
+    this.#save();
+  }
+
+  /** The editor says where the person's cursor is. Not tracked: nothing is drawn from it until the UI returns. */
+  noteCursor(scopeId: string, line: number): void {
+    this.#cursor = { scopeId, line };
+  }
+
+  willDestroy(): void {
+    super.willDestroy();
+    clearTimeout(this.#linkTimer);
+  }
+
   /**
    * The script button. Pressed while the footer is collapsed, it opens the footer on the script, since
    * turning the script on (or off) where it cannot be seen would look like nothing happened.
@@ -73,6 +114,12 @@ export default class ViewService extends Service {
   toggleScript(): void {
     if (this.footerOpen) {
       this.scriptOpen = !this.scriptOpen;
+      if (!this.scriptOpen && this.#cursor) {
+        // back to the UI: the control declared where the cursor was is pointed out, briefly
+        this.linked = this.#cursor;
+        clearTimeout(this.#linkTimer);
+        this.#linkTimer = setTimeout(() => (this.linked = null), LINK_MS);
+      }
     } else {
       this.scriptOpen = true;
       this.footerOpen = true;

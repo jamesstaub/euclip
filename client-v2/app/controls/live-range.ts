@@ -33,8 +33,6 @@ export interface LiveRange {
 export interface LiveContext {
   engine: Engine;
   node: Node;
-  /** the node's creation options as the scope's snapshot gives them (a buffer is its key in the store) */
-  init: Readonly<Record<string, unknown>> | undefined;
 }
 
 type Source = (context: LiveContext) => LiveRange | null;
@@ -42,45 +40,93 @@ type Source = (context: LiveContext) => LiveRange | null;
 /** The least a sampler's region may be: start and end never meet (at or before start, end means "to the end"). */
 export const REGION_GAP = 0.001;
 
-/** A sampler's start or end: within the sample it plays, and on the right side of the other. */
-function samplerRegion(edge: 'start' | 'end'): Source {
-  return ({ engine, node, init }) => {
-    const key = init?.['buffer'];
-    if (typeof key !== 'string') return null; // a sampler with nothing to play
-    const ref = engine.buffers.get(key);
-    if (!ref || ref.state === 'loading' || ref.duration === null) {
-      return { waiting: `Waiting for the sample "${key}" to load` };
-    }
+type Place = 'start' | 'end' | 'loopStart' | 'loopEnd';
+
+/** A sampler's region and loop as it plays them, from the raw parameter values and the sound's length. */
+export function samplerRegion(
+  raw: Readonly<Record<Place, number>>,
+  length: number,
+): Record<Place, number> {
+  const start = Math.min(Math.max(raw.start || 0, 0), length);
+  const end = raw.end > start ? Math.min(raw.end, length) : length;
+  // a loop end at or before the loop start (the defaults, 0 and 0) means the whole region goes round
+  const whole = !(raw.loopEnd > raw.loopStart);
+  const loopStart = whole
+    ? start
+    : Math.min(Math.max(raw.loopStart, start), end);
+  const loopEnd = whole ? end : Math.min(Math.max(raw.loopEnd, loopStart), end);
+  return { start, end, loopStart, loopEnd };
+}
+
+/**
+ * One of a sampler's four places in its sound: within the sound it plays (`node.buffer`), on the right
+ * side of the others (start before end; the loop points inside the region, in order), and standing
+ * where the sampler will really play from when the raw value means "the default" (an end of 0 is the
+ * end of the sound; loop points of 0 and 0 are the whole region).
+ */
+function samplerPlace(place: Place): Source {
+  return ({ node }) => {
+    const ref = node.buffer;
+    if (!ref) return null; // a sampler with nothing to play
     if (ref.state === 'error') {
-      return { waiting: `The sample "${key}" did not load` };
+      return { waiting: `The sample "${ref.key}" did not load` };
+    }
+    if (ref.state === 'loading' || ref.duration === null) {
+      return { waiting: `Waiting for the sample "${ref.key}" to load` };
     }
     const length = ref.duration;
-    const start = Math.min(Number(node.param('start').value) || 0, length);
-    const rawEnd = Number(node.param('end').value) || 0;
-    const end = rawEnd > start ? Math.min(rawEnd, length) : length;
+    const raw = (): Record<Place, number> => ({
+      start: Number(node.param('start').value) || 0,
+      end: Number(node.param('end').value) || 0,
+      loopStart:
+        'loopStart' in node.params
+          ? Number(node.param('loopStart').value) || 0
+          : 0,
+      loopEnd:
+        'loopEnd' in node.params ? Number(node.param('loopEnd').value) || 0 : 0,
+    });
+    const now = samplerRegion(raw(), length);
     const shared = {
       min: 0,
       max: length,
       duration: length,
       slices: ref.slices,
-      edge,
+      edge:
+        place === 'start' || place === 'loopStart'
+          ? ('start' as const)
+          : ('end' as const),
+      // where the control stands for a raw value: the others as they are now, this one as given
+      shown: (value: number): number =>
+        samplerRegion({ ...raw(), [place]: value }, length)[place],
     };
-    return edge === 'start'
-      ? {
+    switch (place) {
+      case 'start':
+        return { ...shared, ceiling: Math.max(0, now.end - REGION_GAP) };
+      case 'end':
+        return { ...shared, floor: Math.min(length, now.start + REGION_GAP) };
+      case 'loopStart':
+        return {
           ...shared,
-          ceiling: Math.max(0, end - REGION_GAP),
-          shown: (value) => Math.min(Math.max(value, 0), length),
-        }
-      : {
-          ...shared,
-          floor: Math.min(length, start + REGION_GAP),
-          shown: (value) => (value > start ? Math.min(value, length) : length),
+          floor: now.start,
+          ceiling: Math.max(now.start, now.loopEnd - REGION_GAP),
         };
+      case 'loopEnd':
+        return {
+          ...shared,
+          floor: Math.min(now.end, now.loopStart + REGION_GAP),
+          ceiling: now.end,
+        };
+    }
   };
 }
 
 const SOURCES: Readonly<Record<string, Readonly<Record<string, Source>>>> = {
-  sampler: { start: samplerRegion('start'), end: samplerRegion('end') },
+  sampler: {
+    start: samplerPlace('start'),
+    end: samplerPlace('end'),
+    loopStart: samplerPlace('loopStart'),
+    loopEnd: samplerPlace('loopEnd'),
+  },
 };
 
 /** The live range of one parameter of a node, or null when it has none. */

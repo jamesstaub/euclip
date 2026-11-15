@@ -11,8 +11,38 @@ export interface ProjectStorage {
   save(doc: ProjectDocument): Promise<boolean>;
 }
 
+/**
+ * Where the audio a person adds is kept: the file's bytes, beside the project and never inside it (the
+ * document's pool entry names the file by its key here).
+ */
+export interface FileStorage {
+  /** Resolves true when the bytes were written. */
+  put(id: string, file: StoredFile): Promise<boolean>;
+  get(id: string): Promise<StoredFile | null>;
+  delete(id: string): Promise<void>;
+}
+
+export interface StoredFile {
+  bytes: ArrayBuffer;
+  /** the name the file had on the person's device */
+  name: string;
+  /** its media type, as the browser reported it (may be empty) */
+  type: string;
+}
+
 const STORE = 'projects';
+const FILES = 'files';
 const KEY = 'current';
+/** 1: the project. 2: added audio files, in a store of their own. */
+const DB_VERSION = 2;
+
+function done(tx: IDBTransaction): Promise<void> {
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error ?? new Error('IndexedDB write failed'));
+    tx.onabort = () => reject(tx.error ?? new Error('IndexedDB write aborted'));
+  });
+}
 
 function request<T>(req: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -22,15 +52,17 @@ function request<T>(req: IDBRequest<T>): Promise<T> {
   });
 }
 
-export class IndexedDbStorage implements ProjectStorage {
+export class IndexedDbStorage implements ProjectStorage, FileStorage {
   constructor(private readonly name = 'euclip-v2') {}
 
   #open(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
-      const opening = indexedDB.open(this.name, 1);
+      const opening = indexedDB.open(this.name, DB_VERSION);
       opening.onupgradeneeded = () => {
-        if (!opening.result.objectStoreNames.contains(STORE)) {
-          opening.result.createObjectStore(STORE);
+        for (const store of [STORE, FILES]) {
+          if (!opening.result.objectStoreNames.contains(store)) {
+            opening.result.createObjectStore(store);
+          }
         }
       };
       opening.onsuccess = () => resolve(opening.result);
@@ -83,6 +115,65 @@ export class IndexedDbStorage implements ProjectStorage {
     }
   }
 
+  async put(id: string, file: StoredFile): Promise<boolean> {
+    try {
+      const db = await this.#open();
+      try {
+        const tx = db.transaction(FILES, 'readwrite');
+        tx.objectStore(FILES).put(
+          { bytes: file.bytes, name: file.name, type: file.type },
+          id,
+        );
+        await done(tx);
+        return true;
+      } finally {
+        db.close();
+      }
+    } catch (error) {
+      console.warn('Euclip: the audio file could not be kept.', error);
+      return false;
+    }
+  }
+
+  async get(id: string): Promise<StoredFile | null> {
+    try {
+      const db = await this.#open();
+      try {
+        const value: unknown = await request(
+          db.transaction(FILES, 'readonly').objectStore(FILES).get(id),
+        );
+        const file = value as Partial<StoredFile> | undefined;
+        return file?.bytes instanceof ArrayBuffer
+          ? {
+              bytes: file.bytes,
+              name: String(file.name ?? ''),
+              type: String(file.type ?? ''),
+            }
+          : null;
+      } finally {
+        db.close();
+      }
+    } catch (error) {
+      console.warn('Euclip: the audio file could not be read.', error);
+      return null;
+    }
+  }
+
+  async delete(id: string): Promise<void> {
+    try {
+      const db = await this.#open();
+      try {
+        const tx = db.transaction(FILES, 'readwrite');
+        tx.objectStore(FILES).delete(id);
+        await done(tx);
+      } finally {
+        db.close();
+      }
+    } catch {
+      // (left behind: harmless)
+    }
+  }
+
   /** Removes the database. For tests. */
   clear(): Promise<void> {
     return new Promise((resolve) => {
@@ -92,6 +183,28 @@ export class IndexedDbStorage implements ProjectStorage {
         deleting.onblocked =
           () => resolve();
     });
+  }
+}
+
+/** Keeps added audio in memory only. What tests use. */
+export class MemoryFiles implements FileStorage {
+  files = new Map<string, StoredFile>();
+
+  put(id: string, file: StoredFile): Promise<boolean> {
+    this.files.set(id, { ...file, bytes: file.bytes.slice(0) });
+    return Promise.resolve(true);
+  }
+
+  get(id: string): Promise<StoredFile | null> {
+    const file = this.files.get(id);
+    return Promise.resolve(
+      file ? { ...file, bytes: file.bytes.slice(0) } : null,
+    );
+  }
+
+  delete(id: string): Promise<void> {
+    this.files.delete(id);
+    return Promise.resolve();
   }
 }
 

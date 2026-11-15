@@ -1,5 +1,6 @@
 /**
- * Makes the built-in drum sounds in public/samples: short synthesised one-shots, written as 16-bit mono
+ * Makes the built-in drum sounds in public/samples: short synthesised one-shots and one two-bar loop made
+ * from them, written as 16-bit mono
  * WAV files. They are generated (nothing here is a recording), so the default project plays with no
  * network and with no sample licence to think about. Run: node scripts/make-samples.mjs
  */
@@ -90,6 +91,39 @@ const sounds = {
     });
   })(),
 };
+
+/**
+ * A two-bar drum break at 120 beats per minute (4 seconds, 32 sixteenths), put together from the hits
+ * above with a little variation in level, so there is something longer to cut into slices. Every hit
+ * starts exactly on a sixteenth: a grid of 32 slices, or the onsets, both find them.
+ */
+sounds.loop = (() => {
+  const sixteenth = 60 / 120 / 4;
+  const data = new Float64Array(Math.round(32 * sixteenth * RATE));
+  const put = (sound, step, level) => {
+    const at = Math.round(step * sixteenth * RATE);
+    for (let i = 0; i < sound.length && at + i < data.length; i++) {
+      data[at + i] += sound[i] * level;
+    }
+  };
+  const kicks = [0, 7, 10, 16, 19, 23, 26];
+  const snares = [4, 12, 20, 28, 31];
+  const jitter = noise(23);
+  for (const step of kicks) put(sounds.kick, step, 0.9);
+  for (const step of snares) put(sounds.snare, step, step === 31 ? 0.5 : 0.85);
+  for (let step = 0; step < 32; step += 2) {
+    put(
+      step === 14 || step === 30 ? sounds.openhat : sounds.hat,
+      step,
+      0.45 + 0.1 * jitter(),
+    );
+  }
+  put(sounds.clap, 28, 0.5);
+  const max = data.reduce((m, v) => Math.max(m, Math.abs(v)), 0) || 1;
+  const fade = Math.round(0.005 * RATE);
+  for (let i = 0; i < fade; i++) data[data.length - 1 - i] *= i / fade;
+  return data.map((v) => (v / max) * 0.95);
+})();
 
 function wav(samples) {
   const buffer = Buffer.alloc(44 + samples.length * 2);

@@ -1,5 +1,6 @@
 import type { TOC } from '@ember/component/template-only';
 import mountEditor from 'client-v2/modifiers/mount-editor';
+import type { LineProblem } from 'client-v2/modifiers/mount-editor';
 import type { ScriptError } from 'client-v2/audio/runner';
 
 export interface CodeEditorSignature {
@@ -13,6 +14,12 @@ export interface CodeEditorSignature {
     label?: string;
     /** an error in the script as it is, shown under the code and on its line when the editor can tell */
     error?: ScriptError | null;
+    /** problems on particular lines, underlined in the code */
+    problems?: readonly LineProblem[];
+    /** a line to go to and flash */
+    reveal?: { line: number; token: number } | null;
+    /** the line the person's cursor has moved to */
+    onCursor?: (line: number) => void;
   };
 }
 
@@ -26,7 +33,15 @@ const CodeEditor: TOC<CodeEditorSignature> = <template>
     class="code-editor"
     data-test-code-editor
     ...attributes
-    {{mountEditor @doc @onChange label=@label error=@error}}
+    {{mountEditor
+      @doc
+      @onChange
+      label=@label
+      error=@error
+      problems=@problems
+      reveal=@reveal
+      onCursor=@onCursor
+    }}
   ></div>
 </template>;
 

@@ -7,7 +7,9 @@ import type { ControlView } from 'client-v2/audio/runner';
 import { MODE_LABELS } from 'client-v2/controls/modes';
 import { controlWidget, type ControlEntry } from 'client-v2/controls/registry';
 import { mappingOf, numberOf } from 'client-v2/controls/view';
+import intoView from 'client-v2/modifiers/into-view';
 import type AudioService from 'client-v2/services/audio';
+import type ViewService from 'client-v2/services/view';
 
 export interface ControlRowSignature {
   Element: HTMLLIElement;
@@ -24,8 +26,24 @@ export interface ControlRowSignature {
  */
 export default class ControlRow extends Component<ControlRowSignature> {
   @service declare audio: AudioService;
+  @service declare view: ViewService;
 
   @tracked menuOpen = false;
+
+  /** The script was just closed with the cursor on this control's declaration. */
+  get linked(): boolean {
+    const linked = this.view.linked;
+    return (
+      linked !== null &&
+      linked.scopeId === this.args.scopeId &&
+      linked.line === this.args.control.line
+    );
+  }
+
+  showInScript = (): void => {
+    const line = this.args.control.line;
+    if (line !== undefined) this.view.showInScript(this.args.scopeId, line);
+  };
 
   get entry(): ControlEntry | undefined {
     return controlWidget(this.args.control.kind);
@@ -71,6 +89,11 @@ export default class ControlRow extends Component<ControlRowSignature> {
         disabled: !control.stored,
         onSelect: () => this.audio.resetControl(scopeId, control.key),
       },
+      {
+        label: 'Show in script',
+        disabled: control.line === undefined,
+        onSelect: this.showInScript,
+      },
       { label: 'Learn MIDI (coming)', disabled: true },
     ];
   }
@@ -96,11 +119,13 @@ export default class ControlRow extends Component<ControlRowSignature> {
       class="control-row control-row--{{@control.kind}}"
       data-stored={{if @control.stored "true"}}
       data-moved={{if this.effectiveText "true"}}
+      data-linked={{if this.linked "true"}}
       data-waiting={{if @control.waiting "true"}}
       data-mode={{@control.mode}}
       title={{@control.waiting}}
       data-test-control={{@control.key}}
       ...attributes
+      {{intoView this.linked}}
     >
       <span
         class="control-row__label truncate"

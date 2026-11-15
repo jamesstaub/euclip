@@ -721,10 +721,13 @@ export function availableModes(meta: NumberMeta): ModeName[] {
       return meta.stepSeconds && meta.stepSeconds > 0
         ? ['seconds', 'ms', 'steps']
         : ['seconds', 'ms'];
-    case 'place':
-      return meta.slices && meta.slices.length > 2
-        ? ['seconds', 'ms', 'percent', 'slice']
-        : ['seconds', 'ms', 'percent'];
+    case 'place': {
+      const modes: ModeName[] = ['seconds', 'ms'];
+      if (meta.stepSeconds && meta.stepSeconds > 0) modes.push('steps');
+      modes.push('percent');
+      if (meta.slices && meta.slices.length > 2) modes.push('slice');
+      return modes;
+    }
     case 'speed':
       return ['ratio', 'semitones', 'ratio-cents'];
     case 'plain': {
