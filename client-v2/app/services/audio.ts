@@ -161,6 +161,12 @@ export default class AudioService extends Service {
     return this.runner?.controls(scopeId) ?? [];
   }
 
+  /** Whether a track's script sends anything to its channel bus (so the channel strip has something to act on). */
+  sendsToChannel(trackId: string): boolean {
+    void this.revision;
+    return this.runner?.sendsToChannel(trackId) ?? true;
+  }
+
   /** The sequencers the scope's script declares, in declaration order. */
   sequencers(scopeId: string): SequencerView[] {
     void this.revision;

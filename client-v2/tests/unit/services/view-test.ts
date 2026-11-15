@@ -47,7 +47,7 @@ module('Unit | Service | view', function (hooks) {
 
     assert.deepEqual(
       JSON.parse(window.localStorage.getItem(VIEW_STORAGE_KEY) ?? 'null'),
-      { scriptOpen: true, footerPane: 'source' },
+      { scriptOpen: true, footerPane: 'source', collapsed: [] },
     );
   });
 
@@ -76,5 +76,38 @@ module('Unit | Service | view', function (hooks) {
     const view = this.owner.lookup('service:view');
     assert.false(view.scriptOpen);
     assert.strictEqual(view.footerPane, 'sequence');
+  });
+
+  test('which sections of the controls pane are closed is remembered, per scope', function (assert) {
+    const view = this.owner.lookup('service:view');
+    assert.true(view.isSectionOpen('t-kick', 'filter'), 'open to start with');
+
+    view.setSectionOpen('t-kick', 'filter', false);
+    assert.false(view.isSectionOpen('t-kick', 'filter'));
+    assert.true(
+      view.isSectionOpen('t-snare', 'filter'),
+      'another track’s is its own',
+    );
+    assert.deepEqual(
+      (
+        JSON.parse(window.localStorage.getItem(VIEW_STORAGE_KEY) ?? '{}') as {
+          collapsed?: string[];
+        }
+      ).collapsed,
+      ['t-kick/filter'],
+    );
+
+    view.setSectionOpen('t-kick', 'filter', true);
+    assert.true(view.isSectionOpen('t-kick', 'filter'));
+  });
+
+  test('closed sections are restored', function (assert) {
+    window.localStorage.setItem(
+      VIEW_STORAGE_KEY,
+      JSON.stringify({ collapsed: ['t-kick/filter', 7] }),
+    );
+    const view = this.owner.lookup('service:view');
+    assert.false(view.isSectionOpen('t-kick', 'filter'));
+    assert.true(view.isSectionOpen('t-kick', 'level'));
   });
 });

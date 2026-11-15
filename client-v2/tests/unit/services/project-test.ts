@@ -158,11 +158,11 @@ module('Unit | Service | project', function (hooks) {
   test('what is in storage is only trusted if it is a document this version knows', async function (assert) {
     const project = this.owner.lookup('service:project');
     const storage = new MemoryStorage();
-    storage.saved = { ...defaultProject(), schemaVersion: 3 } as never;
+    storage.saved = { ...defaultProject(), schemaVersion: 99 } as never;
     // MemoryStorage hands back what it has; the real storage validates. Check the real one's rule:
     const real = new IndexedDbStorage(`euclip-test-bad-${Date.now()}`);
     try {
-      await real.save({ ...defaultProject(), schemaVersion: 3 } as never);
+      await real.save({ ...defaultProject(), schemaVersion: 99 } as never);
       assert.strictEqual(
         await real.load(),
         null,
@@ -171,7 +171,7 @@ module('Unit | Service | project', function (hooks) {
     } finally {
       await real.clear();
     }
-    assert.strictEqual(project.doc.schemaVersion, 2);
+    assert.strictEqual(project.doc.schemaVersion, 3);
   });
 
   test('a storage that fails does not break the app', async function (assert) {

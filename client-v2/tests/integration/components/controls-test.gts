@@ -6,6 +6,7 @@ import {
   focus,
   render,
   rerender,
+  settled,
   triggerEvent,
   triggerKeyEvent,
 } from '@ember/test-helpers';
@@ -71,6 +72,7 @@ function at(
   return {
     pointerId: 1,
     button: 0,
+    buttons: 1,
     isPrimary: true,
     pointerType: options.pointerType ?? 'mouse',
     shiftKey: options.shiftKey ?? false,
@@ -154,6 +156,158 @@ module('Integration | Component | controls', function (hooks) {
         'after the pointer is up, moving does nothing',
       );
       assert.dom(slider).hasAria('valuenow', '100');
+    });
+
+    test('a drag that leaves the control keeps following the pointer, and a release anywhere lets go', async function (assert) {
+      const state = new State();
+      await render(
+        <template>
+          {{! template-lint-disable no-inline-styles }}
+          {{! the test gives the control a known size }}
+          <div style="width: 216px"><Slider
+              @value={{state.value}}
+              @mapping={{state.mapping}}
+              @label="amount"
+              @onChange={{state.change}}
+            /></div>
+        </template>,
+      );
+      const slider = '[data-test-slider]';
+      const elsewhere = document.body;
+
+      await triggerEvent(slider, 'pointerdown', at(slider, 0.25));
+      // off the control: the events arrive somewhere else on the page
+      await triggerEvent(
+        elsewhere,
+        'pointermove',
+        at(slider, 0.6, { dy: 300 }),
+      );
+      assert.strictEqual(
+        Math.round(state.value),
+        60,
+        'far below it, it still follows',
+      );
+      await triggerEvent(elsewhere, 'pointermove', at(slider, 3, { dy: -500 }));
+      assert.strictEqual(state.value, 100, 'past the end: held at the end');
+      await triggerEvent(elsewhere, 'pointermove', at(slider, -2, { dy: 80 }));
+      assert.strictEqual(state.value, 0, 'before the start: held at the start');
+      await triggerEvent(elsewhere, 'pointermove', at(slider, 0.4, { dy: 80 }));
+      assert.strictEqual(Math.round(state.value), 40);
+
+      await triggerEvent(elsewhere, 'pointerup', at(slider, 0.4, { dy: 80 }));
+      await triggerEvent(slider, 'pointermove', at(slider, 0.9));
+      await triggerEvent(elsewhere, 'pointermove', at(slider, 0.1));
+      assert.strictEqual(
+        Math.round(state.value),
+        40,
+        'released outside the control: it has let go',
+      );
+
+      // and it can be picked up again
+      await triggerEvent(slider, 'pointerdown', at(slider, 0.7));
+      assert.strictEqual(Math.round(state.value), 70);
+      await triggerEvent(slider, 'pointerup', at(slider, 0.7));
+    });
+
+    test('it lets go when the pointer is cancelled or lost, a second finger arrives, the window loses focus, or the button turns out to be up', async function (assert) {
+      const state = new State();
+      await render(
+        <template>
+          {{! template-lint-disable no-inline-styles }}
+          {{! the test gives the control a known size }}
+          <div style="width: 216px"><Slider
+              @value={{state.value}}
+              @mapping={{state.mapping}}
+              @label="amount"
+              @onChange={{state.change}}
+            /></div>
+        </template>,
+      );
+      const slider = '[data-test-slider]';
+      const endings: Record<string, () => Promise<unknown>> = {
+        'pointercancel away from the control': () =>
+          triggerEvent(document.body, 'pointercancel', at(slider, 0.2)),
+        'losing pointer capture': () =>
+          triggerEvent(slider, 'lostpointercapture', at(slider, 0.2)),
+        'a second finger anywhere': () =>
+          triggerEvent(document.body, 'pointerdown', {
+            ...at(slider, 0.5, { pointerType: 'touch' }),
+            pointerId: 2,
+            isPrimary: false,
+          }),
+        'the window losing focus': async () => {
+          window.dispatchEvent(new Event('blur'));
+          await settled();
+        },
+        'a mouse moving with no button down': () =>
+          triggerEvent(document.body, 'pointermove', {
+            ...at(slider, 0.5),
+            buttons: 0,
+          }),
+      };
+      for (const [what, end] of Object.entries(endings)) {
+        await triggerEvent(slider, 'pointerdown', at(slider, 0.2));
+        await triggerEvent(slider, 'pointermove', at(slider, 0.3));
+        assert.strictEqual(Math.round(state.value), 30, `${what}: dragging`);
+        await end();
+        await triggerEvent(slider, 'pointermove', at(slider, 0.9));
+        await triggerEvent(document.body, 'pointermove', at(slider, 0.8));
+        assert.strictEqual(
+          Math.round(state.value),
+          30,
+          `${what}: let go, and stays where it was`,
+        );
+        await triggerEvent(slider, 'pointerup', at(slider, 0.9));
+        assert.strictEqual(
+          Math.round(state.value),
+          30,
+          `${what}: a late release does nothing`,
+        );
+      }
+    });
+
+    test('a mouse: holding the handle still is not a long press, and two short drags are not a double click', async function (assert) {
+      const state = new State();
+      await render(
+        <template>
+          {{! template-lint-disable no-inline-styles }}
+          {{! the test gives the control a known size }}
+          <div style="width: 216px"><Slider
+              @value={{state.value}}
+              @mapping={{state.mapping}}
+              @label="amount"
+              @onChange={{state.change}}
+              @onReset={{state.reset}}
+              @onMenu={{state.menu}}
+            /></div>
+        </template>,
+      );
+      const slider = '[data-test-slider]';
+
+      await triggerEvent(slider, 'pointerdown', at(slider, 0.5));
+      await new Promise((resolve) => setTimeout(resolve, 650));
+      assert.strictEqual(
+        state.menus,
+        0,
+        'no menu: a mouse has a button for that',
+      );
+      await triggerEvent(slider, 'pointermove', at(slider, 0.6));
+      assert.strictEqual(
+        Math.round(state.value),
+        60,
+        'and the drag goes on after the wait',
+      );
+      await triggerEvent(slider, 'pointerup', at(slider, 0.6));
+
+      await triggerEvent(slider, 'pointerdown', at(slider, 0.6));
+      await triggerEvent(slider, 'pointermove', at(slider, 0.7));
+      await triggerEvent(slider, 'pointerup', at(slider, 0.7));
+      assert.strictEqual(
+        state.resets,
+        0,
+        'two small adjustments in a row are not a reset',
+      );
+      assert.strictEqual(Math.round(state.value), 70);
     });
 
     test('Shift drags finely', async function (assert) {
@@ -489,6 +643,7 @@ module('Integration | Component | controls', function (hooks) {
       const down = {
         pointerId: 1,
         button: 0,
+        buttons: 1,
         pointerType: 'mouse',
         clientX: 100,
         clientY: 300,
@@ -508,7 +663,23 @@ module('Integration | Component | controls', function (hooks) {
         shiftKey: true,
       });
       assert.strictEqual(state.value, 76, 'Shift: a tenth as far');
-      await triggerEvent(knob, 'pointerup', { ...down, clientY: 260 });
+      // off the knob, and released there
+      await triggerEvent(document.body, 'pointermove', {
+        ...down,
+        clientY: 250,
+        clientX: 116,
+      });
+      assert.true(state.value > 76, 'it follows the pointer off the knob');
+      const there = state.value;
+      await triggerEvent(document.body, 'pointerup', { ...down, clientY: 250 });
+      await triggerEvent(knob, 'pointermove', { ...down, clientY: 100 });
+      assert.strictEqual(
+        state.value,
+        there,
+        'released off the knob: it has let go',
+      );
+      state.value = 76;
+      await rerender();
 
       await focus(knob);
       await triggerKeyEvent(knob, 'keydown', 'ArrowDown');
@@ -535,12 +706,43 @@ module('Integration | Component | controls', function (hooks) {
       assert.dom(toggle).hasAttribute('role', 'switch');
       assert.dom(toggle).hasAria('checked', 'false');
       assert.dom(toggle).hasAria('label', 'loop');
-      assert.dom(toggle).hasText('off');
+      assert.dom(`${toggle} .toggle__text`).hasText('off');
+      assert.dom(`${toggle} .toggle__mark`).hasText('O');
+      const handle = (): { left: number; track: DOMRect; colour: string } => {
+        const track = find(`${toggle} .toggle__track`)!;
+        return {
+          left: find(`${toggle} .toggle__handle`)!.getBoundingClientRect().left,
+          track: track.getBoundingClientRect(),
+          colour: getComputedStyle(track).backgroundColor,
+        };
+      };
+      const off = handle();
+      assert.true(
+        off.left - off.track.left < 4,
+        'off: the square is at the left',
+      );
 
       await click(toggle);
       assert.true(state.checked);
       assert.dom(toggle).hasAria('checked', 'true');
-      assert.dom(toggle).hasText('on');
+      assert.dom(`${toggle} .toggle__text`).hasText('on');
+      assert.dom(`${toggle} .toggle__mark`).hasText('I');
+      await new Promise((resolve) => setTimeout(resolve, 150)); // (it slides)
+      const on = handle();
+      assert.true(
+        on.left - on.track.left > on.track.width / 2 - 4,
+        `on: the square has moved to the right (${on.left - on.track.left}px of ${on.track.width})`,
+      );
+      assert.notStrictEqual(
+        on.colour,
+        off.colour,
+        'and the track has changed colour',
+      );
+      assert.strictEqual(
+        getComputedStyle(find(`${toggle} .toggle__handle`)!).backgroundColor,
+        'rgb(51, 51, 51)',
+        'the square itself is the same dark square either way',
+      );
     });
   });
 

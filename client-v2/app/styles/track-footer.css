@@ -17,6 +17,7 @@
  */
 
 .track-footer {
+  position: relative; /* the status strip is laid over its bottom edge */
   container: track-footer / inline-size;
   display: flex;
   flex-direction: column;
@@ -76,6 +77,18 @@
   text-transform: uppercase;
 }
 
+/* the "!" of a script with an error sits on the button's corner: showing it moves nothing in the bar */
+.track-footer__script-btn {
+  position: relative;
+}
+
+.track-footer__alert {
+  position: absolute;
+  inset-block-start: calc(-1 * var(--space-1));
+  inset-inline-end: calc(-1 * var(--space-1));
+  outline: var(--border-width-2) solid var(--near-black);
+}
+
 /* phones: the two controls keep their icons and drop their words, so the track's name has the room */
 @media (width < 30rem) {
   .track-footer__bar {
@@ -88,13 +101,28 @@
   }
 }
 
-/* the script has an error: said under the bar until it runs cleanly again */
-.track-footer__error {
-  padding: var(--space-1) var(--space-3);
-  background: var(--dark-gray);
+/*
+ * The status strip: a script's error, and warnings about its declarations. It is laid over the bottom
+ * edge of the footer, so that appearing and clearing moves nothing above it. One line of each message
+ * to start with; "More" shows the whole of them (still laid over, growing upwards).
+ */
+.track-footer__status {
+  --focus-ring: var(--light-blue);
+  --surface-hover: var(--surface-hover-on-dark);
+
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: var(--safe-bottom);
+  z-index: var(--layer-menu);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  max-block-size: 60%;
+  overflow: hidden auto;
+  border-block-start: var(--border-accent);
+  background: var(--near-black);
   color: var(--text-on-dark);
   font-size: var(--font-size-6);
-  overflow-wrap: anywhere;
 
   & b {
     color: var(--yellow);
@@ -102,18 +130,28 @@
   }
 }
 
-/* something wrong with a control's declaration: the rest of the script is running */
-.track-footer__warnings {
+.track-footer__error,
+.track-footer__warnings li {
+  grid-column: 1;
   padding: var(--space-1) var(--space-3);
-  background: var(--near-black);
-  color: var(--text-on-dark);
-  font-size: var(--font-size-7);
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 
-  & b {
-    color: var(--yellow);
-    font-weight: var(--font-weight-bold);
+  .track-footer__status.is-open & {
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
+}
+
+.track-footer__warnings {
+  grid-column: 1;
+  font-size: var(--font-size-7);
+}
+
+.track-footer__status-more {
+  grid-area: 1 / 2;
+  color: var(--yellow);
 }
 
 /* ---- the body: the UI ---- */
@@ -222,4 +260,16 @@
       margin-inline-start: 0;
     }
   }
+}
+
+/* room under the last thing in a pane, so the strip does not sit on it for good */
+.track-footer[data-error] .track-footer__pane,
+.track-footer[data-warnings] .track-footer__pane {
+  padding-block-end: var(--space-5);
+}
+
+/* the same inside the editor: its last lines can be scrolled clear of the strip (its box does not change) */
+.track-footer[data-error] .cm-content,
+.track-footer[data-warnings] .cm-content {
+  padding-block-end: 3rem;
 }

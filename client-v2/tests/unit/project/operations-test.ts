@@ -335,7 +335,7 @@ module('Unit | Project | migration', function () {
           id: 't-kick',
           name: 'kick',
           script:
-            "__().sampler({ id: 'sampler', buffer: 'kick' }).to('out');\n",
+            "__().sampler({ id: 'sampler', buffer: 'kick' }).to('out');\n// .to( 'out' ) and bus('out') are left as written\n",
           level: 0.5,
           pan: -0.25,
           values: {
@@ -363,7 +363,7 @@ module('Unit | Project | migration', function () {
 
     assert.ok(doc, 'it loads');
     assert.true(isProjectDocument(doc));
-    assert.strictEqual(doc?.schemaVersion, 2);
+    assert.strictEqual(doc?.schemaVersion, 3);
     assert.strictEqual(doc?.name, 'Saved yesterday');
     assert.strictEqual(doc?.bpm, 133);
     assert.strictEqual(doc?.tracks[0]?.level, 0.5);
@@ -382,8 +382,8 @@ module('Unit | Project | migration', function () {
     assert.deepEqual(doc?.values, { controls: {} });
     assert.strictEqual(
       doc?.tracks[0]?.script,
-      "__().sampler({ id: 'sampler', buffer: 'kick' }).to('out');\n",
-      'scripts are not edited',
+      "__().sampler({ id: 'sampler', buffer: 'kick' }).to('channel');\n// .to( 'out' ) and bus('out') are left as written\n",
+      "the generated .to('out') becomes .to('channel'), and nothing else in a script is edited",
     );
   });
 
@@ -391,7 +391,7 @@ module('Unit | Project | migration', function () {
     const current = defaultProject();
     assert.strictEqual(migrateProject(current), current);
     assert.strictEqual(
-      migrateProject({ ...current, schemaVersion: 3 }),
+      migrateProject({ ...current, schemaVersion: 4 }),
       null,
       'a newer version',
     );

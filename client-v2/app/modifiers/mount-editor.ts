@@ -60,6 +60,8 @@ export default class MountEditor extends Modifier<MountEditorSignature> {
         doc: this.#doc,
         catalog,
         theme: 'dark',
+        // the footer's status strip says the message; the editor only marks the line
+        errorPanel: false,
         ariaLabel: label ?? 'Code',
         onChange: (value) => this.#onChange?.(value),
       });

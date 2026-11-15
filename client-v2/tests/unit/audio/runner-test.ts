@@ -1,8 +1,16 @@
 import { module, test } from 'qunit';
-import { HOST_PAN_ID, OUT_BUS, OWN_GROUP } from 'client-v2/audio/runner';
+import {
+  EFFECTIVE_DELAY_MS,
+  HOST_PAN_ID,
+  OUT_BUS,
+  OWN_GROUP,
+} from 'client-v2/audio/runner';
+import { REGION_GAP } from 'client-v2/controls/live-range';
+import { mapping } from 'client-v2/controls/modes';
 import { defaultProject, newTrack } from 'client-v2/project/default-project';
 import { applyOperation } from 'client-v2/project/operations';
 import {
+  busKey,
   controlKey,
   emptyValues,
   PROJECT_SCOPE,
@@ -90,7 +98,7 @@ function oneTrack(script: string): ProjectDocument {
   };
 }
 
-const CHAIN = `__().sampler({ id: 's', buffer: 'kick' }).lowpass({ id: 'f', frequency: 2000, q: 6 }).gain({ id: 'g', gain: 0.8 }).to('out');\n`;
+const CHAIN = `__().sampler({ id: 's', buffer: 'kick' }).lowpass({ id: 'f', frequency: 2000, q: 6 }).gain({ id: 'g', gain: 0.8 }).to('channel');\n`;
 
 module('Unit | Audio | runner', function () {
   module('what the scripts make', function () {
@@ -115,19 +123,24 @@ module('Unit | Audio | runner', function () {
             (c) => `${c.kind} ${c.group.id}.${c.label} = ${String(c.value)}`,
           ),
         [
+          'slider sampler.speed = 1',
           'slider filter.frequency = 2000',
           'slider filter.q = 2',
           'knob level.level = 0.9',
-          'slider sampler.speed = 1',
         ],
-        'in the order the script declares them, with the script’s own values',
+        'in the order of the script’s chain, with the script’s own values',
       );
       const frequency = control(h, KICK, FREQUENCY);
       assert.deepEqual(frequency.group, {
         id: 'filter',
-        label: 'filter',
+        label: 'lowpass filter',
         type: 'lowpass',
+        name: 'filter',
+        ordinal: null,
+        count: 1,
         byPosition: false,
+        chain: 0,
+        bus: null,
       });
       assert.deepEqual(frequency.meta, {
         kind: 'number',
@@ -135,10 +148,12 @@ module('Unit | Audio | runner', function () {
         max: 20000,
         unit: 'hz',
         curve: 'log',
+        name: 'frequency',
+        stepSeconds: 0.125,
       });
       assert.strictEqual(
         frequency.mode,
-        'exponential',
+        'hz',
         'the mode comes from the parameter',
       );
       assert.false(frequency.stored);
@@ -157,7 +172,7 @@ module('Unit | Audio | runner', function () {
         h.runner
           .controls(PROJECT_SCOPE)
           .map((c) => `${c.group.id}.${c.label} = ${String(c.value)}`),
-        ['glue.threshold = -18', 'glue.ratio = 3'],
+        ['bus:main.master = 0.8', 'glue.threshold = -18', 'glue.ratio = 3'],
       );
       assert.deepEqual(h.runner.sequencers(PROJECT_SCOPE), []);
 
@@ -172,7 +187,7 @@ module('Unit | Audio | runner', function () {
       assert.true(catalog.ids.includes('glue'), 'ids from the project script');
       assert.true(catalog.ids.includes('sampler'), 'ids from the tracks');
       assert.false(catalog.ids.includes(HOST_PAN_ID), 'not the host’s node');
-      assert.deepEqual([...catalog.buses].sort(), ['main', 'out']);
+      assert.deepEqual([...catalog.buses].sort(), ['channel', 'main']);
       assert.deepEqual(catalog.sequences, ['steps']);
     });
 
@@ -215,7 +230,7 @@ module('Unit | Audio | runner', function () {
       assert.strictEqual(grid(h, track.id).steps.length, 16);
       assert.deepEqual(
         h.runner.controls(track.id).map((c) => c.label),
-        ['level', 'speed'],
+        ['speed', 'level'],
       );
       assert.deepEqual(h.runner.warnings(track.id), []);
 
@@ -244,10 +259,11 @@ module('Unit | Audio | runner', function () {
           .controls(ONE)
           .map((c) => [c.kind, c.key, c.label, c.meta.kind, c.value]),
         [
+          ['toggle', '#s › loop', 'loop', 'boolean', false],
           ['slider', '#f › frequency', 'frequency', 'number', 2000],
           ['knob', '#g › gain', 'Level', 'number', 0.8],
-          ['toggle', '#s › loop', 'loop', 'boolean', false],
         ],
+        'in the order of the chain (sampler, filter, gain), not of the declarations',
       );
       assert.deepEqual(
         h.runner.declarations(ONE)[0],
@@ -255,6 +271,7 @@ module('Unit | Audio | runner', function () {
           key: '#f › frequency',
           kind: 'slider',
           bindings: [{ type: 'param', selector: '#f', param: 'frequency' }],
+          nodes: ['f'],
           options: {},
           implicit: false,
           line: 2,
@@ -290,6 +307,7 @@ module('Unit | Audio | runner', function () {
       const changes: unknown[] = [];
       h.engine
         .scope(KICK)
+        .scope('script')
         .on('param:changed', (change) =>
           changes.push([change.param.name, change.value]),
         );
@@ -323,7 +341,7 @@ module('Unit | Audio | runner', function () {
     test('re-running with a stored value is not heard', async function (assert) {
       // A sine at full level whose gain control is stored at 0: silence. Half a second in, the script
       // runs again. The declaration sets the stored 0 during the build; none of the sine should come out.
-      const script = `__().sine({ id: 'osc', frequency: 440 }).gain({ id: 'g', gain: 1 }).to('out');\nslider('#g', 'gain');`;
+      const script = `__().sine({ id: 'osc', frequency: 440 }).gain({ id: 'g', gain: 1 }).to('channel');\nslider('#g', 'gain');`;
       const silent = await startProject(oneTrack(script), 1);
       move(silent, ONE, controlKey('#g', 'gain'), 0);
       void silent.context.suspend(0.5).then(async () => {
@@ -380,7 +398,7 @@ module('Unit | Audio | runner', function () {
       );
       assert.deepEqual(
         h.runner.controls(KICK).map((c) => c.label),
-        ['q', 'level', 'speed'],
+        ['speed', 'q', 'level'],
       );
       assert.strictEqual(
         paramOf(h, KICK, 'filter', 'frequency').value,
@@ -411,13 +429,18 @@ module('Unit | Audio | runner', function () {
 
     test('a selector that finds several nodes gives one control for all of them', async function (assert) {
       const h = await startProject(
-        oneTrack(`__().saw({ class: 'voice', frequency: 110 }).gain(0.1).to('out');
-__().saw({ class: 'voice', frequency: 220 }).gain(0.1).to('out');
+        oneTrack(`__().saw({ class: 'voice', frequency: 110 }).gain(0.1).to('channel');
+__().saw({ class: 'voice', frequency: 220 }).gain(0.1).to('channel');
 slider('.voice', 'detune');`),
       );
       const key = controlKey('.voice', 'detune');
       assert.strictEqual(h.runner.controls(ONE).length, 1);
       assert.strictEqual(control(h, ONE, key).group.label, '.voice (2 nodes)');
+      assert.strictEqual(
+        control(h, ONE, key).group.id,
+        `several:${key}`,
+        'a section of its own, not either node’s',
+      );
 
       move(h, ONE, key, 25);
       assert.deepEqual(
@@ -459,7 +482,7 @@ __.transport.sequence('steps', { steps: 4 }, () => {});`),
         'the good declaration still works',
       );
       assert.strictEqual(
-        h.engine.scope(ONE).transport.sequences.length,
+        h.engine.scope(ONE).scope('script').transport.sequences.length,
         1,
         'and so does what follows',
       );
@@ -498,33 +521,25 @@ __.transport.sequence('steps', { steps: 4 }, () => {});`),
       assert.deepEqual(h.runner.warnings(ONE), [], 'fixed');
     });
 
-    test('controls(selector) declares every parameter, under "more"; with a list, those named', async function (assert) {
+    test('controls(selector) declares every parameter of the node; with a list, those named', async function (assert) {
       const h = await startProject(oneTrack(`${CHAIN}controls('#s');`));
-      const all = h.runner.controls(ONE);
       assert.deepEqual(
-        all.map((c) => `${c.label}:${c.kind}`),
+        h.runner.controls(ONE).map((c) => `${c.key}:${c.kind}`),
         [
-          'speed:slider',
-          'start:slider',
-          'end:slider',
-          'loop:toggle',
-          'reverse:toggle',
-          'gain:slider',
+          '#s › speed:slider',
+          '#s › start:slider',
+          '#s › end:slider',
+          '#s › loop:toggle',
+          '#s › reverse:toggle',
+          '#s › gain:slider',
         ],
-        'the kind that suits each parameter',
-      );
-      assert.true(
-        all.every((c) => c.implicit),
-        'all flagged for "more"',
+        'the kind that suits each parameter, keyed by the node',
       );
 
       await h.setScript(ONE, `${CHAIN}controls('#s', ['speed', 'loop']);`);
       assert.deepEqual(
-        h.runner.controls(ONE).map((c) => [c.label, c.implicit]),
-        [
-          ['speed', false],
-          ['loop', false],
-        ],
+        h.runner.controls(ONE).map((c) => c.label),
+        ['speed', 'loop'],
       );
 
       await h.setScript(ONE, `${CHAIN}controls('#s', ['speed', 'tempo']);`);
@@ -547,6 +562,222 @@ __.transport.sequence('steps', { steps: 4 }, () => {});`),
       );
     });
 
+    test('controls() with nothing declares every node the script has made, each in its own section, in order', async function (assert) {
+      const h = await startProject(oneTrack(`${CHAIN}controls();`));
+
+      const sections = new Map<string, string[]>();
+      for (const c of h.runner.controls(ONE)) {
+        sections.set(c.group.id, [
+          ...(sections.get(c.group.id) ?? []),
+          c.label,
+        ]);
+      }
+      assert.deepEqual(
+        [...sections],
+        [
+          ['s', ['speed', 'start', 'end', 'loop', 'reverse', 'gain']],
+          ['f', ['frequency', 'q']],
+          ['g', ['gain']],
+        ],
+        'a section per node, in the order the script made them, with all of each node’s parameters',
+      );
+      assert.deepEqual(h.runner.warnings(ONE), []);
+      assert.strictEqual(
+        control(h, ONE, '#f › frequency').group.type,
+        'lowpass',
+      );
+      assert.false(
+        h.runner.controls(ONE).some((c) => c.label === 'pan'),
+        'the host’s own pan is not among them',
+      );
+
+      move(h, ONE, '#f › frequency', 500);
+      assert.strictEqual(paramOf(h, ONE, 'f', 'frequency').value, 500);
+      assert.strictEqual(
+        paramOf(h, ONE, 'g', 'gain').value,
+        0.8,
+        'each control is its own node’s',
+      );
+
+      // the same nodes however they are found: the stored value follows the node, not the selector
+      await h.setScript(ONE, `${CHAIN}controls('*');`);
+      assert.strictEqual(paramOf(h, ONE, 'f', 'frequency').value, 500);
+      assert.strictEqual(h.runner.controls(ONE).length, 9);
+      await h.setScript(ONE, `${CHAIN}slider('#f', 'frequency');`);
+      assert.strictEqual(control(h, ONE, '#f › frequency').value, 500);
+
+      await h.setScript(ONE, `controls();\n${CHAIN}`);
+      assert.true(
+        h.runner
+          .warnings(ONE)[0]!
+          .message.includes('has made no nodes at this point'),
+        'before the chain there is nothing yet',
+      );
+      assert.strictEqual(h.runner.warnings(ONE)[0]!.line, 1);
+    });
+
+    test('a selector that finds several nodes: controls() gives each its own section; nodes with no id are found by position', async function (assert) {
+      const h = await startProject(
+        oneTrack(
+          `__().sampler({ buffer: 'kick' }).lowpass(800).lowpass({ frequency: 300, q: 4 }).to('channel');\ncontrols('lowpass');`,
+        ),
+      );
+      assert.deepEqual(
+        h.runner
+          .controls(ONE)
+          .map((c) => [c.key, c.group.id, c.group.byPosition, c.value]),
+        [
+          ['#lowpass-0 › frequency', 'lowpass-0', true, 800],
+          ['#lowpass-0 › q', 'lowpass-0', true, 1],
+          ['#lowpass-1 › frequency', 'lowpass-1', true, 300],
+          ['#lowpass-1 › q', 'lowpass-1', true, 4],
+        ],
+        'each matched node has all of its own parameters, with its own values',
+      );
+
+      move(h, ONE, '#lowpass-1 › frequency', 111);
+      assert.deepEqual(
+        [...h.engine.scope(ONE).select('lowpass')].map(
+          (node) => node.param('frequency').value,
+        ),
+        [800, 111],
+        'and moving one moves only that node',
+      );
+    });
+
+    test('a chain, a selection or a node can be given instead of a selector', async function (assert) {
+      const h = await startProject(
+        oneTrack(`const kick = __().sampler({ buffer: 'kick' }).lowpass(2000).gain({ id: 'level', gain: 0.8 }).to('channel');
+const other = __().sine(110).gain(0).to('channel');
+controls(kick, ['frequency', 'gain']);
+slider(kick.nodes.filter('lowpass'), 'q', { label: 'Res' });
+knob(kick.tail, 'gain');
+slider(__('sine').first(), 'frequency');
+slider(other.nodes, 'detune');`),
+      );
+      assert.deepEqual(h.runner.warnings(ONE), []);
+      assert.deepEqual(
+        h.runner.controls(ONE).map((c) => `${c.kind} ${c.key} [${c.group.id}]`),
+        [
+          'slider #sampler-0 › gain [sampler-0]',
+          'slider #lowpass-0 › frequency [lowpass-0]',
+          'slider #lowpass-0 › q [lowpass-0]',
+          'knob #level › gain [level]',
+          'slider #sine-0 › frequency [sine-0]',
+          'slider #sine-0 › detune [sine-0]',
+        ],
+        'resolved to node ids when declared; the explicit knob replaces the slider controls() gave #level',
+      );
+      assert.strictEqual(control(h, ONE, '#lowpass-0 › q').label, 'Res');
+      assert.true(control(h, ONE, '#lowpass-0 › q').group.byPosition);
+      assert.false(control(h, ONE, '#level › gain').group.byPosition);
+      assert.deepEqual(
+        h.runner.declarations(ONE).map((d) => d.nodes),
+        [
+          ['sampler-0'],
+          ['lowpass-0'],
+          ['lowpass-0'],
+          ['level'],
+          ['sine-0'],
+          ['sine-0'],
+        ],
+        'only ids leave the script',
+      );
+
+      move(h, ONE, '#lowpass-0 › q', 9);
+      assert.strictEqual(paramOf(h, ONE, 'lowpass-0', 'q').value, 9);
+      await h.setScript(ONE, `${scriptOf(h, ONE)}\n// again`);
+      assert.strictEqual(
+        paramOf(h, ONE, 'lowpass-0', 'q').value,
+        9,
+        'kept through a run',
+      );
+    });
+
+    test('a selection of several nodes given to slider() is one control that moves them together', async function (assert) {
+      const h = await startProject(
+        oneTrack(`const voices = __().saw(110).gain(0.1).to('channel');
+__().saw(220).gain(0.1).to('channel');
+slider(__('saw'), 'detune');
+controls();`),
+      );
+      const key = '#saw-0, #saw-1 › detune';
+      const detune = control(h, ONE, key);
+      assert.strictEqual(detune.group.label, 'several (2 nodes)');
+      assert.deepEqual(
+        h.runner
+          .controls(ONE)
+          .filter((c) => c.label === 'detune')
+          .map((c) => c.key),
+        [key],
+        'controls() does not add a second detune for either node',
+      );
+
+      move(h, ONE, key, 12);
+      assert.deepEqual(
+        [...h.engine.scope(ONE).select('saw')].map(
+          (node) => node.param('detune').value,
+        ),
+        [12, 12],
+      );
+    });
+
+    test('nodes Euclip makes are never a script’s: not controlled, not found by its selectors', async function (assert) {
+      const h = await startProject(
+        oneTrack(`${CHAIN}controls('*');
+slider('*', 'pan');
+slider('panner', 'pan');
+globalThis.euclipFound = [...__('*')].map((node) => node.id);
+__('*').set({ pan: 1 });`),
+      );
+      const pan = [...h.engine.scope(ONE).bus(OUT_BUS).inserts][0]!;
+      assert.strictEqual(pan.id, HOST_PAN_ID);
+      assert.strictEqual(
+        pan.tags['euclip'],
+        'host',
+        'it is tagged as the host’s',
+      );
+      assert.deepEqual(
+        (globalThis as unknown as { euclipFound: string[] }).euclipFound,
+        ['s', 'f', 'g'],
+        'a track script’s selectors do not find it: it is in the scope above',
+      );
+      assert.strictEqual(
+        pan.param('pan').value,
+        0,
+        'so the script’s own set() cannot move it',
+      );
+      assert.false(
+        h.runner.controls(ONE).some((c) => c.label === 'pan'),
+        'and nothing declares a control for it',
+      );
+      assert.strictEqual(
+        h.runner.warnings(ONE).length,
+        2,
+        'slider(…, "pan") finds nothing to control',
+      );
+      delete (globalThis as unknown as { euclipFound?: string[] }).euclipFound;
+    });
+
+    test('the project script’s controls() takes only its own nodes, not the tracks’ nor their pans', async function (assert) {
+      const doc = applyOperation(defaultProject(), {
+        type: 'setScript',
+        scope: PROJECT_SCOPE,
+        script: `__.bus('main').compressor({ id: 'glue' });\ncontrols();\nslider('panner', 'pan');`,
+      });
+      const h = await startProject(doc);
+      assert.deepEqual(
+        [...new Set(h.runner.controls(PROJECT_SCOPE).map((c) => c.group.id))],
+        ['glue'],
+      );
+      assert.true(
+        h.runner
+          .warnings(PROJECT_SCOPE)[0]!
+          .message.includes('matches no node'),
+        'the tracks’ pans are found by the root’s selectors, but no declaration reaches them',
+      );
+    });
+
     test('an explicit declaration wins over the same parameter from controls()', async function (assert) {
       for (const order of [
         `knob('#f', 'q', { label: 'Res' });\ncontrols('#f');`,
@@ -565,7 +796,7 @@ __.transport.sequence('steps', { steps: 4 }, () => {});`),
     test('a select is declared for a parameter that takes one of a list', async function (assert) {
       const h = await startProject(
         oneTrack(
-          `__().sine(220).chooser({ id: 'c' }).gain(0.1).to('out');\nselect('#c', 'shape');\ncontrols('#c');\nslider('#c', 'shape');`,
+          `__().sine(220).chooser({ id: 'c' }).gain(0.1).to('channel');\nselect('#c', 'shape');\ncontrols('#c');\nslider('#c', 'shape');`,
         ),
         2,
         [chooser],
@@ -628,11 +859,11 @@ __.transport.sequence('steps', { steps: 4 }, () => {});`),
         type: 'setControlOptions',
         scope: ONE,
         key: '#f › frequency',
-        options: { mode: 'linear' },
+        options: { mode: 'cents' },
       });
       assert.strictEqual(
         control(h, ONE, '#f › frequency').mode,
-        'linear',
+        'cents',
         'the user’s choice overrides the script’s',
       );
       h.apply({
@@ -673,6 +904,8 @@ __.transport.sequence('s', { steps: 2, step: '1/2' }, () => {
         min: 0,
         max: 1,
         unit: 'none',
+        name: 'density',
+        stepSeconds: 1,
       });
 
       move(h, ONE, 'density', 0.9);
@@ -696,7 +929,7 @@ __.transport.sequence('s', { steps: 2, step: '1/2' }, () => {
     test('control.set() from a script moves the control and the parameter together, on the step', async function (assert) {
       // A sine whose level control starts at 0. On the third quarter note (1 second in, at 120 bpm) the
       // script turns its own control up.
-      const script = `__().sine({ id: 'osc', frequency: 440 }).gain({ id: 'g', gain: 0 }).to('out');
+      const script = `__().sine({ id: 'osc', frequency: 440 }).gain({ id: 'g', gain: 0 }).to('channel');
 const level = slider('#g', 'gain');
 __.transport.sequence('s', { steps: [0, 0, 1, 0], step: '1/4' }, (ev) => {
   if (ev.value) level.set(0.5);
@@ -774,6 +1007,487 @@ __.transport.sequence('s', { steps: [0, 1], step: '1/4' }, (ev) => {
     });
   });
 
+  module('sections, buses and the channel', function () {
+    const heading = (h: Harness, scope: string): string[] => {
+      const seen = new Map<string, string>();
+      for (const c of h.runner.controls(scope)) {
+        const g = c.group;
+        seen.set(
+          g.id,
+          `${g.chain}: ${g.type}${g.ordinal === null ? '' : ` ${g.ordinal}`}${g.name === null ? '' : ` "${g.name}"`}${g.byPosition ? ' (no id)' : ''}${g.bus === null ? '' : ` [${g.bus}]`}`,
+        );
+      }
+      return [...seen.values()];
+    };
+
+    test('sections follow the script’s chains; a node is headed by its type, its id if it was given one, a number if it has twins', async function (assert) {
+      const h = await startProject(
+        oneTrack(`const drum = __().sampler({ buffer: 'kick' }).lowpass(800).highpass({ id: 'filter', frequency: 100 }).lowpass(300).to('channel');
+__().sine(110).gain(0).to('channel');
+slider('gain', 'gain');
+slider('#filter', 'frequency');
+controls(drum);
+slider('sine', 'frequency');`),
+      );
+      assert.deepEqual(h.runner.warnings(ONE), []);
+      assert.deepEqual(
+        heading(h, ONE),
+        [
+          '0: sampler (no id)',
+          '0: lowpass 1 (no id)',
+          '0: highpass "filter"',
+          '0: lowpass 2 (no id)',
+          '1: sine (no id)',
+          '1: gain (no id)',
+        ],
+        'in the order the script wrote the nodes, chain by chain, whatever order the controls were declared in',
+      );
+      assert.deepEqual(
+        h.runner
+          .controls(ONE)
+          .filter((c) => c.group.id === 'filter')
+          .map((c) => c.label),
+        ['frequency', 'q'],
+        'within a node, the order declared',
+      );
+      assert.false(
+        JSON.stringify(
+          h.runner
+            .controls(ONE)
+            .map((c) => [c.group.type, c.group.name, c.group.ordinal]),
+        ).includes('lowpass-'),
+        'an automatic id is never part of a heading',
+      );
+      assert.strictEqual(
+        control(h, ONE, '#lowpass-1 › frequency').group.label,
+        'lowpass 2',
+      );
+      assert.strictEqual(
+        control(h, ONE, '#filter › frequency').group.label,
+        'highpass filter',
+      );
+    });
+
+    test('a bus can be given for its level; its inserts are sections of the same block', async function (assert) {
+      const h = await startProject(
+        oneTrack(`__.bus('drums').compressor({ id: 'squash' }).to('channel');
+__().sampler({ id: 's', buffer: 'kick' }).to('drums');
+const level = knob(__.bus('drums'), 'gain', { default: 0.5 });
+globalThis.euclipLevel = level;
+controls('#squash', ['threshold']);
+controls('#s', ['speed']);`),
+      );
+      const key = busKey('drums');
+      assert.strictEqual(key, 'bus drums › gain', 'keyed by the bus’s name');
+      assert.strictEqual(h.runner.error(ONE)?.message, undefined);
+      assert.deepEqual(h.runner.warnings(ONE), []);
+      assert.deepEqual(
+        h.runner
+          .controls(ONE)
+          .map((c) => `${c.kind} ${c.key} = ${String(c.value)}`),
+        [
+          `knob ${key} = 0.5`,
+          'slider #squash › threshold = -24',
+          'slider #s › speed = 1',
+        ],
+        'the bus’s level comes before its inserts',
+      );
+      assert.deepEqual(heading(h, ONE), [
+        '0: level [drums]',
+        '0: compressor "squash" [drums]',
+        '1: sampler "s"',
+      ]);
+      const level = control(h, ONE, key);
+      assert.strictEqual(level.label, 'level');
+      assert.deepEqual(
+        level.modes,
+        ['linear', 'decibels'],
+        'the units of any level',
+      );
+      assert.deepEqual(
+        h.runner.declarations(ONE).find((d) => d.key === key)?.bindings,
+        [{ type: 'bus', name: 'drums' }],
+        'only the name leaves the script',
+      );
+      const bus = h.engine.scope(ONE).scope('script').bus('drums');
+      assert.strictEqual(
+        bus.gain.value,
+        0.5,
+        'with nothing stored the bus is at the declared default',
+      );
+
+      move(h, ONE, key, 0.25);
+      assert.strictEqual(bus.gain.value, 0.25);
+      assert.deepEqual(storedIn(h, ONE), { [key]: 0.25 });
+      assert.strictEqual(control(h, ONE, key).effective, null);
+      await h.setScript(ONE, `${scriptOf(h, ONE)}\n// again`);
+      assert.strictEqual(
+        bus.gain.value,
+        0.25,
+        'the stored level is applied when the script runs',
+      );
+
+      (
+        globalThis as unknown as { euclipLevel: { set(v: number): void } }
+      ).euclipLevel.set(0.75);
+      assert.strictEqual(
+        bus.gain.value,
+        0.75,
+        'the handle moves bus and control together',
+      );
+      assert.strictEqual(control(h, ONE, key).value, 0.75);
+
+      h.apply({ type: 'resetControl', scope: ONE, key });
+      await h.runner.run(ONE, true);
+      assert.strictEqual(bus.gain.value, 0.5, 'reset: back to the default');
+      assert.true(
+        h.runner.sendsToChannel(ONE),
+        'a bus of the script’s routed to channel counts as sending there',
+      );
+      delete (globalThis as unknown as { euclipLevel?: unknown }).euclipLevel;
+
+      await h.setScript(
+        ONE,
+        `const squash = __.bus('drums').compressor({ id: 'squash' }).to('channel');
+__().sampler({ id: 's', buffer: 'kick' }).to('drums');
+controls(squash);
+controls(__.bus('drums'));
+controls(__.bus('drums').delay({ id: 'echo' }));
+controls(__.bus('fx').overdrive({ id: 'dirt' }));`,
+      );
+      assert.strictEqual(h.runner.error(ONE)?.message, undefined);
+      assert.deepEqual(h.runner.warnings(ONE), []);
+      assert.deepEqual(
+        heading(h, ONE),
+        [
+          '0: level [drums]',
+          '0: compressor "squash" [drums]',
+          '0: delay "echo" [drums]',
+          '2: overdrive "dirt" [fx]',
+        ],
+        'controls(bus) is its level; what adding inserts returns works as a chain does, and gives those inserts',
+      );
+    });
+
+    test('a bus that is not the script’s, and anything but its level, are refused in words', async function (assert) {
+      const h = await startProject(
+        oneTrack(`${CHAIN}slider(__.bus('channel'), 'gain');
+knob(__.bus('main'), 'gain');
+__.bus('mine').to('channel');
+slider(__.bus('mine'), 'pan');
+toggle(__.bus('mine'), 'gain');
+slider('*', 'pan');`),
+      );
+      const said = h.runner.warnings(ONE).map((w) => w.message);
+      assert.strictEqual(said.length, 5);
+      assert.true(said[0]!.includes("are the channel strip's"), said[0]);
+      assert.true(said[1]!.includes('Main Output'), said[1]);
+      assert.true(
+        said[2]!.includes('a bus has one value to control, its level'),
+        said[2],
+      );
+      assert.true(said[3]!.includes('Use slider() or knob()'), said[3]);
+      assert.deepEqual(
+        h.runner.controls(ONE),
+        [],
+        'and none of them is a control',
+      );
+      assert.strictEqual(
+        h.engine.scope(ONE).bus(OUT_BUS).gain.value,
+        1,
+        'the channel strip’s level was not touched',
+      );
+    });
+
+    test('the default project script declares the master level on the main bus', async function (assert) {
+      const h = await startProject();
+      const key = busKey('main');
+      assert.deepEqual(h.runner.warnings(PROJECT_SCOPE), []);
+      assert.deepEqual(
+        h.runner
+          .controls(PROJECT_SCOPE)
+          .map(
+            (c) =>
+              `${c.group.bus} ${c.group.type}: ${c.label} = ${String(c.value)}`,
+          ),
+        [
+          'main level: master = 0.8',
+          'main compressor: threshold = -18',
+          'main compressor: ratio = 3',
+        ],
+      );
+      assert.strictEqual(h.engine.bus('main').gain.value, 0.8);
+      move(h, PROJECT_SCOPE, key, 0.4);
+      assert.strictEqual(h.engine.bus('main').gain.value, 0.4);
+    });
+
+    test('whether a track’s script sends anything to its channel is known from its graph', async function (assert) {
+      const h = await startProject();
+      assert.strictEqual(OUT_BUS, 'channel');
+      assert.true(h.runner.sendsToChannel(KICK));
+      await h.setScript(
+        KICK,
+        scriptOf(h, KICK).replace(".to('channel')", ".to('main')"),
+      );
+      assert.strictEqual(h.runner.error(KICK), null);
+      assert.false(
+        h.runner.sendsToChannel(KICK),
+        'it goes straight to main: the strip has nothing to act on',
+      );
+      await h.setScript(
+        KICK,
+        scriptOf(h, KICK).replace(".to('main')", ".to('out')"),
+      );
+      assert.true(
+        /no bus called "out"/.test(h.runner.error(KICK)?.message ?? ''),
+        'the old name is no bus at all now: the script says so, and the last version plays on',
+      );
+      assert.false(h.runner.sendsToChannel(KICK));
+      await h.setScript(
+        KICK,
+        scriptOf(h, KICK).replace(".to('out')", ".to('channel')"),
+      );
+      assert.true(h.runner.sendsToChannel(KICK));
+      assert.true(
+        h.runner.sendsToChannel('t-nothing'),
+        'nothing running: nothing to say',
+      );
+    });
+  });
+
+  module('ranges from live data', function () {
+    const REGION = `__().sampler({ id: 's', buffer: 'kick' }).to('channel');\ncontrols('#s', ['start', 'end', 'speed']);`;
+    const number = (h: Harness, key: string) => {
+      const c = control(h, ONE, key);
+      if (c.meta.kind !== 'number') throw new Error('not a number');
+      return { ...c, meta: c.meta, map: mapping(c.mode, c.meta) };
+    };
+
+    test('a sampler’s start and end run the length of the sample it plays, and keep to their own sides', async function (assert) {
+      const h = await startProject(oneTrack(REGION));
+      const length = h.engine.buffers.get('kick')!.duration!;
+      assert.true(length > 0.05, `the kick is ${length}s long`);
+      assert.true(length < 60);
+
+      const start = number(h, '#s › start');
+      const end = number(h, '#s › end');
+      assert.strictEqual(
+        start.meta.max,
+        length,
+        'not the parameter’s 60 seconds',
+      );
+      assert.strictEqual(end.meta.max, length);
+      assert.strictEqual(
+        end.value,
+        length,
+        'an end of 0 means the end of the sample: the control stands there',
+      );
+      assert.strictEqual(end.map.toPosition(end.value as number), 1);
+      assert.strictEqual(end.effective, null);
+      assert.deepEqual(
+        start.modes,
+        ['seconds', 'ms', 'percent'],
+        'a place in a sample',
+      );
+      assert.strictEqual(mapping('percent', end.meta).format(length), '100%');
+      assert.strictEqual(start.waiting, undefined);
+
+      move(h, ONE, '#s › end', length / 2);
+      assert.strictEqual(
+        number(h, '#s › start').meta.ceiling,
+        length / 2 - REGION_GAP,
+      );
+      assert.strictEqual(
+        number(h, '#s › start').map.toValue(1),
+        length / 2 - REGION_GAP,
+        'start stops short of end',
+      );
+      assert.strictEqual(
+        number(h, '#s › start').map.toPosition(length / 2),
+        0.5,
+        'on a travel that is still the whole sample',
+      );
+      move(h, ONE, '#s › start', length / 4);
+      assert.strictEqual(
+        number(h, '#s › end').map.toValue(0),
+        length / 4 + REGION_GAP,
+        'end stops short of start',
+      );
+      assert.strictEqual(
+        number(h, '#s › end').map.parse('0'),
+        length / 4 + REGION_GAP,
+      );
+
+      // slices, once the sample has them
+      h.engine.buffers.get('kick')!.slices = [
+        0,
+        length / 4,
+        length / 2,
+        length,
+      ];
+      assert.deepEqual(number(h, '#s › start').modes, [
+        'seconds',
+        'ms',
+        'percent',
+        'slice',
+      ]);
+      h.apply({
+        type: 'setControlOptions',
+        scope: ONE,
+        key: '#s › end',
+        options: { mode: 'slice' },
+      });
+      assert.strictEqual(number(h, '#s › end').mode, 'slice');
+      assert.strictEqual(
+        number(h, '#s › end').map.format(length / 2),
+        'slice 1',
+        'an end is the slice it ends',
+      );
+      assert.strictEqual(number(h, '#s › start').meta.edge, 'start');
+
+      const speed = number(h, '#s › speed');
+      assert.deepEqual(speed.modes, ['ratio', 'semitones', 'ratio-cents']);
+      assert.strictEqual(
+        speed.meta.max,
+        8,
+        'a parameter with no live range keeps its own',
+      );
+    });
+
+    test('until the sample is there the parameter’s own range stands, and the control says it is waiting', async function (assert) {
+      const h = await startProject(oneTrack(REGION));
+      const before = h.changes;
+      await h.setScript(
+        ONE,
+        REGION.replace("buffer: 'kick'", "buffer: 'late'"),
+      );
+      const start = number(h, '#s › start');
+      assert.strictEqual(start.meta.max, 60);
+      assert.true(/late/.test(start.waiting ?? ''), start.waiting);
+      assert.deepEqual(
+        start.modes,
+        ['seconds', 'ms', 'steps'],
+        'only a time, for now',
+      );
+
+      const kick = h.engine.buffers.get('kick')!.buffer!;
+      const changes = h.changes;
+      assert.true(changes > before);
+      h.engine.buffers.add('late', kick);
+      await h.engine.buffers.get('late')!.ready;
+      await h.setScript(ONE, `${scriptOf(h, ONE)}\n// now it is there`);
+      assert.true(h.changes > changes, 'the UI is told when a sample arrives');
+      assert.strictEqual(number(h, '#s › start').meta.max, kick.duration);
+      assert.strictEqual(number(h, '#s › start').waiting, undefined);
+    });
+
+    test('a time can be shown in steps of the track’s sequence at the tempo', async function (assert) {
+      const h = await startProject(
+        oneTrack(`__().sine(220).adsr({ id: 'env' }).to('channel');
+__.transport.sequence('steps', { steps: 8, step: '1/8' }, () => {});
+sequencer('steps');
+slider('#env', 'attack');`),
+      );
+      const attack = number(h, '#env › attack');
+      assert.deepEqual(attack.modes, ['seconds', 'ms', 'steps']);
+      assert.strictEqual(attack.meta.stepSeconds, 0.25, 'an eighth at 120');
+      h.apply({ type: 'setBpm', bpm: 60 });
+      assert.strictEqual(
+        number(h, '#env › attack').meta.stepSeconds,
+        0.5,
+        'it follows the tempo',
+      );
+      h.apply({
+        type: 'setControlOptions',
+        scope: ONE,
+        key: '#env › attack',
+        options: { mode: 'steps' },
+      });
+      const steps = number(h, '#env › attack');
+      move(h, ONE, '#env › attack', steps.map.parse('1.5')!);
+      assert.strictEqual(
+        paramOf(h, ONE, 'env', 'attack').value,
+        0.75,
+        'stored and set in seconds',
+      );
+      assert.strictEqual(
+        number(h, '#env › attack').map.format(0.75),
+        '1.5 steps',
+      );
+    });
+  });
+
+  module('where the parameter really is', function () {
+    const wait = (ms: number): Promise<void> =>
+      new Promise((resolve) => setTimeout(resolve, ms));
+
+    test('a person’s own move never shows as "the parameter is elsewhere"; code moving it does, after a moment', async function (assert) {
+      const h = await startProject(
+        oneTrack(`${CHAIN}slider('#f', 'frequency');`),
+        2,
+        [],
+        { realtime: true },
+      );
+      const key = '#f › frequency';
+      const seen: unknown[] = [];
+      for (const value of [300, 310, 2500, 2400, 900, 905]) {
+        move(h, ONE, key, value);
+        seen.push(control(h, ONE, key).effective);
+      }
+      await wait(EFFECTIVE_DELAY_MS + 60);
+      seen.push(control(h, ONE, key).effective);
+      assert.deepEqual(
+        seen,
+        [null, null, null, null, null, null, null],
+        'a quick drag never shows the marker, then or later',
+      );
+
+      // something else moves the parameter: a callback, a set in the console
+      paramOf(h, ONE, 'f', 'frequency').set(4000);
+      assert.strictEqual(
+        control(h, ONE, key).effective,
+        null,
+        'not at once: it might be passing through',
+      );
+      const changes = h.changes;
+      await wait(EFFECTIVE_DELAY_MS + 60);
+      assert.true(h.changes > changes, 'the UI is told when the moment is up');
+      assert.strictEqual(
+        control(h, ONE, key).effective,
+        4000,
+        'it has stayed away: now the control says where',
+      );
+      assert.strictEqual(control(h, ONE, key).value, 905);
+
+      move(h, ONE, key, 1000);
+      assert.strictEqual(
+        control(h, ONE, key).effective,
+        null,
+        'moving the control puts them together again, at once',
+      );
+
+      // a brief visit elsewhere and back never shows
+      paramOf(h, ONE, 'f', 'frequency').set(5000);
+      void control(h, ONE, key).effective;
+      await wait(40);
+      paramOf(h, ONE, 'f', 'frequency').set(1000);
+      assert.strictEqual(control(h, ONE, key).effective, null);
+      await wait(EFFECTIVE_DELAY_MS + 60);
+      assert.strictEqual(control(h, ONE, key).effective, null);
+
+      // nearer than the control can show is not elsewhere
+      paramOf(h, ONE, 'f', 'frequency').set(1000.5);
+      void control(h, ONE, key).effective;
+      await wait(EFFECTIVE_DELAY_MS + 60);
+      assert.strictEqual(
+        control(h, ONE, key).effective,
+        null,
+        'half a hertz at 1 kHz is the same place on the slider',
+      );
+      h.runner.dispose();
+    });
+  });
+
   module('declared sequencers', function () {
     test('a grid exists only for a sequence with a sequencer() line', async function (assert) {
       const h = await startProject(
@@ -794,7 +1508,7 @@ sequencer('a');`),
         'in the order declared; a sequence with no sequencer() has no grid',
       );
       assert.strictEqual(
-        h.engine.scope(ONE).transport.sequences.length,
+        h.engine.scope(ONE).scope('script').transport.sequences.length,
         3,
         'though it runs',
       );
@@ -929,7 +1643,7 @@ __.transport.sequence('late', { steps: 4 }, () => {});`),
       await h.setScript(KICK, original.replace("sequencer('steps');\n", ''));
       assert.deepEqual(h.runner.sequencers(KICK), [], 'no grid');
       assert.strictEqual(
-        h.engine.scope(KICK).transport.get('steps')?.steps[1],
+        h.engine.scope(KICK).scope('script').transport.get('steps')?.steps[1],
         0,
         'the sequence plays the script’s steps',
       );
@@ -980,7 +1694,7 @@ grid.set([1, 1, 1, 1]);`),
       assert.strictEqual(grid(h, KICK).steps[1], 0);
       assert.strictEqual(paramOf(h, KICK, 'filter', 'frequency').value, 2000);
       assert.strictEqual(h.engine.transport.bpm, 120);
-      assert.strictEqual(h.engine.scope(KICK).bus('out').gain.value, 1);
+      assert.strictEqual(h.engine.scope(KICK).bus('channel').gain.value, 1);
       assert.strictEqual(
         grid(h, 't-hat').steps.length,
         16,
@@ -1023,7 +1737,7 @@ grid.set([1, 1, 1, 1]);`),
 
       await h.setScript(
         KICK,
-        `__().sine({ id: 'osc' }).to('out');\nslider('#osc', 'frequency');\nnotDefined();`,
+        `__().sine({ id: 'osc' }).to('channel');\nslider('#osc', 'frequency');\nnotDefined();`,
       );
       assert.true(
         h.runner.error(KICK)?.message.startsWith('ReferenceError'),
@@ -1032,7 +1746,7 @@ grid.set([1, 1, 1, 1]);`),
       assert.deepEqual(idsOf(h, KICK), before);
       assert.deepEqual(
         h.runner.controls(KICK).map((c) => c.label),
-        ['frequency', 'q', 'level', 'speed'],
+        ['speed', 'frequency', 'q', 'level'],
         'the failed run’s declarations are not used',
       );
 
@@ -1051,7 +1765,7 @@ grid.set([1, 1, 1, 1]);`),
       const doc = applyOperation(defaultProject(), {
         type: 'setScript',
         scope: 't-snare',
-        script: `__().sampler({ id: 's', buffer: 'snare' }).to('out'`,
+        script: `__().sampler({ id: 's', buffer: 'snare' }).to('channel'`,
       });
       const h = await startProject(doc);
 
@@ -1059,7 +1773,11 @@ grid.set([1, 1, 1, 1]);`),
       assert.false(h.runner.isBuilt('t-snare'));
       assert.deepEqual(h.runner.sequencers('t-snare'), []);
       assert.deepEqual(h.runner.controls('t-snare'), []);
-      assert.deepEqual(idsOf(h, 't-snare'), [], 'it made nothing');
+      assert.deepEqual(
+        idsOf(h, 't-snare'),
+        [HOST_PAN_ID],
+        'it made nothing: only the host’s pan is there',
+      );
       assert.true(h.runner.isBuilt(KICK));
       assert.strictEqual(h.runner.error(KICK), null);
 
@@ -1070,7 +1788,7 @@ grid.set([1, 1, 1, 1]);`),
     test('a sequence callback that throws is muted and reported; the rest carries on; a fixed script plays again', async function (assert) {
       const counter = globalThis as unknown as { euclipTestCalls?: number };
       counter.euclipTestCalls = 0;
-      const broken = `__().sampler({ id: 'sampler', buffer: 'hat' }).to('out');
+      const broken = `__().sampler({ id: 'sampler', buffer: 'hat' }).to('channel');
 __.transport.sequence('steps', { steps: 16, step: '1/16' }, () => {
   globalThis.euclipTestCalls++;
   throw new Error('bad step');
@@ -1093,7 +1811,8 @@ sequencer('other');`;
       const error = h.runner.error('t-hat');
       assert.strictEqual(error?.message, 'Error: bad step');
       assert.strictEqual(error?.sequence, 'steps');
-      const sequences = h.engine.scope('t-hat').transport.sequences;
+      const sequences = h.engine.scope('t-hat').scope('script')
+        .transport.sequences;
       assert.deepEqual(
         sequences.map((s) => [s.name, s.muted]),
         [
@@ -1112,7 +1831,7 @@ sequencer('other');`;
       );
       assert.strictEqual(h.runner.error('t-hat'), null);
       assert.false(
-        h.engine.scope('t-hat').transport.get('steps')?.muted,
+        h.engine.scope('t-hat').scope('script').transport.get('steps')?.muted,
         'un-muted by the run that fixed it',
       );
       assert.false(grid(h, 't-hat').disabled);

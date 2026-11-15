@@ -9,7 +9,7 @@
  */
 
 /** Bumped whenever the shape below changes in a way old documents need migrating for. */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 /** A parameter's value, or a sequencer's pattern. */
 export type StoredValue = number | boolean | string | number[];
@@ -48,6 +48,11 @@ export function controlKey(selector: string, param: string): string {
   return `${selector} › ${param}`;
 }
 
+/** The key of the control for a bus's level: by the bus's name. */
+export function busKey(bus: string): string {
+  return controlKey(`bus ${bus}`, 'gain');
+}
+
 /** The key of a sequencer: the grid of a named sequence. */
 export function sequencerKey(sequence: string): string {
   return `sequencer › ${sequence}`;
@@ -59,7 +64,7 @@ export interface TrackDocument {
   name: string;
   /** The track's script: its chain, its sequences, the controls it declares. Runs in a scope of its own. */
   script: string;
-  /** Channel strip: the level of the track's `out` bus, as a gain (1 is unity). */
+  /** Channel strip: the level of the track's `channel` bus, as a gain (1 is unity). */
   level: number;
   /** Channel strip: -1 (left) to 1 (right). */
   pan: number;
@@ -145,6 +150,9 @@ function valuesFromV1(values: unknown): unknown {
   return { controls };
 }
 
+/** What version 2's templates ended a track's chain with. */
+const V2_TO_OUT = ".to('out')";
+
 /**
  * Brings a stored document up to the current schema version, one version at a time. Returns null for
  * anything that is not a document this app wrote (or is from a newer version than this one knows):
@@ -154,6 +162,10 @@ function valuesFromV1(values: unknown): unknown {
  *            the script's pattern) become entries of its new `controls` record, keyed as sequencers,
  *            without the copy. The scripts themselves are not edited: a version 1 script has no
  *            `sequencer('…')` line, so its stored pattern is kept but dormant until one is added.
+ *   2 -> 3   The bus Euclip makes for every track is called `channel`, not `out`. In track scripts the
+ *            exact text `.to('out')` (what the app's own templates wrote) becomes `.to('channel')`.
+ *            Nothing else in a script is touched: a script that spelled it another way sends to a bus
+ *            that no longer exists, and its channel strip says so.
  */
 export function migrateProject(value: unknown): ProjectDocument | null {
   if (!isRecord(value)) return null;
@@ -167,6 +179,25 @@ export function migrateProject(value: unknown): ProjectDocument | null {
         ? doc['tracks'].map((track: unknown) =>
             isRecord(track)
               ? { ...track, values: valuesFromV1(track['values']) }
+              : track,
+          )
+        : doc['tracks'],
+    };
+  }
+  if (doc['schemaVersion'] === 2) {
+    doc = {
+      ...doc,
+      schemaVersion: 3,
+      tracks: Array.isArray(doc['tracks'])
+        ? doc['tracks'].map((track: unknown) =>
+            isRecord(track) && typeof track['script'] === 'string'
+              ? {
+                  ...track,
+                  script: track['script'].replaceAll(
+                    V2_TO_OUT,
+                    ".to('channel')",
+                  ),
+                }
               : track,
           )
         : doc['tracks'],

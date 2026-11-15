@@ -53,11 +53,16 @@ export default class ControlRow extends Component<ControlRowSignature> {
 
   get menuItems(): MenuItem[] {
     const { control, scopeId } = this.args;
-    const modes: MenuItem[] = control.modes.map((mode) => ({
-      label: MODE_LABELS[mode],
-      checked: mode === control.mode,
-      onSelect: () => this.audio.setControlMode(scopeId, control.key, mode),
-    }));
+    // the units this kind of parameter can be shown in (a parameter with only one has nothing to choose)
+    const modes: MenuItem[] =
+      control.modes.length > 1
+        ? control.modes.map((mode) => ({
+            label: MODE_LABELS[mode],
+            checked: mode === control.mode,
+            onSelect: () =>
+              this.audio.setControlMode(scopeId, control.key, mode),
+          }))
+        : [];
     return [
       ...modes,
       {
@@ -91,6 +96,9 @@ export default class ControlRow extends Component<ControlRowSignature> {
       class="control-row control-row--{{@control.kind}}"
       data-stored={{if @control.stored "true"}}
       data-moved={{if this.effectiveText "true"}}
+      data-waiting={{if @control.waiting "true"}}
+      data-mode={{@control.mode}}
+      title={{@control.waiting}}
       data-test-control={{@control.key}}
       ...attributes
     >

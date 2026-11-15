@@ -32,7 +32,8 @@ module('Acceptance | project', function (hooks) {
     const audio = this.owner.lookup('service:audio');
     const step = '[data-test-track="3"] [data-test-step="1"]';
     const running = () =>
-      audio.engine?.scope('t-hat').transport.get('steps')?.steps[1];
+      audio.engine?.scope('t-hat').scope('script').transport.get('steps')
+        ?.steps[1];
     const stored = () =>
       project.doc.tracks[2]?.values.controls[sequencerKey('steps')]?.value as
         number[] | undefined;

@@ -38,7 +38,14 @@ const Toggle: TOC<ToggleSignature> = <template>
     ...attributes
     {{on "click" (fn @onChange (not @checked))}}
   >
-    <span class="toggle__track"><span class="toggle__handle"></span></span>
+    <span class="toggle__track">
+      <span class="toggle__mark" aria-hidden="true">{{if
+          @checked
+          "I"
+          "O"
+        }}</span>
+      <span class="toggle__handle"></span>
+    </span>
     <span class="toggle__text">{{if @checked "on" "off"}}</span>
   </button>
 </template>;

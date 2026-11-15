@@ -22,7 +22,7 @@ module('Unit | Editor | catalog', function (hooks) {
       'the project’s sample pool',
     );
     assert.true(catalog.get().ids?.includes('glue'));
-    assert.true(catalog.get().buses?.includes('out'));
+    assert.true(catalog.get().buses?.includes('channel'));
     assert.deepEqual(catalog.get().sequences, ['steps']);
     assert.deepEqual(
       catalog.get().globals?.map((global) => global.name),
@@ -33,14 +33,18 @@ module('Unit | Editor | catalog', function (hooks) {
       .get()
       .globals?.find((global) => global.name === 'slider');
     assert.true(
-      slider?.signature?.startsWith('slider(selector, param, options?)'),
+      slider?.signature?.startsWith('slider(target, param, options?)'),
     );
     assert.true(slider?.description.includes('.set(v)'));
+    assert.true(
+      slider?.description.includes('a chain'),
+      'the forms a target can take are documented',
+    );
 
     project.apply({
       type: 'setScript',
       scope: 't-kick',
-      script: `__().sampler({ id: 'thump', buffer: 'kick' }).to('out');\n__.transport.sequence('four', { steps: 4 }, () => {});`,
+      script: `__().sampler({ id: 'thump', buffer: 'kick' }).to('channel');\n__.transport.sequence('four', { steps: 4 }, () => {});`,
     });
     await audio.runNow('t-kick');
 

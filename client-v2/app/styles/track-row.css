@@ -52,6 +52,7 @@
 
 .track__source {
   grid-area: source;
+  position: relative; /* the error mark is laid over its corner */
   display: flex;
   align-items: center;
   min-inline-size: 0;
@@ -122,7 +123,7 @@
   }
 }
 
-/* the track's script has an error */
+/* the track's script has an error: marked on the corner of its name, laid over so that nothing moves */
 .track__alert,
 .track-footer__alert {
   display: grid;
@@ -135,6 +136,13 @@
   font-size: var(--font-size-6);
   font-weight: var(--font-weight-heavy);
   line-height: var(--line-height-solid);
+}
+
+.track__alert {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: calc(var(--space-2) + var(--source-width) - 0.75rem);
+  outline: var(--border-width-2) solid var(--near-black);
 }
 
 /* a track whose script declares no sequencer */

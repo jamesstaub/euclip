@@ -18,6 +18,7 @@ const PHONE = '(max-width: 47.99rem)';
 interface Stored {
   scriptOpen?: unknown;
   footerPane?: unknown;
+  collapsed?: unknown;
 }
 
 function readStored(): Stored {
@@ -50,6 +51,18 @@ export default class ViewService extends Service {
     ? (this.#stored.footerPane as FooterPane)
     : 'sequence';
 
+  /**
+   * The sections of the controls pane the person has closed, as `scope/section` keys. Sections are open
+   * unless they are listed here.
+   */
+  @tracked private collapsed: readonly string[] = Array.isArray(
+    this.#stored.collapsed,
+  )
+    ? this.#stored.collapsed.filter(
+        (key): key is string => typeof key === 'string',
+      )
+    : [];
+
   /** Collapsed to its bar on phones (a bottom sheet) to start with; otherwise open. */
   @tracked footerOpen = !window.matchMedia(PHONE).matches;
 
@@ -72,6 +85,20 @@ export default class ViewService extends Service {
     this.#save();
   }
 
+  /** Whether a section of a scope's controls pane is open. */
+  isSectionOpen(scopeId: string, section: string): boolean {
+    return !this.collapsed.includes(`${scopeId}/${section}`);
+  }
+
+  setSectionOpen(scopeId: string, section: string, open: boolean): void {
+    const key = `${scopeId}/${section}`;
+    if (open === !this.collapsed.includes(key)) return;
+    this.collapsed = open
+      ? this.collapsed.filter((candidate) => candidate !== key)
+      : [...this.collapsed, key];
+    this.#save();
+  }
+
   toggleFooter(): void {
     this.footerOpen = !this.footerOpen;
   }
@@ -83,6 +110,7 @@ export default class ViewService extends Service {
         JSON.stringify({
           scriptOpen: this.scriptOpen,
           footerPane: this.footerPane,
+          collapsed: this.collapsed,
         }),
       );
     } catch {

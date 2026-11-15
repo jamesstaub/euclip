@@ -15,23 +15,72 @@
 
 .channel-strip__title {
   display: flex;
-  align-items: center;
   flex: none;
-  inline-size: 5rem;
-  padding: var(--space-2);
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-1);
+  inline-size: 6.5rem;
+  padding: var(--space-1) var(--space-2);
   background: var(--dark-gray);
   color: var(--light-gray);
-  font-size: inherit;
-  font-weight: var(--font-weight-heavy);
-  line-height: var(--line-height-title);
+
+  & h3 {
+    margin: 0;
+    font-size: inherit;
+    font-weight: var(--font-weight-heavy);
+    line-height: var(--line-height-title);
+  }
+}
+
+/* how the script reaches the strip: the words it ends its chain with */
+.channel-strip__route {
+  color: var(--yellow);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: var(--font-weight-normal);
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  cursor: help;
 }
 
 .channel-strip__controls {
   display: flex;
-  flex: 1 1 auto;
+  flex: 1 1 0;
   gap: var(--space-3);
   min-inline-size: 0;
   padding: 0 var(--space-2);
+}
+
+/*
+ * The script sends nothing here: the faders are still the project's values, but they do nothing. The
+ * line that says so has a row of its own under the lying-down strip, and sits above the faders of the
+ * upright one.
+ */
+.channel-strip__idle {
+  order: 3;
+  flex: 1 1 100%;
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  border-block-start: var(--border-width-1) dashed var(--dark-gray);
+  font-size: 0.6875rem;
+  font-weight: var(--font-weight-normal);
+  letter-spacing: 0;
+  line-height: 1.3;
+  text-transform: none;
+
+  & code {
+    font-family: var(--font-mono);
+  }
+}
+
+.channel-strip[data-idle] {
+  flex-wrap: wrap;
+  border-style: dashed;
+}
+
+.channel-strip__controls--idle {
+  opacity: 0.4;
 }
 
 .channel-strip__control {
@@ -65,7 +114,19 @@
 
   .channel-strip__title {
     inline-size: auto;
-    justify-content: center;
+    align-items: center;
+  }
+
+  .channel-strip[data-idle] {
+    flex-wrap: nowrap;
+  }
+
+  .channel-strip__idle {
+    order: 0;
+    flex: none;
+    border-block-start: 0;
+    border-block-end: var(--border-width-1) dashed var(--dark-gray);
+    text-align: start;
   }
 
   .channel-strip__controls {
@@ -97,6 +158,6 @@
   /* the gain fader stands up and takes the height that is left */
   .channel-strip__control--gain {
     flex: 1 1 0;
-    min-block-size: 0;
+    min-block-size: 5.5rem;
   }
 }

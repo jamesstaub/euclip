@@ -88,14 +88,14 @@ export default class Slider extends Component<SliderSignature> {
   gesture = new ControlGesture({
     position: () => this.position,
     axis: () => (this.vertical ? 'y' : 'x'),
-    positionAt: (event) => {
-      const rect = (event.currentTarget as Element).getBoundingClientRect();
+    positionAt: (event, element) => {
+      const rect = element.getBoundingClientRect();
       return this.vertical
         ? 1 - (event.clientY - rect.top - INSET) / (rect.height - 2 * INSET)
         : (event.clientX - rect.left - INSET) / (rect.width - 2 * INSET);
     },
-    travel: (event, from) => {
-      const rect = (event.currentTarget as Element).getBoundingClientRect();
+    travel: (event, from, element) => {
+      const rect = element.getBoundingClientRect();
       return this.vertical
         ? (from.clientY - event.clientY) / (rect.height - 2 * INSET)
         : (event.clientX - from.clientX) / (rect.width - 2 * INSET);
@@ -104,6 +104,11 @@ export default class Slider extends Component<SliderSignature> {
     onReset: () => this.args.onReset?.(),
     onMenu: () => this.args.onMenu?.(),
   });
+
+  willDestroy(): void {
+    super.willDestroy();
+    this.gesture.release();
+  }
 
   onKeydown = (event: KeyboardEvent): void => {
     const next = positionForKey(event, this.position, this.args.mapping);
@@ -134,9 +139,6 @@ export default class Slider extends Component<SliderSignature> {
         effective=this.effectivePosition
       }}
       {{on "pointerdown" this.gesture.down}}
-      {{on "pointermove" this.gesture.move}}
-      {{on "pointerup" this.gesture.up}}
-      {{on "pointercancel" this.gesture.cancel}}
       {{on "contextmenu" this.gesture.contextMenu}}
       {{on "keydown" this.onKeydown}}
     >

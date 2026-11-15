@@ -34,7 +34,7 @@ __()
   .sampler({ id: 'kick', buffer: 'kick' })
   .lowpass({ id: 'filter', frequency: 2000, q: 6 })
   .gain({ id: 'level', gain: 0.8 })
-  .to('out');
+  .to('channel');
 
 slider('#filter', 'frequency');
 knob('#level', 'gain', { label: 'Level' });

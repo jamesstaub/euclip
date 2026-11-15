@@ -11,6 +11,8 @@ import type { StoredValue } from 'client-v2/project/schema';
 export type Binding =
   /** a parameter of the nodes a selector finds */
   | { type: 'param'; selector: string; param: string }
+  /** the level of a named bus of the script's scope */
+  | { type: 'bus'; name: string }
   /** a value of its own, kept in the document under a name */
   | { type: 'value'; name: string }
   /** a named sequence of the script */
@@ -42,8 +44,13 @@ export interface Declaration {
   /** which widget draws it: a key of the widget registry */
   kind: string;
   bindings: Binding[];
+  /**
+   * The ids of the nodes it controls, as found when it was declared (empty for a control with no node).
+   * This is what decides whether two declarations are for the same thing, however each was written.
+   */
+  nodes: string[];
   options: ControlOptions;
-  /** made by `controls('#node')` with no list: shown under "more" */
+  /** made by `controls()`: it gives way to a `slider`, `knob`, `toggle` or `select` for the same node and parameter */
   implicit: boolean;
   /** the line of the script it was declared on, counted from 1, when that could be told */
   line?: number;
@@ -57,6 +64,18 @@ export interface DeclarationWarning {
   missingSequence?: string;
 }
 
+/**
+ * The tag Euclip puts on nodes it makes itself (a track's pan). They are never a script's to control:
+ * no declaration reaches them, whatever its selector.
+ */
+export const HOST_TAG = 'euclip';
+
+/**
+ * The bus Euclip makes for every track: where a track's script sends its sound (`.to('channel')`), and
+ * what the channel strip's level and pan are on. It is the host's: a script cannot declare controls on it.
+ */
+export const CHANNEL_BUS = 'channel';
+
 /** Which kinds of parameter each script function accepts, and how the editor documents it. */
 export interface ControlFunction {
   name: string;
@@ -69,7 +88,14 @@ export interface ControlFunction {
 }
 
 const OPTIONS =
-  'Options: label, mode ("linear", "exponential", "note", "decibels", "stepped"), min, max, step, values.';
+  'Options: label, min, max, step, values, and mode: the unit the control starts in, which the person can change from its menu. ' +
+  'What is on offer depends on the parameter: a frequency "hz", "note", "cents"; a level "linear", "decibels"; a time "seconds", "ms", "steps"; ' +
+  'a sampler start or end "seconds", "ms", "percent", "slice"; a speed "ratio", "semitones", "ratio-cents"; anything else "linear", "exponential", "stepped".';
+
+const TARGET =
+  "The first argument says which nodes: a selector ('#filter', '.voice'), or what the script already has: " +
+  "a chain (const kick = __().sampler(…).lowpass(…)), a selection (kick.nodes.filter('lowpass'), kick.tail, __('lowpass')) or a node. " +
+  "Or a bus, for its level: slider(__.bus('drums'), 'gain').";
 
 export const CONTROL_FUNCTIONS: readonly ControlFunction[] = [
   {
@@ -77,9 +103,11 @@ export const CONTROL_FUNCTIONS: readonly ControlFunction[] = [
     kind: 'slider',
     accepts: ['number'],
     signature:
-      'slider(selector, param, options?) | slider(name, { min, max, default })',
+      'slider(target, param, options?) | slider(name, { min, max, default })',
     description:
-      "Declares a slider for a parameter of the nodes the selector finds: slider('#filter', 'frequency'). " +
+      "Declares a slider for a parameter: slider('#filter', 'frequency'), or slider(kick.nodes.filter('lowpass'), 'frequency'). " +
+      TARGET +
+      ' Several nodes get one slider that moves them together. ' +
       'Its range, unit and curve come from the parameter. Moving it sets the parameter and stores the value in the project; ' +
       'the number in the node is the default. Returns the control: .value reads it, .set(v) moves it and the parameter together. ' +
       "With a name and an object instead, a control of its own: const density = slider('density', { min: 0, max: 1, default: 0.5 }). " +
@@ -90,27 +118,31 @@ export const CONTROL_FUNCTIONS: readonly ControlFunction[] = [
     kind: 'knob',
     accepts: ['number'],
     signature:
-      'knob(selector, param, options?) | knob(name, { min, max, default })',
+      'knob(target, param, options?) | knob(name, { min, max, default })',
     description:
       "Declares a knob: the same as slider(), drawn as a dial. knob('#level', 'gain', { label: 'Level' }). " +
+      TARGET +
+      ' ' +
       OPTIONS,
   },
   {
     name: 'toggle',
     kind: 'toggle',
     accepts: ['boolean'],
-    signature: 'toggle(selector, param, options?) | toggle(name, { default })',
+    signature: 'toggle(target, param, options?) | toggle(name, { default })',
     description:
       "Declares an on/off switch for a true-or-false parameter: toggle('#sampler', 'loop'). " +
-      "With a name and an object, a switch of its own: const fills = toggle('fills', { default: false }).",
+      TARGET +
+      " With a name and an object, a switch of its own: const fills = toggle('fills', { default: false }).",
   },
   {
     name: 'select',
     kind: 'select',
     accepts: ['choice'],
-    signature: 'select(selector, param, options?)',
+    signature: 'select(target, param, options?)',
     description:
-      "Declares a menu for a parameter that takes one of a list of values: select('#osc', 'shape').",
+      "Declares a menu for a parameter that takes one of a list of values: select('#osc', 'shape'). " +
+      TARGET,
   },
   {
     name: 'sequencer',
@@ -127,10 +159,12 @@ export const CONTROL_FUNCTIONS: readonly ControlFunction[] = [
     name: 'controls',
     kind: null,
     accepts: ['number', 'boolean', 'choice'],
-    signature: 'controls(selector, names?)',
+    signature: 'controls() | controls(target, names?)',
     description:
-      "Declares a control for every parameter of the node, of the kind that suits each: controls('#kick'). " +
-      "They are listed under \"more\". With a list, only those named, shown with the rest: controls('#kick', ['speed', 'start']).",
+      'With nothing, declares a control for every parameter of every node the script has made so far (the inserts of its buses too), a section per node: put controls() after the chain. ' +
+      "With a target, for those nodes: controls('#kick'), controls(kick) for every node of a chain, controls(__.bus('drums').compressor(…)) for the inserts that adds to a bus, controls(__.bus('drums')) for the bus's level. " +
+      "With a list, only the parameters named: controls('#kick', ['speed', 'start']). " +
+      'Each parameter gets the kind that suits it. A slider(), knob(), toggle() or select() for the same node and parameter is used instead of the one from controls().',
   },
 ];
 

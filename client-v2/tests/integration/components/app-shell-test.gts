@@ -152,10 +152,12 @@ module('Integration | Component | app-shell', function (hooks) {
         .dom('[data-test-track="1"] [data-test-step-grid]')
         .hasAttribute('data-stored', 'true');
       assert.deepEqual(
-        [...audio.engine!.scope('t-kick').transport.get('steps')!.steps].slice(
-          0,
-          5,
-        ),
+        [
+          ...audio
+            .engine!.scope('t-kick')
+            .scope('script')
+            .transport.get('steps')!.steps,
+        ].slice(0, 5),
         [0, 0, 1, 0, 1],
         'the running sequence',
       );
@@ -186,7 +188,8 @@ module('Integration | Component | app-shell', function (hooks) {
         .dom('[data-test-track="1"] [data-test-no-sequencer]')
         .hasText('No sequencer declared');
       assert.strictEqual(
-        audio.engine!.scope('t-kick').transport.sequences.length,
+        audio.engine!.scope('t-kick').scope('script').transport.sequences
+          .length,
         1,
         'the sequence is still there',
       );
@@ -253,7 +256,8 @@ module('Integration | Component | app-shell', function (hooks) {
         findAll('[data-test-control-group]').map((group) =>
           group.getAttribute('data-test-control-group'),
         ),
-        ['filter', 'level', 'sampler'],
+        ['sampler', 'filter', 'level'],
+        'in the order of the chain the script wrote, not of the declarations',
       );
       assert
         .dom('[data-test-control-group="filter"] .control-group__title')
@@ -266,12 +270,22 @@ module('Integration | Component | app-shell', function (hooks) {
           el.getAttribute('data-test-control'),
         ),
         [
+          '#sampler › speed',
           '#filter › frequency',
           '#filter › q',
           '#level › gain',
-          '#sampler › speed',
         ],
       );
+      assert
+        .dom('[data-test-control-group="filter"] [data-test-group-type]')
+        .hasText('lowpass', 'a section leads with what the node is');
+      assert
+        .dom('[data-test-control-group="filter"] [data-test-group-id]')
+        .hasText('filter', 'then the id the script gave it');
+      assert.dom('[data-test-by-position]').doesNotExist();
+      assert
+        .dom('[data-test-chain-title]')
+        .doesNotExist('one chain needs no name');
       assert
         .dom(`${row(FREQUENCY)} [data-test-slider]`)
         .hasAria('valuenow', '2000');
@@ -285,7 +299,6 @@ module('Integration | Component | app-shell', function (hooks) {
       assert
         .dom('[data-test-pane="controls"] input[type="range"]')
         .doesNotExist('no native range inputs');
-      assert.dom('[data-test-control-more]').doesNotExist();
     });
 
     test('moving a slider sets the parameter and stores the value; one drag is one undo', async function (assert) {
@@ -346,18 +359,11 @@ module('Integration | Component | app-shell', function (hooks) {
         findAll('[data-test-menu-item]').map((item) =>
           item.textContent?.trim(),
         ),
-        [
-          'Exponential',
-          'Linear',
-          'MIDI note',
-          'Stepped',
-          'Reset',
-          'Learn MIDI (coming)',
-        ],
+        ['Hz', 'Note', 'Note and cents', 'Reset', 'Learn MIDI (coming)'],
       );
       assert
-        .dom('[data-test-menu-item="Exponential"]')
-        .hasAria('checked', 'true');
+        .dom('[data-test-menu-item="Hz"]')
+        .hasAria('checked', 'true', 'the units a frequency can be shown in');
       assert
         .dom('[data-test-menu-item="Reset"]')
         .hasAria('disabled', 'true', 'nothing stored: nothing to reset');
@@ -365,7 +371,7 @@ module('Integration | Component | app-shell', function (hooks) {
         .dom('[data-test-menu-item="Learn MIDI (coming)"]')
         .hasAria('disabled', 'true');
 
-      await click('[data-test-menu-item="MIDI note"]');
+      await click('[data-test-menu-item="Note"]');
       assert
         .dom(`${row(FREQUENCY)} [data-test-number-entry]`)
         .hasText('B6', '2 kHz is nearest B6');
@@ -392,9 +398,7 @@ module('Integration | Component | app-shell', function (hooks) {
       );
 
       await click(menu);
-      assert
-        .dom('[data-test-menu-item="MIDI note"]')
-        .hasAria('checked', 'true');
+      assert.dom('[data-test-menu-item="Note"]').hasAria('checked', 'true');
       await click('[data-test-menu-item="Reset"]');
 
       assert.strictEqual(
@@ -422,21 +426,23 @@ module('Integration | Component | app-shell', function (hooks) {
       assert.dom('[data-test-menu]').doesNotExist();
     });
 
-    test('controls(selector) puts every parameter under "more"; a control of its own is in the Track group', async function (assert) {
+    test('controls() gives every node a section; sections close, and stay closed; a control of its own is in the Track section', async function (assert) {
       await render(<template><AppShell /></template>);
       await click('[data-test-script-toggle]');
       await typeScript(
         (text) =>
-          `${text}\ncontrols('#sampler');\nconst density = slider('density', { min: 0, max: 1, default: 0.5 });\ntoggle('fills', { default: true });`,
+          `${text}\ncontrols();\nconst density = slider('density', { min: 0, max: 1, default: 0.5 });\ntoggle('fills', { default: true });`,
       );
       await click('[data-test-script-toggle]');
 
-      assert.deepEqual(
+      const sections = (): (string | null)[] =>
         findAll('[data-test-control-group]').map((group) =>
           group.getAttribute('data-test-control-group'),
-        ),
-        ['own', 'filter', 'level', 'sampler'],
-        'the Track group comes first',
+        );
+      assert.deepEqual(
+        sections(),
+        ['own', 'sampler', 'filter', 'level'],
+        'the Track section first, then a section per node',
       );
       assert
         .dom('[data-test-control-group="own"] .control-group__title')
@@ -447,25 +453,187 @@ module('Integration | Component | app-shell', function (hooks) {
       assert
         .dom(`${row('fills')} [data-test-toggle]`)
         .hasAria('checked', 'true');
-
-      const more =
-        '[data-test-control-group="sampler"] [data-test-control-more]';
-      assert.dom(`${more} summary`).hasText('More (5)');
-      assert.dom(more).doesNotHaveAttribute('open', 'collapsed to start with');
       assert
-        .dom(`${more} ${row('#sampler › loop')} [data-test-toggle]`)
+        .dom('[data-test-control-more]')
+        .doesNotExist('no "more": everything is in its section');
+
+      const sampler = '[data-test-control-group="sampler"]';
+      assert.deepEqual(
+        findAll(`${sampler} [data-test-control]`).map((el) =>
+          el.getAttribute('data-test-control'),
+        ),
+        [
+          '#sampler › speed',
+          '#sampler › start',
+          '#sampler › end',
+          '#sampler › loop',
+          '#sampler › reverse',
+          '#sampler › gain',
+        ],
+        'the explicit speed slider is used, not repeated; the rest of the node’s parameters follow',
+      );
+      assert
+        .dom(`${row('#sampler › loop')} [data-test-toggle]`)
         .exists('a true-or-false parameter gets a toggle');
       assert
-        .dom(
-          `[data-test-control-group="sampler"] > .control-list ${row('#sampler › speed')}`,
-        )
-        .exists('the explicit slider stays above');
+        .dom(`${row('#level › gain')} [data-test-knob]`)
+        .exists('the explicit knob wins over the slider controls() would give');
       assert
-        .dom(`${more} ${row('#sampler › speed')}`)
-        .doesNotExist('and is not repeated under "more"');
+        .dom(
+          '[data-test-pane="controls"] [data-test-control="#euclip-pan › pan"]',
+        )
+        .doesNotExist();
+
+      assert.dom(sampler).hasAttribute('open', '', 'open by default');
+      await click(`${sampler} summary`);
+      assert.dom(sampler).doesNotHaveAttribute('open');
+      assert.false(view.isSectionOpen('t-kick', 'sampler'));
+      await click('[data-test-track="2"] [data-test-track-select]');
+      await click('[data-test-track="1"] [data-test-track-select]');
+      assert
+        .dom(sampler)
+        .doesNotHaveAttribute('open', 'still closed after looking elsewhere');
+      assert.dom('[data-test-control-group="filter"]').hasAttribute('open', '');
 
       await click(`${row('fills')} [data-test-toggle]`);
       assert.false(project.doc.tracks[0]?.values.controls['fills']?.value);
+    });
+
+    test('an error or a warning is laid over the foot of the footer: nothing above it moves', async function (assert) {
+      await render(<template><AppShell /></template>);
+      const top = (selector: string): number =>
+        Math.round(find(selector)!.getBoundingClientRect().top);
+      const left = (selector: string): number =>
+        Math.round(find(selector)!.getBoundingClientRect().left);
+      const grid = '[data-test-track="1"] [data-test-step-grid]';
+      const before = {
+        pane: top('[data-test-pane="controls"]'),
+        firstRow: top(row(FREQUENCY)),
+        footer: top('[data-test-track-footer]'),
+        gridLeft: left(grid),
+        gridTop: top(grid),
+        list: find('[data-test-track-list]')!.getBoundingClientRect().height,
+      };
+      await click('[data-test-script-toggle]');
+      const good = project.doc.tracks[0]!.script;
+      const editorTop = top('[data-test-code-editor]');
+      const scriptButton = find(
+        '[data-test-script-toggle]',
+      )!.getBoundingClientRect();
+      const editorHeight = find(
+        '[data-test-code-editor]',
+      )!.getBoundingClientRect().height;
+
+      await typeScript(
+        (text) =>
+          `${text}\nthrow new Error('${'a very long message '.repeat(20)}');\n`,
+      );
+      assert.dom('[data-test-script-error]').exists();
+      assert.strictEqual(
+        top('[data-test-code-editor]'),
+        editorTop,
+        'the editor’s top edge has not moved',
+      );
+      assert.strictEqual(
+        find('[data-test-code-editor]')!.getBoundingClientRect().height,
+        editorHeight,
+        'nor has it changed size',
+      );
+      assert.strictEqual(
+        top('[data-test-track-footer]'),
+        before.footer,
+        'nor the footer',
+      );
+      assert.strictEqual(
+        left(grid),
+        before.gridLeft,
+        'the track row’s "!" does not push its grid along',
+      );
+      assert.strictEqual(top(grid), before.gridTop);
+      assert.dom('[data-test-track="1"] [data-test-track-error]').exists();
+      assert.deepEqual(
+        find('[data-test-script-toggle]')!.getBoundingClientRect().toJSON(),
+        scriptButton.toJSON(),
+        'nor does the Script button change size or place for its "!"',
+      );
+
+      const status = find('[data-test-footer-status]')!.getBoundingClientRect();
+      const footer = find('[data-test-track-footer]')!.getBoundingClientRect();
+      assert.true(
+        status.bottom <= footer.bottom + 1,
+        'the strip is at the foot of the footer',
+      );
+      assert.true(status.top >= footer.top, 'and inside it');
+      assert.true(
+        status.height < 60,
+        `one line of a long message to start with (${status.height}px)`,
+      );
+      assert
+        .dom('[data-test-script-error]')
+        .hasAttribute(
+          'title',
+          /a very long message a very long message/,
+          'the whole of it is there to be read',
+        );
+      await click('[data-test-status-toggle]');
+      assert.true(
+        find('[data-test-footer-status]')!.getBoundingClientRect().height >
+          status.height,
+        '"More" shows the whole message',
+      );
+      // (pressing More can scroll the small test page to keep the button in view: measure inside the footer)
+      assert.strictEqual(
+        top('[data-test-code-editor]') - top('[data-test-track-footer]'),
+        editorTop - before.footer,
+        'still without moving the editor',
+      );
+      await click('[data-test-status-toggle]');
+      // Put back whatever the test page scrolled to bring the button into view; nothing of the app's
+      // own may have scrolled.
+      const scrolled: string[] = [];
+      for (
+        let el = find('[data-test-track-footer]');
+        el;
+        el = el.parentElement
+      ) {
+        if (el.scrollTop !== 0) {
+          scrolled.push(el.id || el.className || el.tagName);
+          el.scrollTop = 0;
+        }
+      }
+      assert.deepEqual(
+        scrolled.filter((name) => !/ember-testing|HTML|BODY/i.test(name)),
+        [],
+        'nothing in the app scrolled',
+      );
+
+      await click('[data-test-script-toggle]');
+      assert.strictEqual(
+        top('[data-test-pane="controls"]'),
+        before.pane,
+        'the panes have not moved either',
+      );
+      assert.strictEqual(top(row(FREQUENCY)), before.firstRow);
+
+      await click('[data-test-script-toggle]');
+      await typeScript(() => `${good}slider('#nope', 'frequency');\n`);
+      assert.dom('[data-test-script-error]').doesNotExist();
+      assert
+        .dom('[data-test-script-warnings]')
+        .exists('a warning is shown the same way');
+      assert.strictEqual(top('[data-test-code-editor]'), editorTop);
+
+      await typeScript(() => good);
+      assert.dom('[data-test-footer-status]').doesNotExist('cleared');
+      assert.strictEqual(
+        top('[data-test-code-editor]'),
+        editorTop,
+        'and clearing moves nothing',
+      );
+      assert.strictEqual(
+        find('[data-test-track-list]')!.getBoundingClientRect().height,
+        before.list,
+      );
     });
 
     test('a declaration that cannot work is a warning with its line; the rest of the script runs', async function (assert) {
@@ -501,7 +669,7 @@ module('Integration | Component | app-shell', function (hooks) {
       await render(<template><AppShell /></template>);
       await click('[data-test-script-toggle]');
       await typeScript(
-        () => `__().sampler({ id: 's', buffer: 'kick' }).to('out');`,
+        () => `__().sampler({ id: 's', buffer: 'kick' }).to('channel');`,
       );
       await click('[data-test-script-toggle]');
 
@@ -558,10 +726,175 @@ module('Integration | Component | app-shell', function (hooks) {
       assert.strictEqual(project.doc.tracks[0]?.level, 0);
       assert.strictEqual(project.doc.tracks[0]?.pan, -1);
       const scope = audio.engine!.scope('t-kick');
-      assert.strictEqual(scope.bus('out').gain.value, 0);
+      assert.strictEqual(scope.bus('channel').gain.value, 0);
       assert.strictEqual(
-        [...scope.bus('out').inserts][0]?.param('pan').value,
+        [...scope.bus('channel').inserts][0]?.param('pan').value,
         -1,
+      );
+    });
+
+    test('the channel strip says how the script reaches it, and when the script does not', async function (assert) {
+      await render(<template><AppShell /></template>);
+      assert.dom('[data-test-channel-route]').hasText(".to('channel')");
+      assert
+        .dom('[data-test-channel-route]')
+        .hasAttribute(
+          'title',
+          /passes through this level and pan, then to main/,
+        );
+      assert.dom('[data-test-channel-strip]').doesNotHaveAttribute('data-idle');
+      assert.dom('[data-test-channel-idle]').doesNotExist();
+
+      await click('[data-test-script-toggle]');
+      await typeScript((text) => text.replace(".to('channel')", ".to('main')"));
+      await click('[data-test-script-toggle]');
+      assert.dom('[data-test-script-error]').doesNotExist();
+      assert.dom('[data-test-channel-strip]').hasAttribute('data-idle', 'true');
+      assert
+        .dom('[data-test-channel-idle]')
+        .includesText("This track’s script doesn’t send to 'channel'");
+      await click('[data-test-track="2"] [data-test-track-select]');
+      assert
+        .dom('[data-test-channel-idle]')
+        .doesNotExist('the next track’s does');
+
+      await click('[data-test-track="1"] [data-test-track-select]');
+      await click('[data-test-script-toggle]');
+      await typeScript((text) => text.replace(".to('main')", ".to('channel')"));
+      await click('[data-test-script-toggle]');
+      assert
+        .dom('[data-test-channel-idle]')
+        .doesNotExist('sending there again');
+    });
+
+    test('chains are separate blocks, a bus is a block with its level first, and a node with no id says so', async function (assert) {
+      await render(<template><AppShell /></template>);
+      assert.dom('[data-test-no-id-note]').doesNotExist();
+      await click('[data-test-script-toggle]');
+      await typeScript(
+        () => `__.bus('drums').compressor({ id: 'squash' }).to('channel');
+__().sampler({ buffer: 'kick' }).lowpass(900).highpass({ id: 'thin', frequency: 80 }).lowpass(4000).to('drums');
+__().sine(60).gain(0).to('channel');
+controls();
+slider(__.bus('drums'), 'gain');
+`,
+      );
+      await click('[data-test-script-toggle]');
+      assert.dom('[data-test-footer-status]').doesNotExist();
+
+      const blocks = findAll('[data-test-control-chain]').map((chain) => ({
+        title:
+          chain.querySelector('[data-test-chain-title]')?.textContent?.trim() ??
+          null,
+        sections: [...chain.querySelectorAll('summary')].map((summary) =>
+          (summary.textContent ?? '').replace(/\s+/g, ' ').trim(),
+        ),
+      }));
+      assert.deepEqual(blocks, [
+        { title: 'drums bus', sections: ['level', 'compressor squash'] },
+        {
+          title: 'chain 1',
+          sections: [
+            'sampler no id',
+            'lowpass 1 no id',
+            'highpass thin',
+            'lowpass 2 no id',
+          ],
+        },
+        { title: 'chain 2', sections: ['sine no id', 'gain no id'] },
+      ]);
+      assert.false(
+        find('[data-test-pane="controls"]')!.textContent.includes('lowpass-'),
+        'an automatic id is never shown',
+      );
+      assert
+        .dom('[data-test-control-group="lowpass-1"] [data-test-by-position]')
+        .hasAttribute(
+          'title',
+          /its stored values follow its position in the script/,
+        );
+      assert.dom('[data-test-no-id-note]').includesText('Give it one');
+      assert
+        .dom(
+          `[data-test-control-chain][data-bus="drums"] ${row('bus drums › gain')} [data-test-slider]`,
+        )
+        .hasAria('valuenow', '1');
+    });
+
+    test('a control’s menu offers the units its parameter can be shown in; the value stays in the parameter’s own', async function (assert) {
+      await render(<template><AppShell /></template>);
+      await click('[data-test-script-toggle]');
+      await typeScript(
+        (text) => `${text}\ncontrols('#sampler', ['start', 'end']);\n`,
+      );
+      await click('[data-test-script-toggle]');
+
+      const units = async (key: string): Promise<(string | undefined)[]> => {
+        await click(`${row(key)} [data-test-menu-button]`);
+        const items = findAll('[data-test-menu-item]')
+          .map((item) => item.textContent?.trim())
+          .filter(
+            (label) => label !== 'Reset' && label !== 'Learn MIDI (coming)',
+          );
+        await triggerKeyEvent('[role="menu"]', 'keydown', 'Escape');
+        return items;
+      };
+      assert.deepEqual(await units('#level › gain'), ['Linear', 'Decibels']);
+      assert.deepEqual(await units('#sampler › speed'), [
+        'Ratio',
+        'Semitones',
+        'Cents',
+      ]);
+      assert.deepEqual(await units('#sampler › start'), [
+        'Seconds',
+        'Milliseconds',
+        'Percent of the sample',
+      ]);
+      assert.deepEqual(await units('#filter › q'), [
+        'Linear',
+        'Exponential',
+        'Stepped',
+      ]);
+
+      const end = row('#sampler › end');
+      const length = audio.engine!.buffers.get('kick')!.duration!;
+      assert
+        .dom(`${end} [data-test-slider]`)
+        .hasAria('valuemax', String(length), 'the length of the sample');
+      assert
+        .dom(`${end} [data-test-slider]`)
+        .hasAria('valuenow', String(length));
+      await click(`${end} [data-test-menu-button]`);
+      await click('[data-test-menu-item="Percent of the sample"]');
+      assert.dom(`${end} [data-test-number-entry]`).hasText('100%');
+      await click(`${end} [data-test-number-entry]`);
+      await fillIn(`${end} [data-test-number-input]`, '50');
+      await triggerKeyEvent(
+        `${end} [data-test-number-input]`,
+        'keydown',
+        'Enter',
+      );
+      assert.strictEqual(
+        project.doc.tracks[0]?.values.controls['#sampler › end']?.value,
+        length / 2,
+        'stored in seconds',
+      );
+      assert.dom(`${end} [data-test-number-entry]`).hasText('50%');
+
+      const speed = row('#sampler › speed');
+      await click(`${speed} [data-test-menu-button]`);
+      await click('[data-test-menu-item="Semitones"]');
+      await focus(`${speed} [data-test-slider]`);
+      await triggerKeyEvent(
+        `${speed} [data-test-slider]`,
+        'keydown',
+        'ArrowUp',
+      );
+      assert.dom(`${speed} [data-test-number-entry]`).hasText('+1 st');
+      assert.strictEqual(
+        project.doc.tracks[0]?.values.controls['#sampler › speed']?.value,
+        Number((2 ** (1 / 12)).toPrecision(12)),
+        'a semitone up, stored as a ratio',
       );
     });
 
@@ -715,7 +1048,7 @@ module('Integration | Component | app-shell', function (hooks) {
         findAll('[data-test-control]').map((el) =>
           el.getAttribute('data-test-control'),
         ),
-        ['#level › gain', '#sampler › speed'],
+        ['#sampler › speed', '#level › gain'],
         'playable without typing',
       );
       const id = project.doc.tracks[3]!.id;

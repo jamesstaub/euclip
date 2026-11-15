@@ -19,8 +19,9 @@ export const BUILT_IN_SAMPLES = [
  * A sampler track's script in the conventional order: the chain, its sequences, then the controls it
  * declares.
  *
- * Every track's chain ends at `out`: a bus Euclip makes in the track's scope, routed to `main`, whose
- * level and pan are the channel strip's. A script may ignore it and send its sound somewhere else.
+ * Every track's chain ends at `channel`: a bus Euclip makes for the track, routed to `main`, whose
+ * level and pan are the channel strip's. A script may ignore it and send its sound somewhere else (the
+ * channel strip then says it has nothing to do).
  *
  * A control exists because the script declares it. The numbers in the chain and the steps in the
  * sequence are the defaults; what is set on the controls is kept in the project.
@@ -35,7 +36,7 @@ export function samplerScript(
 __()
   .sampler({ id: 'sampler', buffer: '${buffer}' })
 ${chain}
-  .to('out');
+  .to('channel');
 
 // Sequences
 __.transport.sequence(
@@ -53,13 +54,12 @@ ${controls}
 }
 
 /** The project script of a new project: one insert on the main bus, its controls, and the master level. */
-export const DEFAULT_PROJECT_SCRIPT = `// Master: every track's \`out\` arrives at main
+export const DEFAULT_PROJECT_SCRIPT = `// Master: every track's \`channel\` arrives at main
 __.bus('main')
   .compressor({ id: 'glue', threshold: -18, ratio: 3 });
 
-__.bus('main').gain.set(0.8);
-
 // Controls
+slider(__.bus('main'), 'gain', { label: 'master', default: 0.8 });
 slider('#glue', 'threshold');
 slider('#glue', 'ratio');
 `;
@@ -75,7 +75,7 @@ export function newTrackId(): string {
 
 const ONE = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-/** What New Track adds: sampler into gain into `out`, one 16-step sequence, and controls for them. */
+/** What New Track adds: sampler into gain into `channel`, one 16-step sequence, and controls for them. */
 export function newTrack(name: string, buffer = 'kick'): TrackDocument {
   return {
     id: newTrackId(),

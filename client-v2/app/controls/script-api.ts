@@ -1,24 +1,33 @@
 /**
  * The script side of controls: the functions a script calls (`slider`, `knob`, `toggle`, `select`,
- * `controls`). Euclip puts them in scope beside cracked-up's helpers; cracked-up knows nothing of them.
+ * `controls`, `sequencer`). Euclip puts them in scope beside cracked-up's helpers; cracked-up knows
+ * nothing of them.
  *
  * A declaration does two things: it tells the host what it declares (plain data), and, if the project
  * holds a value for that control, it does the `set` right there. So a stored value passes through the
  * script as an ordinary `set` and the rebuild ends on it by the library's normal rules.
  *
+ * What a control is bound to can be said with a selector string, or with what the script already has
+ * in hand: a chain, a selection or a node. Those are turned into node ids here, at declaration time, so
+ * only ids ever leave the script. A bus can be given too, for its level; only its name leaves.
+ *
  * Everything here works from `__` and a small host interface of plain data in and out. It does not
  * touch the DOM, the document or the app, so the same code can run inside the sandbox, with the host
  * interface carried over the sandbox's link.
  */
-import type { ScopeApi } from 'cracked-up';
+import type { Bus, Node, ScopeApi } from 'cracked-up';
 import {
+  CHANNEL_BUS,
   CONTROL_FUNCTIONS,
+  HOST_TAG,
   KIND_FOR_PARAM,
+  type Binding,
   type ControlOptions,
   type Declaration,
   type DeclarationWarning,
 } from 'client-v2/controls/declarations';
 import {
+  busKey,
   controlKey,
   sequencerKey,
   type StoredValue,
@@ -28,7 +37,11 @@ import {
 export interface ControlHost {
   /** the value the project holds for a control, if any. Read live, every time. */
   stored(key: string): StoredValue | undefined;
-  declare(declaration: Declaration): void;
+  /**
+   * Takes a declaration. Returns false if it is not used: another declaration already controls the
+   * same parameter of the same node and has the better claim (an explicit `slider` over `controls()`).
+   */
+  declare(declaration: Declaration): boolean;
   warn(warning: DeclarationWarning): void;
   /** the script moved a control with `.set()`; the parameter (if it has one) has already been set */
   moved(key: string, value: StoredValue): void;
@@ -50,6 +63,45 @@ function isOptions(value: unknown): value is ControlOptions {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function isNode(value: unknown): value is Node {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as Node).id === 'string' &&
+    typeof (value as Node).param === 'function' &&
+    typeof (value as Node).type === 'string'
+  );
+}
+
+function isBus(value: unknown): value is Bus {
+  if (typeof value !== 'object' || value === null) return false;
+  const bus = value as Partial<Bus>;
+  return (
+    typeof bus.name === 'string' &&
+    typeof bus.insert === 'function' &&
+    typeof bus.gain === 'object' &&
+    bus.gain !== null &&
+    typeof bus.gain.set === 'function'
+  );
+}
+
+/** A node Euclip made itself (a track's pan): never a script's to control. */
+function isHostNode(node: Node): boolean {
+  return node.tags[HOST_TAG] !== undefined;
+}
+
+const idSelector = (node: Node): string => `#${node.id}`;
+
+/** What a control function was pointed at. */
+interface Target {
+  /** the nodes found, without the host's own */
+  nodes: Node[];
+  /** the selector string, when that is how it was said; null when the script passed nodes */
+  selector: string | null;
+  /** how to name it in a message */
+  said: string;
+}
+
 /**
  * The control functions for one run of one script.
  * @param api the script's `__`
@@ -60,36 +112,79 @@ export function createControlApi(
   host: ControlHost,
   lineOfCaller: () => number | undefined = () => undefined,
 ): ControlApi {
-  /** Declares a control on one parameter of the nodes a selector finds. */
+  /**
+   * Turns what a function was given into nodes: a selector string, a chain (all of its nodes), a
+   * selection, a node, or a list of nodes. Null if it is none of those.
+   */
+  function resolve(target: unknown): Target | null {
+    if (typeof target === 'string') {
+      if (target === '') return null;
+      return {
+        nodes: [...api(target)].filter((node) => !isHostNode(node)),
+        selector: target,
+        said: `'${target}'`,
+      };
+    }
+    let nodes: unknown[] | null = null;
+    let said = 'the nodes given';
+    if (isNode(target)) {
+      nodes = [target];
+      said = `the ${target.type} "${target.id}"`;
+    } else if (Array.isArray(target)) {
+      nodes = target;
+    } else if (typeof target === 'object' && target !== null) {
+      const inner = (target as { nodes?: unknown }).nodes;
+      if (Array.isArray(inner)) {
+        nodes = inner; // a selection: its `nodes` is the list
+        said = 'the selection given';
+      } else if (
+        typeof inner === 'object' &&
+        inner !== null &&
+        Symbol.iterator in inner
+      ) {
+        nodes = [...(inner as Iterable<unknown>)]; // a chain: its `nodes` is a selection
+        said = 'the chain given';
+      }
+    }
+    if (!nodes) return null;
+    return {
+      nodes: nodes.filter(isNode).filter((node) => !isHostNode(node)),
+      selector: null,
+      said,
+    };
+  }
+
+  /** The nodes a control's bindings reach now (a handle outlives the build it was made in). */
+  function reach(bindings: readonly Binding[]): Node[] {
+    const nodes: Node[] = [];
+    for (const binding of bindings) {
+      if (binding.type !== 'param') continue;
+      for (const node of api(binding.selector)) {
+        if (!isHostNode(node)) nodes.push(node);
+      }
+    }
+    return nodes;
+  }
+
+  /**
+   * Declares one control over one parameter of the nodes given: one node, or several moved together.
+   * @param selector the selector the script wrote, to key and bind the control by; null to key and
+   *   bind it by the nodes' ids
+   */
   function bound(
+    call: string,
     fn: string,
     kind: string,
     accepts: readonly string[],
-    selector: string,
+    nodes: readonly Node[],
+    selector: string | null,
     param: string,
     options: ControlOptions,
     implicit: boolean,
     line: number | undefined,
   ): ControlHandle {
-    const call = `${fn}('${selector}', '${param}')`;
-    let nodes;
-    try {
-      nodes = [...api(selector)];
-    } catch (error) {
-      host.warn({
-        message: `${call}: ${error instanceof Error ? error.message : String(error)}`,
-        line,
-      });
-      return INERT;
-    }
     const first = nodes[0];
-    if (!first) {
-      host.warn({
-        message: `${call}: the selector matches no node, so there is no control.`,
-        line,
-      });
-      return INERT;
-    }
+    if (!first) return INERT;
     const names = Object.keys(first.params);
     if (!names.includes(param)) {
       host.warn({
@@ -115,28 +210,112 @@ export function createControlApi(
       return INERT;
     }
 
-    const key = controlKey(selector, param);
-    host.declare({
+    const reached = nodes.filter((node) => param in node.params);
+    const bindings: Binding[] =
+      selector !== null
+        ? [{ type: 'param', selector, param }]
+        : reached.map((node) => ({
+            type: 'param',
+            selector: idSelector(node),
+            param,
+          }));
+    const key = controlKey(
+      selector ?? reached.map(idSelector).join(', '),
+      param,
+    );
+    const used = host.declare({
       key,
       kind,
-      bindings: [{ type: 'param', selector, param }],
+      bindings,
+      nodes: reached.map((node) => node.id),
       options,
       implicit,
       line,
     });
+    if (!used) return INERT;
+
+    const set = (value: StoredValue): void => {
+      if (Array.isArray(value)) return;
+      for (const node of reach(bindings)) node.param(param).set(value);
+    };
     // The stored value passes through the script here, as an ordinary set.
     const stored = host.stored(key);
-    if (stored !== undefined && !Array.isArray(stored)) {
-      api(selector).set({ [param]: stored });
-    }
+    if (stored !== undefined) set(stored);
 
     return {
       get value() {
-        return host.stored(key) ?? [...api(selector)][0]?.param(param).value;
+        return host.stored(key) ?? reach(bindings)[0]?.param(param).value;
       },
       set(value) {
-        if (Array.isArray(value)) return;
-        api(selector).set({ [param]: value });
+        set(value);
+        host.moved(key, value);
+      },
+    };
+  }
+
+  /**
+   * Declares a control for a bus's level, keyed by the bus's name. A bus has that one value to control;
+   * its inserts are ordinary nodes. Only a bus of the script's own scope: the track's `channel` is the
+   * channel strip's, and the project's buses are the project script's.
+   */
+  function busLevel(
+    fn: string,
+    kind: string,
+    accepts: readonly string[],
+    bus: Bus,
+    param: unknown,
+    options: ControlOptions,
+    implicit: boolean,
+    line: number | undefined,
+  ): ControlHandle {
+    const call = `${fn}(__.bus('${bus.name}')${typeof param === 'string' ? `, '${param}'` : ''})`;
+    if (bus.scope !== api.scope) {
+      host.warn({
+        message:
+          bus.name === CHANNEL_BUS
+            ? `${call}: the level and pan of '${CHANNEL_BUS}' are the channel strip's, which Euclip provides for every track: there is no control to declare. Use the channel strip, or put a gain node of your own before .to('${CHANNEL_BUS}') and declare a control for that.`
+            : `${call}: the bus '${bus.name}' is not this script's, so it cannot declare a control for it. Declare it in the script that makes the bus${bus.name === 'main' ? ' (Main Output)' : ''}.`,
+        line,
+      });
+      return INERT;
+    }
+    if (param !== 'gain') {
+      host.warn({
+        message: `${call}: a bus has one value to control, its level. Write ${fn}(__.bus('${bus.name}'), 'gain'). (Its inserts are ordinary nodes: give one an id and declare a control for it.)`,
+        line,
+      });
+      return INERT;
+    }
+    if (!accepts.includes('number')) {
+      host.warn({
+        message: `${call}: a bus's level is a number, which ${fn}() cannot show. Use slider() or knob().`,
+        line,
+      });
+      return INERT;
+    }
+    const key = busKey(bus.name);
+    const used = host.declare({
+      key,
+      kind,
+      bindings: [{ type: 'bus', name: bus.name }],
+      nodes: [],
+      options,
+      implicit,
+      line,
+    });
+    if (!used) return INERT;
+    // A build leaves a bus's level where it was, so the declaration always says where it is: the stored
+    // value, or with nothing stored the default (so that Reset has somewhere to go back to).
+    const fallback = typeof options.default === 'number' ? options.default : 1;
+    const stored = host.stored(key);
+    bus.gain.set(typeof stored === 'number' ? stored : fallback);
+    return {
+      get value() {
+        return host.stored(key) ?? fallback;
+      },
+      set(value) {
+        if (typeof value !== 'number') return;
+        bus.gain.set(value);
         host.moved(key, value);
       },
     };
@@ -153,6 +332,7 @@ export function createControlApi(
       key: name,
       kind,
       bindings: [{ type: 'value', name }],
+      nodes: [],
       options,
       implicit: false,
       line,
@@ -179,15 +359,23 @@ export function createControlApi(
       third?: unknown,
     ): ControlHandle => {
       const line = lineOfCaller();
-      if (typeof first !== 'string' || first === '') {
-        host.warn({
-          message: `${fn.name}() needs a selector or a name as its first argument.`,
-          line,
-        });
-        return INERT;
+      // slider('density', { min, max }): a control of its own
+      if (
+        typeof first === 'string' &&
+        first !== '' &&
+        typeof second !== 'string'
+      ) {
+        if (kind === 'select') {
+          host.warn({
+            message: `select('${first}', …) needs a parameter name as its second argument.`,
+            line,
+          });
+          return INERT;
+        }
+        return standalone(kind, first, isOptions(second) ? second : {}, line);
       }
-      if (typeof second === 'string') {
-        return bound(
+      if (isBus(first)) {
+        return busLevel(
           fn.name,
           kind,
           fn.accepts,
@@ -198,14 +386,46 @@ export function createControlApi(
           line,
         );
       }
-      if (kind === 'select') {
+      let target: Target | null;
+      try {
+        target = resolve(first);
+      } catch (error) {
         host.warn({
-          message: `select('${first}', …) needs a parameter name as its second argument.`,
+          message: `${fn.name}(${typeof first === 'string' ? `'${first}'` : '…'}): ${error instanceof Error ? error.message : String(error)}`,
           line,
         });
         return INERT;
       }
-      return standalone(kind, first, isOptions(second) ? second : {}, line);
+      if (!target || typeof second !== 'string') {
+        host.warn({
+          message: `${fn.name}() needs a selector, a chain, a selection, a node or a bus, then a parameter name; or a name and an object for a control of its own.`,
+          line,
+        });
+        return INERT;
+      }
+      const call = `${fn.name}(${target.selector === null ? target.said : target.said}, '${second}')`;
+      if (target.nodes.length === 0) {
+        host.warn({
+          message:
+            target.selector === null
+              ? `${call}: there are no nodes there, so there is no control.`
+              : `${call}: the selector matches no node, so there is no control.`,
+          line,
+        });
+        return INERT;
+      }
+      return bound(
+        call,
+        fn.name,
+        kind,
+        fn.accepts,
+        target.nodes,
+        target.selector,
+        second,
+        isOptions(third) ? third : {},
+        false,
+        line,
+      );
     };
   }
 
@@ -240,6 +460,7 @@ export function createControlApi(
       key,
       kind: 'sequencer',
       bindings: [{ type: 'sequence', name }],
+      nodes: [],
       options: isOptions(options) ? options : {},
       implicit: false,
       line,
@@ -261,61 +482,112 @@ export function createControlApi(
     };
   };
 
-  /** `controls('#kick')`: every parameter, under "more". `controls('#kick', ['speed'])`: those named. */
+  /**
+   * `controls()`: every parameter of every node the script has made so far, a section per node.
+   * `controls(target)`: of the nodes found. `controls(target, ['speed'])`: only those named.
+   * Each node's controls are keyed by that node's id, whatever found it.
+   */
   functions['controls'] = (
-    selector: unknown,
+    first?: unknown,
     list?: unknown,
-  ): Record<string, ControlHandle> => {
+  ): Record<string, Record<string, ControlHandle>> => {
     const line = lineOfCaller();
-    const handles: Record<string, ControlHandle> = {};
-    if (typeof selector !== 'string' || selector === '') {
-      host.warn({
-        message: 'controls() needs a selector as its first argument.',
-        line,
-      });
+    const handles: Record<string, Record<string, ControlHandle>> = {};
+    let target: Target | null;
+    if (isBus(first)) {
+      // A bus itself has only its level. (Its inserts are nodes: `controls()` finds them, and so does
+      // `controls(__.bus('drums').compressor(…))`. They cannot be found from the bus here, because
+      // while a script is running the bus does not yet list the inserts this run is adding.)
+      handles[`bus ${first.name}`] = {
+        gain: busLevel(
+          'controls',
+          'slider',
+          ['number'],
+          first,
+          'gain',
+          {},
+          true,
+          line,
+        ),
+      };
       return handles;
     }
-    let first;
     try {
-      first = [...api(selector)][0];
+      target =
+        first === undefined
+          ? {
+              // what this script has made, in the order it made it: not other scripts' nodes, not
+              // the insides of a macro
+              nodes: [...api('*')].filter(
+                (node) =>
+                  node.scope === api.scope &&
+                  node.parent === null &&
+                  !isHostNode(node),
+              ),
+              selector: null,
+              said: '',
+            }
+          : resolve(first);
     } catch (error) {
       host.warn({
-        message: `controls('${selector}'): ${error instanceof Error ? error.message : String(error)}`,
+        message: `controls(${typeof first === 'string' ? `'${first}'` : '…'}): ${error instanceof Error ? error.message : String(error)}`,
         line,
       });
       return handles;
     }
-    if (!first) {
+    if (!target) {
       host.warn({
-        message: `controls('${selector}'): the selector matches no node, so there are no controls.`,
+        message:
+          'controls() takes nothing (every node made so far), or a selector, a chain, a selection, a node or a bus, and then optionally a list of parameter names.',
         line,
       });
       return handles;
     }
-    const all = Object.keys(first.params);
+    const call = `controls(${target.said}${Array.isArray(list) ? ', [...]' : ''})`;
+    if (target.nodes.length === 0) {
+      host.warn({
+        message:
+          first === undefined
+            ? 'controls(): the script has made no nodes at this point, so there are no controls. Put it after the chain.'
+            : target.selector === null
+              ? `${call}: there are no nodes there, so there are no controls.`
+              : `${call}: the selector matches no node, so there are no controls.`,
+        line,
+      });
+      return handles;
+    }
     const named = Array.isArray(list)
       ? list.filter((name): name is string => typeof name === 'string')
       : null;
-    for (const name of named ?? all) {
-      if (!all.includes(name)) {
+    for (const name of named ?? []) {
+      if (!target.nodes.some((node) => name in node.params)) {
+        const example = target.nodes[0]!;
         host.warn({
-          message: `controls('${selector}', [...]): ${first.type} "${first.id}" has no parameter "${name}". It has: ${all.join(', ')}.`,
+          message: `${call}: ${example.type} "${example.id}" has no parameter "${name}". It has: ${Object.keys(example.params).join(', ')}.`,
           line,
         });
-        continue;
       }
-      const meta = first.param(name).meta;
-      if (meta.rate === 'init') continue;
-      handles[name] = bound(
-        'controls',
-        KIND_FOR_PARAM[meta.kind],
-        [meta.kind],
-        selector,
-        name,
-        {},
-        named === null,
-        line,
-      );
+    }
+    for (const node of target.nodes) {
+      const own: Record<string, ControlHandle> = {};
+      for (const name of Object.keys(node.params)) {
+        if (named && !named.includes(name)) continue;
+        const meta = node.param(name).meta;
+        if (meta.rate === 'init') continue;
+        own[name] = bound(
+          call,
+          'controls',
+          KIND_FOR_PARAM[meta.kind],
+          [meta.kind],
+          [node],
+          null,
+          name,
+          {},
+          true,
+          line,
+        );
+      }
+      handles[node.id] = own;
     }
     return handles;
   };

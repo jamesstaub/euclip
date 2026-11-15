@@ -2,6 +2,7 @@ import { module, test } from 'qunit';
 import {
   availableModes,
   defaultMode,
+  familyOf,
   formatWithUnit,
   hzToNote,
   mapping,
@@ -259,31 +260,327 @@ module('Unit | Controls | modes', function () {
     assert.strictEqual(list.parse('3.5'), 5);
   });
 
-  test('the default mode and the modes on offer come from the parameter’s metadata', function (assert) {
+  test('the units on offer come from what the parameter is: its unit, range and curve; its name only for a speed', function (assert) {
     const frequency = { min: 20, max: 20000, unit: 'hz', curve: 'log' };
-    assert.strictEqual(defaultMode(frequency), 'exponential');
-    assert.deepEqual(availableModes(frequency), [
-      'exponential',
-      'linear',
-      'note',
-      'stepped',
-    ]);
+    assert.strictEqual(familyOf(frequency), 'frequency');
+    assert.strictEqual(defaultMode(frequency), 'hz');
+    assert.deepEqual(availableModes(frequency), ['hz', 'note', 'cents']);
+    assert.deepEqual(
+      availableModes({ min: 0.01, max: 20, unit: 'hz', curve: 'log' }),
+      ['hz'],
+      'an LFO’s rate is a frequency with no notes',
+    );
 
     const gain = { min: 0, max: 4, unit: 'gain', curve: 'linear' };
     assert.strictEqual(defaultMode(gain), 'linear');
-    assert.deepEqual(availableModes(gain), [
-      'linear',
-      'exponential',
-      'decibels',
-      'stepped',
+    assert.deepEqual(availableModes(gain), ['linear', 'decibels']);
+
+    const time = { min: 0, max: 2, unit: 'seconds', curve: 'exp' };
+    assert.deepEqual(
+      availableModes(time),
+      ['seconds', 'ms'],
+      'no steps without a tempo',
+    );
+    assert.deepEqual(availableModes({ ...time, stepSeconds: 0.125 }), [
+      'seconds',
+      'ms',
+      'steps',
     ]);
 
+    const place = {
+      min: 0,
+      max: 1.5,
+      unit: 'seconds',
+      duration: 1.5,
+      stepSeconds: 0.125,
+    };
+    assert.strictEqual(
+      familyOf(place),
+      'place',
+      'a time the host gave a sample length for is a place in the sample',
+    );
+    assert.deepEqual(availableModes(place), ['seconds', 'ms', 'percent']);
+    assert.deepEqual(
+      availableModes({
+        ...place,
+        slices: [0, 0.5, 1, 1.5],
+        edge: 'start' as const,
+      }),
+      ['seconds', 'ms', 'percent', 'slice'],
+    );
+    assert.deepEqual(
+      availableModes({ ...place, slices: [0, 1.5] }),
+      ['seconds', 'ms', 'percent'],
+      'one slice is nothing to choose between',
+    );
+
+    const speed = {
+      min: 0.0625,
+      max: 8,
+      unit: 'ratio',
+      curve: 'log',
+      name: 'speed',
+    };
+    assert.deepEqual(availableModes(speed), [
+      'ratio',
+      'semitones',
+      'ratio-cents',
+    ]);
+    assert.deepEqual(
+      availableModes({ min: 1, max: 20, unit: 'ratio', name: 'ratio' }),
+      ['linear', 'exponential', 'stepped'],
+      'a compressor’s ratio has the same unit and is not a speed',
+    );
+
+    assert.deepEqual(availableModes({ min: -1, max: 1, unit: 'pan' }), [
+      'linear',
+      'exponential',
+      'stepped',
+    ]);
+    assert.deepEqual(
+      availableModes({ min: 0.0001, max: 30, unit: 'q', curve: 'log' }),
+      ['exponential', 'linear', 'stepped'],
+    );
     const count = { min: 1, max: 16, unit: 'none', step: 1 };
     assert.strictEqual(defaultMode(count), 'stepped');
     assert.strictEqual(availableModes(count)[0], 'stepped');
-    assert.false(
-      availableModes({ min: -1, max: 1, unit: 'pan' }).includes('decibels'),
+    assert.strictEqual(
+      defaultMode({ min: 20, max: 2000, unit: 'hz', values: [110, 220, 440] }),
+      'stepped',
+      'a list of values is stepped whatever the unit',
     );
+    for (const meta of [frequency, gain, time, place, speed, count]) {
+      assert.strictEqual(
+        availableModes(meta)[0],
+        defaultMode(meta),
+        'the default comes first',
+      );
+    }
+  });
+
+  module('every unit there and back', function () {
+    const close = (a: number, b: number, tolerance = 1e-6): boolean =>
+      Math.abs(a - b) <= tolerance * Math.max(1, Math.abs(a), Math.abs(b));
+    // [mode, range, a value that is exactly sayable in the unit, how it is said]
+    const UNITS: readonly [ModeName, Range, number, string][] = [
+      [
+        'hz',
+        { min: 20, max: 20000, unit: 'hz', curve: 'log' },
+        2500,
+        '2.5 kHz',
+      ],
+      ['note', { min: 20, max: 20000, unit: 'hz', curve: 'log' }, 440, 'A4'],
+      [
+        'cents',
+        { min: 20, max: 20000, unit: 'hz', curve: 'log' },
+        440 * 2 ** (13 / 1200),
+        'A4 +13 ct',
+      ],
+      ['linear', { min: 0, max: 2, unit: 'gain' }, 0.5, '0.5'],
+      ['decibels', { min: 0, max: 2, unit: 'gain' }, 0.5, '-6.0 dB'],
+      [
+        'seconds',
+        { min: 0, max: 2, unit: 'seconds', curve: 'exp' },
+        0.25,
+        '0.25 s',
+      ],
+      ['ms', { min: 0, max: 2, unit: 'seconds', curve: 'exp' }, 0.25, '250 ms'],
+      [
+        'steps',
+        { min: 0, max: 2, unit: 'seconds', stepSeconds: 0.125 },
+        0.375,
+        '3 steps',
+      ],
+      [
+        'percent',
+        { min: 0, max: 1.6, unit: 'seconds', duration: 1.6 },
+        0.4,
+        '25%',
+      ],
+      [
+        'slice',
+        {
+          min: 0,
+          max: 1.6,
+          unit: 'seconds',
+          duration: 1.6,
+          slices: [0, 0.3, 0.9, 1.6],
+          edge: 'start',
+        },
+        0.9,
+        'slice 2',
+      ],
+      [
+        'slice',
+        {
+          min: 0,
+          max: 1.6,
+          unit: 'seconds',
+          duration: 1.6,
+          slices: [0, 0.3, 0.9, 1.6],
+          edge: 'end',
+        },
+        0.9,
+        'slice 1',
+      ],
+      [
+        'ratio',
+        { min: 0.0625, max: 8, unit: 'ratio', curve: 'log' },
+        1.5,
+        '1.5×',
+      ],
+      [
+        'semitones',
+        { min: 0.0625, max: 8, unit: 'ratio', curve: 'log' },
+        2 ** (7 / 12),
+        '+7 st',
+      ],
+      [
+        'ratio-cents',
+        { min: 0.0625, max: 8, unit: 'ratio', curve: 'log' },
+        2 ** (-50 / 1200),
+        '-50 ct',
+      ],
+      [
+        'exponential',
+        { min: 0.0001, max: 30, unit: 'q', curve: 'log' },
+        3,
+        '3',
+      ],
+      ['stepped', { min: 0, max: 16 }, 5, '5'],
+    ];
+
+    for (const [mode, range, value, said] of UNITS) {
+      test(`${mode}${range.edge ? ` (${range.edge})` : ''}: ${said}`, function (assert) {
+        const m = mapping(mode, range);
+        assert.strictEqual(
+          m.format(value),
+          said,
+          'the stored value, said in the unit',
+        );
+        const typed = m.parse(said) ?? NaN;
+        assert.true(
+          close(typed, value, mode === 'decibels' ? 0.01 : 1e-6),
+          `typed back: ${typed} for ${value}`,
+        );
+        const position = m.toPosition(value);
+        assert.true(position >= 0, 'on the travel');
+        assert.true(position <= 1);
+        assert.true(
+          close(m.toValue(position), value),
+          `along the travel and back: ${m.toValue(position)}`,
+        );
+        // (a unit that moves in whole steps starts and ends on its first and last step, not the range's ends)
+        const ends = m.discrete
+          ? [m.toValue(0), m.toValue(1)]
+          : [range.min, range.max];
+        assert.true(
+          close(m.toValue(0), ends[0]!),
+          `the start of the travel: ${m.toValue(0)}`,
+        );
+        assert.true(
+          close(m.toValue(1), ends[1]!),
+          `the end of the travel: ${m.toValue(1)}`,
+        );
+        assert.true(m.keyStep > 0, 'the keys move it');
+        assert.true(m.keyStep <= 0.5);
+        // every stop along the travel can be said and read back as the same stop
+        for (const p of [0.1, 0.37, 0.5, 0.82]) {
+          const at = m.toValue(p);
+          const back = m.parse(m.format(at)) ?? NaN;
+          assert.true(
+            Math.abs(m.toPosition(back) - m.toPosition(at)) < 0.01,
+            `${m.format(at)} reads back near where it was`,
+          );
+        }
+        assert.strictEqual(m.parse('nonsense'), null);
+      });
+    }
+
+    test('what a unit steps by', function (assert) {
+      const speed = { min: 0.0625, max: 8, unit: 'ratio', curve: 'log' };
+      const semis = mapping('semitones', speed);
+      assert.true(semis.discrete);
+      assert.true(
+        close(
+          semis.toValue(semis.toPosition(1) + semis.keyStep),
+          2 ** (1 / 12),
+        ),
+        'a key press is a semitone',
+      );
+      assert.strictEqual(
+        semis.format(semis.toValue(0.5031)),
+        '-6 st',
+        'a drag stops on whole semitones',
+      );
+
+      const time = { min: 0, max: 2, unit: 'seconds', stepSeconds: 0.125 };
+      const steps = mapping('steps', time);
+      assert.true(
+        close(steps.toValue(steps.keyStep), 0.125 * 0.25),
+        'a quarter of a step',
+      );
+      assert.strictEqual(steps.format(0.125), '1 step');
+      assert.strictEqual(
+        mapping('steps', { ...time, stepSeconds: 0.25 }).format(0.125),
+        '0.5 steps',
+        'the same time is fewer steps at a slower tempo',
+      );
+
+      const cents = mapping('ratio-cents', speed);
+      assert.true(
+        close(
+          cents.toValue(cents.toPosition(1) + cents.keyStep),
+          2 ** (10 / 1200),
+        ),
+        'ten cents',
+      );
+      assert.strictEqual(
+        mapping('ms', time).parse('0.5s'),
+        0.5,
+        'a unit typed with the number is honoured',
+      );
+      assert.strictEqual(mapping('seconds', time).parse('250ms'), 0.25);
+      assert.strictEqual(
+        mapping('cents', { min: 20, max: 20000, unit: 'hz' }).parse('a4'),
+        440,
+      );
+      assert.true(
+        close(
+          mapping('cents', { min: 20, max: 20000, unit: 'hz' }).parse('6900')!,
+          440,
+        ),
+      );
+    });
+
+    test('limits inside the range hold the value without changing the travel', function (assert) {
+      const start = mapping('seconds', {
+        min: 0,
+        max: 2,
+        unit: 'seconds',
+        ceiling: 1.5,
+      });
+      assert.strictEqual(
+        start.toPosition(1),
+        0.5,
+        'the travel is the whole range',
+      );
+      assert.strictEqual(
+        start.toValue(0.9),
+        1.5,
+        'the value stops at the limit',
+      );
+      assert.strictEqual(start.parse('1.9'), 1.5);
+      const end = mapping('percent', {
+        min: 0,
+        max: 2,
+        unit: 'seconds',
+        duration: 2,
+        floor: 0.5,
+      });
+      assert.strictEqual(end.toValue(0), 0.5);
+      assert.strictEqual(end.format(end.parse('10')!), '25%');
+    });
   });
 
   test('numbers are written short', function (assert) {

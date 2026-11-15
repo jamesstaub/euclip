@@ -4,7 +4,11 @@ import {
   type Engine,
   type NodeDefinition,
 } from 'cracked-up';
-import { ProjectRunner } from 'client-v2/audio/runner';
+import {
+  ProjectRunner,
+  type RunnerHost,
+  type RunnerOptions,
+} from 'client-v2/audio/runner';
 import { defaultProject } from 'client-v2/project/default-project';
 import { applyOperation, type Operation } from 'client-v2/project/operations';
 import type { ProjectDocument } from 'client-v2/project/schema';
@@ -19,6 +23,8 @@ export interface Harness {
   doc: ProjectDocument;
   /** operations that came from scripts (`control.set`): stored, but not steps to undo */
   derived: Operation[];
+  /** how many times the runner has said that something the UI shows changed */
+  changes: number;
   /** what a user action does: change the document, then tell the runner */
   apply(op: Operation | null): void;
   /** a script edit, run at once (the app waits for a pause in typing first) */
@@ -35,6 +41,7 @@ export async function startProject(
   doc: ProjectDocument = defaultProject(),
   seconds = 2,
   nodes: readonly NodeDefinition[] = [],
+  options: RunnerOptions = {},
 ): Promise<Harness> {
   const context = new OfflineAudioContext(2, RATE * seconds, RATE);
   const engine = await createEngine({ context, nodes });
@@ -43,6 +50,7 @@ export async function startProject(
     context,
     doc,
     derived: [],
+    changes: 0,
     runner: undefined as unknown as ProjectRunner,
     apply(op) {
       if (!op) throw new Error('There was no operation to apply.');
@@ -62,16 +70,19 @@ export async function startProject(
       return engine.render();
     },
   };
-  harness.runner = new ProjectRunner(engine, {
+  const host: RunnerHost = {
     getDoc: () => harness.doc,
     dispatch: (op) => {
       harness.derived.push(op);
       harness.doc = applyOperation(harness.doc, op);
       harness.runner.handle(op, true);
     },
-    changed: () => undefined,
+    changed: () => {
+      harness.changes++;
+    },
     playheadMoved: () => undefined,
-  });
+  };
+  harness.runner = new ProjectRunner(engine, host, options);
   await harness.runner.start();
   await harness.runner.samplesReady();
   return harness;

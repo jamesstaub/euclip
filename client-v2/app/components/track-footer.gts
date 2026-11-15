@@ -1,4 +1,5 @@
 import Component from '@glimmer/component';
+import { tracked } from '@glimmer/tracking';
 import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
@@ -43,7 +44,8 @@ export interface TrackFooterSignature {
 /**
  * Footer region: the selected track's detail. Its bar names the track and holds two controls: the script
  * button, which swaps the whole footer between its UI and the track's script, and the collapse control.
- * A script that has an error says so here, under the bar, until it runs cleanly again.
+ * A script that has an error (or a declaration that cannot work) says so in a strip laid over the bottom
+ * of the footer, which moves nothing, until it runs cleanly again.
  *
  * The UI is the channel strip and a menu of sequence (the sequencers the script declares), source (a
  * placeholder still) and controls (the controls the script declares, by node). For the main output it
@@ -73,6 +75,17 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
     return this.audio.warnings(this.scopeId);
   }
 
+  get hasStatus(): boolean {
+    return this.error !== null || this.warnings.length > 0;
+  }
+
+  /** The whole of a long message is shown, instead of one line of it. */
+  @tracked statusOpen = false;
+
+  toggleStatus = (): void => {
+    this.statusOpen = !this.statusOpen;
+  };
+
   isChosen = (pane: FooterPane): 'true' | 'false' =>
     this.view.footerPane === pane ? 'true' : 'false';
 
@@ -87,6 +100,7 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
       data-open={{if this.view.footerOpen "true" "false"}}
       data-shows={{if this.view.scriptOpen "script" "ui"}}
       data-error={{if this.error "true"}}
+      data-warnings={{if this.warnings.length "true"}}
       data-test-track-footer
       ...attributes
     >
@@ -131,32 +145,6 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
           />
         </button>
       </div>
-
-      {{#if this.error}}
-        <p class="track-footer__error" role="alert" data-test-script-error>
-          <b>{{if
-              this.error.sequence
-              "Sequence stopped"
-              "Still running the last version that worked"
-            }}{{#if this.error.sequence}} ({{this.error.sequence}}){{/if}}.</b>
-          {{this.error.message}}
-        </p>
-      {{/if}}
-
-      {{#if this.warnings.length}}
-        <ul
-          class="track-footer__warnings"
-          role="status"
-          data-test-script-warnings
-        >
-          {{#each this.warnings as |warning|}}
-            <li>
-              {{#if warning.line}}<b>Line {{warning.line}}.</b>{{/if}}
-              {{warning.message}}
-            </li>
-          {{/each}}
-        </ul>
-      {{/if}}
 
       {{#if this.view.footerOpen}}
         {{#if this.view.scriptOpen}}
@@ -232,6 +220,59 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
                 data-test-pane="master"
               />
             </div>
+          </div>
+        {{/if}}
+      {{/if}}
+
+      {{! Errors and warnings are laid over the bottom of the footer: they never move what is above. }}
+      {{#if this.hasStatus}}
+        {{#if this.view.footerOpen}}
+          <div
+            class="track-footer__status {{if this.statusOpen 'is-open'}}"
+            data-test-footer-status
+          >
+            {{#if this.error}}
+              <p
+                class="track-footer__error"
+                role="alert"
+                title={{this.error.message}}
+                data-test-script-error
+              >
+                <b>{{if
+                    this.error.sequence
+                    "Sequence stopped"
+                    "Still running the last version that worked"
+                  }}{{#if this.error.sequence}}
+                    ({{this.error.sequence}}){{/if}}.</b>
+                {{this.error.message}}
+              </p>
+            {{/if}}
+            {{#if this.warnings.length}}
+              <ul
+                class="track-footer__warnings"
+                role="status"
+                data-test-script-warnings
+              >
+                {{#each this.warnings as |warning|}}
+                  <li title={{warning.message}}>
+                    {{#if warning.line}}<b>Line {{warning.line}}.</b>{{/if}}
+                    {{warning.message}}
+                  </li>
+                {{/each}}
+              </ul>
+            {{/if}}
+            <button
+              type="button"
+              class="btn btn--s btn--ghost track-footer__status-more"
+              aria-expanded={{if this.statusOpen "true" "false"}}
+              aria-label={{if
+                this.statusOpen
+                "Show less of the message"
+                "Show the whole message"
+              }}
+              data-test-status-toggle
+              {{on "click" this.toggleStatus}}
+            >{{if this.statusOpen "Less" "More"}}</button>
           </div>
         {{/if}}
       {{/if}}

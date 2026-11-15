@@ -99,6 +99,11 @@ export default class Knob extends Component<KnobSignature> {
     onMenu: () => this.args.onMenu?.(),
   });
 
+  willDestroy(): void {
+    super.willDestroy();
+    this.gesture.release();
+  }
+
   onKeydown = (event: KeyboardEvent): void => {
     const next = positionForKey(event, this.position, this.args.mapping);
     if (next === null) return;
@@ -122,9 +127,6 @@ export default class Knob extends Component<KnobSignature> {
       data-test-knob
       ...attributes
       {{on "pointerdown" this.gesture.down}}
-      {{on "pointermove" this.gesture.move}}
-      {{on "pointerup" this.gesture.up}}
-      {{on "pointercancel" this.gesture.cancel}}
       {{on "contextmenu" this.gesture.contextMenu}}
       {{on "keydown" this.onKeydown}}
     >
