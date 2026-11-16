@@ -23,6 +23,7 @@ interface Stored {
   scriptOpen?: unknown;
   footerPane?: unknown;
   collapsed?: unknown;
+  snaps?: unknown;
 }
 
 function readStored(): Stored {
@@ -93,6 +94,31 @@ export default class ViewService extends Service {
   chooseWaveform(scopeId: string, key: string): void {
     if (this.waveforms[scopeId] === key) return;
     this.waveforms = { ...this.waveforms, [scopeId]: key };
+    this.#save();
+  }
+
+  /**
+   * What a waveform editor's handles snap to, where the person has said: by `scope/waveform`. One not
+   * listed follows its sound (slices if it has them, else zero crossings). Remembered, like the rest
+   * of how things are looked at; not the project's, and nothing to undo.
+   */
+  @tracked private snaps: Readonly<Record<string, string>> =
+    this.#stored.snaps &&
+    typeof this.#stored.snaps === 'object' &&
+    !Array.isArray(this.#stored.snaps)
+      ? Object.fromEntries(
+          Object.entries(this.#stored.snaps).filter(
+            (entry): entry is [string, string] => typeof entry[1] === 'string',
+          ),
+        )
+      : {};
+
+  chosenSnap(scopeId: string, waveform: string): string | undefined {
+    return this.snaps[`${scopeId}/${waveform}`];
+  }
+
+  chooseSnap(scopeId: string, waveform: string, snap: string): void {
+    this.snaps = { ...this.snaps, [`${scopeId}/${waveform}`]: snap };
     this.#save();
   }
 
@@ -210,6 +236,7 @@ export default class ViewService extends Service {
           footerPane: this.footerPane,
           collapsed: this.collapsed,
           waveforms: this.waveforms,
+          snaps: this.snaps,
         }),
       );
     } catch {

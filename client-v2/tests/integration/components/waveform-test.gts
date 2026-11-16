@@ -473,13 +473,152 @@ module('Integration | Component | waveform', function (hooks) {
     assert.dom('[data-test-slices-panel]').exists();
   });
 
+  test('the values are three named groups, left to right: speed; the places with their unit; the switches', async function (assert) {
+    await open();
+    const groups = findAll('[data-test-waveform-group]');
+    assert.deepEqual(
+      groups.map(
+        (group) =>
+          `${group.getAttribute('data-test-waveform-group')}: ${group.getAttribute('role')} “${group.getAttribute('aria-label')}” [${[
+            ...group.querySelectorAll(
+              '[data-test-waveform-unit], [data-test-waveform-value]',
+            ),
+          ]
+            .map((el) =>
+              el.hasAttribute('data-test-waveform-unit')
+                ? 'unit'
+                : el.getAttribute('data-test-waveform-value'),
+            )
+            .join(' ')}]`,
+      ),
+      [
+        'speed: group “Speed” [speed]',
+        'time: group “Region and loop points” [unit start end loopStart loopEnd]',
+        'toggles: group “Loop and reverse” [loop reverse]',
+      ],
+    );
+    const left = (group: Element): number => group.getBoundingClientRect().left;
+    assert.true(
+      left(groups[0]!) < left(groups[1]!),
+      'speed is to the left of the places',
+    );
+    // the loop's points are faint and not to be changed while Loop is off, wherever they stand
+    assert
+      .dom('[data-test-waveform-value="loopStart"]')
+      .hasClass('waveform__value--faint');
+    assert.dom(value('loopStart')).isDisabled();
+    await click('[data-test-waveform-loop]');
+    assert
+      .dom('[data-test-waveform-value="loopStart"]')
+      .doesNotHaveClass('waveform__value--faint');
+  });
+
+  test('the speed has its unit menu here: the same choice as its control in the controls pane', async function (assert) {
+    await open();
+    const stored = (): unknown =>
+      project.doc.tracks.at(-1)!.values.controls['#sampler › speed']?.options;
+    await click('[data-test-speed-menu] [data-test-menu-button]');
+    const items = findAll('[data-test-menu-item]').map((item) =>
+      item.textContent.trim(),
+    );
+    assert.deepEqual(items, [
+      'Ratio',
+      'Semitones',
+      'Cents',
+      'Sequence sync',
+      'Reset',
+      'Show in script',
+    ]);
+    assert.false(
+      items.some((item) => /glide/i.test(item)),
+      'a speed does not glide',
+    );
+    await click('[data-test-menu-item="Semitones"]');
+    assert.deepEqual(stored(), { mode: 'semitones' });
+    assert
+      .dom(value('speed'))
+      .hasText('0 st', 'the cell shows it in the unit chosen');
+
+    // the controls pane shows the same control in the same unit, and a choice there shows here
+    view.footerPane = 'controls';
+    await settled();
+    const row = '[data-test-control="#sampler › speed"]';
+    assert.dom(row).hasAttribute('data-mode', 'semitones');
+    await click(`${row} [data-test-menu-button]`);
+    assert.dom('[data-test-menu-item="Semitones"]').hasAria('checked', 'true');
+    await click('[data-test-menu-item="Cents"]');
+    view.footerPane = 'source';
+    await settled();
+    await waitFor(`${STAGE}[data-ready]`);
+    assert.dom(value('speed')).hasText('0 ct');
+    project.undo();
+    await settled();
+    assert.deepEqual(
+      stored(),
+      { mode: 'semitones' },
+      'each choice is one step to undo',
+    );
+  });
+
+  test('Snap is a label and three choices; untouched it follows the sound, chosen it is kept', async function (assert) {
+    await open();
+    assert.dom('[data-test-snap-label]').hasText('Snap');
+    assert.deepEqual(
+      [...find('[data-test-snap]')!.querySelectorAll('option')].map((option) =>
+        option.textContent.trim(),
+      ),
+      ['Zero crossing', 'Slices', 'None'],
+    );
+    assert
+      .dom('[data-test-snap]')
+      .hasValue('slices', 'a sound with slices: Slices');
+    // its slices cleared: the untouched menu moves to zero crossings; cut again, back to slices
+    await click('[data-test-slices-toggle]');
+    await click('[data-test-slice-clear]');
+    assert.dom('[data-test-snap]').hasValue('zero', 'no slices: Zero crossing');
+    await click('[data-test-slices-apply]');
+    assert.dom('[data-test-snap]').hasValue('slices');
+    // another sound, with none
+    await select('[data-test-sound-select]', 'kick');
+    assert.dom('[data-test-snap]').hasValue('zero', 'it follows the sound');
+    await select('[data-test-sound-select]', 'loop');
+    assert.dom('[data-test-snap]').hasValue('slices');
+
+    // chosen by the person: kept, whatever the sound has
+    await select('[data-test-snap]', 'off');
+    await select('[data-test-sound-select]', 'kick');
+    assert
+      .dom('[data-test-snap]')
+      .hasValue('off', 'the person’s choice is kept');
+    await select('[data-test-sound-select]', 'loop');
+    assert.dom('[data-test-snap]').hasValue('off');
+    await select('[data-test-snap]', 'slices');
+    await select('[data-test-sound-select]', 'kick');
+    assert
+      .dom('[data-test-snap]')
+      .hasValue(
+        'slices',
+        'Slices kept on a sound with none: it then snaps to nothing',
+      );
+    assert.notStrictEqual(
+      project.canUndo,
+      false,
+      'choosing sounds was the only thing to undo',
+    );
+    assert.strictEqual(
+      view.chosenSnap(loopId, audio.waveforms(loopId)[0]!.key),
+      'slices',
+      'kept with how things are looked at',
+    );
+  });
+
   test('the values are in their order, and a number dragged in its box moves its handle with it', async function (assert) {
     await open();
     assert.deepEqual(
       findAll('[data-test-waveform-value]').map((cell) =>
         cell.getAttribute('data-test-waveform-value'),
       ),
-      ['speed', 'start', 'end', 'loop', 'loopStart', 'loopEnd', 'reverse'],
+      ['speed', 'start', 'end', 'loopStart', 'loopEnd', 'loop', 'reverse'],
     );
     await select('[data-test-waveform-unit]', 'percent');
     const entry = '[data-test-waveform-value="start"] [data-test-number-entry]';

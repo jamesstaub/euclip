@@ -431,12 +431,30 @@
 }
 
 .sound-row__detail {
+  /* (there, a line high, whether or not there is anything to say: the name does not move when there is) */
+  min-block-size: 1lh;
   font-size: var(--font-size-7);
   opacity: 0.8;
 }
 
+/* A sound's row is one size, and what is in it stays where it is, whatever state the sound is in. */
 .sound-row--sound {
-  min-block-size: max(3rem, var(--target-min));
+  /* (not squeezed where the list is a column that could squeeze it: a long list scrolls) */
+  flex: none;
+  block-size: max(3rem, var(--target-min));
+  min-block-size: 0;
+}
+
+/* the one place for add, retry and supply: as wide as the widest of them, on every row */
+.sound-row__slot {
+  display: flex;
+  flex: none;
+  justify-content: flex-end;
+  inline-size: 4rem;
+
+  & .btn {
+    padding-inline: var(--space-2);
+  }
 }
 
 .sound-row__add {

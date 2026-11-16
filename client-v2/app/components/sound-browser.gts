@@ -51,8 +51,10 @@ interface Row {
   detail?: string;
   /** the project sound this already is, when it is one */
   inProject?: string;
-  /** where the project uses it: "Track 1, Track 3" */
+  /** where the project uses it, shortly: "T1, T3" */
   usedBy?: string;
+  /** ...and in full: "Used by Track 1, Track 3" */
+  usedFull?: string;
   /** a project sound's entry, for its state and housekeeping */
   entry?: PoolEntry;
 }
@@ -238,7 +240,13 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
       name: file.name,
       sound: { kind: 'library', path: file.path, name: file.name },
       ...(detail === undefined ? {} : { detail }),
-      ...(entry ? { inProject: entry.name, usedBy: used(entry) } : {}),
+      ...(entry
+        ? {
+            inProject: entry.name,
+            usedBy: used(entry),
+            usedFull: usedFull(entry),
+          }
+        : {}),
     };
   }
 
@@ -254,6 +262,7 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
         sound: { kind: 'project', name: entry.name },
         inProject: entry.name,
         usedBy: used(entry),
+        usedFull: usedFull(entry),
         entry,
       }));
     }
@@ -267,7 +276,13 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
           name: file.name,
           sound: { kind: 'mine', id: file.id, name: file.name },
           detail: megabytes(file.size),
-          ...(entry ? { inProject: entry.name, usedBy: used(entry) } : {}),
+          ...(entry
+            ? {
+                inProject: entry.name,
+                usedBy: used(entry),
+                usedFull: usedFull(entry),
+              }
+            : {}),
         };
       });
     }
@@ -1042,7 +1057,13 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
                     fill="currentColor"
                     aria-hidden="true"
                   >
-                    {{#if (this.isHearing row)}}
+                    {{#if (eq (this.hearState row) "loading")}}
+                      {{! on its way: said here, in the button's own box, so nothing beside it moves }}
+                      <path
+                        d="M0.5 4 H2.5 V6 H0.5 Z M4 4 H6 V6 H4 Z M7.5 4 H9.5 V6 H7.5 Z"
+                        data-test-sound-loading
+                      />
+                    {{else if (this.isHearing row)}}
                       <path d="M1.5 1.5 H8.5 V8.5 H1.5 Z" />
                     {{else}}
                       <path d="M2.6 0.8 L9.2 5 L2.6 9.2 Z" />
@@ -1051,12 +1072,14 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
               </button>
               <span class="sound-row__text">
                 <span class="sound-row__title truncate">{{row.name}}</span>
-                <span class="sound-row__detail truncate" data-test-sound-detail>
+                <span
+                  class="sound-row__detail truncate"
+                  title={{row.usedFull}}
+                  data-test-sound-detail
+                >
                   {{#if (this.failure row)}}
                     <b data-test-sound-failed>failed:</b>
                     {{this.failure row}}
-                  {{else if (eq (this.hearState row) "loading")}}
-                    loading…
                   {{else if row.entry}}
                     {{#if (eq row.entry.state "ready")}}
                       {{seconds row.entry.duration}}
@@ -1070,7 +1093,7 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
                     ·
                     {{from row.entry}}
                     ·
-                    {{#if row.usedBy}}used by
+                    {{#if row.usedBy}}in
                       {{row.usedBy}}{{else}}<i
                         data-test-sound-unused
                       >unused</i>{{/if}}
@@ -1078,52 +1101,58 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
                     {{row.detail}}
                     {{#if row.inProject}}
                       {{#if row.detail}}·{{/if}}
-                      in project as ‘{{row.inProject}}’{{#if row.usedBy}}, used
-                        by
+                      in project as ‘{{row.inProject}}’{{#if row.usedBy}}
+                        · in
                         {{row.usedBy}}{{/if}}
                     {{/if}}
                   {{/if}}
                 </span>
               </span>
-              {{#if row.entry}}
-                {{#if (eq row.entry.state "missing")}}
-                  <label class="btn btn--s btn--quiet sound-row__add">
-                    <span>Supply file</span>
-                    <input
-                      type="file"
-                      class="sr-only"
-                      accept="audio/*,.wav,.mp3,.m4a,.aac,.flac,.ogg,.oga,.aif,.aiff"
-                      data-test-sound-supply={{row.name}}
-                      {{on "change" (fn this.supply row.name)}}
-                    />
-                  </label>
-                {{else if (eq row.entry.state "error")}}
+              {{! one fixed place for what a row may need besides Hear and Use: add, try again, supply the file }}
+              <span class="sound-row__slot">
+                {{#if row.entry}}
+                  {{#if (eq row.entry.state "missing")}}
+                    <label
+                      class="btn btn--s btn--quiet sound-row__add"
+                      title="Supply the file again: it is not in this browser"
+                    >
+                      <span>Supply</span>
+                      <input
+                        type="file"
+                        class="sr-only"
+                        accept="audio/*,.wav,.mp3,.m4a,.aac,.flac,.ogg,.oga,.aif,.aiff"
+                        data-test-sound-supply={{row.name}}
+                        {{on "change" (fn this.supply row.name)}}
+                      />
+                    </label>
+                  {{else if (eq row.entry.state "error")}}
+                    <button
+                      type="button"
+                      class="btn btn--s btn--quiet sound-row__add"
+                      data-test-sound-retry={{row.name}}
+                      {{on "click" (fn this.audio.retrySound row.name)}}
+                    >Retry</button>
+                  {{/if}}
+                {{else if (this.failure row)}}
                   <button
                     type="button"
                     class="btn btn--s btn--quiet sound-row__add"
                     data-test-sound-retry={{row.name}}
-                    {{on "click" (fn this.audio.retrySound row.name)}}
+                    {{on "click" (fn this.hear row index)}}
                   >Retry</button>
+                {{else}}
+                  {{#unless row.inProject}}
+                    <button
+                      type="button"
+                      class="btn btn--s btn--quiet sound-row__add"
+                      aria-label="Add {{row.name}} to the project"
+                      title="Add to the project, without giving it to a sampler"
+                      data-test-sound-add={{row.name}}
+                      {{on "click" (fn this.add row index)}}
+                    >+</button>
+                  {{/unless}}
                 {{/if}}
-              {{else if (this.failure row)}}
-                <button
-                  type="button"
-                  class="btn btn--s btn--quiet sound-row__add"
-                  data-test-sound-retry={{row.name}}
-                  {{on "click" (fn this.hear row index)}}
-                >Retry</button>
-              {{else}}
-                {{#unless row.inProject}}
-                  <button
-                    type="button"
-                    class="btn btn--s btn--quiet sound-row__add"
-                    aria-label="Add {{row.name}} to the project"
-                    title="Add to the project, without giving it to a sampler"
-                    data-test-sound-add={{row.name}}
-                    {{on "click" (fn this.add row index)}}
-                  >+</button>
-                {{/unless}}
-              {{/if}}
+              </span>
               <button
                 type="button"
                 class="btn btn--solid btn--s sound-row__use"
@@ -1169,8 +1198,22 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
   </template>
 }
 
+/** Where a sound is used, shortly: "T1, T3" (and "Main" for the project script). */
 function used(entry: PoolEntry): string {
-  return entry.uses.map((use) => use.label).join(', ');
+  return entry.uses
+    .map((use) =>
+      use.label
+        .replace(/^Track (\d+)$/, 'T$1')
+        .replace(/^Main output$/, 'Main'),
+    )
+    .join(', ');
+}
+
+/** ...and in full, for the row's tooltip. */
+function usedFull(entry: PoolEntry): string {
+  return entry.uses.length > 0
+    ? `Used by ${entry.uses.map((use) => use.label).join(', ')}`
+    : 'Not used by any track';
 }
 
 function from(entry: PoolEntry): string {

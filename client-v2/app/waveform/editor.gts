@@ -19,6 +19,7 @@ import type { Node } from 'cracked-up';
 import Icon from 'client-v2/components/icon';
 import Hint from 'client-v2/components/ui/hint';
 import NumberEntry from 'client-v2/components/ui/number-entry';
+import PopupMenu, { type MenuItem } from 'client-v2/components/ui/popup-menu';
 import Slider from 'client-v2/components/ui/slider';
 import Toggle from 'client-v2/components/ui/toggle';
 import type { ControlView, WaveformView } from 'client-v2/audio/runner';
@@ -30,6 +31,7 @@ import {
   type ModeName,
 } from 'client-v2/controls/modes';
 import { REGION_GAP } from 'client-v2/controls/live-range';
+import { unitMenuItems } from 'client-v2/controls/unit-menu';
 import { mappingOf, numberOf } from 'client-v2/controls/view';
 import cssVars from 'client-v2/modifiers/css-vars';
 import selectOptions, {
@@ -88,6 +90,13 @@ type ValueCell =
     }
   | { id: 'loop' | 'reverse'; number: false; name: string; short: string };
 
+interface ValueGroup {
+  id: 'speed' | 'time' | 'toggles';
+  /** its accessible name */
+  name: string;
+  cells: ValueCell[];
+}
+
 /** The other point of a pair: the region's start and end, the loop's start and end. */
 const PARTNER: Readonly<Record<HandleId, HandleId>> = {
   start: 'end',
@@ -107,9 +116,9 @@ const HANDLE_MARKS: Readonly<Record<HandleId, string>> = {
 };
 
 const SNAPS: readonly { value: Snap; label: string }[] = [
-  { value: 'off', label: 'No snap' },
-  { value: 'slices', label: 'Snap to slices' },
-  { value: 'zero', label: 'Snap to zero crossings' },
+  { value: 'zero', label: 'Zero crossing' },
+  { value: 'slices', label: 'Slices' },
+  { value: 'off', label: 'None' },
 ];
 
 const TEMPO_STEPS = ['1/4', '1/8', '1/16', '1/32'] as const;
@@ -228,7 +237,21 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
   @tracked height = 0;
   @tracked coarse = window.matchMedia('(pointer: coarse)').matches;
   @tracked expanded = false;
-  @tracked snap: Snap = 'off';
+  /**
+   * What handles and new boundaries snap to. Until the person says, it follows the sound: its slices
+   * when it has some, else the zero crossings of its audio. A choice is kept for this waveform (with
+   * how things are looked at: view.ts), and from then on it is the person's.
+   */
+  get snap(): Snap {
+    const chosen = this.view.chosenSnap(
+      this.args.scopeId,
+      this.args.waveform.key,
+    );
+    if (chosen === 'zero' || chosen === 'slices' || chosen === 'off') {
+      return chosen;
+    }
+    return this.slices.length > 2 ? 'slices' : 'zero';
+  }
   @tracked selected = -1;
   @tracked panel = false;
   @tracked method: SliceMethod = 'equal';
@@ -426,7 +449,7 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
    * beside its switch, reverse. Every cell is always there (a loop point while the loop is off is
    * shown faint): nothing changes place.
    */
-  get cells(): ValueCell[] {
+  get groups(): ValueGroup[] {
     // (`short`: what a narrow cell says. A loop point sits beside the Loop switch there: from, to.)
     const number = (
       id: HandleId | 'speed',
@@ -462,14 +485,65 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
       short = name,
     ): ValueCell[] =>
       this.control(id) ? [{ id, number: false, name, short }] : [];
+    // Left to right: the speed; the four places in the sound, which share a unit; the two switches.
+    const groups: ValueGroup[] = [
+      {
+        id: 'speed',
+        name: 'Speed',
+        cells: number('speed', 'Speed'),
+      },
+      {
+        id: 'time',
+        name: 'Region and loop points',
+        cells: [
+          ...number('start', HANDLE_NAMES.start),
+          ...number('end', HANDLE_NAMES.end),
+          ...number('loopStart', HANDLE_NAMES.loopStart, 'L start'),
+          ...number('loopEnd', HANDLE_NAMES.loopEnd, 'L end'),
+        ],
+      },
+      {
+        id: 'toggles',
+        name: 'Loop and reverse',
+        cells: [
+          ...toggle('loop', 'Loop'),
+          ...toggle('reverse', 'Reverse', 'Rev'),
+        ],
+      },
+    ];
+    return groups.filter((group) => group.cells.length > 0);
+  }
+
+  /** The speed's menu: the units its control has in the controls pane (one control, two views of it). */
+  @tracked speedMenu = false;
+
+  setSpeedMenu = (open: boolean): void => {
+    this.speedMenu = open;
+  };
+
+  get speedMenuItems(): MenuItem[] {
+    const control = this.control('speed');
+    if (!control) return [];
+    const scopeId = this.args.scopeId;
+    const units = unitMenuItems(control, (choice) =>
+      this.audio.chooseControlMode(scopeId, control.key, choice),
+    );
+    const line = control.line;
     return [
-      ...number('speed', 'Speed'),
-      ...number('start', HANDLE_NAMES.start),
-      ...number('end', HANDLE_NAMES.end),
-      ...toggle('loop', 'Loop'),
-      ...number('loopStart', HANDLE_NAMES.loopStart, 'From'),
-      ...number('loopEnd', HANDLE_NAMES.loopEnd, 'To'),
-      ...toggle('reverse', 'Reverse', 'Rev'),
+      ...units,
+      {
+        label: 'Reset',
+        separated: units.length > 0,
+        disabled: !control.stored,
+        onSelect: () => this.audio.resetControl(scopeId, control.key),
+      },
+      {
+        label: 'Show in script',
+        disabled: line === undefined,
+        onSelect: () => {
+          if (line !== undefined) this.view.showInScript(scopeId, line);
+        },
+      },
     ];
   }
 
@@ -1228,7 +1302,13 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
     if (next === null) return;
     event.preventDefault();
     const free = this.#freeMap(handle.control) ?? handle.map;
-    const now = this.moveHandle(handle.id, free.toValue(next));
+    // (a key's step is exact: snapping would hold a handle on the boundary it stands on)
+    const now = this.moveHandle(
+      handle.id,
+      free.toValue(next),
+      undefined,
+      false,
+    );
     if (now !== handle.id) {
       // across its partner: the keys go on moving the same line, which is the other end now
       this.#stage
@@ -1357,7 +1437,11 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
   };
 
   setSnap = (event: Event): void => {
-    this.snap = (event.target as HTMLSelectElement).value as Snap;
+    this.view.chooseSnap(
+      this.args.scopeId,
+      this.args.waveform.key,
+      (event.target as HTMLSelectElement).value,
+    );
   };
 
   /** The four points share a unit. Choosing one is a single step: to undo, and to draw. */
@@ -1396,7 +1480,8 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
    */
   change = (id: HandleId | 'speed', value: number, gesture?: string): void => {
     if (id !== 'speed') {
-      this.moveHandle(id, value, gesture);
+      // (a drag snaps, as a handle's does; a key's step is exact)
+      this.moveHandle(id, value, gesture, gesture !== undefined);
       return;
     }
     const control = this.control(id);
@@ -1825,13 +1910,15 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
           >All</button>
         </div>
         <div class="waveform__tool-group waveform__tool-group--more">
-          <select
-            class="select waveform__select"
-            aria-label="Snapping"
-            data-test-snap
-            {{on "change" this.setSnap}}
-            {{selectOptions SNAPS this.snap}}
-          ></select>
+          <label class="waveform__snap">
+            <span data-test-snap-label>Snap</span>
+            <select
+              class="select waveform__select"
+              data-test-snap
+              {{on "change" this.setSnap}}
+              {{selectOptions SNAPS this.snap}}
+            ></select>
+          </label>
         </div>
         <div class="waveform__tool-group waveform__tool-group--more">
           <button
@@ -2062,72 +2149,103 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
       {{/if}}
 
       <div class="waveform__values">
-        <label class="waveform__field waveform__unit">
-          <span class="sr-only">Unit for start, end and loop points</span>
-          <select
-            class="select waveform__select"
-            data-test-waveform-unit
-            {{on "change" this.setUnit}}
-            {{selectOptions this.units this.unit}}
-          ></select>
-        </label>
-        {{#each this.cells key="id" as |cell|}}
-          {{#if cell.number}}
-            <span
-              class="waveform__value waveform__value--number
-                {{if cell.faint 'waveform__value--faint'}}"
-              data-test-waveform-value={{cell.id}}
-            >
-              <span class="waveform__label" title={{cell.name}}>
-                <span class="waveform__label-full">{{cell.name}}</span>
+        {{#each this.groups key="id" as |group|}}
+          <div
+            class="waveform__group waveform__group--{{group.id}}"
+            role="group"
+            aria-label={{group.name}}
+            data-test-waveform-group={{group.id}}
+          >
+            {{#if (eq group.id "time")}}
+              {{! the unit is this group's: it changes how these four are shown, and nothing else }}
+              <label class="waveform__field waveform__unit">
+                <span class="sr-only">Unit for start, end and loop points</span>
+                <select
+                  class="select waveform__select"
+                  data-test-waveform-unit
+                  {{on "change" this.setUnit}}
+                  {{selectOptions this.units this.unit}}
+                ></select>
+              </label>
+            {{/if}}
+            {{#each group.cells key="id" as |cell|}}
+              {{#if cell.number}}
+                {{#if (eq cell.id "loopStart")}}
+                  {{! (where the group is two rows: what the second row is) }}
+                  <span
+                    class="waveform__caption
+                      {{if cell.faint 'waveform__value--faint'}}"
+                    aria-hidden="true"
+                  >Loop points</span>
+                {{/if}}
                 <span
-                  class="waveform__label-short"
-                  aria-hidden="true"
-                >{{cell.short}}</span>
-              </span>
-              <NumberEntry
-                @text={{cell.text}}
-                @label={{cell.name}}
-                @disabled={{cell.faint}}
-                @value={{cell.value}}
-                @mapping={{cell.map}}
-                @onChange={{fn this.change cell.id}}
-                @onCommit={{fn this.commit cell.id}}
-              />
-              <span
-                class="waveform__meter"
-                {{cssVars pos=cell.position}}
-              ></span>
-            </span>
-          {{else}}
-            <span
-              class="waveform__value waveform__value--switch"
-              data-test-waveform-value={{cell.id}}
-            >
-              <span class="waveform__label" title={{cell.name}}>
-                <span class="waveform__label-full">{{cell.name}}</span>
-                <span
-                  class="waveform__label-short"
-                  aria-hidden="true"
-                >{{cell.short}}</span>
-              </span>
-              {{#if (eq cell.id "loop")}}
-                <Toggle
-                  @checked={{this.isOn "loop"}}
-                  @label="Loop"
-                  @onChange={{fn this.setToggle "loop"}}
-                  data-test-waveform-loop
-                />
+                  class="waveform__value waveform__value--number waveform__value--{{cell.id}}
+                    {{if cell.faint 'waveform__value--faint'}}"
+                  data-test-waveform-value={{cell.id}}
+                >
+                  <span class="waveform__label" title={{cell.name}}>
+                    <span class="waveform__label-full">{{cell.name}}</span>
+                    <span
+                      class="waveform__label-short"
+                      aria-hidden="true"
+                    >{{cell.short}}</span>
+                  </span>
+                  <NumberEntry
+                    @text={{cell.text}}
+                    @label={{cell.name}}
+                    @disabled={{cell.faint}}
+                    @value={{cell.value}}
+                    @mapping={{cell.map}}
+                    @onChange={{fn this.change cell.id}}
+                    @onCommit={{fn this.commit cell.id}}
+                  />
+                  {{#if (eq cell.id "speed")}}
+                    <PopupMenu
+                      class="waveform__speed-menu"
+                      @label="Speed menu"
+                      @items={{this.speedMenuItems}}
+                      @open={{this.speedMenu}}
+                      @onOpenChange={{this.setSpeedMenu}}
+                      @up={{true}}
+                      data-test-speed-menu
+                    />
+                  {{/if}}
+                  <span
+                    class="waveform__meter"
+                    {{cssVars pos=cell.position}}
+                  ></span>
+                </span>
               {{else}}
-                <Toggle
-                  @checked={{this.isOn "reverse"}}
-                  @label="Reverse"
-                  @onChange={{fn this.setToggle "reverse"}}
-                  data-test-waveform-reverse
-                />
+                <span
+                  class="waveform__value waveform__value--switch"
+                  data-test-waveform-value={{cell.id}}
+                >
+                  <span class="waveform__label" title={{cell.name}}>
+                    <span class="waveform__label-full">{{cell.name}}</span>
+                    <span
+                      class="waveform__label-short"
+                      aria-hidden="true"
+                    >{{cell.short}}</span>
+                  </span>
+                  {{#if (eq cell.id "loop")}}
+                    <Toggle
+                      @checked={{this.isOn "loop"}}
+                      @label="Loop"
+                      @onChange={{fn this.setToggle "loop"}}
+                      data-test-waveform-loop
+                    />
+                  {{else}}
+                    <Toggle
+                      @checked={{this.isOn "reverse"}}
+                      @label="Reverse"
+                      @onChange={{fn this.setToggle "reverse"}}
+                      data-test-waveform-reverse
+                    />
+                  {{/if}}
+                </span>
               {{/if}}
-            </span>
-          {{/if}}
+            {{/each}}
+          </div>
         {{/each}}
       </div>
     </section>

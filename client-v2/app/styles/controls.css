@@ -338,6 +338,11 @@ button.number-entry:disabled {
   box-shadow: var(--shadow-drawer);
 }
 
+/* above its button: for a menu at the foot of a pane */
+.menu--up {
+  inset-block: auto 100%;
+}
+
 .menu__separated {
   border-block-start: var(--border-width-1) solid var(--mid-gray);
 }

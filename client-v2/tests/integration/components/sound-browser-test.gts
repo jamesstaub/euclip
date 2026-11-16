@@ -130,7 +130,7 @@ module('Integration | Component | sound-browser', function (hooks) {
     assert.dom('[data-test-pool-notice]').includesText("now plays 'snare_2'");
     assert
       .dom('[data-test-sound-row="snare.wav"] [data-test-sound-detail]')
-      .includesText('in project as ‘snare_2’, used by Track 1');
+      .includesText('in project as ‘snare_2’ · in T1');
     assert
       .dom('[data-test-sound-add="snare.wav"]')
       .doesNotExist('it is in already');
@@ -142,7 +142,7 @@ module('Integration | Component | sound-browser', function (hooks) {
     assert.strictEqual(Object.keys(project.doc.samples).length, 7);
     assert
       .dom('[data-test-sound-row="snare.wav"] [data-test-sound-detail]')
-      .includesText('used by Track 1, Track 2');
+      .includesText('in T1, T2');
 
     project.undo();
     await settled();
@@ -260,6 +260,91 @@ module('Integration | Component | sound-browser', function (hooks) {
       Object.keys(project.doc.samples).length,
       6,
       'nor join the project',
+    );
+  });
+
+  test('a row is one size and its text stays put: idle, loading, playing, failed, in the project, missing', async function (assert) {
+    await show();
+    await click('[data-test-sound-folder="samples"]');
+    const boxes = (name: string): string =>
+      [
+        '',
+        ' .sound-row__title',
+        ' [data-test-sound-detail]',
+        ' .sound-row__play',
+        ' [data-test-sound-use]',
+      ]
+        .map((part) => {
+          const list = find('[data-test-sound-list]')!.getBoundingClientRect();
+          const rect = find(
+            `[data-test-sound-row="${name}"]${part}`,
+          )!.getBoundingClientRect();
+          return [
+            rect.left - list.left,
+            rect.top - list.top,
+            rect.width,
+            rect.height,
+          ]
+            .map((n) => n.toFixed(1))
+            .join(' ');
+        })
+        .join(' | ');
+    const idle = boxes('hat.wav');
+
+    // its audio held on the way: the loading state, for as long as we like
+    const real = window.fetch.bind(window);
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    window.fetch = async (input, init) => {
+      if (typeof input === 'string' && input.endsWith('/samples/hat.wav')) {
+        await held;
+      }
+      return real(input, init);
+    };
+    try {
+      const hearing = click('[data-test-sound-hear="hat.wav"]');
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      assert
+        .dom('[data-test-sound-row="hat.wav"]')
+        .hasAttribute('data-state', 'loading');
+      assert
+        .dom('[data-test-sound-row="hat.wav"] [data-test-sound-loading]')
+        .exists('said on the Hear button');
+      assert.strictEqual(
+        boxes('hat.wav'),
+        idle,
+        'loading: nothing moved or changed size',
+      );
+      release();
+      await hearing;
+    } finally {
+      window.fetch = real;
+    }
+    assert
+      .dom('[data-test-sound-row="hat.wav"]')
+      .hasAttribute('data-state', 'playing');
+    assert.strictEqual(boxes('hat.wav'), idle, 'playing: the same');
+    await click('[data-test-sound-add="hat.wav"]');
+    assert.strictEqual(
+      boxes('hat.wav'),
+      idle,
+      'in the project, its add button gone: the same',
+    );
+
+    // failed, with Retry in the slot
+    await click('[data-test-library-crumb="/"]');
+    await click('[data-test-sound-folder="Boss DR110"]');
+    const before = boxes('110KIK.mp3');
+    await click('[data-test-sound-hear="110KIK.mp3"]');
+    assert.dom('[data-test-sound-retry="110KIK.mp3"]').exists();
+    assert.strictEqual(boxes('110KIK.mp3'), before, 'failed: the same');
+
+    // a long name is cut short inside its place
+    assert.strictEqual(
+      find('[data-test-sound-row="110KIK.mp3"]')!.getBoundingClientRect()
+        .height,
+      find('[data-test-sound-row="110CHH.mp3"]')!.getBoundingClientRect()
+        .height,
     );
   });
 
@@ -388,7 +473,7 @@ module('Integration | Component | sound-browser', function (hooks) {
     await click('[data-test-sounds-tab="project"]');
     assert
       .dom('[data-test-sound-row="kick"] [data-test-sound-detail]')
-      .includesText('used by Track 1');
+      .includesText('in T1');
     assert
       .dom('[data-test-sound-row="clap"] [data-test-sound-unused]')
       .exists();

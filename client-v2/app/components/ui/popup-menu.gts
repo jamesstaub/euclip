@@ -50,6 +50,8 @@ export interface PopupMenuSignature {
     /** the menu is controlled: whoever owns it says whether it is open (so a long press can open it) */
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    /** the menu opens above its button (for one at the foot of a pane) */
+    up?: boolean;
   };
 }
 
@@ -117,7 +119,7 @@ export default class PopupMenu extends Component<PopupMenuSignature> {
       </button>
       {{#if @open}}
         <ul
-          class="menu"
+          class="menu {{if @up 'menu--up'}}"
           role="menu"
           aria-label={{@label}}
           data-test-menu

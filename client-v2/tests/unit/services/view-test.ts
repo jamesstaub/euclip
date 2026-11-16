@@ -52,6 +52,7 @@ module('Unit | Service | view', function (hooks) {
         footerPane: 'source',
         collapsed: [],
         waveforms: {},
+        snaps: {},
       },
     );
   });

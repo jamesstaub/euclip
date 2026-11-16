@@ -7,6 +7,7 @@ import PopupMenu, { type MenuItem } from 'client-v2/components/ui/popup-menu';
 import type { ControlView } from 'client-v2/audio/runner';
 import { controlWidget, type ControlEntry } from 'client-v2/controls/registry';
 import { GLIDE_MAPPING } from 'client-v2/controls/modes';
+import { unitMenuItems } from 'client-v2/controls/unit-menu';
 import { mappingOf, numberOf } from 'client-v2/controls/view';
 import intoView from 'client-v2/modifiers/into-view';
 import onEscape from 'client-v2/modifiers/on-escape';
@@ -114,15 +115,9 @@ export default class ControlRow extends Component<ControlRowSignature> {
   get menuItems(): MenuItem[] {
     const { control, scopeId } = this.args;
     // the units this kind of parameter can be shown in (a parameter with only one has nothing to choose)
-    const modes: MenuItem[] =
-      control.choices.length > 1
-        ? control.choices.map((choice) => ({
-            label: choice.label,
-            checked: choice.id === control.choice,
-            onSelect: () =>
-              this.audio.chooseControlMode(scopeId, control.key, choice.id),
-          }))
-        : [];
+    const modes = unitMenuItems(control, (choice) =>
+      this.audio.chooseControlMode(scopeId, control.key, choice),
+    );
     // Glide: how long the parameter takes to get to where the control is put. Only where it can.
     const glide = control.glide;
     const glides: MenuItem[] = !glide
