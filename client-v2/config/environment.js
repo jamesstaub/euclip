@@ -15,8 +15,17 @@ module.exports = function (environment) {
     },
 
     APP: {
-      // Here you can pass flags/options to your application instance
-      // when it is created
+      // The sound library (app/library/client.ts). The API is asked for on the app's own origin: the
+      // deployed API refuses requests that carry another site's Origin, so in development and preview
+      // Vite proxies `/v1` to it (vite.config.mjs). The audio is in a storage bucket that allows
+      // cross-origin reads only from a few origins; `/library-audio` is the same proxy's way to it.
+      // Override either with EUCLIP_LIBRARY_API / EUCLIP_LIBRARY_AUDIO when building.
+      libraryApi: process.env.EUCLIP_LIBRARY_API || '/v1',
+      libraryAudio:
+        process.env.EUCLIP_LIBRARY_AUDIO ||
+        (environment === 'production'
+          ? 'https://storage.googleapis.com/euclidean-cracked.appspot.com/Drum%20Machines%20mp3'
+          : '/library-audio'),
     },
   };
 

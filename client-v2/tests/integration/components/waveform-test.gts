@@ -846,8 +846,23 @@ module('Integration | Component | waveform', function (hooks) {
       'through a run of the script',
     );
 
+    // the track's script names no sound (the project holds the choice): nothing to reset to
+    assert.dom('[data-test-sound-reset]').doesNotExist();
+    // a script that does name one: that is the default, and Reset returns to it
+    await click('[data-test-script-toggle]');
+    await typeScript((text) =>
+      text.replace(
+        ".sampler({ id: 'sampler' })",
+        ".sampler({ id: 'sampler', buffer: 'loop' })",
+      ),
+    );
+    await click('[data-test-script-toggle]');
+    assert.strictEqual(
+      audio.sampler(loopId, 'sampler')!.buffer?.key,
+      'snare',
+      'the stored choice still wins',
+    );
     await click('[data-test-sound-reset]');
-
     assert.strictEqual(audio.sampler(loopId, 'sampler')!.buffer?.key, 'loop');
     assert.dom('[data-test-sound-reset]').doesNotExist();
 
@@ -855,13 +870,13 @@ module('Integration | Component | waveform', function (hooks) {
     if (!find('[data-test-sound-browser]')) {
       await click('[data-test-sidebar-toggle]');
     }
-    await click('[data-test-sounds-project]');
-    assert.dom('[data-test-pool-row]').exists({ count: 6 });
+    await click('[data-test-sounds-tab="project"]');
+    assert.dom('[data-test-sound-row]').exists({ count: 6 });
     assert
-      .dom('[data-test-pool-row="loop"]')
+      .dom('[data-test-sound-row="loop"]')
       .hasAttribute('data-current', 'true');
-    assert.dom('[data-test-pool-row="loop"]').includesText('4 s');
-    await click('[data-test-pool-use="clap"]');
+    assert.dom('[data-test-sound-row="loop"]').includesText('4 s');
+    await click('[data-test-sound-use="clap"]');
     assert.strictEqual(audio.sampler(loopId, 'sampler')!.buffer?.key, 'clap');
     assert.dom('[data-test-sound-select]').hasValue('clap');
   });

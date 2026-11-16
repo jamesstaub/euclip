@@ -33,3 +33,23 @@
     font-size: var(--font-size-7);
   }
 }
+
+/* Stop, after the first press: another press silences everything. A grey fill that blinks slightly. */
+.transport__btn[data-armed="true"],
+.transport__btn[data-armed="true"]:not(:disabled):hover {
+  background: var(--moon-gray);
+  color: var(--dark-gray);
+  animation: transport-armed 1.2s ease-in-out infinite;
+}
+
+@keyframes transport-armed {
+  50% {
+    background: var(--gray);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .transport__btn[data-armed="true"] {
+    animation: none;
+  }
+}

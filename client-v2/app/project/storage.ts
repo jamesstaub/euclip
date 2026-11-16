@@ -20,6 +20,23 @@ export interface FileStorage {
   put(id: string, file: StoredFile): Promise<boolean>;
   get(id: string): Promise<StoredFile | null>;
   delete(id: string): Promise<void>;
+  /**
+   * Everything on the shelf, without the bytes: the person's own sounds, whichever projects use them.
+   * Oldest first. (Kept in this browser for now. With accounts it would be a server's list: this
+   * interface is what changes hands, not what the app thinks a shelf is.)
+   */
+  list(): Promise<ShelfEntry[]>;
+}
+
+/** One of the person's own sounds, as a list shows it. */
+export interface ShelfEntry {
+  id: string;
+  name: string;
+  type: string;
+  /** bytes */
+  size: number;
+  /** when it was added (ms since 1970); 0 for a file added before that was kept */
+  added: number;
 }
 
 export interface StoredFile {
@@ -28,6 +45,8 @@ export interface StoredFile {
   name: string;
   /** its media type, as the browser reported it (may be empty) */
   type: string;
+  /** when it was added (ms since 1970) */
+  added?: number;
 }
 
 const STORE = 'projects';
@@ -121,7 +140,12 @@ export class IndexedDbStorage implements ProjectStorage, FileStorage {
       try {
         const tx = db.transaction(FILES, 'readwrite');
         tx.objectStore(FILES).put(
-          { bytes: file.bytes, name: file.name, type: file.type },
+          {
+            bytes: file.bytes,
+            name: file.name,
+            type: file.type,
+            added: file.added ?? Date.now(),
+          },
           id,
         );
         await done(tx);
@@ -148,6 +172,7 @@ export class IndexedDbStorage implements ProjectStorage, FileStorage {
               bytes: file.bytes,
               name: String(file.name ?? ''),
               type: String(file.type ?? ''),
+              added: Number(file.added ?? 0),
             }
           : null;
       } finally {
@@ -171,6 +196,44 @@ export class IndexedDbStorage implements ProjectStorage, FileStorage {
       }
     } catch {
       // (left behind: harmless)
+    }
+  }
+
+  async list(): Promise<ShelfEntry[]> {
+    try {
+      const db = await this.#open();
+      try {
+        const entries: ShelfEntry[] = [];
+        await new Promise<void>((resolve, reject) => {
+          const walking = db
+            .transaction(FILES, 'readonly')
+            .objectStore(FILES)
+            .openCursor();
+          walking.onerror = () =>
+            reject(walking.error ?? new Error('IndexedDB read failed'));
+          walking.onsuccess = () => {
+            const cursor = walking.result;
+            if (!cursor) return resolve();
+            const file = cursor.value as Partial<StoredFile> | undefined;
+            if (file?.bytes instanceof ArrayBuffer) {
+              entries.push({
+                id: typeof cursor.key === 'string' ? cursor.key : '',
+                name: String(file.name ?? ''),
+                type: String(file.type ?? ''),
+                size: file.bytes.byteLength,
+                added: Number(file.added ?? 0),
+              });
+            }
+            cursor.continue();
+          };
+        });
+        return entries.sort((a, b) => a.added - b.added);
+      } finally {
+        db.close();
+      }
+    } catch (error) {
+      console.warn('Euclip: your sounds could not be listed.', error);
+      return [];
     }
   }
 
@@ -205,6 +268,18 @@ export class MemoryFiles implements FileStorage {
   delete(id: string): Promise<void> {
     this.files.delete(id);
     return Promise.resolve();
+  }
+
+  list(): Promise<ShelfEntry[]> {
+    return Promise.resolve(
+      [...this.files].map(([id, file]) => ({
+        id,
+        name: file.name,
+        type: file.type,
+        size: file.bytes.byteLength,
+        added: file.added ?? 0,
+      })),
+    );
   }
 }
 

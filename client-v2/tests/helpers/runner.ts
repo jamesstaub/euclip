@@ -36,8 +36,9 @@ export interface Harness {
 }
 
 /**
- * The default project in the form projects were saved in before a count of steps let the grid own a
- * pattern: each track's pattern written in its script as an array (the default), and nothing stored.
+ * The default project in the form projects were saved in before the project held a track's pattern
+ * and its sound: both written in its script (the pattern as an array, the sound as `buffer: 'kick'`),
+ * and nothing stored.
  * That form keeps working, and most tests here are about it.
  */
 export function arrayDefaultProject(): ProjectDocument {
@@ -46,13 +47,16 @@ export function arrayDefaultProject(): ProjectDocument {
     ...doc,
     tracks: doc.tracks.map((track) => {
       const steps = track.values.controls['stepGrid › steps']?.value;
-      if (!Array.isArray(steps)) return track;
+      const sound = track.values.controls['#sampler › buffer']?.value;
+      if (!Array.isArray(steps) || typeof sound !== 'string') return track;
       return {
         ...track,
-        script: track.script.replace(
-          /steps: \d+,/,
-          `steps: [${steps.join(', ')}],`,
-        ),
+        script: track.script
+          .replace(/steps: \d+,/, `steps: [${steps.join(', ')}],`)
+          .replace(
+            ".sampler({ id: 'sampler' })",
+            `.sampler({ id: 'sampler', buffer: '${sound}' })`,
+          ),
         values: { controls: {} },
       };
     }),
@@ -69,6 +73,7 @@ export async function startProject(
   nodes: readonly NodeDefinition[] = [],
   options: RunnerOptions = {},
   files = new Map<string, ArrayBuffer>(),
+  more: Partial<RunnerHost> = {},
 ): Promise<Harness> {
   const context = new OfflineAudioContext(2, RATE * seconds, RATE);
   const engine = await createEngine({ context, nodes });
@@ -110,6 +115,7 @@ export async function startProject(
     },
     playheadMoved: () => undefined,
     readFile: (id) => Promise.resolve(harness.files.get(id)?.slice(0) ?? null),
+    ...more,
   };
   harness.runner = new ProjectRunner(engine, host, options);
   await harness.runner.start();

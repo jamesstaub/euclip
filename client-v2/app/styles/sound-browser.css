@@ -297,7 +297,8 @@
 
 /* Use shows on the selected row; with a mouse also on the row under it; on touch screens on every row */
 .sound-row__use {
-  display: none;
+  /* on every row, always: a control that only shows under a mouse cannot be reached by keyboard or touch */
+  display: inline-flex;
   flex: none;
 
   .sound-row[data-selected] & {
@@ -306,6 +307,12 @@
     background: var(--dark-gray);
     color: var(--yellow);
   }
+}
+
+/* one filled Use (the selected row's); the rest are outlines, so the list is not a wall of yellow */
+.sound-row:not([data-selected]) .sound-row__use {
+  background: transparent;
+  color: var(--yellow);
 }
 
 @media (hover: hover) {
@@ -404,4 +411,102 @@
 
 .pool-row__use {
   flex: none;
+}
+
+/* ---- the three lists: rows of real sounds ---- */
+
+/* a sound's name, and under it what there is to say of it (where it is, its state, who uses it) */
+.sound-row__text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  align-self: stretch;
+  min-inline-size: 0;
+  line-height: var(--line-height-title);
+}
+
+.sound-row__title {
+  font-family: var(--font-mono);
+}
+
+.sound-row__detail {
+  font-size: var(--font-size-7);
+  opacity: 0.8;
+}
+
+.sound-row--sound {
+  min-block-size: max(3rem, var(--target-min));
+}
+
+.sound-row__add {
+  flex: none;
+}
+
+.sound-row[data-selected] .sound-row__add {
+  border-color: var(--dark-gray);
+  color: var(--dark-gray);
+}
+
+.sound-row__menu {
+  flex: none;
+}
+
+.sound-row--more {
+  justify-content: center;
+}
+
+/* what the list is doing or could not do: said where the list is */
+.sound-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  color: var(--text-on-dark);
+  font-size: var(--font-size-6);
+}
+
+/* the sampler Use gives to, chosen among a track's several */
+.target-card__select {
+  flex: 0 1 auto;
+  min-inline-size: 0;
+  font-size: var(--font-size-6);
+}
+
+/* renaming a project sound, and being asked before one in use is removed */
+.sound-rename {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0 var(--space-4) var(--space-2);
+  padding: var(--space-2);
+  border: var(--border-accent);
+  background: var(--near-black);
+  color: var(--text-on-dark);
+  font-size: var(--font-size-6);
+
+  & label {
+    display: grid;
+    gap: var(--space-1);
+  }
+}
+
+.sound-rename__field {
+  min-block-size: var(--target-min);
+  padding: 0 var(--space-2);
+  border: var(--border-accent);
+  background: var(--light-yellow);
+  color: var(--near-black);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-5);
+}
+
+.sound-rename__problem {
+  margin: 0;
+}
+
+.sound-rename__actions {
+  display: flex;
+  gap: var(--space-2);
 }

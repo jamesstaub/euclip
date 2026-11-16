@@ -22,7 +22,38 @@ const oneCopyOnly = [
   'w3c-keyname',
 ];
 
+// The sound library, for development and preview: the deployed v1 API answers only requests that do
+// not come from another origin (it refuses those with 406), and the audio bucket allows cross-origin
+// reads from a short list of origins. Asked for through this server both are same-origin to the page.
+// Read-only: nothing of the person's goes with a request (the browser's Origin and cookies are dropped).
+const anonymous = (proxy) => {
+  proxy.on('proxyReq', (request) => {
+    request.removeHeader('origin');
+    request.removeHeader('referer');
+    request.removeHeader('cookie');
+  });
+};
+const libraryProxy = {
+  '/v1/files': {
+    target: process.env.EUCLIP_LIBRARY_HOST || 'https://www.euclip.app',
+    changeOrigin: true,
+    configure: anonymous,
+  },
+  '/library-audio': {
+    target: 'https://storage.googleapis.com',
+    changeOrigin: true,
+    rewrite: (path) =>
+      path.replace(
+        /^\/library-audio/,
+        '/euclidean-cracked.appspot.com/Drum%20Machines%20mp3',
+      ),
+    configure: anonymous,
+  },
+};
+
 export default defineConfig({
+  server: { proxy: libraryProxy },
+  preview: { proxy: libraryProxy },
   resolve: {
     dedupe: oneCopyOnly,
   },

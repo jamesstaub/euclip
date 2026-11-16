@@ -1,6 +1,17 @@
 /**
- * The sample pool: naming a sound a person adds, and the limit on its size. Pure.
+ * The project's sounds (the pool): naming a sound that joins the project, telling where a sound comes
+ * from and what uses it, and the limit on a file's size. Pure.
+ *
+ * A project sound is a name a script can type (`buffer: 'kick'`) pointing at one source: a file of the
+ * library, a built-in, or one of the person's own files. The name is the project's; the source may be
+ * in several projects, and in one project under several names (the same file cut two ways).
  */
+import { BUFFER_OPTION } from 'client-v2/controls/declarations';
+import {
+  PROJECT_SCOPE,
+  type ProjectDocument,
+  type SampleSource,
+} from 'client-v2/project/schema';
 
 /** The largest file that can be added: bigger ones are refused before anything is read into memory twice. */
 export const MAX_FILE_BYTES = 30 * 1024 * 1024;
@@ -54,4 +65,90 @@ export function refusal(file: {
   }
   if (file.size === 0) return `"${file.name}" is empty.`;
   return null;
+}
+
+/** What a project sound points at, as one string: the same source gives the same string. */
+export function sourceId(source: SampleSource): string {
+  if (source.library !== undefined) return `library:${source.library}`;
+  if (source.file !== undefined) return `file:${source.file}`;
+  return `url:${source.url ?? ''}`;
+}
+
+/** The project sound that already points at a source, if there is one: joining twice reuses it. */
+export function nameOfSource(
+  samples: Readonly<Record<string, SampleSource>>,
+  id: string,
+): string | undefined {
+  return Object.keys(samples).find((name) => sourceId(samples[name]!) === id);
+}
+
+/** Why a name cannot be a project sound's, in words; null when it can. */
+export function nameProblem(
+  name: string,
+  taken: Iterable<string>,
+): string | null {
+  if (name === '') return 'A sound needs a name.';
+  if (!/^[a-z][a-z0-9_]*$/.test(name)) {
+    return 'A name is lower-case letters, digits and underscores, starting with a letter: it is what a script types.';
+  }
+  if (name.length > 32) return 'A name is at most 32 characters.';
+  if (new Set(taken).has(name))
+    return `There is already a sound called '${name}'.`;
+  return null;
+}
+
+const escaped = (text: string): string =>
+  text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** `buffer: 'name'` (or with double quotes) in a script: how a script names the sound a sampler plays. */
+function naming(name: string): RegExp {
+  return new RegExp(`(\\bbuffer\\s*:\\s*)(['"])${escaped(name)}\\2`, 'g');
+}
+
+/** A script with every `buffer: 'from'` written as `buffer: 'to'`. */
+export function renameInScript(
+  script: string,
+  from: string,
+  to: string,
+): string {
+  return script.replace(naming(from), `$1$2${to}$2`);
+}
+
+export interface SoundUse {
+  /** a track's id, or the project scope */
+  scope: string;
+  /** "Track 3", "Main output" */
+  label: string;
+  /** how many times its script names the sound */
+  written: number;
+  /** a sampler of it has the sound by the person's choice (stored), whatever its script says */
+  chosen: boolean;
+}
+
+/** Where a project sound is used: by a script that names it, or by a sampler it was chosen for. */
+export function usesOf(doc: ProjectDocument, name: string): SoundUse[] {
+  const scopes = [
+    ...doc.tracks.map((track, index) => ({
+      scope: track.id,
+      label: `Track ${index + 1}`,
+      script: track.script,
+      values: track.values,
+    })),
+    {
+      scope: PROJECT_SCOPE,
+      label: 'Main output',
+      script: doc.script,
+      values: doc.values,
+    },
+  ];
+  const uses: SoundUse[] = [];
+  for (const { scope, label, script, values } of scopes) {
+    const written = script.match(naming(name))?.length ?? 0;
+    const chosen = Object.entries(values.controls).some(
+      ([key, state]) =>
+        key.endsWith(` › ${BUFFER_OPTION}`) && state.value === name,
+    );
+    if (written > 0 || chosen) uses.push({ scope, label, written, chosen });
+  }
+  return uses;
 }

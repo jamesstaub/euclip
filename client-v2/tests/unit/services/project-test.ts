@@ -171,7 +171,7 @@ module('Unit | Service | project', function (hooks) {
     } finally {
       await real.clear();
     }
-    assert.strictEqual(project.doc.schemaVersion, 5);
+    assert.strictEqual(project.doc.schemaVersion, 6);
   });
 
   test('a storage that fails does not break the app', async function (assert) {

@@ -9,7 +9,7 @@
  */
 
 /** Bumped whenever the shape below changes in a way old documents need migrating for. */
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 /** A parameter's value, or a step grid's pattern. */
 export type StoredValue = number | boolean | string | number[];
@@ -83,8 +83,13 @@ export interface SampleSource {
   /** A URL the app can fetch: one of the built-in sounds. */
   url?: string;
   /**
-   * A file the person added from their device: the key of its bytes in the file store kept next to
-   * the project (project/storage.ts). The bytes are never in the document.
+   * A file of the sound library, by its path there (`/Boss DR110/110KIK.mp3`). Where the library's
+   * audio is fetched from is the app's to know (library/client.ts), not the document's.
+   */
+  library?: string;
+  /**
+   * One of the person's own files ("My sounds"): the key of its bytes on their shelf, which is kept
+   * apart from any one project (project/storage.ts). The bytes are never in the document.
    */
   file?: string;
   /** For an added file: the name it had on the device. */
@@ -297,6 +302,12 @@ export function migrateProject(value: unknown): ProjectDocument | null {
           )
         : doc['tracks'],
     };
+  }
+  if (doc['schemaVersion'] === 5) {
+    // 6: a sound of the pool may be a file of the library (`library: path`). Nothing in a version 5
+    // document changes; the number does, so that an older build does not open a project it would
+    // play with sounds missing.
+    doc = { ...doc, schemaVersion: 6 };
   }
   return isProjectDocument(doc) ? doc : null;
 }

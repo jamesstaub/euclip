@@ -33,7 +33,6 @@ import {
   type Program,
 } from 'client-v2/audio/compile';
 import { normalizeSlices } from 'cracked-up/util';
-import { STORED_BUFFER_CHOICE } from 'client-v2/controls/features';
 import {
   BUFFER_OPTION,
   CHANNEL_BUS,
@@ -60,6 +59,7 @@ import {
   type ControlHost,
 } from 'client-v2/controls/script-api';
 import { sameValue, type Operation } from 'client-v2/project/operations';
+import { sourceId } from 'client-v2/project/pool';
 import {
   PROJECT_SCOPE,
   controlKey,
@@ -180,6 +180,14 @@ export interface ModeChoice {
  */
 export const FOLLOW_SECONDS = 0.02;
 const FOLLOW = { glide: FOLLOW_SECONDS };
+/** Seconds to fade the output over before everything is silenced: short, but enough to avoid a click. */
+const SILENCE_FADE = 0.02;
+
+/** The scope and the buffer Euclip hears a sound with (`ProjectRunner.hear`): not a project's. */
+const HEAR_SCOPE = '~hear';
+const HEAR_KEY = '~hear';
+/** How many decoded sounds are kept beyond those the project uses. */
+const DECODED_KEPT = 32;
 
 const SYNC = 'sequence-sync';
 const syncChoice = (sequence: string): string => `${SYNC}:${sequence}`;
@@ -239,10 +247,15 @@ export interface WaveformView {
     duration: number | null;
     slices: readonly number[];
   } | null;
-  /** whether the sound can be chosen here and kept in the project (controls/features.ts) */
+  /** whether the sound can be chosen here and kept in the project (always, now: kept for callers that ask) */
   choosable: boolean;
   /** the project holds a choice of sound for it (so Reset has something to forget) */
   soundStored: boolean;
+  /**
+   * The person's choice can be forgotten for the sound the script names: there is a choice, and the
+   * script writes a `buffer:` (a script that names no sound has nothing to go back to).
+   */
+  soundDefault?: boolean;
   /** the key the choice of sound is stored under */
   soundKey: string;
   /** the controls it is a view over, by parameter name: the same ones a slider for each would be */
@@ -260,6 +273,8 @@ export interface RunnerHost {
   playheadMoved(): void;
   /** The bytes of a sound the person added (project/storage.ts), or null if they are gone. */
   readFile?(id: string): Promise<ArrayBuffer | null>;
+  /** Where the audio of a file of the sound library is fetched from (library/client.ts). */
+  libraryUrl?(path: string): string;
 }
 
 interface ScopeRuntime {
@@ -372,7 +387,13 @@ export class ProjectRunner {
       engine.transport.on('stop', () => this.#clearPlayheads()),
       // a control's range can depend on a sample (a sampler's start and end): say when one arrives
       engine.buffers.on('ready', (ref) => {
-        this.#missing.delete(ref.key);
+        // (a single sample is the stand-in a missing file's name is given: not its audio)
+        const real = ref.buffer !== null && ref.buffer.length > 1;
+        if (real) this.#missing.delete(ref.key);
+        const from = this.#loadedSamples.get(ref.key);
+        if (from !== undefined && ref.buffer && real) {
+          this.#decoded.set(from, ref.buffer);
+        }
         this.#applySlices(ref.key);
         // (a speed synced to a sequence needs the sound's length: here it is)
         for (const runtime of this.#scopes.values()) this.#resync(runtime);
@@ -485,7 +506,8 @@ export class ProjectRunner {
         return true;
       },
       warn: (warning) => warnings.push(warning),
-      moved: (key, value) => this.#movedByScript(runtime, key, value),
+      moved: (key, value, glide) =>
+        this.#movedByScript(runtime, key, value, glide ?? 0),
       glide: (key) =>
         this.#controlViews(runtime.id, true).find((view) => view.key === key)
           ?.glide?.seconds ?? 0,
@@ -590,6 +612,13 @@ export class ProjectRunner {
         break;
       case 'removeTrack':
         this.#remove(op.id);
+        break;
+      case 'renameSample':
+      case 'duplicateSample':
+        // (names scripts and samplers know sounds by have changed: every script runs again)
+        this.engine.buffers.delete(op.type === 'renameSample' ? op.from : '');
+        this.#loadedSamples.delete(op.type === 'renameSample' ? op.from : '');
+        void this.sync();
         break;
       case 'setSample':
       case 'addSample':
@@ -1097,15 +1126,33 @@ export class ProjectRunner {
               slices: ref.slices,
             }
           : null,
-        choosable: STORED_BUFFER_CHOICE,
-        soundStored:
-          STORED_BUFFER_CHOICE &&
-          typeof values?.controls[soundKey]?.value === 'string',
+        choosable: true,
+        soundStored: typeof values?.controls[soundKey]?.value === 'string',
+        ...this.#soundDefault(runtime, soundKey),
         soundKey,
         params,
       });
     }
     return views;
+  }
+
+  #soundDefault(
+    runtime: ScopeRuntime,
+    soundKey: string,
+  ): { soundDefault?: boolean } {
+    const doc = this.#host.getDoc();
+    if (
+      typeof valuesOf(doc, runtime.id)?.controls[soundKey]?.value !== 'string'
+    ) {
+      return {};
+    }
+    // (The library keeps no record a host can read of the options a node was made with, so whether
+    // the script names a sound is read from its text.)
+    const script =
+      runtime.id === PROJECT_SCOPE
+        ? doc.script
+        : (doc.tracks.find((track) => track.id === runtime.id)?.script ?? '');
+    return /\bbuffer\s*:/.test(script) ? { soundDefault: true } : {};
   }
 
   /** A node of a scope's script by id: for drawing its sound and play position, and auditioning it. */
@@ -1579,17 +1626,39 @@ export class ProjectRunner {
    * on screen and the document, which follow when the change is heard: inside a sequence callback that
    * is the step's time, not now (callbacks run ahead of the sound).
    */
-  #movedByScript(runtime: ScopeRuntime, key: string, value: StoredValue): void {
-    const at = this.#lastChangeAt;
+  #movedByScript(
+    runtime: ScopeRuntime,
+    key: string,
+    value: StoredValue,
+    glide: number,
+  ): void {
+    // With a glide the library reports the change for when the glide ends. The control is moved when
+    // the set lands (on its step), as it is when a person moves it: only the sound takes the glide.
+    const ends = this.#lastChangeAt;
+    const at = ends === null ? null : ends - glide;
     this.#lastChangeAt = null;
-    this.#whenHeard(at, () =>
+    this.#whenHeard(at, () => {
+      // (the parameter is on its way to where the control now is: that is not "out of step")
+      const declaration = runtime.declarations.find((d) => d.key === key);
+      const binding = declaration?.bindings[0];
+      if (declaration && binding?.type === 'param') {
+        for (const node of this.#reach(runtime, declaration)) {
+          runtime.heard.set(
+            heardKey(node, binding.param),
+            node.param(binding.param).value,
+          );
+        }
+      } else if (binding?.type === 'bus') {
+        const bus = this.#busOf(runtime, binding.name);
+        if (bus) runtime.heard.set(busHeardKey(binding.name), bus.gain.value);
+      }
       this.#host.dispatch({
         type: 'setControlValue',
         scope: runtime.id,
         key,
         value,
-      }),
-    );
+      });
+    });
   }
 
   /** A parameter changed, by anyone. Where it is now is shown from the moment the change is heard. */
@@ -1845,24 +1914,119 @@ export class ProjectRunner {
    * the bytes of a file the person added), and gives every sound the slices the document holds for it.
    */
   #loadSamples(doc: ProjectDocument): void {
+    for (const name of [...this.#loadedSamples.keys()]) {
+      if (!(name in doc.samples)) {
+        // no longer a sound of the project: its audio stays decoded (another name, or a preview, may
+        // want it), its name is free again
+        this.#loadedSamples.delete(name);
+        this.#missing.delete(name);
+        this.engine.buffers.delete(name);
+      }
+    }
     for (const [name, source] of Object.entries(doc.samples)) {
-      const from =
-        source.file !== undefined ? `file:${source.file}` : source.url;
-      if (from === undefined) continue;
+      const from = sourceId(source);
       if (this.#loadedSamples.get(name) !== from) {
         this.#loadedSamples.set(name, from);
-        // not awaited: a sampler without its sound yet is silent, and plays once it arrives
-        if (source.file !== undefined) {
+        this.#missing.delete(name);
+        const decoded = this.#decoded.get(from);
+        if (decoded) {
+          // heard already, or in the project under another name: decoded once, shared
+          this.engine.buffers.add(name, decoded);
+        } else if (source.file !== undefined) {
+          // not awaited: a sampler without its sound yet is silent, and plays once it arrives
           const reading = this.#loadFile(name, source.file).finally(() =>
             this.#reading.delete(reading),
           );
           this.#reading.add(reading);
-        } else if (source.url !== undefined) {
-          this.engine.buffers.load(source.url, { key: name });
+        } else {
+          const url =
+            source.library !== undefined
+              ? this.#host.libraryUrl?.(source.library)
+              : source.url;
+          if (url !== undefined) this.engine.buffers.load(url, { key: name });
         }
       }
       this.#applySlices(name);
     }
+  }
+
+  /** Audio already decoded, by where it comes from (pool.ts `sourceId`): a source is decoded once. */
+  readonly #decoded = new Map<string, AudioBuffer>();
+
+  /** The decoded audio of a source, if it has been decoded: for hearing it without loading it again. */
+  decoded(source: string): AudioBuffer | undefined {
+    return this.#decoded.get(source);
+  }
+
+  /** Keeps audio decoded elsewhere (a preview): a project sound on the same source will use it. */
+  keepDecoded(source: string, buffer: AudioBuffer): void {
+    this.#decoded.delete(source);
+    this.#decoded.set(source, buffer);
+    // Heard sounds are kept so that using one does not decode it again, but not without end: beyond
+    // a few dozen the oldest that no project sound is on are let go.
+    if (this.#decoded.size > DECODED_KEPT) {
+      const inUse = new Set(this.#loadedSamples.values());
+      for (const key of this.#decoded.keys()) {
+        if (this.#decoded.size <= DECODED_KEPT) break;
+        if (!inUse.has(key) && key !== source) this.#decoded.delete(key);
+      }
+    }
+  }
+
+  /**
+   * Tries again to give a project sound its audio: one that failed to load, or one whose file has been
+   * supplied again. The new audio goes into the entry the name already has, so the samplers that play
+   * it have it at once (a sampler keeps the entry it found; it does not look a name up again).
+   */
+  async retrySample(name: string): Promise<void> {
+    const source = this.#host.getDoc().samples[name];
+    if (!source) return;
+    const from = sourceId(source);
+    let decoded = this.#decoded.get(from);
+    if (!decoded) {
+      let bytes: ArrayBuffer | null = null;
+      try {
+        if (source.file !== undefined) {
+          bytes = (await this.#host.readFile?.(source.file)) ?? null;
+        } else {
+          const url =
+            source.library !== undefined
+              ? this.#host.libraryUrl?.(source.library)
+              : source.url;
+          const response = url === undefined ? null : await fetch(url);
+          bytes = response?.ok ? await response.arrayBuffer() : null;
+        }
+        if (bytes) decoded = await this.engine.context.decodeAudioData(bytes);
+      } catch {
+        // (as it was: still failed)
+      }
+    }
+    if (!decoded) {
+      this.#host.changed();
+      return;
+    }
+    this.#decoded.set(from, decoded);
+    this.#loadedSamples.set(name, from);
+    this.#missing.delete(name);
+    const ref = this.engine.buffers.add(name, decoded);
+    // A sampler keeps the entry it found under a name, and the name now has another. Being given the
+    // same name again is no change to the library, so the samplers that play it are given it by way
+    // of another sound, in the same instant.
+    const other = this.engine.buffers
+      .list()
+      .find((entry) => entry.key !== name && entry.state === 'ready');
+    for (const runtime of this.#scopes.values()) {
+      for (const node of this.#ownNodes(runtime)) {
+        if (node.buffer && node.buffer !== ref && node.buffer.key === name) {
+          if (other) node.setOption(BUFFER_OPTION, other.key);
+          node.setOption(BUFFER_OPTION, name);
+        }
+      }
+    }
+    this.#applySlices(name);
+    // (a speed synced to a sequence needs the sound's length)
+    for (const runtime of this.#scopes.values()) this.#resync(runtime);
+    this.#host.changed();
   }
 
   /**
@@ -1879,11 +2043,28 @@ export class ProjectRunner {
     if (have && have.state === 'ready') return; // (added a moment ago, already decoded)
     const bytes = (await this.#host.readFile?.(file)) ?? null;
     if (this.#loadedSamples.get(name) !== `file:${file}`) return;
+    const decoded = this.#decoded.get(`file:${file}`);
+    if (decoded) {
+      this.engine.buffers.add(name, decoded);
+      return;
+    }
     if (!bytes) {
       console.warn(
         `Euclip: the audio of "${name}" is not in this browser's storage.`,
       );
       this.#missing.add(name);
+      // The name still gets an entry (a moment of silence): a sampler given a name with no entry
+      // would go looking for a file of that name, and would not look again when the audio comes.
+      if (!this.engine.buffers.get(name)) {
+        this.engine.buffers.add(
+          name,
+          this.engine.context.createBuffer(
+            1,
+            1,
+            this.engine.context.sampleRate,
+          ),
+        );
+      }
       this.#host.changed();
       return;
     }
@@ -1929,6 +2110,11 @@ export class ProjectRunner {
   }
 
   /** Sounds of the pool whose audio could not be found or read. */
+  /** The project sounds whose file is not on this browser's shelf (as against one that failed to load or decode). */
+  missingFiles(): string[] {
+    return [...this.#missing];
+  }
+
   missingSamples(): string[] {
     const missing = new Set(this.#missing);
     for (const name of Object.keys(this.#host.getDoc().samples)) {
@@ -1946,6 +2132,94 @@ export class ProjectRunner {
     if (!node?.buffer?.buffer) return false;
     node.trigger(slice === undefined ? {} : { slice });
     return true;
+  }
+
+  // --- Hearing a sound that is not in the project ---------------------------------------------------
+
+  #hearing: Node | null = null;
+
+  /**
+   * Plays decoded audio for the ear, through the app's main output, without the transport and without
+   * touching the project: a sampler of Euclip's own, in a scope of its own. One sound at a time.
+   *
+   * Each sound is given to the sampler under a key of its own. (A sampler keeps the entry it found
+   * under a key: putting new audio under one fixed key left it playing the first sound for ever.) The
+   * key before it is dropped, so nothing piles up in the buffer store.
+   */
+  async hear(buffer: AudioBuffer): Promise<void> {
+    const key = `${HEAR_KEY}:${++this.#hears}`;
+    this.engine.buffers.add(key, buffer);
+    if (!this.#hearing) {
+      const scope = this.engine.scope(HEAR_SCOPE);
+      await scope.build((api) => {
+        api().sampler({ id: 'hear', buffer: key }).to('main');
+      });
+      this.#hearing = [...scope.select('#hear')][0] ?? null;
+    }
+    const node = this.#hearing;
+    if (!node) return;
+    this.stopHearing();
+    node.setOption(BUFFER_OPTION, key);
+    const before = this.#hearKey;
+    this.#hearKey = key;
+    if (before !== null && before !== key) this.engine.buffers.delete(before);
+    node.trigger({});
+  }
+  #hears = 0;
+  #hearKey: string | null = null;
+
+  /** The audio the hearing sampler has now: what the last `hear` plays. For tests and drivers. */
+  get heard(): AudioBuffer | null {
+    return this.#hearing?.buffer?.buffer ?? null;
+  }
+
+  stopHearing(): void {
+    try {
+      this.#hearing?.release();
+    } catch {
+      // (nothing sounding)
+    }
+  }
+
+  /**
+   * Silences everything, for the Stop button's second press. cracked-up has no all-notes-off and no way
+   * to empty a delay or reverb, so: the main output is faded to nothing over a few milliseconds (no
+   * click), every voice is released, every script's scope is emptied (which disposes its delays and
+   * reverbs, and their tails with them) and run again, which makes them anew, and the output comes
+   * back. The document and every stored control value are left alone (the scripts read them as they
+   * ran before). The output is restored even if something throws.
+   */
+  async silence(): Promise<void> {
+    const main = this.engine.root.bus('main');
+    const level = main.gain.value;
+    main.gain.set(0, { glide: SILENCE_FADE });
+    try {
+      if (!this.engine.offline) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, SILENCE_FADE * 1000 * 1.5),
+        );
+      }
+      this.stopHearing();
+      const releaseAll = (): void => {
+        try {
+          this.engine.root.select('*').release();
+        } catch {
+          // (nothing to release)
+        }
+      };
+      releaseAll();
+      for (const [id, runtime] of [...this.#scopes]) {
+        try {
+          await runtime.scope.build(() => undefined);
+          await this.run(id, true);
+        } catch (error) {
+          console.warn('Euclip: a scope could not be rebuilt.', error);
+        }
+      }
+      releaseAll();
+    } finally {
+      main.gain.set(level, { glide: SILENCE_FADE });
+    }
   }
 
   /** Resolves when every sound of the pool has loaded (or failed). For tests and offline rendering. */

@@ -373,6 +373,8 @@
   inset: var(--wf-ruler-h) 0 0;
   display: grid;
   place-items: center;
+  place-content: center;
+  gap: var(--space-2);
   margin: 0;
   padding: var(--space-2);
   color: var(--light-gray);

@@ -12,6 +12,8 @@ import type {
   StoredValue,
   TrackDocument,
 } from 'client-v2/project/schema';
+import { BUFFER_OPTION } from 'client-v2/controls/declarations';
+import { renameInScript } from 'client-v2/project/pool';
 import { PROJECT_SCOPE } from 'client-v2/project/schema';
 
 export type Operation =
@@ -43,7 +45,15 @@ export type Operation =
   | { type: 'addSample'; name: string; source: SampleSource }
   /** Sets a sound's slice boundaries. Fewer than three boundaries is one slice: nothing is stored. */
   | { type: 'setSampleSlices'; name: string; slices: readonly number[] }
-  | { type: 'removeSample'; name: string };
+  | { type: 'removeSample'; name: string }
+  /**
+   * Gives a project sound another name. The samplers that have it by the person's choice follow (that
+   * is the project's own data). Scripts that name it are text the person wrote: they are rewritten
+   * only when `scripts` says so.
+   */
+  | { type: 'renameSample'; from: string; to: string; scripts: boolean }
+  /** A second project sound on the same source, with slices of its own: the same file cut another way. */
+  | { type: 'duplicateSample'; name: string; as: string };
 
 export type OperationType = Operation['type'];
 
@@ -247,6 +257,57 @@ export function applyOperation(
       return op.name in doc.samples
         ? { ...doc, samples: without(doc.samples, op.name) }
         : doc;
+
+    case 'renameSample': {
+      const source = doc.samples[op.from];
+      if (!source || op.to === op.from || op.to in doc.samples) return doc;
+      // (in place: the pool keeps its order)
+      const samples = Object.fromEntries(
+        Object.entries(doc.samples).map(([name, value]) => [
+          name === op.from ? op.to : name,
+          value,
+        ]),
+      );
+      const renamed = (values: ScopeValues): ScopeValues => ({
+        ...values,
+        controls: Object.fromEntries(
+          Object.entries(values.controls).map(([key, state]) => [
+            key,
+            key.endsWith(` › ${BUFFER_OPTION}`) && state.value === op.from
+              ? { ...state, value: op.to }
+              : state,
+          ]),
+        ),
+      });
+      const text = (script: string): string =>
+        op.scripts ? renameInScript(script, op.from, op.to) : script;
+      return {
+        ...doc,
+        samples,
+        script: text(doc.script),
+        values: renamed(doc.values),
+        tracks: doc.tracks.map((track) => ({
+          ...track,
+          script: text(track.script),
+          values: renamed(track.values),
+        })),
+      };
+    }
+
+    case 'duplicateSample': {
+      const source = doc.samples[op.name];
+      if (!source || op.as in doc.samples) return doc;
+      return {
+        ...doc,
+        samples: {
+          ...doc.samples,
+          [op.as]: {
+            ...source,
+            ...(source.slices ? { slices: [...source.slices] } : {}),
+          },
+        },
+      };
+    }
   }
 }
 

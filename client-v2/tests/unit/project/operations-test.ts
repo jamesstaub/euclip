@@ -366,7 +366,7 @@ module('Unit | Project | migration', function () {
 
     assert.ok(doc, 'it loads');
     assert.true(isProjectDocument(doc));
-    assert.strictEqual(doc?.schemaVersion, 5);
+    assert.strictEqual(doc?.schemaVersion, 6);
     assert.deepEqual(
       doc?.samples,
       {
@@ -425,7 +425,7 @@ module('Unit | Project | migration', function () {
       ],
     };
     const doc = migrateProject(old);
-    assert.strictEqual(doc?.schemaVersion, 5);
+    assert.strictEqual(doc?.schemaVersion, 6);
     assert.strictEqual(doc?.script, "// the master\nstepGrid ('fills');\n");
     assert.deepEqual(doc?.values, {
       controls: { 'stepGrid › fills': { value: [1, 0] } },
@@ -459,7 +459,7 @@ module('Unit | Project | migration', function () {
     const current = arrayDefaultProject();
     assert.strictEqual(migrateProject(current), current);
     assert.strictEqual(
-      migrateProject({ ...current, schemaVersion: 6 }),
+      migrateProject({ ...current, schemaVersion: 7 }),
       null,
       'a newer version',
     );

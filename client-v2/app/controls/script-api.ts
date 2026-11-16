@@ -16,7 +16,6 @@
  * interface carried over the sandbox's link.
  */
 import type { Bus, Node, ScopeApi } from 'cracked-up';
-import { STORED_BUFFER_CHOICE } from 'client-v2/controls/features';
 import {
   BUFFER_OPTION,
   CHANNEL_BUS,
@@ -47,8 +46,11 @@ export interface ControlHost {
    */
   declare(declaration: Declaration): boolean;
   warn(warning: DeclarationWarning): void;
-  /** the script moved a control with `.set()`; the parameter (if it has one) has already been set */
-  moved(key: string, value: StoredValue): void;
+  /**
+   * The script moved a control with `.set()`; the parameter (if it has one) has already been set.
+   * `glide`: the seconds the parameter was given to get there (0: it is there when the set lands).
+   */
+  moved(key: string, value: StoredValue, glide?: number): void;
   /**
    * For a control whose number is not its parameter's (a sampler's speed synced to a sequence, which
    * holds a multiplier): what turns the control's number into the parameter's, as things stand when
@@ -294,8 +296,9 @@ export function createControlApi(
       },
       set(value) {
         // (with a glide it starts where it is called, on the step in a callback, and sweeps from there)
-        set(value, host.glide(key));
-        host.moved(key, value);
+        const seconds = host.glide(key);
+        set(value, seconds);
+        host.moved(key, value, seconds);
       },
     };
   }
@@ -365,7 +368,7 @@ export function createControlApi(
         if (typeof value !== 'number') return;
         const seconds = host.glide(key);
         bus.gain.set(value, seconds > 0 ? { glide: seconds } : undefined);
-        host.moved(key, value);
+        host.moved(key, value, seconds);
       },
     };
   }
@@ -668,7 +671,7 @@ export function createControlApi(
   ): void {
     const selector = idSelector(node);
     // The sound it plays, first: a stored choice is set here, after the node, so it has the last word.
-    if (STORED_BUFFER_CHOICE) {
+    {
       const key = controlKey(selector, BUFFER_OPTION);
       host.declare({
         key,

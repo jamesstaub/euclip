@@ -96,6 +96,9 @@ const PARTNER: Readonly<Record<HandleId, HandleId>> = {
   loopEnd: 'loopStart',
 };
 
+/** The entry of the sound picker that is not a sound: it opens the sound browser. */
+const BROWSE = '~browse';
+
 const HANDLE_MARKS: Readonly<Record<HandleId, string>> = {
   start: 'S',
   end: 'E',
@@ -295,8 +298,12 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
 
   get emptyText(): string | null {
     const sound = this.sound;
-    if (!sound) return 'This sampler has no sound yet.';
-    if (sound.state === 'error') {
+    if (!sound) return 'No sound is chosen for this sampler.';
+    const entry = this.pool.find((candidate) => candidate.name === sound.key);
+    if (entry?.state === 'missing') {
+      return `The file of “${sound.key}” is not in this browser. Supply it again from This project in the sound browser.`;
+    }
+    if (sound.state === 'error' || entry?.state === 'error') {
       return `“${sound.key}” could not be loaded.`;
     }
     if (sound.state === 'loading') return `Loading “${sound.key}”…`;
@@ -1541,7 +1548,12 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
       value: entry.name,
       label: poolLabel(entry),
     }));
-    return this.sound ? sounds : [{ value: '', label: 'no sound' }, ...sounds];
+    return [
+      ...(this.sound ? [] : [{ value: '', label: 'no sound chosen' }]),
+      ...sounds,
+      // (the library and the person's own sounds are in the sidebar: this opens it, aimed here)
+      { value: BROWSE, label: 'Browse…' },
+    ];
   }
 
   get soundValue(): string {
@@ -1562,7 +1574,13 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
   }
 
   chooseSound = (event: Event): void => {
-    const name = (event.target as HTMLSelectElement).value;
+    const menu = event.target as HTMLSelectElement;
+    const name = menu.value;
+    if (name === BROWSE) {
+      menu.value = this.soundValue;
+      this.browse();
+      return;
+    }
     if (name && name !== this.sound?.key) {
       this.audio.setControl(
         this.args.scopeId,
@@ -1571,6 +1589,10 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
       );
     }
   };
+
+  /** Opens the sound browser on the library, with Use aimed at this sampler. */
+  browse = (): void =>
+    this.view.browseSounds(this.args.scopeId, this.args.waveform.key);
 
   resetSound = (): void =>
     this.audio.resetControl(this.args.scopeId, this.args.waveform.soundKey);
@@ -1684,7 +1706,7 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
                 {{selectOptions this.soundChoices this.soundValue}}
               ></select>
             </label>
-            {{#if @waveform.soundStored}}
+            {{#if @waveform.soundDefault}}
               <button
                 type="button"
                 class="btn btn--s btn--on-yellow"
@@ -1960,10 +1982,15 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
         <canvas class="waveform__canvas" aria-hidden="true"></canvas>
 
         {{#if this.emptyText}}
-          <p
-            class="waveform__empty"
-            data-test-waveform-empty
-          >{{this.emptyText}}</p>
+          <p class="waveform__empty" data-test-waveform-empty>{{this.emptyText}}
+            {{#unless this.sound}}
+              <button
+                type="button"
+                class="btn btn--s"
+                data-test-waveform-browse
+                {{on "click" this.browse}}
+              >Choose a sound</button>
+            {{/unless}}</p>
         {{/if}}
 
         {{#each this.markers key="index" as |marker|}}

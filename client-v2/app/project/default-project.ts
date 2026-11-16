@@ -1,6 +1,8 @@
 import pkg from 'cracked-up/package.json';
+import { BUFFER_OPTION } from 'client-v2/controls/declarations';
 import { applyOperation } from 'client-v2/project/operations';
 import {
+  controlKey,
   emptyValues,
   stepGridKey,
   LOOP_SAMPLE,
@@ -38,9 +40,10 @@ export function samplerScript(
   chain = "  .gain({ id: 'level', gain: 0.8 })",
   controls = "knob('#level', 'gain', { label: 'level' });\nslider('#sampler', 'speed');\nwaveform('#sampler');",
 ): string {
+  void buffer; // (the sound is the project's to hold, not the script's to name: see `withSound`)
   return `// Chain
 __()
-  .sampler({ id: 'sampler', buffer: '${buffer}' })
+  .sampler({ id: 'sampler' })
 ${chain}
   .to('channel');
 
@@ -113,19 +116,51 @@ export function withPattern(
   }).tracks[0]!;
 }
 
+/**
+ * A track whose sampler has been given a sound: as if the person had chosen it (Use, or the source
+ * pane's picker), by the operation that does. The templates' scripts name no sound: which sound a
+ * sampler plays is kept in the project, as its pattern is, so the browser's Use never contradicts what
+ * the script says. (A script may still write `buffer: 'kick'`: that is then the default.)
+ */
+export function withSound(
+  track: TrackDocument,
+  sound: string,
+  selector = '#sampler',
+): TrackDocument {
+  const doc: ProjectDocument = {
+    schemaVersion: SCHEMA_VERSION,
+    name: '',
+    bpm: 120,
+    crackedUpVersion: pkg.version,
+    script: '',
+    values: emptyValues(),
+    tracks: [track],
+    samples: {},
+  };
+  return applyOperation(doc, {
+    type: 'setControlValue',
+    scope: track.id,
+    key: controlKey(selector, BUFFER_OPTION),
+    value: sound,
+  }).tracks[0]!;
+}
+
 /** What New Track adds: sampler into gain into `channel`, one 16-step sequence, and controls for them. */
 export function newTrack(name: string, buffer = 'kick'): TrackDocument {
-  return withPattern(
-    {
-      id: newTrackId(),
-      name,
-      script: samplerScript(buffer),
-      level: 1,
-      pan: 0,
-      values: emptyValues(),
-    },
-    'steps',
-    ONE,
+  return withSound(
+    withPattern(
+      {
+        id: newTrackId(),
+        name,
+        script: samplerScript(buffer),
+        level: 1,
+        pan: 0,
+        values: emptyValues(),
+      },
+      'steps',
+      ONE,
+    ),
+    buffer,
   );
 }
 
@@ -141,9 +176,10 @@ waveform('#sampler');`;
  * new pieces. Its speed is synced to the sequence, so the loop stays in time when the tempo changes.
  */
 export function slicedLoopScript(buffer: string = LOOP_SAMPLE): string {
+  void buffer;
   return `// Chain
 __()
-  .sampler({ id: 'sampler', buffer: '${buffer}' })
+  .sampler({ id: 'sampler' })
   .gain({ id: 'level', gain: 0.8 })
   .to('channel');
 
@@ -166,17 +202,20 @@ waveform('#sampler');
 
 /** What "Sliced loop" in the New Track menu adds. */
 export function newSlicedLoopTrack(name: string): TrackDocument {
-  return withPattern(
-    {
-      id: newTrackId(),
-      name,
-      script: slicedLoopScript(),
-      level: 1,
-      pan: 0,
-      values: emptyValues(),
-    },
-    'slices',
-    SLICED_LOOP_STEPS,
+  return withSound(
+    withPattern(
+      {
+        id: newTrackId(),
+        name,
+        script: slicedLoopScript(),
+        level: 1,
+        pan: 0,
+        values: emptyValues(),
+      },
+      'slices',
+      SLICED_LOOP_STEPS,
+    ),
+    LOOP_SAMPLE,
   );
 }
 
@@ -186,17 +225,20 @@ function track(
   steps: readonly number[],
   chain: string,
 ): TrackDocument {
-  return withPattern(
-    {
-      id,
-      name,
-      script: samplerScript(name, steps.length, chain, FILTER_CONTROLS),
-      level: 1,
-      pan: 0,
-      values: emptyValues(),
-    },
-    'steps',
-    steps,
+  return withSound(
+    withPattern(
+      {
+        id,
+        name,
+        script: samplerScript(name, steps.length, chain, FILTER_CONTROLS),
+        level: 1,
+        pan: 0,
+        values: emptyValues(),
+      },
+      'steps',
+      steps,
+    ),
+    name,
   );
 }
 

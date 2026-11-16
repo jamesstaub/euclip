@@ -14,6 +14,7 @@ import {
 } from 'client-v2/project/default-project';
 import { PROJECT_SCOPE, type TrackDocument } from 'client-v2/project/schema';
 import type AudioService from 'client-v2/services/audio';
+import type ViewService from 'client-v2/services/view';
 import type ProjectService from 'client-v2/services/project';
 
 /** At this width and above the sidebar sits beside the tracks, so it starts open. Keep in step with app-shell.css. */
@@ -42,6 +43,7 @@ export interface AppShellSignature {
 export default class AppShell extends Component<AppShellSignature> {
   @service declare audio: AudioService;
   @service declare project: ProjectService;
+  @service declare view: ViewService;
 
   @tracked sidebarOpen =
     this.args.initialSidebarOpen ?? window.matchMedia(SIDEBAR_BESIDE).matches;
@@ -56,7 +58,15 @@ export default class AppShell extends Component<AppShellSignature> {
   constructor(owner: unknown, args: AppShellSignature['Args']) {
     super(owner as never, args);
     void this.audio.boot();
+    this.view.openSounds = () => {
+      this.sidebarOpen = true;
+    };
   }
+
+  /** A sound was given to a sampler: where the browser is a drawer over the tracks, it gets out of the way. */
+  soundUsed = (): void => {
+    if (!window.matchMedia(SIDEBAR_BESIDE).matches) this.sidebarOpen = false;
+  };
 
   willDestroy(): void {
     super.willDestroy();
@@ -187,6 +197,7 @@ export default class AppShell extends Component<AppShellSignature> {
           id={{SIDEBAR_ID}}
           class="app-shell__sidebar"
           @onClose={{this.closeSidebar}}
+          @onUsed={{this.soundUsed}}
           @scopeId={{this.selectedId}}
           @targetName={{this.selectedName}}
           {{onEscape this.closeSidebar}}

@@ -1,7 +1,6 @@
 import { module, test } from 'qunit';
 import { mapping } from 'client-v2/controls/modes';
 import { REGION_GAP, samplerRegion } from 'client-v2/controls/live-range';
-import { STORED_BUFFER_CHOICE } from 'client-v2/controls/features';
 import { applyOperation } from 'client-v2/project/operations';
 import {
   emptyValues,
@@ -363,10 +362,6 @@ waveform();`),
 
   module('the sound it plays', function () {
     test('a chosen sound is stored like a control’s value and applied by the declaration; Reset returns to the script’s', async function (assert) {
-      assert.true(
-        STORED_BUFFER_CHOICE,
-        'the switch is on (controls/features.ts)',
-      );
       const h = await startProject(
         project(`${SAMPLER('kick')}waveform('#s');`),
       );

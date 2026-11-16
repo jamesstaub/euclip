@@ -42,6 +42,9 @@ function readStored(): Stored {
  *
  * A script is shown in one place only: the footer, in place of its UI, when `scriptOpen` is on.
  */
+/** The sound browser's lists: the library, the person's own sounds, this project's. */
+export type SoundsTab = 'library' | 'mine' | 'project';
+
 export default class ViewService extends Service {
   #stored = readStored();
 
@@ -91,6 +94,27 @@ export default class ViewService extends Service {
     if (this.waveforms[scopeId] === key) return;
     this.waveforms = { ...this.waveforms, [scopeId]: key };
     this.#save();
+  }
+
+  // --- the sound browser --------------------------------------------------------------------------
+
+  /** Which of the browser's three lists is showing. */
+  @tracked soundsTab: SoundsTab = 'library';
+
+  /**
+   * The sampler Use gives a sound to, when the person has said (Browse… from a sampler's own picker,
+   * or the browser's choice among a track's samplers); otherwise the selected track's first.
+   */
+  @tracked soundTarget: { scopeId: string; key: string } | null = null;
+
+  /** Opens the sidebar: set by the app shell, which owns whether it is open. */
+  openSounds: (() => void) | null = null;
+
+  /** Browse… from a sampler's picker: the library, aimed at that sampler. */
+  browseSounds(scopeId: string, key: string): void {
+    this.soundTarget = { scopeId, key };
+    this.soundsTab = 'library';
+    this.openSounds?.();
   }
 
   /** Collapsed to its bar on phones (a bottom sheet) to start with; otherwise open. */

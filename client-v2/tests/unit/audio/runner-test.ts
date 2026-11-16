@@ -106,6 +106,60 @@ function oneTrack(script: string): ProjectDocument {
 const CHAIN = `__().sampler({ id: 's', buffer: 'kick' }).lowpass({ id: 'f', frequency: 2000, q: 6 }).gain({ id: 'g', gain: 0.8 }).to('channel');\n`;
 
 module('Unit | Audio | runner', function () {
+  module('silence', function () {
+    const LOOPING = `__().sampler({ id: 's', buffer: 'kick', loop: true }).delay({ id: 'd', time: 0.1, feedback: 0.6 }).to('channel');\n`;
+
+    async function sounding(silence: boolean) {
+      const h = await startProject(oneTrack(LOOPING), 1);
+      h.engine.transport.stop();
+      [...h.engine.scope(ONE).select('#s')][0]!.trigger();
+      const before = JSON.stringify(h.doc);
+      if (silence) await h.runner.silence();
+      return { h, before };
+    }
+
+    test('a looping sampler and its delay are heard until silenced, and not after', async function (assert) {
+      const heard = await sounding(false);
+      assert.true(
+        rms(await heard.h.render(), 0.2, 1) > 0.001,
+        'the loop plays on its own',
+      );
+
+      const { h, before } = await sounding(true);
+      assert.true(
+        rms(await h.render(), 0.05, 1) < 1e-6,
+        'nothing is left after silence()',
+      );
+      assert.strictEqual(
+        JSON.stringify(h.doc),
+        before,
+        'the document is unchanged',
+      );
+      assert.deepEqual(h.derived, [], 'and nothing was written by the runner');
+    });
+
+    test('the scripts are rebuilt, so sound can be made again, and the output level is back', async function (assert) {
+      const { h } = await sounding(true);
+      assert.strictEqual(h.runner.error(ONE), null);
+      assert.true(h.runner.isBuilt(ONE));
+      assert.strictEqual(h.engine.root.bus('main').gain.value, 1);
+      [...h.engine.scope(ONE).select('#s')][0]!.trigger();
+      assert.true(rms(await h.render(), 0.2, 1) > 0.001, 'it plays again');
+    });
+
+    test('silencing leaves control values alone, and the output is restored if a rebuild throws', async function (assert) {
+      const h = await startProject();
+      const before = JSON.stringify(h.doc);
+      const level = h.engine.root.bus('main').gain.value;
+      const run = h.runner.run.bind(h.runner);
+      h.runner.run = () => Promise.reject(new Error('boom'));
+      await h.runner.silence();
+      h.runner.run = run;
+      assert.strictEqual(JSON.stringify(h.doc), before);
+      assert.strictEqual(h.engine.root.bus('main').gain.value, level);
+    });
+  });
+
   module('what the scripts make', function () {
     test('the default project builds, and declares its controls and grids', async function (assert) {
       const h = await startProject();
@@ -1696,6 +1750,177 @@ controls('#s');`),
     });
   });
 
+  module('the project’s sounds', function () {
+    const PLAY = `__().sampler({ id: 's' }).to('channel');
+__.transport.sequence('s', { steps: [1, 0, 0, 0], step: '1/16' }, (ev) => { if (ev.value) __('#s').trigger(); });
+waveform('#s');`;
+    const SOUND = '#s › buffer';
+
+    test('a sampler whose script names no sound is silent until one is chosen; the choice is the project’s', async function (assert) {
+      const h = await startProject(oneTrack(PLAY), 1);
+      const view = h.runner.waveforms(ONE)[0]!;
+      assert.strictEqual(view.sound, null, 'no sound');
+      assert.true(view.choosable);
+      assert.strictEqual(
+        view.soundDefault,
+        undefined,
+        'and nothing to reset to',
+      );
+      assert.deepEqual(h.runner.warnings(ONE), []);
+      assert.strictEqual(rms(await h.render()), 0, 'silent');
+
+      const chosen = await startProject(oneTrack(PLAY), 1);
+      move(chosen, ONE, SOUND, 'kick');
+      assert.strictEqual(chosen.runner.waveforms(ONE)[0]!.sound?.key, 'kick');
+      assert.strictEqual(
+        chosen.runner.waveforms(ONE)[0]!.soundDefault,
+        undefined,
+      );
+      assert.true(
+        rms(await chosen.render()) > 0.001,
+        'it plays what was chosen',
+      );
+
+      // a script that does name one: the default, the stored choice wins, and there is a way back
+      const named = await startProject(
+        oneTrack(PLAY.replace("{ id: 's' }", "{ id: 's', buffer: 'snare' }")),
+      );
+      assert.strictEqual(named.runner.waveforms(ONE)[0]!.sound?.key, 'snare');
+      move(named, ONE, SOUND, 'kick');
+      await named.runner.run(ONE);
+      assert.strictEqual(named.runner.waveforms(ONE)[0]!.sound?.key, 'kick');
+      assert.true(named.runner.waveforms(ONE)[0]!.soundDefault);
+    });
+
+    test('a library file is fetched where the library says, decoded once, and shared by every name on it', async function (assert) {
+      const asked: string[] = [];
+      const doc = oneTrack(PLAY);
+      const h = await startProject(doc, 1, [], {}, new Map(), {
+        libraryUrl: (path) => {
+          asked.push(path);
+          return `/samples${path}`;
+        },
+      });
+      h.apply({
+        type: 'addSample',
+        name: 'dr',
+        source: { library: '/kick.wav', label: 'kick.wav' },
+      });
+      await h.runner.samplesReady();
+      const first = h.engine.buffers.get('dr')!;
+      assert.strictEqual(first.state, 'ready');
+      assert.deepEqual(asked, ['/kick.wav']);
+      assert.strictEqual(h.runner.decoded('library:/kick.wav'), first.buffer!);
+
+      h.apply({ type: 'duplicateSample', name: 'dr', as: 'dr_2' });
+      await h.runner.samplesReady();
+      assert.strictEqual(
+        h.engine.buffers.get('dr_2')!.buffer,
+        first.buffer,
+        'the same decoded audio, not fetched or decoded again',
+      );
+      assert.deepEqual(asked, ['/kick.wav']);
+
+      h.apply({ type: 'removeSample', name: 'dr' });
+      assert.strictEqual(
+        h.engine.buffers.get('dr'),
+        undefined,
+        'its name is free again',
+      );
+      assert.strictEqual(h.engine.buffers.get('dr_2')!.state, 'ready');
+
+      // one that is not there: failed, and can be tried again
+      h.apply({
+        type: 'addSample',
+        name: 'gone',
+        source: { library: '/nope.wav' },
+      });
+      await h.runner.samplesReady();
+      assert.deepEqual(h.runner.missingSamples(), ['gone']);
+      assert.deepEqual(
+        h.runner.missingFiles(),
+        [],
+        'failed, which is not "missing file"',
+      );
+    });
+
+    test('one of the person’s files that is not on this browser’s shelf is missing, until it is supplied', async function (assert) {
+      // (a sampler has the sound by the person's choice: it is looked for under its name at once)
+      const base = oneTrack(PLAY);
+      const doc = {
+        ...base,
+        tracks: base.tracks.map((track) => ({
+          ...track,
+          values: { controls: { [SOUND]: { value: 'take' } } },
+        })),
+        samples: { ...base.samples, take: { file: 'f-1', label: 'take.wav' } },
+      };
+      const files = new Map<string, ArrayBuffer>();
+      const h = await startProject(doc, 1, [], {}, files);
+      assert.deepEqual(h.runner.missingFiles(), ['take']);
+      assert.strictEqual(h.runner.sampler(ONE, 's')!.buffer?.key, 'take');
+      assert.strictEqual(rms(await h.engine.render()), 0, 'silent meanwhile');
+
+      const again = await startProject(doc, 1, [], {}, files);
+      files.set('f-1', await (await fetch('/samples/kick.wav')).arrayBuffer());
+      await again.runner.retrySample('take');
+      assert.deepEqual(again.runner.missingFiles(), []);
+      assert.strictEqual(again.engine.buffers.get('take')?.state, 'ready');
+      assert.true(
+        (again.runner.sampler(ONE, 's')!.buffer?.duration ?? 0) > 0.1,
+        'the sampler that plays it has the audio, without being told again',
+      );
+      assert.true(rms(await again.render()) > 0.001, 'and plays it');
+    });
+
+    test('each sound heard is the one that plays: the second is not the first again', async function (assert) {
+      const h = await startProject(oneTrack(''), 1);
+      const kick = await h.engine.buffers.get('kick')!.ready;
+      const loop = await h.engine.buffers.get('loop')!.ready;
+      const snare = await h.engine.buffers.get('snare')!.ready;
+      const kept = (): number =>
+        h.engine.buffers.list().filter((ref) => ref.key.startsWith('~hear'))
+          .length;
+      await h.runner.hear(kick);
+      assert.strictEqual(h.runner.heard, kick);
+      await h.runner.hear(loop);
+      assert.strictEqual(
+        h.runner.heard,
+        loop,
+        'the second sound, not the first',
+      );
+      await h.runner.hear(snare);
+      await h.runner.hear(kick);
+      await h.runner.hear(loop);
+      assert.strictEqual(h.runner.heard, loop);
+      assert.strictEqual(
+        kept(),
+        1,
+        'one entry for it, however many have been heard',
+      );
+      // and it is the loop that sounds: 4 s of it, where a kick is over in half a second
+      const out = await h.engine.render();
+      assert.true(
+        rms(out, 0.6, 0.9) > 0.001,
+        'still sounding after a kick would have ended',
+      );
+    });
+
+    test('hearing a sound plays it through the main output without the project or the transport', async function (assert) {
+      const h = await startProject(oneTrack(''), 1);
+      const kick = await h.engine.buffers.get('kick')!.ready;
+      const before = JSON.stringify(h.doc);
+      await h.runner.hear(kick);
+      const out = await h.engine.render();
+      assert.true(
+        rms(out, 0, 0.2) > 0.001,
+        'heard, with the transport stopped',
+      );
+      assert.strictEqual(JSON.stringify(h.doc), before, 'nothing changed');
+      assert.deepEqual(h.derived, []);
+    });
+  });
+
   module('a speed synced to a sequence', function () {
     const SPEED = '#s › speed';
     // the loop is 4 s; 16 eighths at 120 are 4 s, 8 sixteenths 1 s
@@ -2717,6 +2942,41 @@ globalThis.euclipSet = () => { cutoff.set(500); q.set(3); };`),
           [0],
           'with no glide it lands where it is called, as before',
         );
+      });
+
+      test('a scripted set on a gliding control moves the control when the set lands; only the sound takes the glide', async function (assert) {
+        // a real-time runner on an offline clock: "heard" is then a matter of the audio time
+        const h = await startProject(
+          oneTrack(
+            TONE(`const cutoff = slider('#f', 'frequency', { glide: 0.5 });
+globalThis.euclipSetAt = (at) => __('#f').engine ? cutoff.set(500) : cutoff.set(500);`),
+          ),
+          2,
+          [],
+          { realtime: true },
+        );
+        const param = [
+          ...h.engine.scope(ONE).scope('script').select('#f'),
+        ][0]!.param('frequency');
+        let arrives = -1;
+        param.on('change', (change) => (arrives = change.at));
+        (
+          globalThis as unknown as { euclipSetAt: (at: number) => void }
+        ).euclipSetAt(0);
+        // the set landed now: the control is there at once, not out of step, though the sound has 0.5 s to go
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        assert.strictEqual(arrives, 0.5, 'the parameter arrives a glide later');
+        assert.strictEqual(
+          control(h, ONE, FREQ).value,
+          500,
+          'the control moved when the set landed',
+        );
+        assert.strictEqual(
+          control(h, ONE, FREQ).effective,
+          null,
+          'and is not out of step on the way',
+        );
+        assert.deepEqual(storedIn(h, ONE), { [FREQ]: 500 });
       });
 
       test('glide on something that cannot glide is said, on its line, and there is no glide to set', async function (assert) {

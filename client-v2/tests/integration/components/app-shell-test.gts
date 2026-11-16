@@ -472,7 +472,10 @@ stepGrid('ones');
         [],
         'reset: the script gives a count and no pattern, so the grid is empty',
       );
-      assert.deepEqual(project.doc.tracks[0]?.values.controls, {});
+      assert.strictEqual(
+        project.doc.tracks[0]?.values.controls['stepGrid › steps'],
+        undefined,
+      );
       assert.dom('[data-test-steps-reset]').doesNotExist();
       project.undo();
       await settled();
@@ -1381,13 +1384,13 @@ slider(__.bus('drums'), 'gain');
       assert.dom('[data-test-footer-script] .cm-editor').exists({ count: 1 });
       assert
         .dom('[data-test-footer-script] .cm-content')
-        .includesText("buffer: 'kick'");
+        .includesText("sampler({ id: 'sampler' })");
       assert.dom('[data-test-footer-ui]').doesNotExist();
 
       await click('[data-test-track="3"] [data-test-track-select]');
       assert
         .dom('[data-test-footer-script] .cm-content')
-        .includesText("buffer: 'hat'");
+        .includesText('frequency: 6000');
 
       await click('[data-test-script-toggle]');
       assert.dom('.cm-editor').doesNotExist();
@@ -1711,6 +1714,65 @@ slider(__.bus('drums'), 'gain');
         ' ',
       );
       assert.strictEqual(transport.state, 'stopped', 'nor on a control');
+    });
+
+    test('Stop has two stages: the second silences everything', async function (assert) {
+      await render(<template><AppShell /></template>);
+      const transport = audio.engine!.transport;
+      const stop = '[data-test-transport-stop]';
+      const silenced: number[] = [];
+      const silence = audio.runner!.silence.bind(audio.runner);
+      audio.runner!.silence = () => {
+        silenced.push(1);
+        return silence();
+      };
+      const before = JSON.stringify(project.doc);
+      const level = audio.engine!.root.bus('main').gain.value;
+      const undoable = project.canUndo;
+
+      assert.dom(stop).hasAttribute('aria-label', 'Stop');
+      assert.dom(stop).hasAttribute('data-armed', 'false');
+
+      await click('[data-test-transport-play]');
+      await click(stop);
+      assert.strictEqual(transport.state, 'stopped');
+      assert.deepEqual(
+        silenced,
+        [],
+        'the first press only stops the transport',
+      );
+      assert.dom(stop).hasAttribute('aria-label', 'Silence all sound');
+      assert
+        .dom(stop)
+        .hasAttribute('title', 'Press again to silence all sound');
+      assert.dom(stop).hasAttribute('data-armed', 'true');
+
+      await click(stop);
+      assert.deepEqual(silenced, [1], 'the second press silences');
+      assert.dom(stop).hasAttribute('aria-label', 'Stop');
+
+      await click(stop);
+      assert.deepEqual(
+        silenced,
+        [1, 1],
+        'and a press with nothing going is harmless',
+      );
+      assert.strictEqual(audio.engine!.root.bus('main').gain.value, level);
+
+      await click('[data-test-transport-play]');
+      await click(stop);
+      assert.dom(stop).hasAttribute('data-armed', 'true');
+      await click('[data-test-transport-play]');
+      assert
+        .dom(stop)
+        .hasAttribute('aria-label', 'Stop', 'Play resets the stage');
+
+      assert.strictEqual(
+        JSON.stringify(project.doc),
+        before,
+        'nothing written',
+      );
+      assert.strictEqual(project.canUndo, undoable, 'no step to undo');
     });
 
     test('a saved project is what opens, with its control values and patterns applied', async function (assert) {

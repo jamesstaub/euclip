@@ -12,10 +12,22 @@ import {
   type StepGridView,
   type WaveformView,
 } from 'client-v2/audio/runner';
-import { newFileId, refusal, sampleNameFor } from 'client-v2/project/pool';
+import config from 'client-v2/config/environment';
+import { LibraryClient } from 'client-v2/library/client';
+import {
+  nameOfSource,
+  nameProblem,
+  newFileId,
+  refusal,
+  sampleNameFor,
+  sourceId,
+  usesOf,
+  type SoundUse,
+} from 'client-v2/project/pool';
+import type { ShelfEntry } from 'client-v2/project/storage';
 import { setLiveCatalog } from 'client-v2/editor/live-catalog';
 import type { DeclarationWarning } from 'client-v2/controls/declarations';
-import type { StoredValue } from 'client-v2/project/schema';
+import type { SampleSource, StoredValue } from 'client-v2/project/schema';
 import type ProjectService from 'client-v2/services/project';
 import type { ProjectChange } from 'client-v2/services/project';
 
@@ -26,6 +38,9 @@ import type { ProjectChange } from 'client-v2/services/project';
 export const RUN_DELAY_MS = 300;
 
 const runWaiter = buildWaiter('euclip:script-run');
+
+const text = (value: unknown, otherwise: string): string =>
+  typeof value === 'string' && value !== '' ? value : otherwise;
 
 /**
  * The app's one audio engine, and the project running on it.
@@ -51,8 +66,34 @@ export default class AudioService extends Service {
   engine: Engine | undefined;
   runner: ProjectRunner | undefined;
 
+  /** The sound library. (Tests put one that answers from fixtures here.) */
+  library = new LibraryClient(
+    {
+      api: text(config.APP['libraryApi'], '/v1'),
+      audio: text(config.APP['libraryAudio'], '/library-audio'),
+    },
+    // (no test reaches the network: by default the library is there and empty)
+    macroCondition(isTesting())
+      ? () =>
+          Promise.resolve(
+            new Response('{"dirs":[],"audio":[],"path":"/"}', { status: 200 }),
+          )
+      : undefined,
+  );
+
+  /** The sound being heard from the browser (its `soundId`), and how far that has got. */
+  @tracked hearing: { id: string; state: 'loading' | 'playing' } | null = null;
+  /** The last sound that could not be heard or used, and why: shown on its row until tried again. */
+  @tracked failed: { id: string; message: string } | null = null;
+  /** bumped when the person's shelf changes (a file added, supplied again) */
+  @tracked shelfRevision = 0;
+  #hearTimer: ReturnType<typeof setTimeout> | undefined;
+  #hearToken = 0;
+
   @tracked ready = false;
   @tracked playing = false;
+  /** Stop has been pressed once since playing: another press silences everything (see stop()). */
+  @tracked silenceArmed = false;
   @tracked private revision = 0;
   @tracked private playheadRevision = 0;
 
@@ -85,11 +126,15 @@ export default class AudioService extends Service {
         if (!isDestroying(this)) this.playheadRevision++;
       },
       readFile: async (id) => (await this.project.files.get(id))?.bytes ?? null,
+      libraryUrl: (path) => this.library.audioUrl(path),
     });
     this.runner = runner;
     this.#off.push(
       this.project.subscribe((change) => this.#onProjectChange(change)),
-      engine.transport.on('start', () => (this.playing = true)),
+      engine.transport.on('start', () => {
+        this.playing = true;
+        this.silenceArmed = false;
+      }),
       engine.transport.on('stop', () => (this.playing = false)),
     );
     await runner.start();
@@ -106,6 +151,7 @@ export default class AudioService extends Service {
 
   willDestroy(): void {
     super.willDestroy();
+    clearTimeout(this.#hearTimer);
     for (const { timer, token } of this.#pending.values()) {
       clearTimeout(timer);
       runWaiter.endAsync(token);
@@ -135,11 +181,28 @@ export default class AudioService extends Service {
     if (!engine.offline) void engine.resume().catch(() => undefined);
     if (engine.transport.state !== 'started') engine.transport.start();
     this.playing = true;
+    this.silenceArmed = false;
   }
 
+  /**
+   * Stop has two stages. While playing it stops the transport and leaves what is sounding (looping
+   * samplers, delay and reverb tails) to carry on. Pressed again, with the transport already stopped,
+   * it silences everything. View state: no undo step, nothing written to the project.
+   */
   stop(): void {
-    this.engine?.transport.stop();
-    this.playing = false;
+    if (this.playing) {
+      this.engine?.transport.stop();
+      this.playing = false;
+      this.silenceArmed = true;
+      return;
+    }
+    this.silenceArmed = false;
+    void this.silence();
+  }
+
+  /** Silences everything now: voices, loops and the tails of delays and reverbs. */
+  silence(): Promise<void> {
+    return waitForPromise(this.runner?.silence() ?? Promise.resolve());
   }
 
   toggle(): void {
@@ -186,18 +249,296 @@ export default class AudioService extends Service {
   /** The project's sounds, as a picker lists them. */
   pool(): PoolEntry[] {
     void this.revision;
-    const missing = new Set(this.runner?.missingSamples() ?? []);
-    return Object.entries(this.project.doc.samples).map(([name, source]) => {
+    const doc = this.project.doc;
+    const failed = new Set(this.runner?.missingSamples() ?? []);
+    const missing = new Set(this.runner?.missingFiles() ?? []);
+    return Object.entries(doc.samples).map(([name, source]) => {
       const ref = this.engine?.buffers.get(name);
       return {
         name,
         duration: ref?.duration ?? null,
         slices: Math.max(1, (source.slices?.length ?? 2) - 1),
         added: source.file !== undefined,
-        label: source.label ?? null,
-        state: missing.has(name) ? 'error' : (ref?.state ?? 'loading'),
+        from:
+          source.library !== undefined
+            ? 'library'
+            : source.file !== undefined
+              ? 'mine'
+              : 'built-in',
+        source: sourceId(source),
+        label: source.label ?? source.library ?? null,
+        state: missing.has(name)
+          ? 'missing'
+          : failed.has(name)
+            ? 'error'
+            : (ref?.state ?? 'loading'),
+        uses: usesOf(doc, name),
       };
     });
+  }
+
+  // --- Sounds: the library, the person's own, the project's ------------------------------------------
+
+  /** The person's own sounds: the shelf, whichever projects use them. */
+  async shelf(): Promise<ShelfEntry[]> {
+    void this.shelfRevision;
+    return this.project.files.list();
+  }
+
+  /** What a sound would be in the project: where it comes from, and a label to keep with it. */
+  #sourceOf(sound: SoundRef): SampleSource | null {
+    if (sound.kind === 'library') {
+      return { library: sound.path, label: sound.name };
+    }
+    if (sound.kind === 'mine') return { file: sound.id, label: sound.name };
+    return this.project.doc.samples[sound.name] ?? null;
+  }
+
+  /** The project sound a browser's sound is, when it is one already. */
+  projectNameOf(sound: SoundRef): string | undefined {
+    if (sound.kind === 'project') return sound.name;
+    const source = this.#sourceOf(sound);
+    return source
+      ? nameOfSource(this.project.doc.samples, sourceId(source))
+      : undefined;
+  }
+
+  /**
+   * Adds a sound to the project, without giving it to anything. A source that is in the project
+   * already is not added twice: its name is returned. The name is made from the file's (pool.ts).
+   */
+  addToProject(sound: SoundRef, group?: string): string | undefined {
+    const known = this.projectNameOf(sound);
+    if (known !== undefined) return known;
+    const source = this.#sourceOf(sound);
+    if (!source || sound.kind === 'project') return undefined;
+    const name = sampleNameFor(
+      sound.name,
+      Object.keys(this.project.doc.samples),
+    );
+    this.project.apply(
+      { type: 'addSample', name, source },
+      group === undefined ? {} : { group },
+    );
+    return name;
+  }
+
+  /**
+   * Use: the sound joins the project if it has not, and the sampler aimed at plays it. One step to
+   * undo. Resolves the project sound's name.
+   */
+  async useSound(
+    sound: SoundRef,
+    target: { scopeId: string; soundKey: string },
+  ): Promise<string | undefined> {
+    const id = soundId(sound);
+    if (sound.kind === 'mine' && this.projectNameOf(sound) === undefined) {
+      // One of the person's files is decoded before it joins: a sampler given a name with no audio
+      // behind it yet would look for it elsewhere. (A library file's entry is there from the start.)
+      try {
+        await this.#audioOf(sound);
+      } catch (error) {
+        this.failed = {
+          id,
+          message: error instanceof Error ? error.message : String(error),
+        };
+        return undefined;
+      }
+      if (isDestroying(this)) return undefined;
+    }
+    const group = `use-${++this.#uses}`;
+    const name = this.addToProject(sound, group);
+    if (name === undefined) return undefined;
+    this.project.apply(
+      {
+        type: 'setControlValue',
+        scope: target.scopeId,
+        key: target.soundKey,
+        value: name,
+      },
+      { group },
+    );
+    return name;
+  }
+  #uses = 0;
+
+  /**
+   * Hear: plays a sound for the ear and changes nothing. A second call for the sound that is playing
+   * stops it; a call for another replaces it. Library audio is fetched here, the first time, and
+   * decoded once: using the sound afterwards does not fetch or decode it again.
+   */
+  async hear(sound: SoundRef): Promise<void> {
+    const id = soundId(sound);
+    const engine = this.engine;
+    const runner = this.runner;
+    if (!engine || !runner) return;
+    if (this.hearing?.id === id) {
+      this.stopHearing();
+      return;
+    }
+    this.stopHearing();
+    const token = ++this.#hearToken;
+    this.hearing = { id, state: 'loading' };
+    if (this.failed?.id === id) this.failed = null;
+    try {
+      if (!engine.offline && engine.context.state !== 'running') {
+        await engine.resume();
+      }
+      const buffer = await this.#audioOf(sound);
+      if (token !== this.#hearToken || isDestroying(this)) return;
+      await runner.hear(buffer);
+      if (token !== this.#hearToken || isDestroying(this)) return;
+      this.hearing = { id, state: 'playing' };
+      this.#hearTimer = setTimeout(
+        () => {
+          if (token === this.#hearToken && !isDestroying(this)) {
+            this.hearing = null;
+          }
+        },
+        Math.min(buffer.duration, 60) * 1000 + 50,
+      );
+    } catch (error) {
+      if (token !== this.#hearToken || isDestroying(this)) return;
+      this.hearing = null;
+      this.failed = {
+        id,
+        message: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  stopHearing(): void {
+    this.#hearToken++;
+    clearTimeout(this.#hearTimer);
+    this.runner?.stopHearing();
+    this.hearing = null;
+  }
+
+  /** The decoded audio of a sound: from the project, from what has been decoded, or fetched and decoded now. */
+  async #audioOf(sound: SoundRef): Promise<AudioBuffer> {
+    const engine = this.engine!;
+    const runner = this.runner!;
+    if (sound.kind === 'project') {
+      const ref = engine.buffers.get(sound.name);
+      if (!ref)
+        throw new Error(`'${sound.name}' has no audio in this project.`);
+      return ref.ready;
+    }
+    const source = sourceId(this.#sourceOf(sound)!);
+    const known = runner.decoded(source);
+    if (known) return known;
+    let bytes: ArrayBuffer;
+    if (sound.kind === 'library') {
+      let response: Response;
+      try {
+        response = await fetch(this.library.audioUrl(sound.path));
+      } catch {
+        throw new Error(
+          'Could not be fetched. Check the connection and try again.',
+        );
+      }
+      if (!response.ok) {
+        throw new Error(`Could not be fetched (${response.status}).`);
+      }
+      bytes = await response.arrayBuffer();
+    } else {
+      const file = await this.project.files.get(sound.id);
+      if (!file) throw new Error('The file is not in this browser any more.');
+      bytes = file.bytes;
+    }
+    let decoded: AudioBuffer;
+    try {
+      // (decoding detaches the bytes it is given: it gets a copy)
+      decoded = await engine.context.decodeAudioData(bytes.slice(0));
+    } catch {
+      throw new Error('This browser cannot decode it.');
+    }
+    runner.keepDecoded(source, decoded);
+    return decoded;
+  }
+
+  /**
+   * Puts an audio file from the person's device on their shelf ("My sounds"): checks its size, decodes
+   * it (so a file the browser cannot read never gets in), and keeps its bytes in this browser. It is
+   * not in any project until it is used or added.
+   */
+  async shelveFile(
+    file: File,
+    id = newFileId(),
+  ): Promise<{ id: string; name: string; error?: string } | { error: string }> {
+    const refused = refusal(file);
+    if (refused) return { error: refused };
+    const engine = this.engine;
+    if (!engine) return { error: 'The audio engine is not ready yet.' };
+    let bytes: ArrayBuffer;
+    try {
+      bytes = await file.arrayBuffer();
+    } catch {
+      return { error: `"${file.name}" could not be read.` };
+    }
+    try {
+      const decoded = await engine.context.decodeAudioData(bytes.slice(0));
+      this.runner?.keepDecoded(`file:${id}`, decoded);
+    } catch {
+      return {
+        error: `"${file.name}" is not audio this browser can decode. WAV, MP3, AAC (m4a), FLAC and Ogg usually work.`,
+      };
+    }
+    const kept = await this.project.files.put(id, {
+      bytes,
+      name: file.name,
+      type: file.type,
+      added: Date.now(),
+    });
+    if (isDestroying(this)) return { error: 'Closed.' };
+    this.shelfRevision++;
+    return kept
+      ? { id, name: file.name }
+      : {
+          id,
+          name: file.name,
+          error: `"${file.name}" was added, but could not be kept in this browser's storage: it will be gone after a reload.`,
+        };
+  }
+
+  /** A project sound's file is missing from this browser: the person gives it again, under the same key. */
+  async supplyFile(name: string, file: File): Promise<string | null> {
+    const source = this.project.doc.samples[name];
+    if (source?.file === undefined)
+      return 'That sound is not one of your files.';
+    const result = await this.shelveFile(file, source.file);
+    if (!('id' in result)) return result.error;
+    await this.runner?.retrySample(name);
+    return result.error ?? null;
+  }
+
+  /** Tries again to load a project sound that failed. */
+  retrySound(name: string): void {
+    void this.runner?.retrySample(name);
+  }
+
+  removeSound(name: string): void {
+    this.project.apply({ type: 'removeSample', name });
+  }
+
+  /** Why a project sound cannot be called this; null when it can. */
+  soundNameProblem(name: string, except?: string): string | null {
+    return nameProblem(
+      name,
+      Object.keys(this.project.doc.samples).filter((other) => other !== except),
+    );
+  }
+
+  /** Renames a project sound; with `scripts`, every script that names it is rewritten too (one step to undo). */
+  renameSound(from: string, to: string, scripts: boolean): void {
+    this.project.apply({ type: 'renameSample', from, to, scripts });
+  }
+
+  /** The same source under a second name, with slices of its own. Resolves the new name. */
+  duplicateSound(name: string): string {
+    const as = sampleNameFor(name, Object.keys(this.project.doc.samples));
+    this.project.apply({ type: 'duplicateSample', name, as });
+    return as;
   }
 
   /** The audio time that is being heard now (the context's time, less what is still on its way out). */
@@ -267,54 +608,23 @@ export default class AudioService extends Service {
   }
 
   /**
-   * Adds an audio file from the person's device to the pool: checks its size, decodes it (so a file
-   * the browser cannot read never gets in), keeps its bytes beside the project, and names it.
-   * Resolves the name it was given, or why it was refused.
+   * Adds an audio file from the person's device straight to the project: onto their shelf, then into
+   * the pool under a name made from the file's. Resolves the name it was given, or why it was refused.
    */
   async addFile(
     file: File,
   ): Promise<{ name: string; error?: string } | { error: string }> {
-    const refused = refusal(file);
-    if (refused) return { error: refused };
-    const engine = this.engine;
-    if (!engine) return { error: 'The audio engine is not ready yet.' };
-    let bytes: ArrayBuffer;
-    try {
-      bytes = await file.arrayBuffer();
-    } catch {
-      return { error: `"${file.name}" could not be read.` };
-    }
-    const name = sampleNameFor(
-      file.name,
-      Object.keys(this.project.doc.samples),
-    );
-    try {
-      // (decoding detaches the bytes it is given: it gets a copy, the store keeps the original)
-      await engine.buffers.add(name, bytes.slice(0)).ready;
-    } catch {
-      engine.buffers.delete(name);
-      return {
-        error: `"${file.name}" is not audio this browser can decode. WAV, MP3, AAC (m4a), FLAC and Ogg usually work.`,
-      };
-    }
-    const id = newFileId();
-    const kept = await this.project.files.put(id, {
-      bytes,
-      name: file.name,
-      type: file.type,
+    const shelved = await this.shelveFile(file);
+    if (!('id' in shelved)) return shelved;
+    const name = this.addToProject({
+      kind: 'mine',
+      id: shelved.id,
+      name: shelved.name,
     });
-    if (isDestroying(this)) return { error: 'Closed.' };
-    this.project.apply({
-      type: 'addSample',
-      name,
-      source: { file: id, label: file.name },
-    });
-    return kept
+    if (name === undefined) return { error: 'It could not be added.' };
+    return shelved.error === undefined
       ? { name }
-      : {
-          name,
-          error: `"${file.name}" was added, but could not be kept in this browser's storage: it will be gone after a reload.`,
-        };
+      : { name, error: shelved.error };
   }
 
   /** Forgets a control's value: what the script itself says applies again. */
@@ -446,9 +756,31 @@ export interface PoolEntry {
   slices: number;
   /** a file the person added (not one of the built-in sounds) */
   added: boolean;
-  /** for an added file: the name it had on the device */
+  /** where it comes from: the library, the person's own files, or the app's built-in sounds */
+  from: 'library' | 'mine' | 'built-in';
+  /** its source as one string (pool.ts `sourceId`) */
+  source: string;
+  /** for an added file: the name it had on the device; for a library file: its path there */
   label: string | null;
-  state: 'loading' | 'ready' | 'error';
+  /** `missing`: one of the person's files that is not in this browser; `error`: it would not load or decode */
+  state: 'loading' | 'ready' | 'error' | 'missing';
+  /** the tracks (and the project script) that use it */
+  uses: SoundUse[];
+}
+
+/** A sound as the browser offers it: a file of the library, one of the person's own, or a project sound. */
+export type SoundRef =
+  | { kind: 'library'; path: string; name: string }
+  | { kind: 'mine'; id: string; name: string }
+  | { kind: 'project'; name: string };
+
+/** One string per sound a browser can show: for "which row is playing". */
+export function soundId(sound: SoundRef): string {
+  return sound.kind === 'library'
+    ? `library:${sound.path}`
+    : sound.kind === 'mine'
+      ? `file:${sound.id}`
+      : `project:${sound.name}`;
 }
 
 declare module '@ember/service' {
