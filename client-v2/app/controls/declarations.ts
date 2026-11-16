@@ -29,6 +29,14 @@ export interface ControlOptions {
   mode?: string;
   /** a sampler's speed in the mode 'sequence-sync': the named sequence to sync to (default: the script's first) */
   sequence?: string;
+  /**
+   * Seconds the parameter takes to get to where the control is put (a sweep the person hears), on a
+   * parameter that can glide. A script may give a control of its own here instead of a number; what
+   * is kept of that is the control's key, in `glideFrom`.
+   */
+  glide?: number;
+  /** the key of the control of its own whose value is this control's glide, read at every move */
+  glideFrom?: string;
   /** a narrower range than the parameter's own, or the range of a control with no parameter */
   min?: number;
   max?: number;
@@ -171,6 +179,12 @@ const NUMBER_OPTIONS: readonly OptionSpec[] = [
     values: Object.keys(MODE_LABELS),
   },
   {
+    name: 'glide',
+    type: 'number | control',
+    description:
+      "Seconds the parameter takes to get to where the control is put: { glide: 0.3 } sweeps there in 300 ms. The person can change it from the control's menu. Or a control of your own, to play it: const glide = slider('glide', { min: 0, max: 2 }); slider('#filter', 'frequency', { glide }). Only for a parameter that can glide (a continuous audio parameter, not a stepped one, a toggle, a choice or a sampler's start and end).",
+  },
+  {
     name: 'sequence',
     type: 'string',
     description:
@@ -241,7 +255,7 @@ const NUMBER_SIGNATURES: readonly SignatureSpec[] = [
 ];
 
 const OPTIONS =
-  'Options: label, min, max, step, values, and mode: the unit the control starts in, which the person can change from its menu. ' +
+  'Options: label, min, max, step, values, glide (seconds the parameter takes to get to where the control is put, or a control of your own that says), and mode: the unit the control starts in, which the person can change from its menu. ' +
   'What is on offer depends on the parameter: a frequency "hz", "note", "cents"; a level "linear", "decibels"; a time "seconds", "ms", "steps"; ' +
   'a sampler start or end "seconds", "ms", "percent", "slice"; a speed "ratio", "semitones", "ratio-cents", "sequence-sync"; anything else "linear", "exponential", "stepped". ' +
   'A sampler\'s speed in "sequence-sync" is tied to a named sequence of the script: at 1 the whole sound lasts exactly one pass of the sequence, at 2 half of one, at 1/2 two, and it follows the tempo. ' +

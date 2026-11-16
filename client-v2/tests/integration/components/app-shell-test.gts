@@ -622,6 +622,8 @@ stepGrid('ones');
           'Hz',
           'Note',
           'Note and cents',
+          'Glide: off…',
+          'Reset glide',
           'Reset',
           'Show in script',
           'Learn MIDI (coming)',
@@ -1170,6 +1172,85 @@ slider(__.bus('drums'), 'gain');
       assert.strictEqual(speedOf(), 1, 'and the speed it had');
     });
 
+    test('Glide in a control’s menu opens a time box; the time is kept with the control, marked on its row, and undone as one step', async function (assert) {
+      await render(<template><AppShell /></template>);
+      const frequency = row(FREQUENCY);
+      const stored = (): unknown =>
+        project.doc.tracks[0]!.values.controls[FREQUENCY]?.options;
+      assert.dom(`${frequency} [data-test-glide-mark]`).doesNotExist();
+      await click(`${frequency} [data-test-menu-button]`);
+      assert.dom('[data-test-menu-item="Glide: off…"]').exists();
+      assert
+        .dom('[data-test-menu-item="Reset glide"]')
+        .hasAria('disabled', 'true');
+      await click('[data-test-menu-item="Glide: off…"]');
+      assert.dom(`${frequency} [data-test-glide-box]`).exists();
+      await click(
+        `${frequency} [data-test-glide-box] [data-test-number-entry]`,
+      );
+      await fillIn(
+        `${frequency} [data-test-glide-box] [data-test-number-input]`,
+        '1s',
+      );
+      await triggerKeyEvent(
+        `${frequency} [data-test-glide-box] [data-test-number-input]`,
+        'keydown',
+        'Enter',
+      );
+      assert.deepEqual(stored(), { glide: 1 });
+      assert
+        .dom(`${frequency} [data-test-glide-box] [data-test-number-entry]`)
+        .hasText('1 s');
+      assert.dom(`${frequency} [data-test-glide-mark]`).hasText('glide 1 s');
+      await click(`${frequency} [data-test-glide-done]`);
+      assert.dom(`${frequency} [data-test-glide-box]`).doesNotExist();
+      assert
+        .dom(`${frequency} [data-test-glide-mark]`)
+        .exists('the mark stays');
+
+      // the arrow keys step it, as on the other value boxes
+      await click(`${frequency} [data-test-menu-button]`);
+      await click('[data-test-menu-item="Glide: 1 s…"]');
+      await triggerKeyEvent(
+        `${frequency} [data-test-glide-box] [data-test-number-entry]`,
+        'keydown',
+        'ArrowDown',
+      );
+      const stepped = (stored() as { glide: number }).glide;
+      assert.true(stepped < 1, `a step shorter (${stepped})`);
+      assert.true(stepped > 0.5);
+      await triggerKeyEvent(document.body, 'keydown', 'Escape');
+      assert
+        .dom(`${frequency} [data-test-glide-box]`)
+        .doesNotExist('Escape closes it');
+
+      project.undo();
+      await settled();
+      assert.deepEqual(stored(), { glide: 1 }, 'undo: the step before');
+      project.undo();
+      await settled();
+      assert.strictEqual(stored(), undefined, 'and again: no glide');
+      assert.dom(`${frequency} [data-test-glide-mark]`).doesNotExist();
+      project.redo();
+      await settled();
+
+      await click(`${frequency} [data-test-menu-button]`);
+      await click('[data-test-menu-item="Reset glide"]');
+      assert.strictEqual(stored(), undefined, 'Reset glide forgets it');
+
+      // a toggle has no such entry
+      await click('[data-test-script-toggle]');
+      await typeScript((text) => `${text}\ntoggle('#sampler', 'loop');\n`);
+      await click('[data-test-script-toggle]');
+      await click(`${row('#sampler › loop')} [data-test-menu-button]`);
+      assert.false(
+        findAll('[data-test-menu-item]').some((item) =>
+          /glide/i.test(item.textContent ?? ''),
+        ),
+        'no Glide for a toggle',
+      );
+    });
+
     test('a control’s menu offers the units its parameter can be shown in; the value stays in the parameter’s own', async function (assert) {
       await render(<template><AppShell /></template>);
       await click('[data-test-script-toggle]');
@@ -1185,6 +1266,7 @@ slider(__.bus('drums'), 'gain');
           .filter(
             (label) =>
               label !== 'Reset' &&
+              !/glide/i.test(label ?? '') &&
               label !== 'Show in script' &&
               label !== 'Learn MIDI (coming)',
           );

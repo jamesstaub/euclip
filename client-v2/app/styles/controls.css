@@ -550,6 +550,44 @@ button.number-entry:disabled {
   pointer-events: none;
 }
 
+/* the control glides: said quietly along the top edge, laid over so that nothing moves */
+.control-row__glide-mark {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: calc(5.5rem + var(--space-3));
+  color: var(--near-black);
+  font-size: 0.625rem;
+  font-style: italic;
+  line-height: var(--line-height-solid);
+  pointer-events: none;
+}
+
+/* the box that sets it, opened from the menu: over the row's right-hand end, taking no room of its own */
+.control-row__glide {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-inline: var(--space-2);
+  border-inline-start: var(--border-dark);
+  background: var(--dark-gray);
+  color: var(--light-gray);
+}
+
+.control-row__glide-label {
+  font-size: var(--font-size-7);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+}
+
+.control-row__glide .number-entry-box {
+  background: var(--light-yellow);
+  color: var(--near-black);
+}
+
 .control-row__unknown {
   flex: 1 1 auto;
   font-size: var(--font-size-7);

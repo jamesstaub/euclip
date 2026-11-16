@@ -2449,17 +2449,398 @@ stepGrid('other');`;
       }
       const panned = await right.render();
       assert.true(channelRms(panned, 1) > 0.02, 'the right channel has it');
+      // (a strip that is moved glides there over 20 ms: listened to from after that)
+      const after = (channel: number): number => {
+        const data = panned
+          .getChannelData(channel)
+          .subarray(Math.round(0.05 * panned.sampleRate));
+        let sum = 0;
+        for (const value of data) sum += value * value;
+        return Math.sqrt(sum / data.length);
+      };
+      assert.true(after(1) > 0.02, `after the glide too (${after(1)})`);
       assert.true(
-        channelRms(panned, 0) < channelRms(panned, 1) * 0.01,
-        'the left has none of it',
+        after(0) < after(1) * 0.01,
+        `the left has none of it (${after(0)} beside ${after(1)})`,
       );
 
       const off = await startProject();
       for (const track of off.doc.tracks) {
         off.apply({ type: 'setTrackLevel', id: track.id, level: 0 });
       }
-      assert.true(rms(await off.render()) < 1e-5);
+      // (from after the 20 ms the levels take to get there)
+      assert.true(rms(await off.render(), 0.05) < 1e-5);
     });
+
+    test('a moved fader is followed with a glide; what should jump is set at once', async function (assert) {
+      const h = await startProject(
+        oneTrack(`__().sine({ id: 'tone', frequency: 220 }).lowpass({ id: 'f', frequency: 2000, q: 1 }).to('channel');
+__.bus('own').gain.set(1);
+slider('#f', 'frequency');
+slider('#f', 'q', { mode: 'stepped', step: 1 });
+__().sampler({ id: 'smp', buffer: 'kick' }).to('channel');
+toggle('#smp', 'loop');
+slider(__.bus('own'), 'gain');`),
+      );
+      // every change from here on, with when it is to have arrived: now, or a glide's length from now
+      const calls: string[] = [];
+      const watch = (
+        name: string,
+        param: {
+          on(
+            event: 'change',
+            listener: (change: { value: unknown; at: number }) => void,
+          ): unknown;
+        },
+      ): void => {
+        param.on('change', (change) => {
+          const after = change.at - h.context.currentTime;
+          calls.push(
+            `${name} ${String(change.value)} ${after < 1e-9 ? 'at once' : `glide ${Math.round(after * 1000) / 1000}`}`,
+          );
+        });
+      };
+      const host = h.engine.scope(ONE);
+      const out = host.bus(OUT_BUS);
+      watch('level', out.gain);
+      watch(
+        'pan',
+        [...out.inserts].find((node) => node.id === HOST_PAN_ID)!.param('pan'),
+      );
+      const script = host.scope('script');
+      const filter = [...script.select('#f')][0]!;
+      const sampler = [...script.select('#smp')][0]!;
+      watch('frequency', filter.param('frequency'));
+      watch('q', filter.param('q'));
+      watch('loop', sampler.param('loop'));
+      watch('own', script.bus('own').gain);
+
+      h.apply({ type: 'setTrackLevel', id: ONE, level: 0.5 });
+      h.apply({ type: 'setTrackPan', id: ONE, pan: -0.25 });
+      move(h, ONE, '#f › frequency', 900);
+      move(h, ONE, 'bus own › gain', 0.3);
+      move(h, ONE, '#f › q', 4);
+      move(h, ONE, '#smp › loop', true);
+      assert.deepEqual(calls, [
+        'level 0.5 glide 0.02',
+        'pan -0.25 glide 0.02',
+        'frequency 900 glide 0.02',
+        'own 0.3 glide 0.02',
+        'q 4 at once',
+        'loop true at once',
+      ]);
+      // the control is where it was put, at once, and is not "out of step" while the glide runs
+      assert.strictEqual(control(h, ONE, '#f › frequency').value, 900);
+      assert.strictEqual(control(h, ONE, '#f › frequency').effective, null);
+      assert.strictEqual(filter.param('frequency').value, 900);
+
+      // a build applies what is stored at once: nothing glides in as a script runs
+      calls.length = 0;
+      await h.runner.run(ONE);
+      assert.deepEqual(
+        calls.filter((call) => call.includes('glide')),
+        [],
+        'a rebuild glides nothing',
+      );
+    });
+
+    module('a control’s own glide', function () {
+      const TONE = (controls: string): string =>
+        `__().sine({ id: 'tone', frequency: 220 }).lowpass({ id: 'f', frequency: 2000, q: 1 }).to('channel');\n${controls}`;
+      const FREQ = '#f › frequency';
+      /** Every change to the filter's frequency from here on: its value and how long it takes. */
+      const watch = (h: Harness): string[] => {
+        const seen: string[] = [];
+        [...h.engine.scope(ONE).scope('script').select('#f')][0]!
+          .param('frequency')
+          .on('change', (change) => {
+            const after = change.at - h.context.currentTime;
+            seen.push(
+              `${String(change.value)} in ${Math.round(after * 1000)} ms`,
+            );
+          });
+        return seen;
+      };
+
+      test('the script’s number is the default, the project’s wins, and it takes the place of the smoothing', async function (assert) {
+        const h = await startProject(
+          oneTrack(
+            TONE(
+              "slider('#f', 'frequency', { glide: 0.3 });\nslider('#f', 'q');",
+            ),
+          ),
+        );
+        assert.deepEqual(control(h, ONE, FREQ).glide, {
+          seconds: 0.3,
+          stored: false,
+        });
+        assert.deepEqual(
+          control(h, ONE, '#f › q').glide,
+          { seconds: 0, stored: false },
+          'a parameter that can glide has one, at 0 unless said',
+        );
+        const seen = watch(h);
+        move(h, ONE, FREQ, 900);
+        h.apply({
+          type: 'setControlOptions',
+          scope: ONE,
+          key: FREQ,
+          options: { glide: 1 },
+        });
+        assert.deepEqual(control(h, ONE, FREQ).glide, {
+          seconds: 1,
+          stored: true,
+        });
+        move(h, ONE, FREQ, 400);
+        h.apply({
+          type: 'setControlOptions',
+          scope: ONE,
+          key: FREQ,
+          options: { glide: 0 },
+        });
+        move(h, ONE, FREQ, 700);
+        h.apply({
+          type: 'setControlOptions',
+          scope: ONE,
+          key: FREQ,
+          options: { glide: undefined },
+        });
+        assert.deepEqual(
+          control(h, ONE, FREQ).glide,
+          { seconds: 0.3, stored: false },
+          'forgotten: the script’s again',
+        );
+        assert.deepEqual(
+          seen,
+          ['900 in 300 ms', '400 in 1000 ms', '700 in 20 ms'],
+          'the script’s; then the project’s; and at 0 only the smoothing',
+        );
+        // the control is where it was put from the first moment, and not out of step
+        assert.strictEqual(control(h, ONE, FREQ).value, 700);
+        assert.strictEqual(control(h, ONE, FREQ).effective, null);
+
+        // a build applies the stored value at once
+        seen.length = 0;
+        h.apply({
+          type: 'setControlOptions',
+          scope: ONE,
+          key: FREQ,
+          options: { glide: 2 },
+        });
+        await h.runner.run(ONE);
+        assert.deepEqual(
+          watch(h)
+            .concat(seen)
+            .filter((entry) => !entry.endsWith('in 0 ms')),
+          [],
+          'nothing glides in as a script runs',
+        );
+      });
+
+      test('the frequency really takes the glide to arrive', async function (assert) {
+        const script = `__().sine({ id: 'tone', frequency: 220 }).gain({ id: 'g', gain: 1 }).to('channel');\nslider('#g', 'gain', { glide: 0.4 });`;
+        const h = await startProject(oneTrack(script), 1);
+        void h.context.suspend(0.2).then(() => {
+          move(h, ONE, '#g › gain', 0);
+          void h.context.resume();
+        });
+        const out = await h.render();
+        const level = (from: number, to: number): number => rms(out, from, to);
+        const full = level(0.05, 0.15);
+        assert.true(
+          level(0.38, 0.42) > full * 0.35,
+          `half way there it is about half (${level(0.38, 0.42) / full})`,
+        );
+        assert.true(level(0.38, 0.42) < full * 0.65);
+        assert.true(
+          level(0.55, 0.58) > full * 0.02,
+          'still arriving just before the end',
+        );
+        assert.true(level(0.65, 0.9) < 1e-5, 'arrived after 0.4 s');
+      });
+
+      test('a control of the script’s own can be the glide, read at every move', async function (assert) {
+        const h = await startProject(
+          oneTrack(
+            TONE(`const glide = slider('glide', { min: 0, max: 2, default: 0.5, label: 'porta' });
+slider('#f', 'frequency', { glide });
+knob('#f', 'q', { glide });`),
+          ),
+        );
+        assert.deepEqual(h.runner.warnings(ONE), []);
+        assert.deepEqual(control(h, ONE, FREQ).glide, {
+          seconds: 0.5,
+          stored: false,
+          follows: 'porta',
+        });
+        assert.deepEqual(control(h, ONE, '#f › q').glide, {
+          seconds: 0.5,
+          stored: false,
+          follows: 'porta',
+        });
+        assert.false(
+          JSON.stringify(h.runner.declarations(ONE)).includes('function'),
+          'declarations are still plain data',
+        );
+        const seen = watch(h);
+        move(h, ONE, FREQ, 900);
+        move(h, ONE, 'glide', 1.25);
+        move(h, ONE, FREQ, 500);
+        move(h, ONE, 'glide', 0);
+        move(h, ONE, FREQ, 600);
+        assert.deepEqual(seen, [
+          '900 in 500 ms',
+          '500 in 1250 ms',
+          '600 in 20 ms',
+        ]);
+      });
+
+      test('a script’s set() glides from where it is called when the control glides, and lands at once when it does not', async function (assert) {
+        const h = await startProject(
+          oneTrack(
+            TONE(`const cutoff = slider('#f', 'frequency', { glide: 0.25 });
+const q = slider('#f', 'q');
+globalThis.euclipSet = () => { cutoff.set(500); q.set(3); };`),
+          ),
+        );
+        const seen = watch(h);
+        const qSeen: number[] = [];
+        [...h.engine.scope(ONE).scope('script').select('#f')][0]!
+          .param('q')
+          .on('change', (change) =>
+            qSeen.push(change.at - h.context.currentTime),
+          );
+        (globalThis as unknown as { euclipSet: () => void }).euclipSet();
+        assert.deepEqual(seen, ['500 in 250 ms']);
+        assert.deepEqual(
+          qSeen,
+          [0],
+          'with no glide it lands where it is called, as before',
+        );
+      });
+
+      test('glide on something that cannot glide is said, on its line, and there is no glide to set', async function (assert) {
+        const h = await startProject(
+          oneTrack(`__().sampler({ id: 's', buffer: 'kick' }).lowpass({ id: 'f', frequency: 2000 }).to('channel');
+toggle('#s', 'loop', { glide: 0.2 });
+slider('#s', 'start', { glide: 0.2 });
+slider('#s', 'speed', { glide: 0.2 });
+slider('#f', 'q', { mode: 'stepped', step: 1, glide: 0.2 });
+slider('own', { glide: 0.2 });
+slider('#f', 'frequency', { glide: 'slow' });`),
+        );
+        const warnings = h.runner.warnings(ONE);
+        assert.deepEqual(
+          warnings.map((warning) => warning.line),
+          [2, 3, 4, 5, 6, 7],
+        );
+        assert.true(
+          warnings
+            .slice(0, 5)
+            .every((warning) =>
+              /glide does nothing here/.test(warning.message),
+            ),
+          warnings.map((w) => w.message).join(' | '),
+        );
+        assert.true(
+          /glide needs a number of seconds/.test(warnings[5]!.message),
+        );
+        for (const key of [
+          '#s › loop',
+          '#s › start',
+          '#s › speed',
+          '#f › q',
+          'own',
+        ]) {
+          assert.strictEqual(
+            control(h, ONE, key).glide,
+            undefined,
+            `${key}: none`,
+          );
+        }
+        assert.deepEqual(control(h, ONE, '#f › frequency').glide, {
+          seconds: 0,
+          stored: false,
+        });
+        // in a stepped unit by the person's choice, a parameter that could glide has none either
+        h.apply({
+          type: 'setControlOptions',
+          scope: ONE,
+          key: '#f › frequency',
+          options: { mode: 'note' },
+        });
+        assert.strictEqual(control(h, ONE, '#f › frequency').glide, undefined);
+      });
+
+      test('controls() gives its controls a glide to set too', async function (assert) {
+        const h = await startProject(oneTrack(TONE('controls();')));
+        assert.deepEqual(control(h, ONE, FREQ).glide, {
+          seconds: 0,
+          stored: false,
+        });
+      });
+    });
+
+    for (const rate of [60, 125]) {
+      test(`a level, a pan and a filter swept at ${rate} moves a second leave no steps in the sound`, async function (assert) {
+        const TONE = `__().sine({ id: 'tone', frequency: 220 }).lowpass({ id: 'f', frequency: 8000, q: 1 }).to('channel');\nslider('#f', 'frequency');`;
+        /** The largest second difference of the left channel: a smooth 220 Hz sine is about 0.0007. */
+        const roughness = (buffer: AudioBuffer): number => {
+          const data = buffer.getChannelData(0);
+          let max = 0;
+          for (
+            let i = Math.round(0.2 * buffer.sampleRate) + 2;
+            i < Math.round(0.9 * buffer.sampleRate);
+            i++
+          ) {
+            max = Math.max(
+              max,
+              Math.abs(data[i]! - 2 * data[i - 1]! + data[i - 2]!),
+            );
+          }
+          return max;
+        };
+        const moves = Math.round(rate * 0.6);
+        /** Calls `step(k)` at k/rate seconds into the render, as pointer moves arrive. */
+        const sweep = async (
+          step: (h: Harness, k: number) => void,
+        ): Promise<number> => {
+          const h = await startProject(oneTrack(TONE), 1);
+          for (let k = 1; k <= moves; k++) {
+            void h.context.suspend(0.2 + k / rate).then(() => {
+              step(h, k);
+              void h.context.resume();
+            });
+          }
+          return roughness(await h.render());
+        };
+        const still = roughness(
+          await (await startProject(oneTrack(TONE), 1)).render(),
+        );
+        const level = await sweep((h, k) =>
+          h.apply({ type: 'setTrackLevel', id: ONE, level: 1 - k / moves }),
+        );
+        const pan = await sweep((h, k) =>
+          h.apply({ type: 'setTrackPan', id: ONE, pan: -1 + (2 * k) / moves }),
+        );
+        const filter = await sweep((h, k) =>
+          move(
+            h,
+            ONE,
+            '#f › frequency',
+            8000 * Math.pow(100 / 8000, k / moves),
+          ),
+        );
+        const said = `still ${still.toExponential(2)}, level ${level.toExponential(2)}, pan ${pan.toExponential(2)}, filter ${filter.toExponential(2)}`;
+        console.log(`ZIPPER ${rate}/s ${said}`);
+        assert.true(
+          level < still * 1.1,
+          `the level sweep is as smooth as the tone (${said})`,
+        );
+        assert.true(pan < still * 2, 'the pan sweep too');
+        assert.true(filter < still * 1.5, 'and the filter');
+      });
+    }
 
     test('the tempo is the document’s', async function (assert) {
       const h = await startProject();

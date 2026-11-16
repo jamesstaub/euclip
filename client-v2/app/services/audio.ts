@@ -337,6 +337,24 @@ export default class AudioService extends Service {
   }
   #unitChoices = 0;
 
+  /** Sets how long a control's parameter takes to get where the control is put; undefined forgets it (the script's applies). */
+  setControlGlide(
+    scopeId: string,
+    key: string,
+    seconds: number | undefined,
+    group?: string,
+  ): void {
+    this.project.apply(
+      {
+        type: 'setControlOptions',
+        scope: scopeId,
+        key,
+        options: { glide: seconds },
+      },
+      group === undefined ? {} : { group },
+    );
+  }
+
   setControlMode(
     scopeId: string,
     key: string,

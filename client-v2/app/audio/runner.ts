@@ -147,8 +147,22 @@ export interface ControlView {
    */
   choices: ModeChoice[];
   choice: string;
+  /**
+   * For a control whose parameter can glide (a continuous audio parameter, in a unit that is not
+   * stepped): how long the parameter takes to get to where the control is put. Absent for the rest.
+   */
+  glide?: GlideView;
   /** its range depends on something not there yet (a sample still loading): what, in words */
   waiting?: string;
+}
+
+export interface GlideView {
+  /** seconds, as things stand: what the project holds, else the script's, else 0 */
+  seconds: number;
+  /** the project holds a time of its own for it (so there is something to reset) */
+  stored: boolean;
+  /** it follows a control of the script's own (`{ glide: thatControl }`): that control's label */
+  follows?: string;
 }
 
 /** One item of a control's unit menu. */
@@ -157,6 +171,15 @@ export interface ModeChoice {
   id: string;
   label: string;
 }
+
+/**
+ * How a parameter follows a control being moved: glided to over this long from wherever it has got
+ * to (cracked-up's `set` with `glide`), in place of a step on every movement of the pointer, which is
+ * heard as a crackle. Short enough not to be heard as a lag, long enough to cover the time between
+ * two movements at 60 a second.
+ */
+export const FOLLOW_SECONDS = 0.02;
+const FOLLOW = { glide: FOLLOW_SECONDS };
 
 const SYNC = 'sequence-sync';
 const syncChoice = (sequence: string): string => `${SYNC}:${sequence}`;
@@ -463,6 +486,9 @@ export class ProjectRunner {
       },
       warn: (warning) => warnings.push(warning),
       moved: (key, value) => this.#movedByScript(runtime, key, value),
+      glide: (key) =>
+        this.#controlViews(runtime.id, true).find((view) => view.key === key)
+          ?.glide?.seconds ?? 0,
       sync: (key) => {
         const find = (): Declaration | undefined =>
           declared.get(key) ??
@@ -527,7 +553,8 @@ export class ProjectRunner {
     for (const id of [PROJECT_SCOPE, ...doc.tracks.map((track) => track.id)]) {
       await this.run(id, true);
     }
-    for (const track of doc.tracks) this.#applyStrip(track);
+    // (undo, redo, another project: a level that changes under a sound moves there, it does not jump)
+    for (const track of doc.tracks) this.#applyStrip(track, true);
     this.#host.changed();
   }
 
@@ -555,7 +582,7 @@ export class ProjectRunner {
       case 'setTrackLevel':
       case 'setTrackPan': {
         const track = doc.tracks.find((candidate) => candidate.id === op.id);
-        if (track) this.#applyStrip(track);
+        if (track) this.#applyStrip(track, true);
         break;
       }
       case 'addTrack':
@@ -657,11 +684,14 @@ export class ProjectRunner {
       let order = -1;
       let waiting: string | undefined;
       let shown = (value: StoredValue): StoredValue => value;
+      /** the library can sweep the parameter (an audio-rate number) */
+      let sweepable = false;
       if (binding.type === 'param') {
         const nodes = this.#select(runtime, binding.selector);
         const node = nodes[0];
         if (!node || !(binding.param in node.params)) continue;
         const param = node.param(binding.param);
+        sweepable = param.meta.kind === 'number' && param.meta.rate === 'audio';
         const range = liveRange({ engine: this.engine, node }, binding.param);
         meta = this.#metaOf(param, options);
         if (meta.kind === 'number') {
@@ -733,6 +763,7 @@ export class ProjectRunner {
         const bus = this.#busOf(runtime, binding.name);
         if (!bus) continue;
         meta = this.#metaOf(bus.gain, options);
+        sweepable = true;
         if (meta.kind === 'number') meta = { ...meta, name: 'gain' };
         live = runtime.heard.get(busHeardKey(binding.name)) ?? bus.gain.value;
         fallback = typeof options.default === 'number' ? options.default : 1;
@@ -871,6 +902,12 @@ export class ProjectRunner {
           modes,
           choices,
           choice,
+          ...(sweepable &&
+          meta.kind === 'number' &&
+          meta.duration === undefined &&
+          !mapping(mode, meta).discrete
+            ? { glide: this.#glideOf(runtime, values, declaration) }
+            : {}),
           ...(waiting === undefined ? {} : { waiting }),
         },
       });
@@ -1255,8 +1292,13 @@ export class ProjectRunner {
       // moved it", now or when the change is heard.
       this.#applying = true;
       try {
+        // A control on a continuous parameter is followed as a fader is (the library glides the
+        // parameters that can, and sets the others). One that moves in whole steps of its unit
+        // (stepped, notes, semitones, slices, a synced speed) jumps, as do a toggle's and a select's.
+        const how =
+          typeof value === 'number' ? this.#howFor(runtime, key) : undefined;
         for (const node of this.#reach(runtime, declaration)) {
-          node.param(binding.param).set(value);
+          node.param(binding.param).set(value, how);
           runtime.heard.set(heardKey(node, binding.param), value);
         }
       } finally {
@@ -1273,7 +1315,7 @@ export class ProjectRunner {
       if (!bus) return;
       this.#applying = true;
       try {
-        bus.gain.set(value);
+        bus.gain.set(value, this.#howFor(runtime, key) ?? FOLLOW);
         runtime.heard.set(busHeardKey(binding.name), value);
       } finally {
         this.#applying = false;
@@ -1282,6 +1324,60 @@ export class ProjectRunner {
       const sequence = runtime.scope.transport.get(binding.name);
       sequence?.update({ steps: fitSteps(value, sequence.steps) });
     }
+  }
+
+  /** How long a control's parameter takes to get where the control is put, as things stand. */
+  #glideOf(
+    runtime: ScopeRuntime,
+    values: ScopeValues | null | undefined,
+    declaration: Declaration,
+  ): GlideView {
+    const from = declaration.options.glideFrom;
+    if (from !== undefined) {
+      // a control of the script's own says, read at every move: what the project holds for it, else
+      // where it starts
+      const other = runtime.declarations.find((d) => d.key === from);
+      const held = values?.controls[from]?.value;
+      const value =
+        typeof held === 'number'
+          ? held
+          : typeof other?.options.default === 'number'
+            ? other.options.default
+            : (other?.options.min ?? 0);
+      return {
+        seconds: Math.max(0, Number.isFinite(value) ? value : 0),
+        stored: false,
+        follows: other?.options.label ?? from,
+      };
+    }
+    const stored = values?.controls[declaration.key]?.options?.glide;
+    const seconds =
+      typeof stored === 'number' ? stored : (declaration.options.glide ?? 0);
+    return {
+      seconds: Math.max(0, Number.isFinite(seconds) ? seconds : 0),
+      stored: typeof stored === 'number',
+    };
+  }
+
+  /**
+   * How a control's parameter is to follow the control: over the glide the control has, when it has
+   * one; else over the short time that only takes the steps out of a moving fader; and at once for a
+   * control that jumps (see `#inSteps`).
+   */
+  #howFor(runtime: ScopeRuntime, key: string): { glide: number } | undefined {
+    const view = this.#controlViews(runtime.id, true).find(
+      (candidate) => candidate.key === key,
+    );
+    if (!view || view.meta.kind !== 'number') return undefined;
+    if (view.glide === undefined) {
+      // (a sampler's places, a stepped unit: they jump. A control-rate number is the library's to set
+      // at once, whatever it is given)
+      return view.meta.duration !== undefined ||
+        mapping(view.mode, view.meta).discrete
+        ? undefined
+        : FOLLOW;
+    }
+    return view.glide.seconds > 0 ? { glide: view.glide.seconds } : FOLLOW;
   }
 
   // --- A speed synced to a sequence ----------------------------------------------------------------
@@ -1591,15 +1687,18 @@ export class ProjectRunner {
    * outward through parent scopes) but its selectors, which look inward, never find the pan; and its
    * rebuilds, which only reconcile their own scope, never touch either.
    */
-  #applyStrip(track: TrackDocument): void {
+  #applyStrip(track: TrackDocument, moved = false): void {
     const runtime = this.#scopes.get(track.id);
     if (!runtime) return;
+    // A fader being moved sends a value on every movement: each is glided to, from wherever the level
+    // has got to, so the sound has no steps in it. As a track is made there is nothing to glide from.
+    const how = moved ? FOLLOW : undefined;
     const out = runtime.host.bus(OUT_BUS);
-    out.gain.set(track.level);
+    out.gain.set(track.level, how);
     [...out.inserts]
       .find((node) => node.id === HOST_PAN_ID)
       ?.param('pan')
-      .set(track.pan);
+      .set(track.pan, how);
   }
 
   // --- Errors and playheads -------------------------------------------------------------------------

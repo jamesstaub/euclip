@@ -55,6 +55,8 @@ export interface ControlHost {
    * it is called. Null for every other control. Asked after `declare`.
    */
   sync(key: string): ((value: number) => number) | null;
+  /** seconds a control's parameter takes to get where the control is put, as things stand (0: at once) */
+  glide(key: string): number;
 }
 
 /** What a declaration returns to the script. */
@@ -228,6 +230,23 @@ export function createControlApi(
       return INERT;
     }
 
+    // Whether the parameter can glide is the library's to say (an audio-rate number); a control that
+    // moves in steps has nothing to sweep through.
+    const stepped =
+      options.mode === 'stepped' ||
+      options.step !== undefined ||
+      options.values !== undefined;
+    options = withGlide(
+      options,
+      call,
+      meta.kind === 'number' && meta.rate === 'audio' && !stepped,
+      meta.kind !== 'number'
+        ? `"${param}" is not a number`
+        : stepped
+          ? 'a stepped control jumps from value to value'
+          : `"${param}" is set at once and cannot be swept`,
+      line,
+    );
     const reached = nodes.filter((node) => param in node.params);
     const bindings: Binding[] =
       selector !== null
@@ -254,10 +273,11 @@ export function createControlApi(
     if (!used) return INERT;
 
     const sync = host.sync(key);
-    const set = (value: StoredValue): void => {
+    const set = (value: StoredValue, seconds = 0): void => {
       if (Array.isArray(value)) return;
       const applied = sync && typeof value === 'number' ? sync(value) : value;
-      for (const node of reach(bindings)) node.param(param).set(applied);
+      const how = seconds > 0 ? { glide: seconds } : undefined;
+      for (const node of reach(bindings)) node.param(param).set(applied, how);
     };
     // The stored value passes through the script here, as an ordinary set. (A synced speed has a
     // value to set with nothing stored too: once through at the sequence's own pace.)
@@ -273,7 +293,8 @@ export function createControlApi(
         );
       },
       set(value) {
-        set(value);
+        // (with a glide it starts where it is called, on the step in a callback, and sweeps from there)
+        set(value, host.glide(key));
         host.moved(key, value);
       },
     };
@@ -319,6 +340,7 @@ export function createControlApi(
       });
       return INERT;
     }
+    options = withGlide(options, call, true, '', line);
     const key = busKey(bus.name);
     const used = host.declare({
       key,
@@ -341,7 +363,8 @@ export function createControlApi(
       },
       set(value) {
         if (typeof value !== 'number') return;
-        bus.gain.set(value);
+        const seconds = host.glide(key);
+        bus.gain.set(value, seconds > 0 ? { glide: seconds } : undefined);
         host.moved(key, value);
       },
     };
@@ -354,6 +377,13 @@ export function createControlApi(
     options: ControlOptions,
     line: number | undefined,
   ): ControlHandle {
+    options = withGlide(
+      options,
+      `${kind}('${name}')`,
+      false,
+      'a control of its own has no parameter to sweep',
+      line,
+    );
     host.declare({
       key: name,
       kind,
@@ -365,7 +395,7 @@ export function createControlApi(
     });
     const fallback =
       options.default ?? (kind === 'toggle' ? false : (options.min ?? 0));
-    return {
+    const handle: ControlHandle = {
       get value() {
         return host.stored(name) ?? fallback;
       },
@@ -373,6 +403,8 @@ export function createControlApi(
         host.moved(name, value);
       },
     };
+    own.set(handle, name);
+    return handle;
   }
 
   const functions: ControlApi = {};
@@ -482,6 +514,49 @@ export function createControlApi(
   };
 
   /** The sequences that have a grid declared, so that `controls()` adds one only where there is none. */
+  /** The controls of its own this run has made, by the handle the script holds: `{ glide: thatControl }`. */
+  const own = new WeakMap<object, string>();
+
+  /**
+   * The options as they are kept, with `glide` checked: a number of seconds, or a control of the
+   * script's own (kept as its key). On a parameter that cannot glide it is said, and dropped.
+   */
+  function withGlide(
+    options: ControlOptions,
+    call: string,
+    can: boolean,
+    why: string,
+    line: number | undefined,
+  ): ControlOptions {
+    const {
+      glide,
+      glideFrom: _never,
+      ...rest
+    } = options as ControlOptions & {
+      glide?: unknown;
+    };
+    void _never;
+    if (glide === undefined) return rest;
+    if (!can) {
+      host.warn({
+        message: `${call}: glide does nothing here: ${why}. Remove it, or use it on a continuous audio parameter (a gain, a frequency, a pan).`,
+        line,
+      });
+      return rest;
+    }
+    if (typeof glide === 'number' && Number.isFinite(glide) && glide >= 0) {
+      return { ...rest, glide };
+    }
+    const from =
+      typeof glide === 'object' && glide !== null ? own.get(glide) : undefined;
+    if (from !== undefined) return { ...rest, glideFrom: from };
+    host.warn({
+      message: `${call}: glide needs a number of seconds (0 or more), or a control of this script's own: const glide = slider('glide', { min: 0, max: 2 }).`,
+      line,
+    });
+    return rest;
+  }
+
   const gridded = new Set<string>();
   /**
    * The sequences the script made with a count (`steps: 16`) and no pattern, as found the first time

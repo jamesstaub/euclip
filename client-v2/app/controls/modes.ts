@@ -698,6 +698,42 @@ const MODES: Readonly<Record<ModeName, (range: Range) => Mapping>> = {
   'sequence-sync': sequenceSync,
 };
 
+/** The longest glide a control's menu offers, in seconds. */
+export const GLIDE_MAX = 5;
+
+/**
+ * A control's glide time as its box shows and moves it: 0 to 5 s on a cubic travel, so the short end
+ * (where 10 ms matters) has the room. Shown in milliseconds below a second, in seconds from there.
+ * Typed, a bare number is milliseconds; `1.5s` is seconds.
+ */
+export const GLIDE_MAPPING: Mapping = {
+  mode: 'ms',
+  toPosition: (value) => Math.cbrt(clamp(value, 0, GLIDE_MAX) / GLIDE_MAX),
+  toValue: (position) => {
+    const seconds = GLIDE_MAX * Math.pow(clamp01(position), 3);
+    // (whole milliseconds below a second, hundredths of a second above)
+    return seconds < 1
+      ? Math.round(seconds * 1000) / 1000
+      : Math.round(seconds * 100) / 100;
+  },
+  format: (value) =>
+    value <= 0
+      ? 'off'
+      : value < 1
+        ? `${Math.round(value * 1000)} ms`
+        : `${trim(value)} s`,
+  parse: (text) => {
+    if (/^\s*off\s*$/i.test(text)) return 0;
+    const typed = parseWithSuffix(text);
+    if (!typed || typed.value < 0) return null;
+    const seconds = typed.suffix === 's' ? typed.value : typed.value / 1000;
+    return clamp(seconds, 0, GLIDE_MAX);
+  },
+  keyStep: 0.02,
+  discrete: false,
+  bipolar: false,
+};
+
 /** The mapping for a mode over a range. */
 export function mapping(mode: ModeName, range: Range): Mapping {
   const made = MODES[mode](range);
