@@ -34,7 +34,7 @@ export interface ControlOptions {
   step?: number;
   /** stepped mode: the only values allowed */
   values?: number[];
-  /** a sequencer: how its steps are drawn. Only 'toggles' (the default) exists so far. */
+  /** a step grid: how its steps are drawn. Only 'toggles' (the default) exists so far. */
   view?: string;
   /** a control with no parameter: its unit, and the value it starts at */
   unit?: string;
@@ -70,7 +70,7 @@ export interface Declaration {
 export interface DeclarationWarning {
   message: string;
   line?: number;
-  /** a sequencer was declared for a sequence that did not exist at that point: its name */
+  /** a step grid was declared for a sequence that did not exist at that point: its name */
   missingSequence?: string;
 }
 
@@ -351,14 +351,14 @@ export const CONTROL_FUNCTIONS: readonly ControlFunction[] = [
     ],
   },
   {
-    name: 'sequencer',
-    kind: 'sequencer',
+    name: 'stepGrid',
+    kind: 'stepGrid',
     accepts: [],
-    signature: 'sequencer(name, options?)',
+    signature: 'stepGrid(name, options?)',
     description:
-      "Declares a step grid for a named sequence of this script: sequencer('steps'). Put it after the " +
+      "Declares a step grid for a named sequence of this script: stepGrid('steps'). Put it after the " +
       "__.transport.sequence('steps', …) call. The steps written in that call are the default; a pattern edited " +
-      'in the grid is stored in the project and applied here when the script runs. A sequence with no sequencer() has no grid. ' +
+      'in the grid is stored in the project and applied here when the script runs. A sequence with no stepGrid() has no grid. ' +
       'Returns the control: .value is the steps, .set(steps) changes grid and sequence together. Options: label, view.',
     signatures: [
       {

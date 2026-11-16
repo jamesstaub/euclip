@@ -51,7 +51,7 @@ __.transport.sequence(
 );
 
 // Controls
-sequencer('steps');
+stepGrid('steps');
 ${controls}
 `;
 }
@@ -118,7 +118,7 @@ __.transport.sequence(
 );
 
 // Controls
-sequencer('slices');
+stepGrid('slices');
 knob('#level', 'gain', { label: 'level' });
 slider('#sampler', 'speed');
 waveform('#sampler');

@@ -145,7 +145,7 @@
   outline: var(--border-width-2) solid var(--near-black);
 }
 
-/* a track whose script declares no sequencer */
+/* a track whose script declares no step grid */
 .track__no-grid {
   padding: var(--space-2);
   color: var(--text-muted);

@@ -2,7 +2,7 @@ import Component from '@glimmer/component';
 import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
-import type { SequencerView } from 'client-v2/audio/runner';
+import type { StepGridView } from 'client-v2/audio/runner';
 import type AudioService from 'client-v2/services/audio';
 
 function pressed(value: number): 'true' | 'false' {
@@ -25,21 +25,21 @@ function stepLabel(index: number, value: number): string {
   return `Step ${index + 1}, ${state}`;
 }
 
-export interface SequencerWidgetSignature {
+export interface StepGridWidgetSignature {
   Element: HTMLDivElement;
   Args: {
     /** the scope whose script declared it */
     scopeId: string;
-    control: SequencerView;
+    control: StepGridView;
   };
 }
 
 /**
- * The `sequencer` widget: a declared sequencer as a grid of step buttons, as many as the sequence has.
+ * The `step grid` widget: a declared step grid as a grid of step buttons, as many as the sequence has.
  * Pressing a step switches it off, or back on to what it held. How the grid wraps is in
  * styles/step-grid.css.
  */
-export default class SequencerWidget extends Component<SequencerWidgetSignature> {
+export default class StepGridWidget extends Component<StepGridWidgetSignature> {
   @service declare audio: AudioService;
 
   toggle = (index: number): void =>

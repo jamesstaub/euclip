@@ -84,8 +84,18 @@ const SNAPS: readonly { value: Snap; label: string }[] = [
 
 const TEMPO_STEPS = ['1/4', '1/8', '1/16', '1/32'] as const;
 
+type SliceMethod = 'equal' | 'tempo' | 'onsets';
+
+const SLICE_METHODS: readonly { id: SliceMethod; label: string }[] = [
+  { id: 'equal', label: 'Equal parts' },
+  { id: 'tempo', label: 'Tempo' },
+  { id: 'onsets', label: 'Onsets' },
+];
+
 /** Sensitivity of the onset detector: a slider from 0 to 1. */
 const SENSITIVITY = mapping('linear', { min: 0, max: 1 });
+
+let panels = 0;
 
 const DOUBLE_TAP_MS = 350;
 const SLOP_PX = 8;
@@ -148,6 +158,9 @@ export interface WaveformEditorSignature {
     /** the scope (a track's id) whose script declared it */
     scopeId: string;
     waveform: WaveformView;
+    /** every waveform the script declares, this one among them, when there are several to choose from */
+    others?: readonly { key: string; label: string }[];
+    onChoose?: (key: string) => void;
   };
 }
 
@@ -183,6 +196,7 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
   @tracked snap: Snap = 'off';
   @tracked selected = -1;
   @tracked panel = false;
+  @tracked method: SliceMethod = 'equal';
   @tracked gridCount = 16;
   @tracked tempoStep: (typeof TEMPO_STEPS)[number] = '1/16';
   @tracked sensitivity = 0.5;
@@ -377,12 +391,14 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
       const control = this.control(id);
       const map = control ? mappingOf(control) : null;
       if (!control || !map) return [];
+      // (the loop's points are shown, like their handles, while the loop is on)
+      if ((id === 'loopStart' || id === 'loopEnd') && !this.looping) return [];
       return [
         {
           id,
           name: HANDLE_NAMES[id],
           text: map.format(numberOf(control.value)),
-          faint: (id === 'loopStart' || id === 'loopEnd') && !this.looping,
+          faint: false,
         },
       ];
     });
@@ -405,6 +421,22 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
       if (markers.length >= MARKER_ELEMENTS) break;
     }
     return markers;
+  }
+
+  /** (one panel per editor: ids must not collide when a page has several) */
+  panelId = `slices-${++panels}`;
+
+  get methodLabel(): string {
+    return SLICE_METHODS.find((entry) => entry.id === this.method)?.label ?? '';
+  }
+
+  /** The one line on regions and slices: for a sound that has slices, while the slice panel is not in its place. */
+  get showHint(): boolean {
+    return this.hasSlices && !this.panel;
+  }
+
+  get hasSlices(): boolean {
+    return this.ready && this.slices.length > 2;
   }
 
   get sliceCount(): number {
@@ -1131,7 +1163,8 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
 
   togglePanel = (): void => {
     this.panel = !this.panel;
-    if (!this.panel) this.preview = null;
+    if (this.panel) this.#refreshPreview();
+    else this.preview = null;
   };
 
   setSnap = (event: Event): void => {
@@ -1194,60 +1227,107 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
 
   // --- slices, made all at once ----------------------------------------------------------------------
 
+  /** The three ways of cutting the sound all at once: one is shown at a time. */
+  setMethod = (method: SliceMethod): void => {
+    this.method = method;
+    this.#refreshPreview();
+  };
+
+  isMethod = (method: SliceMethod): boolean => this.method === method;
+
+  /** Arrow keys move along the tabs, as in any tab list. */
+  onMethodKey = (event: KeyboardEvent): void => {
+    const at = SLICE_METHODS.findIndex((entry) => entry.id === this.method);
+    const step =
+      event.key === 'ArrowRight' || event.key === 'ArrowDown'
+        ? 1
+        : event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+          ? -1
+          : 0;
+    if (step === 0) return;
+    event.preventDefault();
+    const next =
+      SLICE_METHODS[(at + step + SLICE_METHODS.length) % SLICE_METHODS.length]!;
+    this.setMethod(next.id);
+    (event.currentTarget as HTMLElement)
+      .querySelector<HTMLElement>(`[data-test-slice-tab="${next.id}"]`)
+      ?.focus();
+  };
+
   setGridCount = (event: Event): void => {
     const count = Number((event.target as HTMLInputElement).value);
     if (Number.isFinite(count)) {
       this.gridCount = Math.min(256, Math.max(1, Math.round(count)));
+      this.#refreshPreview();
     }
   };
 
   setTempoStep = (event: Event): void => {
     this.tempoStep = (event.target as HTMLSelectElement)
       .value as (typeof TEMPO_STEPS)[number];
+    this.#refreshPreview();
   };
-
-  #apply(slices: readonly number[]): void {
-    const sound = this.sound;
-    if (!sound) return;
-    this.audio.setSlices(sound.key, slices);
-    this.selected = -1;
-    this.preview = null;
-  }
-
-  sliceEvenly = (): void =>
-    this.#apply(sliceGrid(this.duration, this.gridCount));
-
-  sliceByTempo = (): void =>
-    this.#apply(
-      sliceByTempo(this.duration, this.project.doc.bpm, this.tempoStep),
-    );
 
   /** Moving the sensitivity shows where the boundaries would be; nothing changes until Apply. */
   setSensitivity = (value: number): void => {
     this.sensitivity = value;
-    this.previewOnsets();
+    this.#refreshPreview();
   };
 
-  previewOnsets = (): void => {
-    const buffer = this.node?.buffer?.buffer;
-    this.preview = buffer
-      ? sliceByOnsets(buffer, { sensitivity: this.sensitivity })
-      : null;
-  };
+  /**
+   * Where the boundaries would be with the settings of the tab that is showing: drawn over the sound in
+   * place of the real ones while the panel is open. Nothing is changed until Apply.
+   */
+  #refreshPreview(): void {
+    if (!this.ready) {
+      this.preview = null;
+      return;
+    }
+    if (this.method === 'equal') {
+      this.preview = sliceGrid(this.duration, this.gridCount);
+    } else if (this.method === 'tempo') {
+      this.preview = sliceByTempo(
+        this.duration,
+        this.project.doc.bpm,
+        this.tempoStep,
+      );
+    } else {
+      const buffer = this.node?.buffer?.buffer;
+      this.preview = buffer
+        ? sliceByOnsets(buffer, { sensitivity: this.sensitivity })
+        : null;
+    }
+  }
 
   get previewCount(): number {
     return this.preview ? Math.max(1, this.preview.length - 1) : 0;
   }
 
-  applyOnsets = (): void => {
-    if (this.preview) this.#apply(this.preview);
-  };
-
-  cancelPreview = (): void => {
+  /** Makes the boundaries shown the sound's slices, and closes the panel. */
+  applySlices = (): void => {
+    const sound = this.sound;
+    if (!sound || !this.preview) return;
+    this.audio.setSlices(sound.key, this.preview);
+    this.selected = -1;
+    this.panel = false;
     this.preview = null;
   };
 
-  clearSlices = (): void => this.#apply([]);
+  clearSlices = (): void => {
+    const sound = this.sound;
+    if (!sound) return;
+    this.audio.setSlices(sound.key, []);
+    this.selected = -1;
+    this.panel = false;
+    this.preview = null;
+  };
+
+  get several(): boolean {
+    return (this.args.others?.length ?? 0) > 1;
+  }
+
+  chooseOther = (event: Event): void =>
+    this.args.onChoose?.((event.target as HTMLSelectElement).value);
 
   // --- which sound -----------------------------------------------------------------------------------
 
@@ -1330,6 +1410,7 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
       aria-label="{{@waveform.label}} waveform"
       data-linked={{if this.linked "true"}}
       data-snap={{this.snap}}
+      data-panel={{if this.panel "open"}}
       data-zoomed={{if this.zoomed "true"}}
       data-test-waveform={{@waveform.nodeId}}
       ...attributes
@@ -1341,7 +1422,9 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
       {{this.followPlaying this.audio.playing}}
     >
       <header class="waveform__head">
-        <h4 class="waveform__title">
+        <h4
+          class="waveform__title {{if this.several 'waveform__title--several'}}"
+        >
           <b>{{@waveform.label}}</b>
           {{#if @waveform.byPosition}}
             <span
@@ -1350,6 +1433,24 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
             >no id</span>
           {{/if}}
         </h4>
+        {{#if this.several}}
+          {{! where a list of the script's waveforms beside the editor would cost too much width }}
+          <label class="waveform__field waveform__switch">
+            <span class="sr-only">Waveform</span>
+            <select
+              class="select waveform__select"
+              data-test-waveform-picker
+              {{on "change" this.chooseOther}}
+            >
+              {{#each @others key="key" as |other|}}
+                <option
+                  value={{other.key}}
+                  selected={{eq other.key @waveform.key}}
+                >{{other.label}}</option>
+              {{/each}}
+            </select>
+          </label>
+        {{/if}}
 
         <div class="waveform__sound">
           {{#if @waveform.choosable}}
@@ -1404,6 +1505,35 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
           </label>
         </div>
 
+        <div class="waveform__head-actions">
+          {{#if @waveform.line}}
+            <button
+              type="button"
+              class="btn btn--s btn--ghost btn--on-yellow waveform__tool-group--more"
+              aria-label="Show this waveform in the script"
+              title="Show in script"
+              data-test-show-in-script
+              {{on "click" this.showInScript}}
+            ><Icon @name="code" /></button>
+          {{/if}}
+          {{#if this.expanded}}
+            {{! the expanded editor covers the transport, so it has the one control of it that matters here }}
+            <button
+              type="button"
+              class="btn btn--s btn--on-yellow"
+              aria-pressed={{if this.audio.playing "true" "false"}}
+              data-test-waveform-play
+              {{on "click" this.togglePlay}}
+            >{{if this.audio.playing "Stop" "Play"}}</button>
+          {{/if}}
+          <button
+            type="button"
+            class="btn btn--s btn--on-yellow"
+            aria-pressed={{if this.expanded "true" "false"}}
+            data-test-waveform-expand
+            {{on "click" this.toggleExpanded}}
+          >{{if this.expanded "Done" "Expand"}}</button>
+        </div>
       </header>
 
       <div class="waveform__tools" role="toolbar" aria-label="Waveform tools">
@@ -1457,11 +1587,20 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
         <div class="waveform__tool-group waveform__tool-group--more">
           <button
             type="button"
-            class="btn btn--s btn--on-yellow"
+            class="btn btn--s btn--on-yellow waveform__disclosure
+              {{if this.panel 'is-open'}}"
             aria-expanded={{if this.panel "true" "false"}}
+            aria-controls={{this.panelId}}
+            title="Cut the sound into slices: in equal parts, by the tempo, or where its hits are"
             data-test-slices-toggle
             {{on "click" this.togglePanel}}
-          >Slices ({{this.sliceCount}})</button>
+          >
+            <span>Slices ({{this.sliceCount}})</span>
+            <Icon
+              @name="play"
+              class="icon--s {{if this.panel 'icon--up' 'icon--down'}}"
+            />
+          </button>
           <button
             type="button"
             class="btn btn--s btn--on-yellow"
@@ -1478,132 +1617,100 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
             {{on "click" this.removeSelected}}
           >Remove</button>
         </div>
-        <div class="waveform__tool-group waveform__head-actions">
-          {{#if @waveform.line}}
-            <button
-              type="button"
-              class="btn btn--s btn--ghost btn--on-yellow"
-              aria-label="Show this waveform in the script"
-              title="Show in script"
-              data-test-show-in-script
-              {{on "click" this.showInScript}}
-            ><Icon @name="code" /></button>
-          {{/if}}
-          {{#if this.expanded}}
-            {{! the expanded editor covers the transport, so it has the one control of it that matters here }}
-            <button
-              type="button"
-              class="btn btn--s btn--on-yellow"
-              aria-pressed={{if this.audio.playing "true" "false"}}
-              data-test-waveform-play
-              {{on "click" this.togglePlay}}
-            >{{if this.audio.playing "Stop" "Play"}}</button>
-          {{/if}}
-          <button
-            type="button"
-            class="btn btn--s btn--on-yellow"
-            aria-pressed={{if this.expanded "true" "false"}}
-            data-test-waveform-expand
-            {{on "click" this.toggleExpanded}}
-          >{{if this.expanded "Done" "Expand"}}</button>
-        </div>
       </div>
 
       {{#if this.panel}}
-        <div
-          class="waveform__panel"
-          role="group"
-          aria-label="Make slices"
-          data-test-slices-panel
-        >
-          <p class="waveform__panel-note">Slices belong to the sound
-            {{#if this.sound}}“{{this.sound.key}}”{{/if}}: every track that
-            plays it has the same ones.</p>
-          <div class="waveform__panel-row">
-            <label class="waveform__field">
-              <span>Equal parts</span>
-              <input
-                type="number"
-                class="waveform__number"
-                min="1"
-                max="256"
-                inputmode="numeric"
-                value={{this.gridCount}}
-                data-test-grid-count
-                {{on "change" this.setGridCount}}
-              />
-            </label>
-            <button
-              type="button"
-              class="btn btn--s btn--on-yellow"
-              data-test-slice-even
-              {{on "click" this.sliceEvenly}}
-            >Slice</button>
-          </div>
-          <div class="waveform__panel-row">
-            <label class="waveform__field">
-              <span>By tempo ({{this.project.doc.bpm}} bpm), every</span>
-              <select
-                class="select waveform__select"
-                data-test-tempo-step
-                {{on "change" this.setTempoStep}}
-              >
-                {{#each TEMPO_STEPS as |step|}}
-                  <option
-                    value={{step}}
-                    selected={{eq step this.tempoStep}}
-                  >{{step}}</option>
-                {{/each}}
-              </select>
-            </label>
-            <button
-              type="button"
-              class="btn btn--s btn--on-yellow"
-              data-test-slice-tempo
-              {{on "click" this.sliceByTempo}}
-            >Slice</button>
-          </div>
-          <div class="waveform__panel-row">
-            <span class="waveform__field waveform__field--grow">
-              <span>By onsets, sensitivity</span>
-              <Slider
-                @value={{this.sensitivity}}
-                @mapping={{SENSITIVITY}}
-                @label="Onset sensitivity"
-                @onChange={{this.setSensitivity}}
-                data-test-onset-sensitivity
-              />
-            </span>
-            {{#if this.preview}}
-              <span data-test-onset-count>{{this.previewCount}} slices</span>
+        <div class="waveform__panel" id={{this.panelId}} data-test-slices-panel>
+          {{! template-lint-disable no-invalid-interactive }}
+          <div
+            class="waveform__tabs"
+            role="tablist"
+            aria-label="How to cut the sound into slices"
+            {{on "keydown" this.onMethodKey}}
+          >
+            {{#each SLICE_METHODS as |entry|}}
               <button
                 type="button"
-                class="btn btn--s btn--solid"
-                data-test-onsets-apply
-                {{on "click" this.applyOnsets}}
-              >Apply</button>
-              <button
-                type="button"
-                class="btn btn--s btn--on-yellow"
-                data-test-onsets-cancel
-                {{on "click" this.cancelPreview}}
-              >Cancel</button>
+                class="waveform__tab"
+                role="tab"
+                aria-selected={{if (this.isMethod entry.id) "true" "false"}}
+                tabindex={{if (this.isMethod entry.id) "0" "-1"}}
+                data-test-slice-tab={{entry.id}}
+                {{on "click" (fn this.setMethod entry.id)}}
+              >{{entry.label}}</button>
+            {{/each}}
+          </div>
+          <div
+            class="waveform__tabpanel"
+            role="tabpanel"
+            aria-label={{this.methodLabel}}
+          >
+            {{#if (this.isMethod "equal")}}
+              <label class="waveform__field">
+                <span>Parts</span>
+                <input
+                  type="number"
+                  class="waveform__number"
+                  min="1"
+                  max="256"
+                  inputmode="numeric"
+                  value={{this.gridCount}}
+                  data-test-grid-count
+                  {{on "input" this.setGridCount}}
+                  {{on "change" this.setGridCount}}
+                />
+              </label>
+            {{else if (this.isMethod "tempo")}}
+              <label class="waveform__field">
+                <span>One slice every</span>
+                <select
+                  class="select waveform__select"
+                  data-test-tempo-step
+                  {{on "change" this.setTempoStep}}
+                >
+                  {{#each TEMPO_STEPS as |step|}}
+                    <option
+                      value={{step}}
+                      selected={{eq step this.tempoStep}}
+                    >{{step}}</option>
+                  {{/each}}
+                </select>
+                <span>at {{this.project.doc.bpm}} bpm</span>
+              </label>
             {{else}}
-              <button
-                type="button"
-                class="btn btn--s btn--on-yellow"
-                data-test-onsets-preview
-                {{on "click" this.previewOnsets}}
-              >Find</button>
+              <span class="waveform__field waveform__field--grow">
+                <span>Sensitivity</span>
+                <Slider
+                  @value={{this.sensitivity}}
+                  @mapping={{SENSITIVITY}}
+                  @label="Onset sensitivity"
+                  @onChange={{this.setSensitivity}}
+                  data-test-onset-sensitivity
+                />
+              </span>
             {{/if}}
-          </div>
-          <div class="waveform__panel-row">
+            <span
+              class="waveform__count"
+              title="Shown dashed in red over the sound until you apply"
+            >
+              <b data-test-slices-count>{{this.previewCount}}
+                {{if (eq this.previewCount 1) "slice" "slices"}}</b>
+              <span data-test-slices-note>of the sound{{#if this.sound}}
+                  “{{this.sound.key}}”{{/if}}, for every track that plays it</span>
+            </span>
+            <button
+              type="button"
+              class="btn btn--s waveform__apply"
+              data-test-slices-apply
+              {{on "click" this.applySlices}}
+            >Apply</button>
             <button
               type="button"
               class="btn btn--s btn--on-yellow"
+              title="Remove every slice boundary: the sound is one slice again"
               data-test-slice-clear
               {{on "click" this.clearSlices}}
-            >Clear all slices</button>
+            >Clear</button>
           </div>
         </div>
       {{/if}}
@@ -1708,8 +1815,21 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
         </div>
       {{/if}}
 
+      {{#if this.showHint}}
+        <p class="waveform__hint" data-test-waveform-hint>
+          <span class="waveform__key waveform__key--region">S</span>
+          <span>to</span>
+          <span class="waveform__key waveform__key--region">E</span>
+          <span>is what <code>trigger()</code> plays;</span>
+          <span class="waveform__key waveform__key--slice"></span>
+          <span>a slice is what
+            <code>trigger(&#123; slice })</code>
+            plays.</span>
+        </p>
+      {{/if}}
+
       <div class="waveform__values">
-        <label class="waveform__field">
+        <label class="waveform__field waveform__unit">
           <span class="sr-only">Unit for start, end and loop points</span>
           <select
             class="select waveform__select"
@@ -1726,7 +1846,7 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
         </label>
         {{#each this.readouts key="id" as |readout|}}
           <span
-            class="waveform__value
+            class="waveform__value waveform__value--number
               {{if readout.faint 'waveform__value--faint'}}"
             data-test-waveform-value={{readout.id}}
           >
@@ -1739,7 +1859,7 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
           </span>
         {{/each}}
         {{#if (this.control "loop")}}
-          <span class="waveform__value">
+          <span class="waveform__value waveform__value--switch">
             <span>Loop</span>
             <Toggle
               @checked={{this.isOn "loop"}}
@@ -1750,7 +1870,7 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
           </span>
         {{/if}}
         {{#if (this.control "reverse")}}
-          <span class="waveform__value">
+          <span class="waveform__value waveform__value--switch">
             <span>Reverse</span>
             <Toggle
               @checked={{this.isOn "reverse"}}
@@ -1761,7 +1881,7 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
           </span>
         {{/if}}
         {{#if (this.control "speed")}}
-          <span class="waveform__value">
+          <span class="waveform__value waveform__value--switch">
             <span>Speed</span>
             <NumberEntry
               @text={{this.speedText}}

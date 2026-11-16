@@ -59,7 +59,7 @@ module('Unit | Editor | catalog', function (hooks) {
         'knob',
         'toggle',
         'select',
-        'sequencer',
+        'stepGrid',
         'controls',
         'waveform',
       ],
@@ -100,7 +100,7 @@ module('Unit | Editor | catalog', function (hooks) {
     );
     assert.deepEqual(
       functions
-        .find((fn) => fn.name === 'sequencer')!
+        .find((fn) => fn.name === 'stepGrid')!
         .signatures[0]!.args.map((arg) => arg.kind),
       ['sequence', 'options'],
     );

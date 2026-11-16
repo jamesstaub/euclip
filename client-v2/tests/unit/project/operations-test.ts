@@ -7,7 +7,7 @@ import {
   migrateProject,
   PROJECT_SCOPE,
   SCHEMA_VERSION,
-  sequencerKey,
+  stepGridKey,
   LOOP_SLICES,
 } from 'client-v2/project/schema';
 
@@ -36,7 +36,7 @@ module('Unit | Project | operations', function () {
     assert.false(isProjectDocument(null));
     for (const track of doc.tracks) {
       assert.true(
-        track.script.includes("sequencer('steps')"),
+        track.script.includes("stepGrid('steps')"),
         `${track.name} declares its grid`,
       );
       assert.true(
@@ -106,7 +106,7 @@ module('Unit | Project | operations', function () {
     const track = newTrack('bass');
     assert.true(/^t-\w{8}$/.test(track.id), 'a generated id');
     assert.true(
-      track.script.includes("sequencer('steps')"),
+      track.script.includes("stepGrid('steps')"),
       'the template declares its grid',
     );
     assert.true(
@@ -230,9 +230,9 @@ module('Unit | Project | operations', function () {
     });
   });
 
-  test('a sequencer’s pattern is a control value too, and a copy is kept', function (assert) {
+  test('a step grid’s pattern is a control value too, and a copy is kept', function (assert) {
     const doc = defaultProject();
-    const key = sequencerKey('steps');
+    const key = stepGridKey('steps');
     const steps = [1, 1, 0, 0];
     let next = applyOperation(doc, {
       type: 'setControlValue',
@@ -241,7 +241,7 @@ module('Unit | Project | operations', function () {
       value: steps,
     });
     assert.deepEqual(next.tracks[2]?.values.controls, {
-      'sequencer › steps': { value: [1, 1, 0, 0] },
+      'stepGrid › steps': { value: [1, 1, 0, 0] },
     });
     steps[0] = 9;
     assert.deepEqual(next.tracks[2]?.values.controls[key]?.value, [1, 1, 0, 0]);
@@ -365,7 +365,7 @@ module('Unit | Project | migration', function () {
 
     assert.ok(doc, 'it loads');
     assert.true(isProjectDocument(doc));
-    assert.strictEqual(doc?.schemaVersion, 4);
+    assert.strictEqual(doc?.schemaVersion, 5);
     assert.deepEqual(
       doc?.samples,
       {
@@ -382,11 +382,11 @@ module('Unit | Project | migration', function () {
       doc?.tracks[0]?.values,
       {
         controls: {
-          'sequencer › steps': { value: [1, 1, 0, 0] },
-          'sequencer › fill': { value: [0, 2] },
+          'stepGrid › steps': { value: [1, 1, 0, 0] },
+          'stepGrid › fill': { value: [0, 2] },
         },
       },
-      'step patterns become sequencer values, without the copy of the script’s pattern',
+      'step patterns become step grid values, without the copy of the script’s pattern',
     );
     assert.deepEqual(doc?.tracks[1]?.values, { controls: {} });
     assert.deepEqual(doc?.values, { controls: {} });
@@ -397,11 +397,66 @@ module('Unit | Project | migration', function () {
     );
   });
 
+  test('a version 4 document: sequencer( calls become stepGrid(, and stored patterns keep their place', function (assert) {
+    const current = defaultProject();
+    const old = {
+      ...current,
+      schemaVersion: 4,
+      script: "// the master\nsequencer ('fills');\n",
+      values: { controls: { 'sequencer › fills': { value: [1, 0] } } },
+      tracks: [
+        {
+          ...current.tracks[0]!,
+          script: [
+            "__.transport.sequence('steps', { steps: 4 }, () => {});",
+            "sequencer('steps');",
+            "const grid = sequencer('more', { label: 'More' }); // sequencer('in a comment') too: it is a call",
+            'my.sequencer(1); resequencer(2); const sequencer2 = 3; const text = "the sequencer is here";',
+            "slider('#filter', 'frequency');",
+          ].join('\n'),
+          values: {
+            controls: {
+              'sequencer › steps': { value: [1, 1, 0, 0] },
+              '#filter › frequency': { value: 900 },
+            },
+          },
+        },
+      ],
+    };
+    const doc = migrateProject(old);
+    assert.strictEqual(doc?.schemaVersion, 5);
+    assert.strictEqual(doc?.script, "// the master\nstepGrid ('fills');\n");
+    assert.deepEqual(doc?.values, {
+      controls: { 'stepGrid › fills': { value: [1, 0] } },
+    });
+    assert.strictEqual(
+      doc?.tracks[0]?.script,
+      [
+        "__.transport.sequence('steps', { steps: 4 }, () => {});",
+        "stepGrid('steps');",
+        "const grid = stepGrid('more', { label: 'More' }); // stepGrid('in a comment') too: it is a call",
+        'my.sequencer(1); resequencer(2); const sequencer2 = 3; const text = "the sequencer is here";',
+        "slider('#filter', 'frequency');",
+      ].join('\n'),
+      'only whole-word calls of sequencer( are renamed',
+    );
+    assert.deepEqual(doc?.tracks[0]?.values, {
+      controls: {
+        'stepGrid › steps': { value: [1, 1, 0, 0] },
+        '#filter › frequency': { value: 900 },
+      },
+    });
+    assert.false(
+      JSON.stringify(migrateProject(defaultProject())).includes('sequencer'),
+      'a new project has no trace of the old name',
+    );
+  });
+
   test('a current document passes through, and anything else is not opened', function (assert) {
     const current = defaultProject();
     assert.strictEqual(migrateProject(current), current);
     assert.strictEqual(
-      migrateProject({ ...current, schemaVersion: 5 }),
+      migrateProject({ ...current, schemaVersion: 6 }),
       null,
       'a newer version',
     );

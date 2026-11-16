@@ -107,7 +107,7 @@ module('Integration | Component | waveform', function (hooks) {
       .exists({ count: 1 });
     assert
       .dom('[data-test-waveform="sampler"]')
-      .hasAria('label', 'sampler waveform');
+      .hasAria('label', '#sampler waveform');
     assert.dom('[data-test-sound-select]').hasValue('kick');
     assert.dom(`${STAGE} canvas`).exists();
 
@@ -343,28 +343,73 @@ module('Integration | Component | waveform', function (hooks) {
       `added at 0.12 s (${ref.slices[1]})`,
     );
 
+    // the slice menu: a disclosure, with one way of cutting showing at a time
+    assert.dom('[data-test-slices-toggle]').hasAria('expanded', 'false');
+    assert.dom('[data-test-slices-panel]').doesNotExist();
     await click('[data-test-slices-toggle]');
-    await fillIn('[data-test-grid-count]', '8');
-    await triggerEvent('[data-test-grid-count]', 'change');
-    await click('[data-test-slice-even]');
-    assert.deepEqual([...ref.slices], [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4]);
-    await click('[data-test-slice-tempo]');
-    assert.strictEqual(
-      ref.slices.length,
-      33,
-      'sixteenths at 120: 32 of them in 4 s',
+    assert.dom('[data-test-slices-toggle]').hasAria('expanded', 'true');
+    assert
+      .dom('[data-test-slices-toggle]')
+      .hasClass('is-open', 'and looks open');
+    assert.deepEqual(
+      findAll('[data-test-slice-tab]').map(
+        (tab) =>
+          `${tab.textContent.trim()}${tab.getAttribute('aria-selected') === 'true' ? '*' : ''}`,
+      ),
+      ['Equal parts*', 'Tempo', 'Onsets'],
     );
+    assert
+      .dom('[data-test-grid-count]')
+      .exists('Equal parts shows its own setting');
+    assert.dom('[data-test-tempo-step]').doesNotExist('and not the others’');
+    assert.dom('[data-test-onset-sensitivity]').doesNotExist();
+    assert
+      .dom('[data-test-slices-apply]')
+      .exists({ count: 1 }, 'with one Apply');
 
-    await click('[data-test-onsets-preview]');
-    const found = Number(
-      find('[data-test-onset-count]')!.textContent.trim().split(' ')[0],
-    );
-    assert.true(found >= 12, `the detector finds the loop’s hits (${found})`);
-    assert.strictEqual(ref.slices.length, 33, 'a preview changes nothing');
+    await fillIn('[data-test-grid-count]', '8');
+    assert
+      .dom('[data-test-slices-count]')
+      .hasText('8 slices', 'what Apply would give, as it is set');
     assert
       .dom('[data-test-slice-marker]')
       .doesNotExist('the flags give way to the preview');
-    await click('[data-test-onsets-apply]');
+    const before = ref.slices.length;
+    assert.strictEqual(ref.slices.length, before, 'a preview changes nothing');
+    await click('[data-test-slices-apply]');
+    assert.deepEqual([...ref.slices], [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4]);
+    assert
+      .dom('[data-test-slices-panel]')
+      .doesNotExist('applying closes the panel');
+    assert.dom('[data-test-slices-toggle]').hasAria('expanded', 'false');
+
+    await click('[data-test-slices-toggle]');
+    await click('[data-test-slice-tab="tempo"]');
+    assert.dom('[data-test-slice-tab="tempo"]').hasAria('selected', 'true');
+    assert.dom('[data-test-tempo-step]').exists();
+    assert.dom('[data-test-grid-count]').doesNotExist();
+    assert
+      .dom('[data-test-slices-count]')
+      .hasText('32 slices', 'sixteenths at 120: 32 of them in 4 s');
+    await click('[data-test-slices-apply]');
+    assert.strictEqual(ref.slices.length, 33);
+
+    await click('[data-test-slices-toggle]');
+    await triggerKeyEvent(
+      '[data-test-slice-tab="tempo"]',
+      'keydown',
+      'ArrowRight',
+    );
+    assert
+      .dom('[data-test-slice-tab="onsets"]')
+      .hasAria('selected', 'true', 'arrow keys move along the tabs');
+    assert.dom('[data-test-onset-sensitivity]').exists();
+    const found = Number(
+      find('[data-test-slices-count]')!.textContent.trim().split(/\s+/)[0],
+    );
+    assert.true(found >= 12, `the detector finds the loop’s hits (${found})`);
+    assert.strictEqual(ref.slices.length, 33, 'a preview changes nothing');
+    await click('[data-test-slices-apply]');
     assert.strictEqual(ref.slices.length, found + 1);
     assert.true(
       [...ref.slices]
@@ -378,6 +423,7 @@ module('Integration | Component | waveform', function (hooks) {
     project.undo();
     await settled();
     assert.strictEqual(ref.slices.length, 33, 'undone as one step');
+    await click('[data-test-slices-toggle]');
     await click('[data-test-slice-clear]');
     assert.deepEqual([...ref.slices], [0, 4]);
     assert.strictEqual(project.doc.samples['loop']!.slices, undefined);
@@ -558,6 +604,177 @@ module('Integration | Component | waveform', function (hooks) {
     );
   });
 
+  test('region and slices are told apart, and one line says which trigger plays which', async function (assert) {
+    await open();
+    assert.dom('[data-test-waveform-hint]').includesText('trigger()');
+    assert.dom('[data-test-waveform-hint]').includesText('trigger({ slice })');
+    assert
+      .dom(handle('start'))
+      .exists('the region’s handles are there on a sliced sound too');
+    assert.dom(handle('end')).exists();
+    await select('[data-test-sound-select]', 'kick');
+    assert
+      .dom('[data-test-waveform-hint]')
+      .doesNotExist('a sound that is one slice needs no such line');
+  });
+
+  module('several samplers on one track', function () {
+    const THREE = `// three samplers, each with a sound of its own
+__().sampler({ id: 'kick', buffer: 'kick' }).to('channel');
+__().sampler({ id: 'snare', buffer: 'snare' }).to('channel');
+const hat = __().sampler({ buffer: 'hat' }).to('channel');
+waveform('#kick');
+waveform('#snare', { label: 'Backbeat' });
+waveform(hat);
+`;
+
+    async function three(): Promise<void> {
+      await render(<template><AppShell /></template>);
+      await click('[data-test-script-toggle]');
+      await waitFor('[data-test-footer-script] .cm-content');
+      await typeScript(() => THREE);
+      await click('[data-test-script-toggle]');
+      await waitFor(`${STAGE}[data-ready]`);
+      await settled();
+    }
+
+    const tabs = (): string[] =>
+      findAll('[data-test-waveform-tab]').map(
+        (tab) =>
+          `${tab.textContent.trim()}${tab.getAttribute('aria-selected') === 'true' ? '*' : ''}`,
+      );
+
+    test('one waveform: no list', async function (assert) {
+      await render(<template><AppShell /></template>);
+      await waitFor(`${STAGE}[data-ready]`);
+      assert.dom('[data-test-waveform-tabs]').doesNotExist();
+      assert.dom('[data-test-waveform-picker]').doesNotExist();
+      assert.dom('[data-test-waveform]').exists({ count: 1 });
+    });
+
+    test('a list down the left names each, and one editor shows at a time', async function (assert) {
+      await three();
+      assert.deepEqual(audio.warnings('t-kick'), []);
+      assert.dom('[data-test-waveform-tabs]').hasAttribute('role', 'tablist');
+      assert
+        .dom('[data-test-waveform-tabs]')
+        .hasAria('orientation', 'vertical');
+      assert.deepEqual(
+        tabs(),
+        ['#kick*', 'Backbeat', 'sampler 3'],
+        'its label if it has one, else the selector that names it; a sampler with no id by its type and which of them it is',
+      );
+      assert.dom('[data-test-waveform]').exists({ count: 1 }, 'one at a time');
+      assert.dom('[data-test-waveform="kick"]').exists();
+      assert.dom('[data-test-sound-select]').hasValue('kick');
+
+      await click('[data-test-waveform-tab="snare"]');
+      assert.deepEqual(tabs(), ['#kick', 'Backbeat*', 'sampler 3']);
+      assert.dom('[data-test-waveform="snare"]').exists();
+      assert.dom('[data-test-waveform="kick"]').doesNotExist();
+      assert
+        .dom('[data-test-sound-select]')
+        .hasValue('snare', 'each has its own sound');
+      const steps = project.doc;
+      await triggerKeyEvent(
+        '[data-test-waveform-tab="snare"]',
+        'keydown',
+        'ArrowDown',
+      );
+      assert.deepEqual(
+        tabs(),
+        ['#kick', 'Backbeat', 'sampler 3*'],
+        'the arrow keys move down the list',
+      );
+      assert.dom('[data-test-sound-select]').hasValue('hat');
+      assert.strictEqual(
+        project.doc,
+        steps,
+        'and nothing of the document changed',
+      );
+      assert.strictEqual(
+        view.chosenWaveform('t-kick'),
+        '#sampler-0 › waveform',
+      );
+
+      // the same choice as a picker in the editor's bar, for a narrow footer
+      assert.deepEqual(
+        [
+          ...find('[data-test-waveform-picker]')!.querySelectorAll('option'),
+        ].map(
+          (option) =>
+            `${option.textContent.trim()}${option.selected ? '*' : ''}`,
+        ),
+        ['#kick', 'Backbeat', 'sampler 3*'],
+      );
+      await select('[data-test-waveform-picker]', '#kick › waveform');
+      assert.deepEqual(tabs(), ['#kick*', 'Backbeat', 'sampler 3']);
+      assert.dom('[data-test-waveform="kick"]').exists();
+    });
+
+    test('the choice is the track’s own, is kept while looking elsewhere, and falls back when its sampler goes', async function (assert) {
+      await three();
+      await click('[data-test-waveform-tab="snare"]');
+      await click('[data-test-track="2"] [data-test-track-select]');
+      await waitFor(`${STAGE}[data-ready]`);
+      assert
+        .dom('[data-test-waveform-tabs]')
+        .doesNotExist('another track, with one sampler');
+      assert.dom('[data-test-waveform="sampler"]').exists();
+      await click('[data-test-track="1"] [data-test-track-select]');
+      await waitFor(`${STAGE}[data-ready]`);
+      assert.deepEqual(
+        tabs(),
+        ['#kick', 'Backbeat*', 'sampler 3'],
+        'back on the first: still the one chosen',
+      );
+
+      await click('[data-test-script-toggle]');
+      await typeScript((text) =>
+        text.replace("waveform('#snare', { label: 'Backbeat' });\n", ''),
+      );
+      await click('[data-test-script-toggle]');
+      await waitFor(`${STAGE}[data-ready]`);
+      assert.deepEqual(
+        tabs(),
+        ['#kick*', 'sampler 3'],
+        'the one chosen has gone from the script: the first shows',
+      );
+      assert.dom('[data-test-waveform="kick"]').exists();
+
+      await click('[data-test-script-toggle]');
+      await typeScript((text) => text.replace('waveform(hat);\n', ''));
+      await click('[data-test-script-toggle]');
+      await waitFor(`${STAGE}[data-ready]`);
+      assert
+        .dom('[data-test-waveform-tabs]')
+        .doesNotExist('down to one: no list');
+      assert.dom('[data-test-waveform="kick"]').exists();
+    });
+  });
+
+  test('the editor fits the pane: its numbers are inside the footer, not scrolled out of it', async function (assert) {
+    await open();
+    const pane = find('.track-footer__pane')!;
+    const values = find('.waveform__values')!.getBoundingClientRect();
+    const footer = find('[data-test-track-footer]')!.getBoundingClientRect();
+    assert.true(
+      pane.scrollHeight <= pane.clientHeight + 1,
+      `the pane has nothing to scroll (${pane.scrollHeight} in ${pane.clientHeight})`,
+    );
+    assert.true(
+      values.bottom <= footer.bottom + 1,
+      'the numbers end inside the footer',
+    );
+    assert.dom('[data-test-waveform-value="start"]').isVisible();
+    assert.dom('[data-test-waveform-loop]').isVisible();
+    const stage = find(STAGE) as HTMLElement;
+    assert.true(
+      stage.clientHeight >= 76,
+      `and the picture still has room to be worked (${stage.clientHeight}px)`,
+    );
+  });
+
   module('code and controls, linked', function () {
     test('"show in script" turns to the script on the declaration’s line; coming back marks the control the cursor was on', async function (assert) {
       await render(<template><AppShell /></template>);
@@ -614,7 +831,7 @@ module('Integration | Component | waveform', function (hooks) {
       )!;
       assert.strictEqual(
         third.state.doc.lineAt(third.state.selection.main.head).text,
-        "sequencer('steps');",
+        "stepGrid('steps');",
       );
     });
 

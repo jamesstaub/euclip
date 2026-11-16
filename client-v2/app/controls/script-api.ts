@@ -1,6 +1,6 @@
 /**
  * The script side of controls: the functions a script calls (`slider`, `knob`, `toggle`, `select`,
- * `controls`, `sequencer`). Euclip puts them in scope beside cracked-up's helpers; cracked-up knows
+ * `controls`, `step grid`). Euclip puts them in scope beside cracked-up's helpers; cracked-up knows
  * nothing of them.
  *
  * A declaration does two things: it tells the host what it declares (plain data), and, if the project
@@ -33,7 +33,7 @@ import {
 import {
   busKey,
   controlKey,
-  sequencerKey,
+  stepGridKey,
   type StoredValue,
 } from 'client-v2/project/schema';
 
@@ -365,7 +365,7 @@ export function createControlApi(
   const functions: ControlApi = {};
   for (const fn of CONTROL_FUNCTIONS) {
     const kind = fn.kind;
-    if (kind === null || kind === 'sequencer' || kind === 'waveform') continue;
+    if (kind === null || kind === 'stepGrid' || kind === 'waveform') continue;
     functions[fn.name] = (
       first: unknown,
       second?: unknown,
@@ -443,18 +443,15 @@ export function createControlApi(
   }
 
   /**
-   * `sequencer('steps')`: a grid for a named sequence. A stored pattern is applied here, with the
+   * `stepGrid('steps')`: a grid for a named sequence. A stored pattern is applied here, with the
    * sequence's own `update`, so it passes through the script like a stored slider value does.
    */
-  functions['sequencer'] = (
-    name: unknown,
-    options?: unknown,
-  ): ControlHandle => {
+  functions['stepGrid'] = (name: unknown, options?: unknown): ControlHandle => {
     const line = lineOfCaller();
     if (typeof name !== 'string' || name === '') {
       host.warn({
         message:
-          'sequencer() needs the name of a sequence as its first argument.',
+          'stepGrid() needs the name of a sequence as its first argument.',
         line,
       });
       return INERT;
@@ -462,16 +459,16 @@ export function createControlApi(
     const sequence = api.transport.get(name);
     if (!sequence) {
       host.warn({
-        message: `sequencer('${name}'): there is no sequence called "${name}" at this point in the script, so there is no grid. Declare it after the __.transport.sequence('${name}', …) call.`,
+        message: `stepGrid('${name}'): there is no sequence called "${name}" at this point in the script, so there is no grid. Declare it after the __.transport.sequence('${name}', …) call.`,
         line,
         missingSequence: name,
       });
       return INERT;
     }
-    const key = sequencerKey(name);
+    const key = stepGridKey(name);
     host.declare({
       key,
-      kind: 'sequencer',
+      kind: 'stepGrid',
       bindings: [{ type: 'sequence', name }],
       nodes: [],
       options: isOptions(options) ? options : {},

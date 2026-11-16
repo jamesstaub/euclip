@@ -49,7 +49,7 @@ export interface TrackFooterSignature {
  * A script that has an error (or a declaration that cannot work) says so in a strip laid over the bottom
  * of the footer, which moves nothing, until it runs cleanly again.
  *
- * The UI is the channel strip and a menu of sequence (the sequencers the script declares), source (the
+ * The UI is the channel strip and a menu of sequence (the step grids the script declares), source (the
  * waveform editors it declares) and controls (the controls the script declares, by node). For the main output it
  * is the project script's controls. This is the only place a script is shown.
  */

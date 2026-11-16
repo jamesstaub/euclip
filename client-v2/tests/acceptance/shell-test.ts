@@ -7,7 +7,7 @@ import {
   visit,
 } from '@ember/test-helpers';
 import { setupApplicationTest } from 'client-v2/tests/helpers';
-import { controlKey, sequencerKey } from 'client-v2/project/schema';
+import { controlKey, stepGridKey } from 'client-v2/project/schema';
 
 module('Acceptance | project', function (hooks) {
   setupApplicationTest(hooks);
@@ -35,7 +35,7 @@ module('Acceptance | project', function (hooks) {
       audio.engine?.scope('t-hat').scope('script').transport.get('steps')
         ?.steps[1];
     const stored = () =>
-      project.doc.tracks[2]?.values.controls[sequencerKey('steps')]?.value as
+      project.doc.tracks[2]?.values.controls[stepGridKey('steps')]?.value as
         number[] | undefined;
 
     await click(step);

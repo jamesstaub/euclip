@@ -170,10 +170,10 @@
 }
 
 /*
- * The track is the state: empty and pale when off, filled with the accent when on. The handle is one
- * dark square, the same in both states, that sits at the left when off and at the right when on: the
- * only thing that moves. Told apart without colour three ways: where the square is, the O or I in the
- * half the square has left, and the word beside it.
+ * The square is the switch. Off, it is a pale square at the left; on, it is the accent blue and at the
+ * right. The track behind it is the same dark strip in both states, so the only thing that changes is
+ * the square: where it is and what colour it is. Told apart without colour three ways: where the square
+ * is, the O or I written on it, and the word beside it.
  */
 .toggle__track {
   position: relative;
@@ -181,29 +181,22 @@
   inline-size: 3rem;
   block-size: 1.5rem;
   border: var(--border-dark);
-  background: var(--light-gray);
-  color: var(--dark-gray);
+  background: var(--dark-gray);
 }
 
 .toggle__handle {
   position: absolute;
   inset-block: 0;
   inset-inline-start: 0;
-  inline-size: 50%;
-  background: var(--dark-gray);
-  transition: inset-inline-start 80ms linear;
-}
-
-.toggle__mark {
-  position: absolute;
-  inset-block: 0;
-  inset-inline-end: 0;
   display: grid;
   place-items: center;
   inline-size: 50%;
+  background: var(--light-gray);
+  color: var(--near-black);
   font-size: var(--font-size-7);
   font-weight: var(--font-weight-heavy);
   line-height: 1;
+  transition: inset-inline-start 80ms linear;
 }
 
 .toggle__text {
@@ -212,16 +205,9 @@
 }
 
 .toggle[aria-checked="true"] {
-  & .toggle__track {
-    background: var(--light-blue);
-  }
-
   & .toggle__handle {
     inset-inline-start: 50%;
-  }
-
-  & .toggle__mark {
-    inset-inline: 0 auto;
+    background: var(--light-blue);
   }
 
   & .toggle__text {

@@ -136,7 +136,7 @@ module('Unit | Service | project', function (hooks) {
       doc = applyOperation(doc, {
         type: 'setControlValue',
         scope: 't-hat',
-        key: 'sequencer › steps',
+        key: 'stepGrid › steps',
         value: [1, 0, 2],
       });
       doc = applyOperation(doc, {
@@ -171,7 +171,7 @@ module('Unit | Service | project', function (hooks) {
     } finally {
       await real.clear();
     }
-    assert.strictEqual(project.doc.schemaVersion, 4);
+    assert.strictEqual(project.doc.schemaVersion, 5);
   });
 
   test('a storage that fails does not break the app', async function (assert) {

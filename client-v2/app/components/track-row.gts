@@ -4,16 +4,16 @@ import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import PopupMenu, { type MenuItem } from 'client-v2/components/ui/popup-menu';
-import type { SequencerView } from 'client-v2/audio/runner';
-import { sequencerWidget } from 'client-v2/controls/registry';
+import type { StepGridView } from 'client-v2/audio/runner';
+import { stepGridWidget } from 'client-v2/controls/registry';
 import type { TrackDocument } from 'client-v2/project/schema';
 import type AudioService from 'client-v2/services/audio';
 
-function more(sequencers: readonly SequencerView[]): boolean {
-  return sequencers.length > 1;
+function more(grids: readonly StepGridView[]): boolean {
+  return grids.length > 1;
 }
 
-const Grid = sequencerWidget().component;
+const Grid = stepGridWidget().component;
 
 export interface TrackRowSignature {
   Element: HTMLElement;
@@ -29,7 +29,7 @@ export interface TrackRowSignature {
 }
 
 /**
- * One track, always a compact row: its number (which selects it), name, a step grid for each sequencer
+ * One track, always a compact row: its number (which selects it), name, a step grid for each step grid
  * its script declares (in the order declared), and its menu. A track that declares none says so quietly.
  * A track whose script has an error is marked.
  */
@@ -38,8 +38,8 @@ export default class TrackRow extends Component<TrackRowSignature> {
 
   @tracked menuOpen = false;
 
-  get sequencers(): SequencerView[] {
-    return this.audio.sequencers(this.args.track.id);
+  get stepGrids(): StepGridView[] {
+    return this.audio.stepGrids(this.args.track.id);
   }
 
   get error(): string | undefined {
@@ -98,17 +98,15 @@ export default class TrackRow extends Component<TrackRowSignature> {
         </div>
 
         <div class="track__sequence">
-          {{#each this.sequencers key="key" as |sequencer|}}
+          {{#each this.stepGrids key="key" as |grid|}}
             <div class="track__grid">
-              {{#if (more this.sequencers)}}
-                <span
-                  class="track__grid-name truncate"
-                >{{sequencer.label}}</span>
+              {{#if (more this.stepGrids)}}
+                <span class="track__grid-name truncate">{{grid.label}}</span>
               {{/if}}
-              <Grid @scopeId={{@track.id}} @control={{sequencer}} />
+              <Grid @scopeId={{@track.id}} @control={{grid}} />
             </div>
           {{else}}
-            <p class="track__no-grid" data-test-no-sequencer>No sequencer
+            <p class="track__no-grid" data-test-no-step-grid>No step grid
               declared</p>
           {{/each}}
         </div>

@@ -21,11 +21,14 @@
   --wf-ruler-h: 20px;
   --wf-tab: 22px;
 
+  /* the least the picture can be and still be worked: the ruler, a handle's tab, a strip of the sound */
+  --wf-stage-min: 4.75rem;
+
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: var(--space-1);
   min-inline-size: 0;
-  margin-block-end: var(--space-3);
   padding: var(--space-1);
   border: var(--border-dark);
   background: var(--dark-yellow);
@@ -37,6 +40,7 @@
     --wf-font-size: 11px;
     --wf-ruler-h: 30px;
     --wf-tab: 44px;
+    --wf-stage-min: 6.5rem;
   }
 }
 
@@ -79,10 +83,10 @@
   margin: 0;
   font-size: var(--font-size-6);
 
+  /* (as the script writes it: a selector's case matters) */
   & b {
+    font-family: var(--font-mono);
     font-weight: var(--font-weight-heavy);
-    letter-spacing: var(--letter-spacing-spaced);
-    text-transform: uppercase;
   }
 }
 
@@ -143,29 +147,93 @@
  * the sound, zoom, and Expand. Snapping, the slice tools and adding a file are in the expanded editor,
  * which has the whole screen.
  */
+
+/*
+ * In a narrow footer (a phone) the editor as it sits in the pane is the sound, the picture and the
+ * numbers, with Expand: zoom, snapping, the slice tools, adding a file and the unit are in the
+ * expanded editor, which has the whole screen. (Two fingers still zoom the picture here.)
+ */
 @container track-footer (width < 34rem) {
-  .waveform:not(.waveform--expanded) .waveform__tool-group--more {
+  .waveform:not(.waveform--expanded) .waveform__tool-group--more,
+  .waveform:not(.waveform--expanded) .waveform__tools,
+  .waveform:not(.waveform--expanded) .waveform__unit {
     display: none;
   }
+}
+
+/* while the slice panel is open the picture gives up what it can, so the numbers stay in the footer */
+.waveform[data-panel]:not(.waveform--expanded) {
+  --wf-stage-min: 4.75rem;
+}
+
+/* ---- making slices all at once: three ways, one showing at a time ---- */
+
+/* the button that opens the panel: an arrow that turns, and filled while the panel is open */
+.waveform__disclosure {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.btn.waveform__disclosure.is-open,
+.btn.waveform__apply {
+  border-color: var(--near-black);
+  background: var(--dark-gray);
+  color: var(--yellow);
 }
 
 .waveform__panel {
   display: grid;
   gap: var(--space-1);
-  padding: var(--space-2);
   border: var(--border-dark);
   background: var(--yellow);
 }
 
-.waveform__panel-note {
-  margin: 0;
+.waveform__tabs {
+  display: flex;
+  border-block-end: var(--border-dark);
 }
 
-.waveform__panel-row {
+.waveform__tab {
+  flex: 1 1 0;
+  min-inline-size: 0;
+  min-block-size: var(--target-min);
+  padding: 0 var(--space-2);
+  border: 0;
+  border-inline-end: var(--border-dark);
+  background: var(--dark-yellow);
+  color: var(--near-black);
+  font-size: var(--font-size-6);
+  font-weight: var(--font-weight-bold);
+
+  &:last-child {
+    border-inline-end: 0;
+  }
+
+  &[aria-selected="true"] {
+    background: var(--dark-gray);
+    color: var(--yellow);
+  }
+}
+
+.waveform__tabpanel {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-1) var(--space-2);
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-1) var(--space-2);
+}
+
+/* what Apply would give, and whose it would be: slices are the sound's, on every track that plays it */
+.waveform__count {
+  flex: 1 1 10rem;
+  min-inline-size: 0;
+  text-align: end;
+
+  & b {
+    font-weight: var(--font-weight-bold);
+    white-space: nowrap;
+  }
 }
 
 .waveform__field {
@@ -221,10 +289,16 @@
 
 /* ---- the picture ---- */
 
+/*
+ * The picture takes the height that is left in the pane after the editor's bars and its numbers, down
+ * to --wf-stage-min, so the numbers are never pushed out of the footer. (Expand is for close work.)
+ */
 .waveform__stage {
   position: relative;
-  block-size: clamp(9rem, 26dvh, 14rem);
+  flex: 1 1 var(--wf-stage-min);
   min-inline-size: 0;
+  min-block-size: var(--wf-stage-min);
+  max-block-size: 16rem;
   overflow: hidden;
   border: var(--border-dark);
   background: var(--wf-bg);
@@ -245,8 +319,8 @@
 
 .waveform--expanded .waveform__stage {
   flex: 1 1 12rem;
-  block-size: auto;
   min-block-size: 10rem;
+  max-block-size: none;
   touch-action: none;
 }
 
@@ -377,6 +451,49 @@
   background: var(--light-blue);
 }
 
+/*
+ * One line on the two kinds of thing drawn on the sound: the region (solid lines with S and E tabs,
+ * hanging in the sound) and the slices (dashed lines with a flag in the ruler).
+ */
+.waveform__hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-1);
+  margin: 0;
+  font-size: 0.6875rem;
+  line-height: 1.5;
+
+  & code {
+    font-family: var(--font-mono);
+  }
+}
+
+.waveform__key {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  inline-size: 1rem;
+  block-size: 1rem;
+  font-size: 0.625rem;
+  font-weight: var(--font-weight-heavy);
+  line-height: 1;
+}
+
+.waveform__key--region {
+  border: var(--border-width-1) solid var(--near-black);
+  background: var(--yellow);
+}
+
+/* a slice's flag: the triangle the ruler has */
+.waveform__key--slice {
+  inline-size: 0;
+  block-size: 0;
+  border: 0.375rem solid transparent;
+  border-block-start: 0.5625rem solid var(--dark-gray);
+  border-block-end: 0;
+}
+
 /* ---- the numbers: the same controls a slider for each would be ---- */
 
 .waveform__values {
@@ -407,6 +524,126 @@
   opacity: 0.55;
 }
 
+/*
+ * In a narrow footer the numbers are two to a row, with the switches and speed three to a row under
+ * them, and the one line of help waits for the expanded editor: everything fits the sheet.
+ */
+@container track-footer (width < 34rem) {
+  .waveform:not(.waveform--expanded) .waveform__hint {
+    display: none;
+  }
+
+  .waveform:not(.waveform--expanded) .waveform__values {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: var(--space-1);
+
+    & .waveform__value {
+      grid-column: span 2;
+      justify-content: space-between;
+      min-inline-size: 0;
+    }
+
+    & .waveform__value--number {
+      grid-column: span 3;
+    }
+
+    & .number-entry {
+      min-inline-size: 3.5rem;
+    }
+
+    /* (the square says it: left and O, or right, blue and I) */
+    & .toggle__text {
+      display: none;
+    }
+  }
+}
+
+/* ---- the source pane: one editor, fitted to the footer, and a list of them when there are several ---- */
+
 .source-pane .pane-empty code {
   white-space: nowrap;
+}
+
+/* with an editor in it the pane is exactly as tall as the footer gives it, and the editor fills it */
+.source-pane--filled {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+}
+
+/* (the footer's menu already says "source") */
+.source-pane--filled .source-pane__heading {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.source-pane__body {
+  display: flex;
+  flex: 1 1 auto;
+  gap: var(--space-1);
+  min-inline-size: 0;
+  min-block-size: 0;
+  padding-block-start: var(--space-1);
+}
+
+/* the script's waveforms, down the left: each by its label, or the selector that names it */
+.source-tabs {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  inline-size: 7rem;
+  overflow: hidden auto;
+}
+
+.source-tabs__tab {
+  flex: none;
+  min-block-size: max(2.25rem, var(--target-min));
+  padding: 0 var(--space-2);
+  border: var(--border-dark);
+  background: var(--yellow);
+  color: var(--near-black);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-7);
+  text-align: start;
+
+  & + & {
+    margin-block-start: calc(-1 * var(--border-width-2));
+  }
+
+  &[aria-selected="true"] {
+    background: var(--dark-gray);
+    color: var(--yellow);
+    font-weight: var(--font-weight-bold);
+  }
+}
+
+/* the picker in the editor's bar stands in for the list where the footer is narrow */
+.waveform__switch {
+  display: none;
+  flex: 0 1 9rem;
+  min-inline-size: 0;
+
+  & .waveform__select {
+    inline-size: 100%;
+    font-family: var(--font-mono);
+  }
+}
+
+@container track-footer (width < 34rem) {
+  .source-tabs {
+    display: none;
+  }
+
+  .waveform__switch {
+    display: inline-flex;
+  }
+
+  .waveform__title--several {
+    display: none;
+  }
 }

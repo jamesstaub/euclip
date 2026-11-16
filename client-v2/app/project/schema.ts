@@ -2,22 +2,22 @@
  * The project document: everything a project is, as one plain JSON value.
  *
  * Structure lives in code and values live here. A script creates nodes, chains and sequences, and
- * declares the controls it wants (`slider('#filter', 'frequency')`, `sequencer('steps')`). What the user
+ * declares the controls it wants (`slider('#filter', 'frequency')`, `stepGrid('steps')`). What the user
  * then sets on those controls is stored here, next to the script, and never rewrites it. How the project
  * is being looked at (which pane, script or UI) is not here: that belongs to the person and the device
  * (see services/view.ts).
  */
 
 /** Bumped whenever the shape below changes in a way old documents need migrating for. */
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
-/** A parameter's value, or a sequencer's pattern. */
+/** A parameter's value, or a step grid's pattern. */
 export type StoredValue = number | boolean | string | number[];
 
 /** What is stored for one declared control. */
 export interface ControlState {
   /**
-   * The control's value: a parameter's value in its own unit, or a sequencer's steps. Absent until the
+   * The control's value: a parameter's value in its own unit, or a step grid's steps. Absent until the
    * control is first moved (and after a reset): what the script itself says (the number in the node,
    * the steps in the `transport.sequence` call) is then the value, and is the default.
    */
@@ -36,7 +36,7 @@ export interface ControlUserOptions {
  */
 export interface ScopeValues {
   /**
-   * Declared controls by key (see `controlKey`, `sequencerKey`; a control of its own is keyed by its
+   * Declared controls by key (see `controlKey`, `stepGridKey`; a control of its own is keyed by its
    * name). An entry whose declaration is not in the script at the moment is kept, dormant, and applies
    * again if the declaration comes back.
    */
@@ -53,9 +53,9 @@ export function busKey(bus: string): string {
   return controlKey(`bus ${bus}`, 'gain');
 }
 
-/** The key of a sequencer: the grid of a named sequence. */
-export function sequencerKey(sequence: string): string {
-  return `sequencer › ${sequence}`;
+/** The key of a step grid: the grid of a named sequence. */
+export function stepGridKey(sequence: string): string {
+  return `stepGrid › ${sequence}`;
 }
 
 export interface TrackDocument {
@@ -167,10 +167,35 @@ function valuesFromV1(values: unknown): unknown {
   const controls: Record<string, ControlState> = {};
   for (const [name, stored] of Object.entries(values['sequences'])) {
     if (isRecord(stored) && Array.isArray(stored['value'])) {
-      controls[sequencerKey(name)] = { value: stored['value'] as number[] };
+      controls[stepGridKey(name)] = { value: stored['value'] as number[] };
     }
   }
   return { controls };
+}
+
+/** Version 4's name for `stepGrid`, called as a function: the whole word, not a member or part of a longer name. */
+const V4_SEQUENCER_CALL = /(?<![\w$.])sequencer(?=\s*\()/g;
+const V4_SEQUENCER_KEY = 'sequencer › ';
+
+function stepGridScript(script: unknown): unknown {
+  return typeof script === 'string'
+    ? script.replace(V4_SEQUENCER_CALL, 'stepGrid')
+    : script;
+}
+
+function stepGridValues(values: unknown): unknown {
+  if (!isRecord(values) || !isRecord(values['controls'])) return values;
+  return {
+    ...values,
+    controls: Object.fromEntries(
+      Object.entries(values['controls']).map(([key, state]) => [
+        key.startsWith(V4_SEQUENCER_KEY)
+          ? stepGridKey(key.slice(V4_SEQUENCER_KEY.length))
+          : key,
+        state,
+      ]),
+    ),
+  };
 }
 
 /** What version 2's templates ended a track's chain with. */
@@ -182,15 +207,20 @@ const V2_TO_OUT = ".to('out')";
  * that is ignored in favour of the default project rather than trusted.
  *
  *   1 -> 2   Controls are declared in scripts. A scope's `sequences` (step patterns, each with a copy of
- *            the script's pattern) become entries of its new `controls` record, keyed as sequencers,
+ *            the script's pattern) become entries of its new `controls` record, keyed as step grids,
  *            without the copy. The scripts themselves are not edited: a version 1 script has no
- *            `sequencer('…')` line, so its stored pattern is kept but dormant until one is added.
+ *            `stepGrid('…')` line, so its stored pattern is kept but dormant until one is added.
  *   2 -> 3   The bus Euclip makes for every track is called `channel`, not `out`. In track scripts the
  *            exact text `.to('out')` (what the app's own templates wrote) becomes `.to('channel')`.
  *            Nothing else in a script is touched: a script that spelled it another way sends to a bus
  *            that no longer exists, and its channel strip says so.
  *   3 -> 4   A sound in the pool can have slices and can be a file the person added. Nothing stored
  *            changes shape; the built-in two-bar loop joins the pool (unless something has its name).
+ *   4 -> 5   The script function that declares a step grid is `stepGrid('name')`; it was called
+ *            `sequencer`, which read too much like `__.transport.sequence`. In every script, calls of
+ *            `sequencer(` as a whole word (not `my.sequencer(`, not `resequencer(`) become `stepGrid(`,
+ *            and the stored patterns move from their `sequencer › name` keys to `stepGrid › name`.
+ *            The old name is not kept as an alias.
  */
 export function migrateProject(value: unknown): ProjectDocument | null {
   if (!isRecord(value)) return null;
@@ -243,6 +273,25 @@ export function migrateProject(value: unknown): ProjectDocument | null {
                 slices: [...LOOP_SLICES],
               },
             },
+    };
+  }
+  if (doc['schemaVersion'] === 4) {
+    doc = {
+      ...doc,
+      schemaVersion: 5,
+      script: stepGridScript(doc['script']),
+      values: stepGridValues(doc['values']),
+      tracks: Array.isArray(doc['tracks'])
+        ? doc['tracks'].map((track: unknown) =>
+            isRecord(track)
+              ? {
+                  ...track,
+                  script: stepGridScript(track['script']),
+                  values: stepGridValues(track['values']),
+                }
+              : track,
+          )
+        : doc['tracks'],
     };
   }
   return isProjectDocument(doc) ? doc : null;

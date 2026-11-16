@@ -8,7 +8,7 @@
  *
  * A script is run with `scope.build`, so re-running changed code only applies the difference, and code
  * that fails leaves the previous version playing. While it runs, the script's control declarations
- * (`slider`, `knob`, `toggle`, `select`, `controls`, `sequencer`: see controls/script-api.ts) tell the
+ * (`slider`, `knob`, `toggle`, `select`, `controls`, `step grid`: see controls/script-api.ts) tell the
  * runner what they declare and apply the values the project holds for them. The runner is the host side
  * of that: it keeps the declarations, turns them into what the UI draws, and applies a control the user
  * moves to the engine.
@@ -60,7 +60,7 @@ import { sameValue, type Operation } from 'client-v2/project/operations';
 import {
   PROJECT_SCOPE,
   controlKey,
-  sequencerKey,
+  stepGridKey,
   type ProjectDocument,
   type ScopeValues,
   type StoredValue,
@@ -142,8 +142,8 @@ export interface ControlView {
   waiting?: string;
 }
 
-/** A declared sequencer: the grid of a named sequence. */
-export interface SequencerView {
+/** A declared step grid: the grid of a named sequence. */
+export interface StepGridView {
   key: string;
   /** the sequence's name in the script */
   name: string;
@@ -401,6 +401,11 @@ export class ProjectRunner {
       stored: (key) =>
         valuesOf(this.#host.getDoc(), scopeId)?.controls[key]?.value,
       declare: (declaration) => {
+        // a sampler has one waveform editor: the first line that declares it (a later
+        // waveform('sampler') that also finds it adds nothing, and does not undo its label)
+        if (declaration.kind === 'waveform' && declared.has(declaration.key)) {
+          return false;
+        }
         const wanted = [...new Set(claimsOf(declaration))];
         // Who has the better claim to a parameter, wherever each is in the script: an explicit
         // slider('#x', 'p'), then controls(), then a compound widget's own part (a waveform's start).
@@ -868,7 +873,7 @@ export class ProjectRunner {
 
   /**
    * How long one step of the scope's sequence lasts at the tempo now, for times shown in steps: the
-   * first sequence the script declares a sequencer for, else its first sequence, else the transport's
+   * first sequence the script declares a step grid for, else its first sequence, else the transport's
    * own step length.
    */
   #stepSeconds(runtime: ScopeRuntime): number | null {
@@ -904,6 +909,7 @@ export class ProjectRunner {
       this.#controlViews(scopeId, true).map((view) => [view.key, view]),
     );
     const values = valuesOf(this.#host.getDoc(), scopeId);
+    const layout = this.#layout(runtime);
     const views: WaveformView[] = [];
     for (const declaration of declarations) {
       const nodeId = declaration.nodes[0];
@@ -923,7 +929,13 @@ export class ProjectRunner {
       views.push({
         key: declaration.key,
         nodeId,
-        label: declaration.options.label ?? (node.autoId ? node.type : nodeId),
+        // its label if the script gave one; else the selector that names it, as written; a sampler with
+        // no id is its type, numbered when the script has several
+        label:
+          declaration.options.label ??
+          (node.autoId
+            ? `${node.type}${layout.nodes.get(nodeId)?.ordinal ? ` ${layout.nodes.get(nodeId)!.ordinal}` : ''}`
+            : `#${nodeId}`),
         ...(declaration.line === undefined ? {} : { line: declaration.line }),
         byPosition: node.autoId,
         sound: ref
@@ -952,12 +964,12 @@ export class ProjectRunner {
     return this.#ownNodes(runtime).find((node) => node.id === nodeId);
   }
 
-  /** The declared sequencers, in the order the script declared them. */
-  sequencers(scopeId: string): SequencerView[] {
+  /** The declared step grids, in the order the script declared them. */
+  stepGrids(scopeId: string): StepGridView[] {
     const runtime = this.#scopes.get(scopeId);
     if (!runtime) return [];
     const values = valuesOf(this.#host.getDoc(), scopeId);
-    const views: SequencerView[] = [];
+    const views: StepGridView[] = [];
     for (const declaration of runtime.declarations) {
       const binding = declaration.bindings[0];
       if (binding?.type !== 'sequence') continue;
@@ -1043,7 +1055,7 @@ export class ProjectRunner {
   // --- Operations the UI asks for --------------------------------------------------------------------
 
   /**
-   * The operation for pressing a step of a declared sequencer. An on step goes off; an off step comes
+   * The operation for pressing a step of a declared grid. An on step goes off; an off step comes
    * back to what it held before (so a step holding 3 is not flattened to 1), or to 1.
    */
   toggleStepOperation(
@@ -1052,7 +1064,7 @@ export class ProjectRunner {
     index: number,
   ): Operation | null {
     const runtime = this.#scopes.get(scopeId);
-    const key = sequencerKey(name);
+    const key = stepGridKey(name);
     const sequence = runtime?.scope.transport.get(name);
     if (
       !runtime ||
@@ -1201,7 +1213,7 @@ export class ProjectRunner {
         return warning;
       return {
         ...warning,
-        message: `sequencer('${name}') is declared before the sequence is made. Move it below the __.transport.sequence('${name}', …) call.`,
+        message: `stepGrid('${name}') is declared before the sequence is made. Move it below the __.transport.sequence('${name}', …) call.`,
       };
     });
   }

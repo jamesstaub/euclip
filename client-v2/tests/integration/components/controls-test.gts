@@ -707,13 +707,14 @@ module('Integration | Component | controls', function (hooks) {
       assert.dom(toggle).hasAria('checked', 'false');
       assert.dom(toggle).hasAria('label', 'loop');
       assert.dom(`${toggle} .toggle__text`).hasText('off');
-      assert.dom(`${toggle} .toggle__mark`).hasText('O');
+      assert.dom(`${toggle} .toggle__handle`).hasText('O');
       const handle = (): { left: number; track: DOMRect; colour: string } => {
         const track = find(`${toggle} .toggle__track`)!;
         return {
           left: find(`${toggle} .toggle__handle`)!.getBoundingClientRect().left,
           track: track.getBoundingClientRect(),
-          colour: getComputedStyle(track).backgroundColor,
+          colour: getComputedStyle(find(`${toggle} .toggle__handle`)!)
+            .backgroundColor,
         };
       };
       const off = handle();
@@ -726,22 +727,23 @@ module('Integration | Component | controls', function (hooks) {
       assert.true(state.checked);
       assert.dom(toggle).hasAria('checked', 'true');
       assert.dom(`${toggle} .toggle__text`).hasText('on');
-      assert.dom(`${toggle} .toggle__mark`).hasText('I');
+      assert.dom(`${toggle} .toggle__handle`).hasText('I');
       await new Promise((resolve) => setTimeout(resolve, 150)); // (it slides)
       const on = handle();
       assert.true(
         on.left - on.track.left > on.track.width / 2 - 4,
         `on: the square has moved to the right (${on.left - on.track.left}px of ${on.track.width})`,
       );
-      assert.notStrictEqual(
-        on.colour,
-        off.colour,
-        'and the track has changed colour',
-      );
       assert.strictEqual(
-        getComputedStyle(find(`${toggle} .toggle__handle`)!).backgroundColor,
+        on.colour,
+        'rgb(48, 231, 255)',
+        'on: the square itself is the blue one',
+      );
+      assert.strictEqual(off.colour, 'rgb(238, 238, 238)', 'off: it is pale');
+      assert.strictEqual(
+        getComputedStyle(find(`${toggle} .toggle__track`)!).backgroundColor,
         'rgb(51, 51, 51)',
-        'the square itself is the same dark square either way',
+        'the strip behind it is the same either way',
       );
     });
   });

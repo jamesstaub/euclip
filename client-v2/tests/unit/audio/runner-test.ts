@@ -14,7 +14,7 @@ import {
   controlKey,
   emptyValues,
   PROJECT_SCOPE,
-  sequencerKey,
+  stepGridKey,
   type ProjectDocument,
   type StoredValue,
 } from 'client-v2/project/schema';
@@ -30,7 +30,7 @@ import {
 const KICK = 't-kick';
 const ONE = 't-1';
 const FREQUENCY = controlKey('#filter', 'frequency');
-const STEPS = sequencerKey('steps');
+const STEPS = stepGridKey('steps');
 
 function scriptOf(h: Harness, id: string): string {
   return id === PROJECT_SCOPE
@@ -58,9 +58,9 @@ function control(h: Harness, scope: string, key: string) {
 
 function grid(h: Harness, scope: string, name = 'steps') {
   const found = h.runner
-    .sequencers(scope)
+    .stepGrids(scope)
     .find((candidate) => candidate.name === name);
-  if (!found) throw new Error(`No sequencer ${name} in ${scope}`);
+  if (!found) throw new Error(`No step grid ${name} in ${scope}`);
   return found;
 }
 
@@ -174,7 +174,7 @@ module('Unit | Audio | runner', function () {
           .map((c) => `${c.group.id}.${c.label} = ${String(c.value)}`),
         ['bus:main.master = 0.8', 'glue.threshold = -18', 'glue.ratio = 3'],
       );
-      assert.deepEqual(h.runner.sequencers(PROJECT_SCOPE), []);
+      assert.deepEqual(h.runner.stepGrids(PROJECT_SCOPE), []);
 
       const catalog = h.runner.catalog();
       assert.deepEqual(
@@ -261,7 +261,7 @@ module('Unit | Audio | runner', function () {
       assert.deepEqual(h.runner.warnings(track.id), []);
 
       h.apply({ type: 'removeTrack', id: track.id });
-      assert.deepEqual(h.runner.sequencers(track.id), []);
+      assert.deepEqual(h.runner.stepGrids(track.id), []);
       assert.false(h.runner.isBuilt(track.id));
       assert.strictEqual(grid(h, KICK).steps.length, 16, 'the others stay');
     });
@@ -1429,7 +1429,7 @@ slider('*', 'pan');`),
       const h = await startProject(
         oneTrack(`__().sine(220).adsr({ id: 'env' }).to('channel');
 __.transport.sequence('steps', { steps: 8, step: '1/8' }, () => {});
-sequencer('steps');
+stepGrid('steps');
 slider('#env', 'attack');`),
       );
       const attack = number(h, '#env › attack');
@@ -1532,24 +1532,24 @@ slider('#env', 'attack');`),
     });
   });
 
-  module('declared sequencers', function () {
-    test('a grid exists only for a sequence with a sequencer() line', async function (assert) {
+  module('declared step grids', function () {
+    test('a grid exists only for a sequence with a stepGrid() line', async function (assert) {
       const h = await startProject(
         oneTrack(`${CHAIN}__.transport.sequence('a', { steps: [1, 0, 0] }, () => {});
 __.transport.sequence('b', { steps: 32 }, () => {});
 __.transport.sequence('quiet', { steps: 8 }, () => {});
-sequencer('b', { label: 'Long one', view: 'toggles' });
-sequencer('a');`),
+stepGrid('b', { label: 'Long one', view: 'toggles' });
+stepGrid('a');`),
       );
       assert.deepEqual(
         h.runner
-          .sequencers(ONE)
+          .stepGrids(ONE)
           .map((s) => [s.name, s.label, s.steps.length, s.view, s.line]),
         [
           ['b', 'Long one', 32, 'toggles', 5],
           ['a', 'a', 3, 'toggles', 6],
         ],
-        'in the order declared; a sequence with no sequencer() has no grid',
+        'in the order declared; a sequence with no stepGrid() has no grid',
       );
       assert.strictEqual(
         h.engine.scope(ONE).scope('script').transport.sequences.length,
@@ -1608,9 +1608,9 @@ sequencer('a');`),
     });
 
     test('a stored pattern is fitted when the script changes the number of steps', async function (assert) {
-      const script = `${CHAIN}__.transport.sequence('s', { steps: [1, 0, 0, 0, 1, 0, 0, 0] }, () => {});\nsequencer('s');`;
+      const script = `${CHAIN}__.transport.sequence('s', { steps: [1, 0, 0, 0, 1, 0, 0, 0] }, () => {});\nstepGrid('s');`;
       const h = await startProject(oneTrack(script));
-      move(h, ONE, sequencerKey('s'), [0, 1, 1, 0, 0, 0, 0, 1]);
+      move(h, ONE, stepGridKey('s'), [0, 1, 1, 0, 0, 0, 0, 1]);
 
       await h.setScript(
         ONE,
@@ -1635,7 +1635,7 @@ sequencer('a');`),
         'longer: the stored steps, then the script’s for the new ones',
       );
       assert.deepEqual(
-        storedIn(h, ONE)[sequencerKey('s')],
+        storedIn(h, ONE)[stepGridKey('s')],
         [0, 1, 1, 0, 0, 0, 0, 1],
         'the stored pattern itself is not rewritten',
       );
@@ -1644,7 +1644,7 @@ sequencer('a');`),
     test('a step that holds a value comes back to it, not to 1', async function (assert) {
       const h = await startProject(
         oneTrack(
-          `${CHAIN}__.transport.sequence('notes', { steps: [3, 0, 0.5, 0, 1, 0] }, () => {});\nsequencer('notes');`,
+          `${CHAIN}__.transport.sequence('notes', { steps: [3, 0, 0.5, 0, 1, 0] }, () => {});\nstepGrid('notes');`,
         ),
       );
       h.apply(h.runner.toggleStepOperation(ONE, 'notes', 0));
@@ -1655,14 +1655,14 @@ sequencer('a');`),
       assert.strictEqual(grid(h, ONE, 'notes').steps[1], 1, 'never on: 1');
     });
 
-    test('sequencer() for a sequence that is not there is a warning on its line', async function (assert) {
+    test('stepGrid() for a sequence that is not there is a warning on its line', async function (assert) {
       const h = await startProject(
-        oneTrack(`${CHAIN}sequencer('nope');
-sequencer('late');
+        oneTrack(`${CHAIN}stepGrid('nope');
+stepGrid('late');
 __.transport.sequence('late', { steps: 4 }, () => {});`),
       );
       assert.strictEqual(h.runner.error(ONE), null);
-      assert.deepEqual(h.runner.sequencers(ONE), []);
+      assert.deepEqual(h.runner.stepGrids(ONE), []);
       const [missing, early] = h.runner.warnings(ONE);
       assert.strictEqual(missing?.line, 2);
       assert.true(
@@ -1672,20 +1672,20 @@ __.transport.sequence('late', { steps: 4 }, () => {});`),
       assert.strictEqual(early?.line, 3);
       assert.true(
         early!.message.includes(
-          "sequencer('late') is declared before the sequence is made. Move it below",
+          "stepGrid('late') is declared before the sequence is made. Move it below",
         ),
         early!.message,
       );
     });
 
-    test('a value whose sequencer() line disappears is kept, and applies again when it returns', async function (assert) {
+    test('a value whose stepGrid() line disappears is kept, and applies again when it returns', async function (assert) {
       const h = await startProject();
       const original = scriptOf(h, KICK);
       h.apply(h.runner.toggleStepOperation(KICK, 'steps', 1));
       const stored = storedIn(h, KICK)[STEPS];
 
-      await h.setScript(KICK, original.replace("sequencer('steps');\n", ''));
-      assert.deepEqual(h.runner.sequencers(KICK), [], 'no grid');
+      await h.setScript(KICK, original.replace("stepGrid('steps');\n", ''));
+      assert.deepEqual(h.runner.stepGrids(KICK), [], 'no grid');
       assert.strictEqual(
         h.engine.scope(KICK).scope('script').transport.get('steps')?.steps[1],
         0,
@@ -1701,10 +1701,10 @@ __.transport.sequence('late', { steps: 4 }, () => {});`),
       assert.strictEqual(grid(h, KICK).steps[1], 1, 'restored');
     });
 
-    test('sequencer().set() from a script changes the grid and the sequence, and is stored', async function (assert) {
+    test('stepGrid().set() from a script changes the grid and the sequence, and is stored', async function (assert) {
       const h = await startProject(
         oneTrack(`${CHAIN}__.transport.sequence('s', { steps: [1, 0, 0, 0] }, () => {});
-const grid = sequencer('s');
+const grid = stepGrid('s');
 globalThis.euclipGrid = grid.value;
 grid.set([1, 1, 1, 1]);`),
       );
@@ -1714,7 +1714,7 @@ grid.set([1, 1, 1, 1]);`),
         '.value is the steps',
       );
       assert.deepEqual(grid(h, ONE, 's').steps, [1, 1, 1, 1]);
-      assert.deepEqual(storedIn(h, ONE), { [sequencerKey('s')]: [1, 1, 1, 1] });
+      assert.deepEqual(storedIn(h, ONE), { [stepGridKey('s')]: [1, 1, 1, 1] });
       assert.deepEqual(
         h.derived.map((op) => op.type),
         ['setControlValue'],
@@ -1815,7 +1815,7 @@ grid.set([1, 1, 1, 1]);`),
 
       assert.true(h.runner.error('t-snare')?.message.startsWith('SyntaxError'));
       assert.false(h.runner.isBuilt('t-snare'));
-      assert.deepEqual(h.runner.sequencers('t-snare'), []);
+      assert.deepEqual(h.runner.stepGrids('t-snare'), []);
       assert.deepEqual(h.runner.controls('t-snare'), []);
       assert.deepEqual(
         idsOf(h, 't-snare'),
@@ -1838,8 +1838,8 @@ __.transport.sequence('steps', { steps: 16, step: '1/16' }, () => {
   throw new Error('bad step');
 });
 __.transport.sequence('other', { steps: 4, step: '1/4' }, () => {});
-sequencer('steps');
-sequencer('other');`;
+stepGrid('steps');
+stepGrid('other');`;
       const h = await startProject(
         applyOperation(defaultProject(), {
           type: 'setScript',

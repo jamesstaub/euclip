@@ -25,7 +25,7 @@ export type Operation =
   | { type: 'setTrackLevel'; id: string; level: number }
   | { type: 'setTrackPan'; id: string; pan: number }
   /**
-   * A declared control was moved: a slider's value, a sequencer's steps. `key` is its key in the
+   * A declared control was moved: a slider's value, a step grid's steps. `key` is its key in the
    * scope's `controls`.
    */
   | { type: 'setControlValue'; scope: string; key: string; value: StoredValue }

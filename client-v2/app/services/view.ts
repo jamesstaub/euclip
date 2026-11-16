@@ -19,6 +19,7 @@ export const LINK_MS = 2400;
 const PHONE = '(max-width: 47.99rem)';
 
 interface Stored {
+  waveforms?: unknown;
   scriptOpen?: unknown;
   footerPane?: unknown;
   collapsed?: unknown;
@@ -65,6 +66,32 @@ export default class ViewService extends Service {
         (key): key is string => typeof key === 'string',
       )
     : [];
+
+  /**
+   * Which waveform editor the source pane shows, for each scope whose script declares several: the
+   * waveform's key. A scope not listed shows its first.
+   */
+  @tracked private waveforms: Readonly<Record<string, string>> =
+    this.#stored.waveforms &&
+    typeof this.#stored.waveforms === 'object' &&
+    !Array.isArray(this.#stored.waveforms)
+      ? Object.fromEntries(
+          Object.entries(this.#stored.waveforms).filter(
+            (entry): entry is [string, string] => typeof entry[1] === 'string',
+          ),
+        )
+      : {};
+
+  /** The waveform chosen for a scope, if one has been. It may no longer be in the script: the pane falls back. */
+  chosenWaveform(scopeId: string): string | undefined {
+    return this.waveforms[scopeId];
+  }
+
+  chooseWaveform(scopeId: string, key: string): void {
+    if (this.waveforms[scopeId] === key) return;
+    this.waveforms = { ...this.waveforms, [scopeId]: key };
+    this.#save();
+  }
 
   /** Collapsed to its bar on phones (a bottom sheet) to start with; otherwise open. */
   @tracked footerOpen = !window.matchMedia(PHONE).matches;
@@ -158,6 +185,7 @@ export default class ViewService extends Service {
           scriptOpen: this.scriptOpen,
           footerPane: this.footerPane,
           collapsed: this.collapsed,
+          waveforms: this.waveforms,
         }),
       );
     } catch {

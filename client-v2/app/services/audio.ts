@@ -9,7 +9,7 @@ import {
   ProjectRunner,
   type ControlView,
   type ScriptError,
-  type SequencerView,
+  type StepGridView,
   type WaveformView,
 } from 'client-v2/audio/runner';
 import { newFileId, refusal, sampleNameFor } from 'client-v2/project/pool';
@@ -159,7 +159,7 @@ export default class AudioService extends Service {
     return this.runner?.warnings(scopeId) ?? [];
   }
 
-  /** The controls the scope's script declares (not its sequencers), in declaration order. */
+  /** The controls the scope's script declares (not its step grids), in declaration order. */
   controls(scopeId: string): ControlView[] {
     void this.revision;
     return this.runner?.controls(scopeId) ?? [];
@@ -211,11 +211,11 @@ export default class AudioService extends Service {
     return context.currentTime - latency;
   }
 
-  /** The sequencers the scope's script declares, in declaration order. */
-  sequencers(scopeId: string): SequencerView[] {
+  /** The step grids the scope's script declares, in declaration order. */
+  stepGrids(scopeId: string): StepGridView[] {
     void this.revision;
     void this.playheadRevision;
-    return this.runner?.sequencers(scopeId) ?? [];
+    return this.runner?.stepGrids(scopeId) ?? [];
   }
 
   // --- What the UI does ------------------------------------------------------------------------------

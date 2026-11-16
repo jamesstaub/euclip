@@ -53,7 +53,8 @@ knob('#level', 'gain', { label: 'Level' });
   - A declaration returns the control: `const cutoff = slider('#filter', 'frequency'); cutoff.set(900)` moves the control and the parameter together, as if the user had moved it. Inside a sequence callback the change lands on the step, like any other `set`, and the control is redrawn at that moment. Changes made this way are stored but are not undo steps.
 - **In the sandbox** nothing differs: the `set` is an ordinary command and the declaration is plain data sent to the host.
 - **In the UI,** a node lists its declared controls. "Add control" lists the node's other parameters and writes the declaration line into the code; "remove control" deletes the line. These are code edits of the same kind as R7.
-- Step grids follow the same principle: a grid exists because the script constructs a named sequence. Its pattern is stored in the document and re-applied after a re-run unless the pattern in the code changed.
+- **Step grids are declared too:** `stepGrid('steps')`, placed after the `__.transport.sequence('steps', …)` call it belongs to, gives that sequence a grid. The steps written in the `sequence` call are the default; a pattern edited in the grid is stored in the document and applied by the `stepGrid` line when the script runs. A sequence with no `stepGrid` line has no grid. (The function was first called `sequencer`; it was renamed because that read too much like `transport.sequence`. Stored scripts are migrated on load and the old name is not an alias.)
+- **`waveform('#sampler')`** declares a waveform editor for a sampler, shown in the footer's source pane: a view over the sampler's ordinary controls (start, end, loop points, loop, reverse, speed) and the sound it plays. A script with several `waveform` lines gets one editor at a time, chosen from a list of them.
 
 ## 4. Scripts and where things live
 

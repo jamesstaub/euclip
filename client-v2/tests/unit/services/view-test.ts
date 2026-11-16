@@ -47,7 +47,12 @@ module('Unit | Service | view', function (hooks) {
 
     assert.deepEqual(
       JSON.parse(window.localStorage.getItem(VIEW_STORAGE_KEY) ?? 'null'),
-      { scriptOpen: true, footerPane: 'source', collapsed: [] },
+      {
+        scriptOpen: true,
+        footerPane: 'source',
+        collapsed: [],
+        waveforms: {},
+      },
     );
   });
 
@@ -109,5 +114,25 @@ module('Unit | Service | view', function (hooks) {
     const view = this.owner.lookup('service:view');
     assert.false(view.isSectionOpen('t-kick', 'filter'));
     assert.true(view.isSectionOpen('t-kick', 'level'));
+  });
+
+  test('which waveform a track’s source pane shows is remembered per track', function (assert) {
+    const view = this.owner.lookup('service:view');
+    assert.strictEqual(view.chosenWaveform('t-kick'), undefined);
+    view.chooseWaveform('t-kick', '#snare › waveform');
+    assert.strictEqual(view.chosenWaveform('t-kick'), '#snare › waveform');
+    assert.strictEqual(
+      view.chosenWaveform('t-hat'),
+      undefined,
+      'another track’s is its own',
+    );
+    assert.deepEqual(
+      (
+        JSON.parse(window.localStorage.getItem(VIEW_STORAGE_KEY) ?? '{}') as {
+          waveforms?: unknown;
+        }
+      ).waveforms,
+      { 't-kick': '#snare › waveform' },
+    );
   });
 });

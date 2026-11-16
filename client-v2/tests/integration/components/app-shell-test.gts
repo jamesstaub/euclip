@@ -15,7 +15,7 @@ import { setupRenderingTest } from 'client-v2/tests/helpers';
 import AppShell from 'client-v2/components/app-shell';
 import { defaultProject } from 'client-v2/project/default-project';
 import { applyOperation } from 'client-v2/project/operations';
-import { controlKey, sequencerKey } from 'client-v2/project/schema';
+import { controlKey, stepGridKey } from 'client-v2/project/schema';
 import { MemoryStorage } from 'client-v2/project/storage';
 import type AudioService from 'client-v2/services/audio';
 import type ProjectService from 'client-v2/services/project';
@@ -117,8 +117,8 @@ module('Integration | Component | app-shell', function (hooks) {
     });
   });
 
-  module('sequencers', function () {
-    test('a track row shows the sequencers its script declares', async function (assert) {
+  module('step grids', function () {
+    test('a track row shows the step grids its script declares', async function (assert) {
       await render(<template><AppShell /></template>);
 
       assert
@@ -135,7 +135,7 @@ module('Integration | Component | app-shell', function (hooks) {
         .exists({ count: 16 });
       assert.deepEqual(pressedSteps(1), [0, 4, 8, 12]);
       assert.deepEqual(pressedSteps(2), [4, 12, 15]);
-      assert.dom('[data-test-no-sequencer]').doesNotExist();
+      assert.dom('[data-test-no-step-grid]').doesNotExist();
       assert
         .dom('[data-test-track-list] .cm-editor')
         .doesNotExist('no scripts in the list');
@@ -163,7 +163,7 @@ module('Integration | Component | app-shell', function (hooks) {
       );
       assert.deepEqual(
         (
-          project.doc.tracks[0]?.values.controls[sequencerKey('steps')]
+          project.doc.tracks[0]?.values.controls[stepGridKey('steps')]
             ?.value as number[]
         ).slice(0, 5),
         [0, 0, 1, 0, 1],
@@ -178,15 +178,15 @@ module('Integration | Component | app-shell', function (hooks) {
       );
     });
 
-    test('a track with no sequencer() line has a quiet hint instead of a grid, though its sequence runs', async function (assert) {
+    test('a track with no stepGrid() line has a quiet hint instead of a grid, though its sequence runs', async function (assert) {
       await render(<template><AppShell /></template>);
       await click('[data-test-script-toggle]');
-      await typeScript((text) => text.replace("sequencer('steps');\n", ''));
+      await typeScript((text) => text.replace("stepGrid('steps');\n", ''));
 
       assert.dom('[data-test-track="1"] [data-test-step-grid]').doesNotExist();
       assert
-        .dom('[data-test-track="1"] [data-test-no-sequencer]')
-        .hasText('No sequencer declared');
+        .dom('[data-test-track="1"] [data-test-no-step-grid]')
+        .hasText('No step grid declared');
       assert.strictEqual(
         audio.engine!.scope('t-kick').scope('script').transport.sequences
           .length,
@@ -196,7 +196,7 @@ module('Integration | Component | app-shell', function (hooks) {
       assert.dom('[data-test-track="2"] [data-test-step-grid]').exists();
     });
 
-    test('the footer’s sequence pane lists them, with Reset for a stored pattern; two sequencers are named', async function (assert) {
+    test('the footer’s sequence pane lists them, with Reset for a stored pattern; two step grids are named', async function (assert) {
       view.footerPane = 'sequence';
       await render(<template><AppShell /></template>);
 
@@ -226,7 +226,7 @@ module('Integration | Component | app-shell', function (hooks) {
       await click('[data-test-script-toggle]');
       await typeScript(
         (text) =>
-          `${text}\n__.transport.sequence('fill', { steps: [0, 0, 1] }, () => {});\nsequencer('fill', { label: 'Fill' });`,
+          `${text}\n__.transport.sequence('fill', { steps: [0, 0, 1] }, () => {});\nstepGrid('fill', { label: 'Fill' });`,
       );
       assert
         .dom('[data-test-track="1"] [data-test-step-grid]')
@@ -244,7 +244,7 @@ module('Integration | Component | app-shell', function (hooks) {
       );
       assert
         .dom('[data-test-track="2"] .track__grid-name')
-        .doesNotExist('one sequencer needs no name');
+        .doesNotExist('one step grid needs no name');
     });
   });
 
@@ -650,7 +650,7 @@ module('Integration | Component | app-shell', function (hooks) {
       await click('[data-test-script-toggle]');
       await typeScript(
         (text) =>
-          `${text}slider('#nope', 'frequency');\nsequencer('missing');\n`,
+          `${text}slider('#nope', 'frequency');\nstepGrid('missing');\n`,
       );
 
       assert.dom('[data-test-script-error]').doesNotExist('not an error');
@@ -1081,7 +1081,7 @@ slider(__.bus('drums'), 'gain');
       assert.dom('[data-test-track]').exists({ count: 3 });
       assert.dom('[data-test-track="2"] [data-test-track-name]').hasText('hat');
       assert.deepEqual(
-        audio.sequencers('t-snare'),
+        audio.stepGrids('t-snare'),
         [],
         'it is no longer running',
       );
@@ -1147,7 +1147,7 @@ slider(__.bus('drums'), 'gain');
       saved = applyOperation(saved, {
         type: 'setControlValue',
         scope: 't-kick',
-        key: sequencerKey('steps'),
+        key: stepGridKey('steps'),
         value: [0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       });
       saved = applyOperation(saved, {

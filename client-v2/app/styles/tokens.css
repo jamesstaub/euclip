@@ -65,7 +65,7 @@
   --control-outline-on-dark: var(--moon-gray);
 
   /*
-   * Sequencer steps: off is light grey, on is the cyan, and the step being played is red with a dark
+   * Step grid steps: off is light grey, on is the cyan, and the step being played is red with a dark
    * ring. A dark line around every step separates neighbours and is what shows an off step on the
    * yellow of the selected row, where light grey alone would merge with it.
    */
@@ -126,7 +126,7 @@
   --tracks-min: 24rem; /* the track list never gets narrower than this beside the sidebar */
   --track-row-min: 3.5rem;
   --footer-min: 22rem;
-  --footer-max: 28rem;
+  --footer-max: 32rem;
   --source-width: 8rem;
   --step-size: 2rem;
   --step-size-max: 3.5rem; /* when the grid wraps to 2 x 8 and its steps fill the width */

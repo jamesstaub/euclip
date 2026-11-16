@@ -16,9 +16,9 @@
 import type { ComponentLike } from '@glint/template';
 import KnobWidget from 'client-v2/components/widgets/knob-widget';
 import SelectWidget from 'client-v2/components/widgets/select-widget';
-import SequencerWidget, {
-  type SequencerWidgetSignature,
-} from 'client-v2/components/widgets/sequencer-widget';
+import StepGridWidget, {
+  type StepGridWidgetSignature,
+} from 'client-v2/components/widgets/step-grid-widget';
 import SliderWidget, {
   type ControlWidgetSignature,
 } from 'client-v2/components/widgets/slider-widget';
@@ -42,7 +42,7 @@ interface Entry<S> {
 }
 
 export type ControlEntry = Entry<ControlWidgetSignature>;
-export type SequencerEntry = Entry<SequencerWidgetSignature>;
+export type StepGridEntry = Entry<StepGridWidgetSignature>;
 
 const CONTROLS: readonly ControlEntry[] = [
   {
@@ -75,14 +75,14 @@ const CONTROLS: readonly ControlEntry[] = [
   },
 ];
 
-const SEQUENCERS: readonly SequencerEntry[] = [
-  // (a sequencer's `view` option will choose among entries like this one; 'toggles' is the only view yet)
+const STEP_GRIDS: readonly StepGridEntry[] = [
+  // (a step grid's `view` option will choose among entries like this one; 'toggles' is the only view yet)
   {
-    kind: 'sequencer',
+    kind: 'stepGrid',
     binds: ['sequence'],
     layout: 'block',
     number: false,
-    component: SequencerWidget,
+    component: StepGridWidget,
   },
 ];
 
@@ -116,7 +116,13 @@ const COMPOUNDS: readonly CompoundEntry<WaveformWidgetSignature>[] = [
 /** What the waveform widget is given. (Its own module is only a type here, so it stays out of the app's first load.) */
 export interface WaveformWidgetSignature {
   Element: HTMLElement;
-  Args: { scopeId: string; waveform: WaveformView };
+  Args: {
+    scopeId: string;
+    waveform: WaveformView;
+    /** every waveform of the script, when there are several to choose between */
+    others?: readonly { key: string; label: string }[];
+    onChoose?: (key: string) => void;
+  };
 }
 
 /** The entry that draws a waveform editor. */
@@ -129,14 +135,14 @@ export function controlWidget(kind: string): ControlEntry | undefined {
   return CONTROLS.find((entry) => entry.kind === kind);
 }
 
-/** The entry that draws a sequencer. */
-export function sequencerWidget(): SequencerEntry {
-  return SEQUENCERS[0]!;
+/** The entry that draws a grid. */
+export function stepGridWidget(): StepGridEntry {
+  return STEP_GRIDS[0]!;
 }
 
 /** Every kind there is, for anything that lists them. */
 export const WIDGET_KINDS: readonly string[] = [
   ...CONTROLS,
-  ...SEQUENCERS,
+  ...STEP_GRIDS,
   ...COMPOUNDS,
 ].map((entry) => entry.kind);

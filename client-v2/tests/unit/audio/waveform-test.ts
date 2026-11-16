@@ -633,7 +633,7 @@ waveform();`),
 
     test('a step’s value chooses the slice that plays', async function (assert) {
       const sliced = (steps: string): string =>
-        `${SAMPLER('loop')}__.transport.sequence('slices', { steps: [${steps}], step: '1/2' }, (ev) => { if (ev.value) __('#s').trigger({ slice: ev.value - 1 }); });\nsequencer('slices');\nwaveform('#s');`;
+        `${SAMPLER('loop')}__.transport.sequence('slices', { steps: [${steps}], step: '1/2' }, (ev) => { if (ev.value) __('#s').trigger({ slice: ev.value - 1 }); });\nstepGrid('slices');\nwaveform('#s');`;
       const h = await startProject(project(sliced('3, 0')), 1);
       const out = await h.render();
       const loop = h.engine.buffers.get('loop')!.buffer!.getChannelData(0);
