@@ -7,7 +7,11 @@ import {
 } from 'client-v2/audio/runner';
 import { REGION_GAP } from 'client-v2/controls/live-range';
 import { mapping } from 'client-v2/controls/modes';
-import { defaultProject, newTrack } from 'client-v2/project/default-project';
+import {
+  defaultProject,
+  newSlicedLoopTrack,
+  newTrack,
+} from 'client-v2/project/default-project';
 import { applyOperation } from 'client-v2/project/operations';
 import {
   busKey,
@@ -25,6 +29,7 @@ import {
   rms,
   startProject,
   type Harness,
+  arrayDefaultProject,
 } from 'client-v2/tests/helpers/runner';
 
 const KICK = 't-kick';
@@ -90,7 +95,7 @@ function move(
 /** A project of one track with the given script, and an empty project script. */
 function oneTrack(script: string): ProjectDocument {
   return {
-    ...defaultProject(),
+    ...arrayDefaultProject(),
     script: '',
     tracks: [
       { id: ONE, name: 'one', script, level: 1, pan: 0, values: emptyValues() },
@@ -800,7 +805,7 @@ __('*').set({ pan: 1 });`),
     });
 
     test('the project script’s controls() takes only its own nodes, not the tracks’ nor their pans', async function (assert) {
-      const doc = applyOperation(defaultProject(), {
+      const doc = applyOperation(arrayDefaultProject(), {
         type: 'setScript',
         scope: PROJECT_SCOPE,
         script: `__.bus('main').compressor({ id: 'glue' });\ncontrols();\nslider('panner', 'pan');`,
@@ -1691,6 +1696,233 @@ controls('#s');`),
     });
   });
 
+  module('a speed synced to a sequence', function () {
+    const SPEED = '#s › speed';
+    // the loop is 4 s; 16 eighths at 120 are 4 s, 8 sixteenths 1 s
+    const SYNCED = (more = '', options = "{ mode: 'sequence-sync' }") =>
+      `__().sampler({ id: 's', buffer: 'loop' }).to('channel');
+__.transport.sequence('slices', { steps: 16, step: '1/8' }, () => {});
+${more}slider('#s', 'speed', ${options});`;
+    const FILLS = `__.transport.sequence('fills', { steps: 8, step: '1/16' }, () => {});\n`;
+    const speedOf = (h: Harness): number =>
+      h.runner.sampler(ONE, 's')!.param('speed').value as number;
+    const near = (a: number, b: number): boolean => Math.abs(a - b) < 1e-6;
+
+    test('the control holds a multiplier; the speed is the sound’s length over the sequence’s, times it', async function (assert) {
+      const h = await startProject(oneTrack(SYNCED()));
+      const view = control(h, ONE, SPEED);
+      assert.strictEqual(view.mode, 'sequence-sync');
+      assert.strictEqual(view.value, 1, 'once through, with nothing stored');
+      assert.false(view.stored);
+      assert.true(near(speedOf(h), 1), '4 s of sound in 4 s of sequence');
+      assert.strictEqual(view.effective, null, 'not out of step with itself');
+      assert.deepEqual(storedIn(h, ONE), {}, 'nothing written');
+
+      move(h, ONE, SPEED, 2);
+      assert.true(near(speedOf(h), 2));
+      assert.strictEqual(control(h, ONE, SPEED).value, 2);
+      move(h, ONE, SPEED, 1 / 3);
+      assert.true(near(speedOf(h), 1 / 3));
+      assert.deepEqual(
+        storedIn(h, ONE),
+        { [SPEED]: 1 / 3 },
+        'the multiplier is what is stored',
+      );
+      assert.strictEqual(control(h, ONE, SPEED).effective, null);
+    });
+
+    test('it follows the tempo, the sequence and the sound, with nothing stored and no rebuild', async function (assert) {
+      const h = await startProject(oneTrack(SYNCED()));
+      const node = h.runner.sampler(ONE, 's');
+      h.apply({ type: 'setBpm', bpm: 90 });
+      assert.true(
+        near(speedOf(h), 0.75),
+        `at 90 the sequence lasts longer (${speedOf(h)})`,
+      );
+      assert.strictEqual(
+        h.runner.sampler(ONE, 's'),
+        node,
+        'the same node: no rebuild',
+      );
+      assert.deepEqual(h.derived, [], 'nothing dispatched');
+      assert.deepEqual(storedIn(h, ONE), {});
+      assert.strictEqual(control(h, ONE, SPEED).effective, null);
+      h.apply({ type: 'setBpm', bpm: 120 });
+
+      // the sequence: half as many steps is half as long
+      await h.setScript(ONE, SYNCED().replace('steps: 16', 'steps: 8'));
+      assert.true(near(speedOf(h), 2), 'half the steps');
+      await h.setScript(ONE, SYNCED().replace("step: '1/8'", "step: '1/16'"));
+      assert.true(near(speedOf(h), 2), 'half the step length');
+      await h.setScript(ONE, SYNCED().replace("step: '1/8'", "span: '1 bar'"));
+      assert.true(near(speedOf(h), 2), 'a span of one bar: 2 s');
+
+      // the sound: the kick is shorter
+      await h.setScript(
+        ONE,
+        SYNCED().replace("buffer: 'loop'", "buffer: 'kick'"),
+      );
+      const kick = h.engine.buffers.get('kick')!.duration!;
+      assert.true(
+        near(speedOf(h), kick / 4),
+        `the kick's length over 4 s (${speedOf(h)})`,
+      );
+    });
+
+    test('with no sound or no sequence the speed is 1, and the control says there is nothing to sync to', async function (assert) {
+      const none = await startProject(
+        oneTrack(`__().sampler({ id: 's', buffer: 'loop' }).to('channel');
+slider('#s', 'speed', { mode: 'sequence-sync' });`),
+      );
+      assert.strictEqual(speedOf(none), 1);
+      assert.true(
+        /no named sequence/.test(control(none, ONE, SPEED).waiting ?? ''),
+      );
+
+      const silent = await startProject(
+        oneTrack(SYNCED().replace("buffer: 'loop'", "buffer: 'nothing-here'")),
+      );
+      assert.strictEqual(speedOf(silent), 1);
+      assert.true(
+        /has not loaded/.test(control(silent, ONE, SPEED).waiting ?? ''),
+      );
+    });
+
+    test('the sequence option names another; an item for each named sequence; a missing one falls back and recovers', async function (assert) {
+      const h = await startProject(
+        oneTrack(SYNCED(FILLS, "{ mode: 'sequence-sync', sequence: 'fills' }")),
+      );
+      assert.true(near(speedOf(h), 4), '4 s of sound in the 1 s of fills');
+      assert.deepEqual(
+        control(h, ONE, SPEED).choices.map((choice) => choice.label),
+        [
+          'Ratio',
+          'Semitones',
+          'Cents',
+          'Sequence sync: slices',
+          'Sequence sync: fills',
+        ],
+      );
+      assert.strictEqual(control(h, ONE, SPEED).choice, 'sequence-sync:fills');
+
+      // chosen from the menu: the other sequence, keeping the speed as near as the values allow
+      for (const op of h.runner.modeOperations(
+        ONE,
+        SPEED,
+        'sequence-sync:slices',
+      ))
+        h.apply(op);
+      assert.strictEqual(control(h, ONE, SPEED).choice, 'sequence-sync:slices');
+      assert.strictEqual(
+        control(h, ONE, SPEED).value,
+        4,
+        'speed 4 over a factor of 1',
+      );
+      assert.true(near(speedOf(h), 4));
+      for (const op of h.runner.modeOperations(
+        ONE,
+        SPEED,
+        'sequence-sync:fills',
+      ))
+        h.apply(op);
+      assert.strictEqual(control(h, ONE, SPEED).value, 1);
+      assert.true(near(speedOf(h), 4));
+
+      // the chosen sequence goes: speed 1, the choice kept and said to be missing
+      await h.setScript(
+        ONE,
+        SYNCED('', "{ mode: 'sequence-sync', sequence: 'fills' }"),
+      );
+      assert.strictEqual(speedOf(h), 1);
+      const lost = control(h, ONE, SPEED);
+      assert.true(/no sequence named 'fills'/.test(lost.waiting ?? ''));
+      assert.strictEqual(lost.choice, 'sequence-sync:fills');
+      assert.deepEqual(lost.choices.map((choice) => choice.label).slice(3), [
+        'Sequence sync',
+        'Sequence sync: fills (missing)',
+      ]);
+      // ...and comes back
+      await h.setScript(
+        ONE,
+        SYNCED(FILLS, "{ mode: 'sequence-sync', sequence: 'fills' }"),
+      );
+      assert.true(near(speedOf(h), 4), 'recovered');
+      assert.strictEqual(control(h, ONE, SPEED).waiting, undefined);
+
+      // no named sequence: no item at all for a speed that is not synced
+      const plain = await startProject(
+        oneTrack(
+          `__().sampler({ id: 's', buffer: 'loop' }).to('channel');\nslider('#s', 'speed');`,
+        ),
+      );
+      assert.deepEqual(
+        control(plain, ONE, SPEED).choices.map((choice) => choice.label),
+        ['Ratio', 'Semitones', 'Cents'],
+      );
+    });
+
+    test('changing unit keeps the speed, as near as the multipliers allow', async function (assert) {
+      const h = await startProject(oneTrack(SYNCED('', '{}')));
+      move(h, ONE, SPEED, 1.4);
+      for (const op of h.runner.modeOperations(
+        ONE,
+        SPEED,
+        'sequence-sync:slices',
+      ))
+        h.apply(op);
+      assert.strictEqual(
+        control(h, ONE, SPEED).value,
+        1.5,
+        '1.4 is nearest 3/2',
+      );
+      assert.true(near(speedOf(h), 1.5));
+      h.apply({ type: 'setBpm', bpm: 60 });
+      assert.true(near(speedOf(h), 0.75), 'synced: it follows the tempo');
+      for (const op of h.runner.modeOperations(ONE, SPEED, 'ratio'))
+        h.apply(op);
+      assert.strictEqual(control(h, ONE, SPEED).mode, 'ratio');
+      assert.strictEqual(
+        control(h, ONE, SPEED).value,
+        0.75,
+        'out of sync: the speed it was at',
+      );
+      h.apply({ type: 'setBpm', bpm: 120 });
+      assert.true(near(speedOf(h), 0.75), 'and it no longer follows');
+      for (const op of h.runner.modeOperations(ONE, SPEED, 'semitones'))
+        h.apply(op);
+      assert.true(near(speedOf(h), 0.75), 'another plain unit changes nothing');
+    });
+
+    test('control.set() from a script works in the multiplier; the sliced-loop template is synced', async function (assert) {
+      const h = await startProject(
+        oneTrack(`__().sampler({ id: 's', buffer: 'loop' }).to('channel');
+__.transport.sequence('slices', { steps: 16, step: '1/16' }, () => {});
+const speed = slider('#s', 'speed', { mode: 'sequence-sync' });
+globalThis.euclipSpeed = speed.value;
+speed.set(0.5);`),
+      );
+      assert.strictEqual(
+        (globalThis as unknown as { euclipSpeed: number }).euclipSpeed,
+        1,
+      );
+      assert.true(near(speedOf(h), 1), 'half of (4 s over 2 s)');
+      assert.deepEqual(storedIn(h, ONE), { [SPEED]: 0.5 });
+
+      const loop = newSlicedLoopTrack('loop');
+      const t = await startProject({
+        ...arrayDefaultProject(),
+        tracks: [loop],
+      });
+      const sampler = t.runner.sampler(loop.id, 'sampler')!;
+      assert.true(near(sampler.param('speed').value as number, 1));
+      t.apply({ type: 'setBpm', bpm: 90 });
+      assert.true(
+        near(sampler.param('speed').value as number, 0.75),
+        'the loop stays in time at 90',
+      );
+    });
+  });
+
   module('declared step grids', function () {
     test('a grid exists only for a sequence with a stepGrid() line', async function (assert) {
       const h = await startProject(
@@ -1765,6 +1997,134 @@ stepGrid('a');`),
       assert.false(grid(h, KICK).stored);
       assert.deepEqual(storedIn(h, KICK), {});
     });
+
+    module(
+      'a sequence made with a count: the grid owns the pattern',
+      function () {
+        const COUNT = (steps: string, more = "stepGrid('s');") =>
+          `${CHAIN}__.transport.sequence('s', { steps: ${steps}, step: '1/16' }, (ev) => { if (ev.value) __('#s').trigger(); });\n${more}`;
+        const stepsOf = (h: Harness): number[] => [
+          ...h.engine.scope(ONE).scope('script').transport.get('s')!.steps,
+        ];
+        test('a count with a grid starts empty and silent, and nothing is stored for that', async function (assert) {
+          const h = await startProject(oneTrack(COUNT('8')));
+          assert.deepEqual(grid(h, ONE, 's').steps, [0, 0, 0, 0, 0, 0, 0, 0]);
+          assert.deepEqual(stepsOf(h), [0, 0, 0, 0, 0, 0, 0, 0]);
+          assert.false(grid(h, ONE, 's').stored);
+          assert.deepEqual(storedIn(h, ONE), {}, 'nothing written');
+          assert.deepEqual(h.derived, [], 'by any road');
+          assert.strictEqual(rms(await h.render()), 0, 'and it is silent');
+          // (the same script with a step set is heard: the silence is the empty grid's)
+          const loud = await startProject(oneTrack(COUNT('8')));
+          loud.apply(loud.runner.toggleStepOperation(ONE, 's', 0));
+          assert.true(rms(await loud.render()) > 0.001, 'a step set, it plays');
+
+          // the same through controls(), whichever side of the sequence it is on
+          const viaControls = await startProject(
+            oneTrack(`controls();\n${COUNT('4', '')}`),
+          );
+          assert.deepEqual(grid(viaControls, ONE, 's').steps, [0, 0, 0, 0]);
+          assert.deepEqual(storedIn(viaControls, ONE), {});
+        });
+
+        test('an explicit pattern is the default, all ones included; a count with no grid is left to fire every step', async function (assert) {
+          const ones = await startProject(oneTrack(COUNT('[1, 1, 1, 1]')));
+          assert.deepEqual(
+            grid(ones, ONE, 's').steps,
+            [1, 1, 1, 1],
+            'four written on are four on',
+          );
+          const text = await startProject(oneTrack(COUNT("'x.x.'")));
+          assert.deepEqual(grid(text, ONE, 's').steps, [1, 0, 1, 0]);
+
+          const bare = await startProject(oneTrack(COUNT('4', '')));
+          assert.deepEqual(bare.runner.stepGrids(ONE), [], 'no grid');
+          assert.deepEqual(
+            stepsOf(bare),
+            [1, 1, 1, 1],
+            'as the library makes it',
+          );
+        });
+
+        test('the first step set is stored and plays; undoing it returns to empty', async function (assert) {
+          const h = await startProject(oneTrack(COUNT('4')));
+          const op = h.runner.toggleStepOperation(ONE, 's', 2)!;
+          h.apply(op);
+          assert.deepEqual(grid(h, ONE, 's').steps, [0, 0, 1, 0]);
+          assert.deepEqual(storedIn(h, ONE), {
+            [stepGridKey('s')]: [0, 0, 1, 0],
+          });
+
+          // through a rebuild the stored pattern wins, and the count is still read as a count
+          await h.runner.run(ONE);
+          assert.deepEqual(grid(h, ONE, 's').steps, [0, 0, 1, 0]);
+
+          // undo: the store forgets the value (as its undo of a first edit does)
+          h.apply({ type: 'resetControl', scope: ONE, key: stepGridKey('s') });
+          await h.runner.run(ONE);
+          assert.deepEqual(
+            grid(h, ONE, 's').steps,
+            [0, 0, 0, 0],
+            'empty again',
+          );
+          assert.false(grid(h, ONE, 's').stored);
+          assert.deepEqual(storedIn(h, ONE), {});
+        });
+
+        test('a changed count keeps the stored steps as far as they go, and the new ones are rests', async function (assert) {
+          const h = await startProject(oneTrack(COUNT('4')));
+          move(h, ONE, stepGridKey('s'), [1, 0, 2, 1]);
+          await h.setScript(ONE, COUNT('6'));
+          assert.deepEqual(grid(h, ONE, 's').steps, [1, 0, 2, 1, 0, 0]);
+          await h.setScript(ONE, COUNT('2'));
+          assert.deepEqual(grid(h, ONE, 's').steps, [1, 0]);
+          await h.setScript(ONE, COUNT('3'));
+          assert.deepEqual(grid(h, ONE, 's').steps, [1, 0, 2]);
+          // from a count to a pattern in the script, with something stored: stored still wins
+          await h.setScript(ONE, COUNT('[1, 1, 1, 1, 1]'));
+          assert.deepEqual(grid(h, ONE, 's').steps, [1, 0, 2, 1, 1]);
+        });
+
+        test('the templates give a count, with their starting patterns stored: they show and play them', async function (assert) {
+          const doc = defaultProject();
+          for (const track of doc.tracks) {
+            assert.true(
+              /steps: 16,/.test(track.script),
+              `${track.name}: a count`,
+            );
+          }
+          const fresh = newTrack('new');
+          const loop = newSlicedLoopTrack('loop');
+          const h = await startProject({
+            ...doc,
+            tracks: [...doc.tracks, fresh, loop],
+          });
+          const shown = (id: string, name = 'steps'): string =>
+            grid(h, id, name).steps.join('');
+          assert.strictEqual(shown(KICK), '1000100010001000');
+          assert.strictEqual(shown('t-snare'), '0000100000001001');
+          assert.strictEqual(shown('t-hat'), '1010101010101011');
+          assert.strictEqual(shown(fresh.id), '1000000000000000');
+          assert.deepEqual(
+            grid(h, loop.id, 'slices').steps,
+            [1, 0, 3, 3, 5, 0, 7, 8, 9, 0, 3, 12, 13, 14, 0, 16],
+          );
+          assert.true(grid(h, KICK).stored);
+          assert.deepEqual(h.derived, [], 'nothing rewritten on the way');
+
+          // only the kick: it sounds on its beats and not between them
+          const solo = await startProject({ ...doc, tracks: [doc.tracks[0]!] });
+          const rendered = await solo.render();
+          const level = (from: number, to: number): number =>
+            rms(rendered, from, to);
+          assert.true(
+            level(0, 0.1) > 0.01,
+            `the first beat sounds (${level(0, 0.1)})`,
+          );
+          assert.true(level(0.5, 0.6) > 0.01, 'and the second');
+        });
+      },
+    );
 
     test('a stored pattern is fitted when the script changes the number of steps', async function (assert) {
       const script = `${CHAIN}__.transport.sequence('s', { steps: [1, 0, 0, 0, 1, 0, 0, 0] }, () => {});\nstepGrid('s');`;
@@ -1965,7 +2325,7 @@ grid.set([1, 1, 1, 1]);`),
     });
 
     test('a project loaded with a broken script: that track is silent and marked, the rest play', async function (assert) {
-      const doc = applyOperation(defaultProject(), {
+      const doc = applyOperation(arrayDefaultProject(), {
         type: 'setScript',
         scope: 't-snare',
         script: `__().sampler({ id: 's', buffer: 'snare' }).to('channel'`,
@@ -2000,7 +2360,7 @@ __.transport.sequence('other', { steps: 4, step: '1/4' }, () => {});
 stepGrid('steps');
 stepGrid('other');`;
       const h = await startProject(
-        applyOperation(defaultProject(), {
+        applyOperation(arrayDefaultProject(), {
           type: 'setScript',
           scope: 't-hat',
           script: broken,

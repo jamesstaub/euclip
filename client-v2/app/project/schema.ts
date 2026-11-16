@@ -29,6 +29,8 @@ export interface ControlState {
 export interface ControlUserOptions {
   /** the slider mode the user chose (see controls/modes.ts); absent: the declared or default one */
   mode?: string;
+  /** with the mode `sequence-sync`: the named sequence of the script the speed is synced to */
+  sequence?: string;
 }
 
 /**

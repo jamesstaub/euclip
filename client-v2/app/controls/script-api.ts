@@ -49,6 +49,12 @@ export interface ControlHost {
   warn(warning: DeclarationWarning): void;
   /** the script moved a control with `.set()`; the parameter (if it has one) has already been set */
   moved(key: string, value: StoredValue): void;
+  /**
+   * For a control whose number is not its parameter's (a sampler's speed synced to a sequence, which
+   * holds a multiplier): what turns the control's number into the parameter's, as things stand when
+   * it is called. Null for every other control. Asked after `declare`.
+   */
+  sync(key: string): ((value: number) => number) | null;
 }
 
 /** What a declaration returns to the script. */
@@ -247,17 +253,24 @@ export function createControlApi(
     });
     if (!used) return INERT;
 
+    const sync = host.sync(key);
     const set = (value: StoredValue): void => {
       if (Array.isArray(value)) return;
-      for (const node of reach(bindings)) node.param(param).set(value);
+      const applied = sync && typeof value === 'number' ? sync(value) : value;
+      for (const node of reach(bindings)) node.param(param).set(applied);
     };
-    // The stored value passes through the script here, as an ordinary set.
+    // The stored value passes through the script here, as an ordinary set. (A synced speed has a
+    // value to set with nothing stored too: once through at the sequence's own pace.)
     const stored = host.stored(key);
     if (stored !== undefined) set(stored);
+    else if (sync) set(1);
 
     return {
       get value() {
-        return host.stored(key) ?? reach(bindings)[0]?.param(param).value;
+        return (
+          host.stored(key) ??
+          (sync ? 1 : reach(bindings)[0]?.param(param).value)
+        );
       },
       set(value) {
         set(value);
@@ -470,6 +483,12 @@ export function createControlApi(
 
   /** The sequences that have a grid declared, so that `controls()` adds one only where there is none. */
   const gridded = new Set<string>();
+  /**
+   * The sequences the script made with a count (`steps: 16`) and no pattern, as found the first time
+   * each is given a grid: read before anything here writes a pattern into the sequence, since after
+   * that its options hold the pattern.
+   */
+  const counted = new Set<string>();
 
   /** Declares the grid of a named sequence that exists, and applies the pattern the project holds for it. */
   function grid(
@@ -491,8 +510,18 @@ export function createControlApi(
     });
     const stored = host.stored(key);
     const sequence = api.transport.get(name);
-    if (sequence && Array.isArray(stored)) {
-      sequence.update({ steps: fitSteps(stored, sequence.steps) });
+    if (sequence) {
+      if (typeof sequence.options.steps === 'number') counted.add(name);
+      // A sequence made with a count has no pattern of its own: its grid owns the pattern, and starts
+      // empty. (Nothing is written into the project for that: only a step the person sets is.)
+      const code = counted.has(name)
+        ? sequence.steps.map(() => 0)
+        : sequence.steps;
+      if (Array.isArray(stored)) {
+        sequence.update({ steps: fitSteps(stored, code) });
+      } else if (counted.has(name)) {
+        sequence.update({ steps: code });
+      }
     }
     return {
       get value() {
@@ -757,7 +786,8 @@ export function createControlApi(
 /**
  * A stored pattern made to fit the sequence as the script now makes it. When the script's step count
  * has changed, the stored steps are kept as far as they go: a shorter sequence drops the extra ones, a
- * longer one takes its new steps from the script.
+ * longer one takes its new steps from the script (`code`: its pattern, or all rests where the script
+ * gives a count and the grid owns the pattern).
  */
 export function fitSteps(
   stored: readonly number[],

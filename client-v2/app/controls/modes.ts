@@ -33,7 +33,9 @@ export type ModeName =
   // a playback speed
   | 'ratio'
   | 'semitones'
-  | 'ratio-cents';
+  | 'ratio-cents'
+  // ...or how many times a sampler's sound goes into one pass of a sequence (see `sequenceSync`)
+  | 'sequence-sync';
 
 export const MODE_LABELS: Readonly<Record<ModeName, string>> = {
   linear: 'Linear',
@@ -51,6 +53,7 @@ export const MODE_LABELS: Readonly<Record<ModeName, string>> = {
   ratio: 'Ratio',
   semitones: 'Semitones',
   'ratio-cents': 'Cents',
+  'sequence-sync': 'Sequence sync',
 };
 
 /** What a mode needs to know about the parameter, and about what is live around it. */
@@ -572,6 +575,76 @@ function slice(range: Range): Mapping {
   };
 }
 
+/**
+ * The values of a speed synced to a sequence: how many times the whole sound plays in one pass of the
+ * sequence. 1 fits it exactly; 2 is twice as fast; 1/2 takes two passes. (The original Euclip had 0.5
+ * to 2 in halves; these are the musical ones over a wider range, thirds for triplet feels included.)
+ */
+export const SYNC_VALUES: readonly number[] = [
+  1 / 4,
+  1 / 3,
+  1 / 2,
+  1,
+  3 / 2,
+  2,
+  3,
+  4,
+];
+const SYNC_TEXT: readonly string[] = [
+  '1/4',
+  '1/3',
+  '1/2',
+  '1',
+  '3/2',
+  '2',
+  '3',
+  '4',
+];
+
+/** The allowed multiplier nearest a value (by ratio: 0.7 is nearer 1/2 than 1). */
+export function nearestSync(value: number): number {
+  const wanted = Math.log(Math.max(value, 1e-9));
+  return SYNC_VALUES.reduce((best, candidate) =>
+    Math.abs(Math.log(candidate) - wanted) < Math.abs(Math.log(best) - wanted)
+      ? candidate
+      : best,
+  );
+}
+
+/**
+ * A playback speed synced to a sequence. The value here is not the speed but the multiplier: the
+ * speed is `multiplier × the sound's length ÷ the sequence's length`, worked out where the sound and
+ * the sequence are known (audio/runner.ts) and again whenever the tempo, the sequence or the sound
+ * changes. The parameter's own range does not apply to the multiplier.
+ */
+function sequenceSync(): Mapping {
+  const last = SYNC_VALUES.length - 1;
+  const index = (value: number): number =>
+    SYNC_VALUES.indexOf(nearestSync(value));
+  return {
+    mode: 'sequence-sync',
+    toPosition: (value) => index(value) / last,
+    toValue: (position) => SYNC_VALUES[Math.round(clamp01(position) * last)]!,
+    format: (value) => `${SYNC_TEXT[index(value)]}× seq`,
+    parse: (text) => {
+      const fraction =
+        /^\s*(\d+\.?\d*)\s*\/\s*(\d+\.?\d*)\s*(?:[x×]\s*(?:seq)?)?\s*$/i.exec(
+          text,
+        );
+      const typed = fraction
+        ? Number(fraction[1]) / Number(fraction[2])
+        : (/^\s*(\d+\.?\d*|\.\d+)\s*(?:[x×]\s*(?:seq)?)?\s*$/i.exec(
+            text,
+          )?.[1] ?? null);
+      const value = typed === null ? NaN : Number(typed);
+      return Number.isFinite(value) && value > 0 ? nearestSync(value) : null;
+    },
+    keyStep: 1 / last,
+    discrete: true,
+    bipolar: false,
+  };
+}
+
 /** A playback speed as a ratio: `2×` is twice as fast. */
 function ratio(range: Range): Mapping {
   return inUnit('ratio', range, {
@@ -622,6 +695,7 @@ const MODES: Readonly<Record<ModeName, (range: Range) => Mapping>> = {
   ratio,
   semitones,
   'ratio-cents': ratioCents,
+  'sequence-sync': sequenceSync,
 };
 
 /** The mapping for a mode over a range. */

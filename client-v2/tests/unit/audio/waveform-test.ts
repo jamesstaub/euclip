@@ -2,7 +2,6 @@ import { module, test } from 'qunit';
 import { mapping } from 'client-v2/controls/modes';
 import { REGION_GAP, samplerRegion } from 'client-v2/controls/live-range';
 import { STORED_BUFFER_CHOICE } from 'client-v2/controls/features';
-import { defaultProject } from 'client-v2/project/default-project';
 import { applyOperation } from 'client-v2/project/operations';
 import {
   emptyValues,
@@ -15,6 +14,7 @@ import {
   rms,
   startProject,
   type Harness,
+  arrayDefaultProject,
 } from 'client-v2/tests/helpers/runner';
 
 const ONE = 't-1';
@@ -26,7 +26,7 @@ function track(id: string, script: string) {
 
 function project(...scripts: string[]): ProjectDocument {
   return {
-    ...defaultProject(),
+    ...arrayDefaultProject(),
     // (no master compressor: what is rendered is what the samplers play)
     script: '',
     tracks: scripts.map((script, index) =>
@@ -492,7 +492,7 @@ waveform();`),
     });
 
     test('the operation: sorted, without repeats, and one slice is nothing stored', function (assert) {
-      const doc = defaultProject();
+      const doc = arrayDefaultProject();
       const cut = applyOperation(doc, {
         type: 'setSampleSlices',
         name: 'kick',
@@ -538,7 +538,7 @@ waveform();`),
       const doc: ProjectDocument = {
         ...project(`${SAMPLER('mine')}waveform('#s');`),
         samples: {
-          ...defaultProject().samples,
+          ...arrayDefaultProject().samples,
           mine: { file: 'f-1', label: 'Mine.wav', slices: [0, 0.5, 1, 1.5] },
         },
       };
@@ -557,7 +557,7 @@ waveform();`),
       const doc: ProjectDocument = {
         ...project(`${SAMPLER('kick')}waveform('#s');`),
         samples: {
-          ...defaultProject().samples,
+          ...arrayDefaultProject().samples,
           gone: { file: 'f-9', label: 'Gone.wav' },
         },
       };

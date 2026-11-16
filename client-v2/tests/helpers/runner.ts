@@ -36,11 +36,35 @@ export interface Harness {
 }
 
 /**
+ * The default project in the form projects were saved in before a count of steps let the grid own a
+ * pattern: each track's pattern written in its script as an array (the default), and nothing stored.
+ * That form keeps working, and most tests here are about it.
+ */
+export function arrayDefaultProject(): ProjectDocument {
+  const doc = defaultProject();
+  return {
+    ...doc,
+    tracks: doc.tracks.map((track) => {
+      const steps = track.values.controls['stepGrid › steps']?.value;
+      if (!Array.isArray(steps)) return track;
+      return {
+        ...track,
+        script: track.script.replace(
+          /steps: \d+,/,
+          `steps: [${steps.join(', ')}],`,
+        ),
+        values: { controls: {} },
+      };
+    }),
+  };
+}
+
+/**
  * Starts a project on an OfflineAudioContext: no sound card, nothing to resume, and it can be rendered
  * faster than real time. The built-in samples are loaded before it resolves.
  */
 export async function startProject(
-  doc: ProjectDocument = defaultProject(),
+  doc: ProjectDocument = arrayDefaultProject(),
   seconds = 2,
   nodes: readonly NodeDefinition[] = [],
   options: RunnerOptions = {},

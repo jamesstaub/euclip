@@ -46,8 +46,11 @@ import { liveRange } from 'client-v2/controls/live-range';
 import {
   availableModes,
   defaultMode,
+  familyOf,
   isModeName,
   mapping,
+  MODE_LABELS,
+  nearestSync,
   type ModeName,
   type NumberMeta,
 } from 'client-v2/controls/modes';
@@ -138,8 +141,34 @@ export interface ControlView {
   /** number controls: the unit in use, and the ones on offer */
   mode: ModeName;
   modes: ModeName[];
+  /**
+   * The units as its menu lists them. Mostly one per mode; a sampler's speed has a "sequence sync"
+   * item for every named sequence of its script, and `choice` says which is in use.
+   */
+  choices: ModeChoice[];
+  choice: string;
   /** its range depends on something not there yet (a sample still loading): what, in words */
   waiting?: string;
+}
+
+/** One item of a control's unit menu. */
+export interface ModeChoice {
+  /** what to hand `modeOperations`: a mode's name, or `sequence-sync:` and a sequence's name */
+  id: string;
+  label: string;
+}
+
+const SYNC = 'sequence-sync';
+const syncChoice = (sequence: string): string => `${SYNC}:${sequence}`;
+
+/** A speed synced to a sequence, as things stand: which sequence, and what a multiplier of 1 is as a speed. */
+interface Sync {
+  /** the sequence's name, as chosen or (with none chosen) the script's first; null when there is none */
+  sequence: string | null;
+  /** the sound's length over the sequence's; null while there is nothing to sync to (the speed is then 1) */
+  factor: number | null;
+  /** with no factor: what is missing, in words */
+  why?: string;
 }
 
 /** A declared step grid: the grid of a named sequence. */
@@ -322,6 +351,8 @@ export class ProjectRunner {
       engine.buffers.on('ready', (ref) => {
         this.#missing.delete(ref.key);
         this.#applySlices(ref.key);
+        // (a speed synced to a sequence needs the sound's length: here it is)
+        for (const runtime of this.#scopes.values()) this.#resync(runtime);
         this.#host.changed();
       }),
       engine.buffers.on('slices', (ref) => this.#onSlices(ref)),
@@ -432,6 +463,21 @@ export class ProjectRunner {
       },
       warn: (warning) => warnings.push(warning),
       moved: (key, value) => this.#movedByScript(runtime, key, value),
+      sync: (key) => {
+        const find = (): Declaration | undefined =>
+          declared.get(key) ??
+          runtime.declarations.find((candidate) => candidate.key === key);
+        const first = find();
+        if (!first || !this.#syncOf(runtime, first)) return null;
+        // (asked again at every use: a callback's set() next week is at that day's tempo)
+        return (multiplier) => {
+          const declaration = find();
+          const sync = declaration && this.#syncOf(runtime, declaration);
+          return declaration && sync
+            ? this.#syncedSpeed(runtime, declaration, sync, multiplier)
+            : multiplier;
+        };
+      },
     };
     try {
       const result = await runtime.scope.build((api) => {
@@ -441,6 +487,8 @@ export class ProjectRunner {
       });
       runtime.built = true;
       runtime.declarations = [...declared.values()];
+      // (every sequence is made by now, wherever in the script: synced speeds are put right)
+      this.#resync(runtime);
       runtime.claims = claims;
       runtime.warnings = this.#explain(runtime, warnings);
       // One bad node does not stop the rest of a build applying: what could be built is now running.
@@ -493,6 +541,8 @@ export class ProjectRunner {
     switch (op.type) {
       case 'setBpm':
         this.engine.transport.bpm = doc.bpm;
+        // a sequence lasts a different time now: speeds synced to one follow, with nothing stored
+        for (const runtime of this.#scopes.values()) this.#resync(runtime);
         break;
       case 'setControlValue':
         if (!fromScript) this.#applyControl(op.scope, op.key, op.value);
@@ -522,8 +572,13 @@ export class ProjectRunner {
       case 'setSampleSlices':
         if (!fromScript) this.#applySlices(op.name);
         break;
+      case 'setControlOptions': {
+        // (a unit that is "synced to a sequence" changes what the stored number means)
+        const runtime = this.#scopes.get(op.scope);
+        if (runtime) this.#resync(runtime);
+        break;
+      }
       case 'setScript':
-      case 'setControlOptions':
       case 'renameTrack':
       case 'setProjectName':
         // (a script is run by whoever owns the pause after typing: see services/audio.ts)
@@ -729,26 +784,74 @@ export class ProjectRunner {
 
       const raw = stored ?? fallback;
       if (raw === undefined || Array.isArray(raw)) continue;
-      const value = shown(raw) as number | boolean | string;
+      let value = shown(raw) as number | boolean | string;
       const modes = meta.kind === 'number' ? availableModes(meta) : [];
       const wanted = state?.options?.mode ?? options.mode;
-      const mode =
+      let mode =
         isModeName(wanted) && modes.includes(wanted)
           ? wanted
           : meta.kind === 'number'
             ? defaultMode(meta)
             : 'linear';
-      const now =
+      let now =
         live === undefined || Array.isArray(live)
           ? undefined
           : (shown(live) as number | boolean | string);
-      const away =
+      let away =
         now !== undefined &&
         !(meta.kind === 'number' &&
         typeof now === 'number' &&
         typeof value === 'number'
           ? samePlace(now, value, mode, meta)
           : sameValue(now, value));
+      // The unit menu: one item per mode, and for a sampler's speed a "sequence sync" item for every
+      // named sequence of this script (one sequence: just "Sequence sync").
+      const choices: ModeChoice[] = modes.map((id) => ({
+        id,
+        label: MODE_LABELS[id],
+      }));
+      let choice: string = mode;
+      const sync =
+        binding.type === 'param' ? this.#syncOf(runtime, declaration) : null;
+      if (binding.type === 'param' && this.#isSpeed(runtime, declaration)) {
+        const names = this.#sequenceNames(runtime);
+        for (const sequence of names) {
+          choices.push({
+            id: syncChoice(sequence),
+            label:
+              names.length === 1
+                ? MODE_LABELS[SYNC]
+                : `${MODE_LABELS[SYNC]}: ${sequence}`,
+          });
+        }
+        if (names.length > 0) modes.push(SYNC);
+      }
+      if (sync) {
+        // The control holds the multiplier; the parameter is at the speed that makes at this tempo.
+        mode = SYNC;
+        if (!modes.includes(SYNC)) modes.push(SYNC);
+        value = typeof stored === 'number' ? nearestSync(stored) : 1;
+        choice = sync.sequence === null ? SYNC : syncChoice(sync.sequence);
+        if (!choices.some((item) => item.id === choice)) {
+          // (the sequence it was synced to is gone: the choice is kept, and says so)
+          choices.push({
+            id: choice,
+            label:
+              sync.sequence === null
+                ? MODE_LABELS[SYNC]
+                : `${MODE_LABELS[SYNC]}: ${sync.sequence} (missing)`,
+          });
+        }
+        const expected = this.#syncedSpeed(runtime, declaration, sync, value);
+        away =
+          typeof live === 'number' &&
+          Math.abs(live - expected) > 1e-6 * Math.max(1, expected);
+        now =
+          away && typeof live === 'number'
+            ? nearestSync(sync.factor ? live / sync.factor : live)
+            : value;
+        if (sync.why !== undefined) waiting = sync.why;
+      }
       views.push({
         order,
         view: {
@@ -766,6 +869,8 @@ export class ProjectRunner {
           stored: stored !== undefined,
           mode,
           modes,
+          choices,
+          choice,
           ...(waiting === undefined ? {} : { waiting }),
         },
       });
@@ -1141,6 +1246,11 @@ export class ProjectRunner {
     if (!runtime || !binding) return; // a value for a control that is not declared now: dormant
     if (binding.type === 'param' && !Array.isArray(value)) {
       const declaration = runtime.declarations.find((d) => d.key === key)!;
+      const sync = this.#syncOf(runtime, declaration);
+      if (sync && typeof value === 'number') {
+        // the control holds a multiplier: the parameter gets the speed that is at this tempo
+        value = this.#syncedSpeed(runtime, declaration, sync, value);
+      }
       // The parameter goes where the control is, by the control's own doing: that is not "the script
       // moved it", now or when the change is heard.
       this.#applying = true;
@@ -1157,6 +1267,7 @@ export class ProjectRunner {
       for (const node of this.#select(runtime, binding.selector)) {
         node.setOption(binding.option, value);
       }
+      this.#resync(runtime); // (another sound, another length)
     } else if (binding.type === 'bus' && typeof value === 'number') {
       const bus = this.#busOf(runtime, binding.name);
       if (!bus) return;
@@ -1171,6 +1282,200 @@ export class ProjectRunner {
       const sequence = runtime.scope.transport.get(binding.name);
       sequence?.update({ steps: fitSteps(value, sequence.steps) });
     }
+  }
+
+  // --- A speed synced to a sequence ----------------------------------------------------------------
+
+  /** The named sequences of a scope's script, in the order it makes them. */
+  #sequenceNames(runtime: ScopeRuntime): string[] {
+    return runtime.scope.transport.sequences
+      .map((sequence) => sequence.name)
+      .filter((name): name is string => name !== null);
+  }
+
+  /**
+   * How long one pass of a sequence lasts at the tempo now, by the library's own reckoning of the
+   * options the sequence has: its span, or its number of steps times its step length.
+   */
+  #sequenceSeconds(runtime: ScopeRuntime, name: string): number | null {
+    const transport = runtime.scope.transport;
+    const sequence = transport.get(name);
+    if (!sequence || sequence.steps.length === 0) return null;
+    try {
+      const options = sequence.options;
+      const seconds =
+        options.span !== undefined
+          ? transport.seconds(options.span)
+          : transport.seconds(options.step ?? transport.stepLength) *
+            sequence.steps.length;
+      return Number.isFinite(seconds) && seconds > 0 ? seconds : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Whether a declaration is a control over a playback speed (the one kind that can be synced). */
+  #isSpeed(runtime: ScopeRuntime, declaration: Declaration): boolean {
+    const binding = declaration.bindings[0];
+    if (binding?.type !== 'param') return false;
+    const node = this.#select(runtime, binding.selector)[0];
+    if (!node || !(binding.param in node.params)) return false;
+    const meta = this.#metaOf(node.param(binding.param), declaration.options);
+    return (
+      meta.kind === 'number' &&
+      familyOf({ ...meta, name: binding.param }) === 'speed'
+    );
+  }
+
+  /**
+   * How a control stands if it is a speed synced to a sequence (by the person's choice of unit, else
+   * by the script's `mode: 'sequence-sync'`); null for any other control.
+   */
+  #syncOf(runtime: ScopeRuntime, declaration: Declaration): Sync | null {
+    const state = valuesOf(this.#host.getDoc(), runtime.id)?.controls[
+      declaration.key
+    ];
+    const chosen = state?.options?.mode;
+    if ((chosen ?? declaration.options.mode) !== SYNC) return null;
+    if (!this.#isSpeed(runtime, declaration)) return null;
+    const binding = declaration.bindings[0];
+    if (binding?.type !== 'param') return null;
+    // (the sequence named with the person's choice; else the script's option; else its first)
+    const sequence =
+      (chosen === SYNC ? state?.options?.sequence : undefined) ??
+      declaration.options.sequence ??
+      this.#sequenceNames(runtime)[0] ??
+      null;
+    if (sequence === null) {
+      return {
+        sequence,
+        factor: null,
+        why: 'Nothing to sync to: this script has no named sequence. Playing at normal speed.',
+      };
+    }
+    const seconds = this.#sequenceSeconds(runtime, sequence);
+    if (seconds === null) {
+      return {
+        sequence,
+        factor: null,
+        why: `Nothing to sync to: this script has no sequence named '${sequence}'. Playing at normal speed.`,
+      };
+    }
+    const node = this.#select(runtime, binding.selector)[0];
+    const length = node?.buffer?.buffer?.duration;
+    if (!length || !Number.isFinite(length)) {
+      return {
+        sequence,
+        factor: null,
+        why: 'Nothing to sync yet: the sound has not loaded. Playing at normal speed.',
+      };
+    }
+    return { sequence, factor: length / seconds };
+  }
+
+  /** The speed a multiplier is now, held inside the parameter's own range. */
+  #syncedSpeed(
+    runtime: ScopeRuntime,
+    declaration: Declaration,
+    sync: Sync,
+    multiplier: number,
+  ): number {
+    if (sync.factor === null) return 1;
+    const binding = declaration.bindings[0];
+    const node =
+      binding?.type === 'param'
+        ? this.#select(runtime, binding.selector)[0]
+        : undefined;
+    const meta =
+      binding?.type === 'param' ? node?.param(binding.param).meta : undefined;
+    const speed = sync.factor * multiplier;
+    return meta?.kind === 'number'
+      ? Math.min(meta.max, Math.max(meta.min, speed))
+      : speed;
+  }
+
+  /**
+   * Puts every synced speed of a scope where it belongs now: after a build, a change of tempo, a
+   * sound arriving or being changed, a change of unit. It is the control's own doing, as a move of
+   * the control is: nothing is stored, nothing is undone, and the control is not "out of step".
+   */
+  #resync(runtime: ScopeRuntime): void {
+    const values = valuesOf(this.#host.getDoc(), runtime.id);
+    for (const declaration of runtime.declarations) {
+      const binding = declaration.bindings[0];
+      if (binding?.type !== 'param') continue;
+      const sync = this.#syncOf(runtime, declaration);
+      if (!sync) continue;
+      const stored = values?.controls[declaration.key]?.value;
+      const speed = this.#syncedSpeed(
+        runtime,
+        declaration,
+        sync,
+        typeof stored === 'number' ? stored : 1,
+      );
+      this.#applying = true;
+      try {
+        for (const node of this.#reach(runtime, declaration)) {
+          if (node.param(binding.param).value !== speed) {
+            node.param(binding.param).set(speed);
+          }
+          runtime.heard.set(heardKey(node, binding.param), speed);
+        }
+      } finally {
+        this.#applying = false;
+      }
+    }
+  }
+
+  /**
+   * What choosing a unit from a control's menu comes to, as operations for one step to undo. Most
+   * units are another way of showing the same number: the choice alone. A speed going into or out of
+   * "sequence sync" changes what its number means, so the number goes with it: into sync, the
+   * multiplier nearest the speed it has now; out of it, the speed the multiplier was giving.
+   */
+  modeOperations(scopeId: string, key: string, choice: string): Operation[] {
+    const runtime = this.#scopes.get(scopeId);
+    const declaration = runtime?.declarations.find((d) => d.key === key);
+    const binding = declaration?.bindings[0];
+    const toSync = choice === SYNC || choice.startsWith(`${SYNC}:`);
+    const options = toSync
+      ? {
+          mode: SYNC,
+          sequence: choice === SYNC ? undefined : choice.slice(SYNC.length + 1),
+        }
+      : { mode: choice, sequence: undefined };
+    const operations: Operation[] = [
+      { type: 'setControlOptions', scope: scopeId, key, options },
+    ];
+    if (!runtime || !declaration || binding?.type !== 'param')
+      return operations;
+    const before = this.#syncOf(runtime, declaration);
+    if (!before && !toSync) return operations;
+    const node = this.#select(runtime, binding.selector)[0];
+    const speed = node?.param(binding.param).value;
+    if (typeof speed !== 'number') return operations;
+    if (!toSync) {
+      // out of sync: the speed it was playing at is the value from here on
+      operations.push({
+        type: 'setControlValue',
+        scope: scopeId,
+        key,
+        value: speed,
+      });
+      return operations;
+    }
+    const name = options.sequence ?? this.#sequenceNames(runtime)[0];
+    const seconds =
+      name === undefined ? null : this.#sequenceSeconds(runtime, name);
+    const length = node?.buffer?.buffer?.duration;
+    const factor = seconds && length ? length / seconds : null;
+    operations.push({
+      type: 'setControlValue',
+      scope: scopeId,
+      key,
+      value: factor === null ? 1 : nearestSync(speed / factor),
+    });
+    return operations;
   }
 
   /**

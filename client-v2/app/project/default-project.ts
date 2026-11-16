@@ -1,6 +1,8 @@
 import pkg from 'cracked-up/package.json';
+import { applyOperation } from 'client-v2/project/operations';
 import {
   emptyValues,
+  stepGridKey,
   LOOP_SAMPLE,
   LOOP_SLICES,
   SCHEMA_VERSION,
@@ -26,12 +28,13 @@ export const BUILT_IN_SAMPLES = [
  * level and pan are the channel strip's. A script may ignore it and send its sound somewhere else (the
  * channel strip then says it has nothing to do).
  *
- * A control exists because the script declares it. The numbers in the chain and the steps in the
- * sequence are the defaults; what is set on the controls is kept in the project.
+ * A control exists because the script declares it. The numbers in the chain are the defaults; what is
+ * set on the controls is kept in the project. The sequence is made with a count of steps and no
+ * pattern: its step grid owns the pattern, which is kept in the project like any control's value.
  */
 export function samplerScript(
   buffer: string,
-  steps: readonly number[],
+  steps = 16,
   chain = "  .gain({ id: 'level', gain: 0.8 })",
   controls = "knob('#level', 'gain', { label: 'level' });\nslider('#sampler', 'speed');\nwaveform('#sampler');",
 ): string {
@@ -44,7 +47,7 @@ ${chain}
 // Sequences
 __.transport.sequence(
   'steps',
-  { steps: [${steps.join(', ')}], step: '1/16' },
+  { steps: ${steps}, step: '1/16' },
   (ev) => {
     if (ev.value) __('#sampler').trigger();
   },
@@ -78,16 +81,52 @@ export function newTrackId(): string {
 
 const ONE = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
+/** The sliced loop's starting pattern: a step's value is the slice it plays (0 is a rest). */
+export const SLICED_LOOP_STEPS: readonly number[] = [
+  1, 0, 3, 3, 5, 0, 7, 8, 9, 0, 3, 12, 13, 14, 0, 16,
+];
+
+/**
+ * A track with a pattern set on one of its step grids: as if the person had set those steps, by the
+ * operation the grid itself applies (so the key and the shape are the store's own).
+ */
+export function withPattern(
+  track: TrackDocument,
+  sequence: string,
+  steps: readonly number[],
+): TrackDocument {
+  const doc: ProjectDocument = {
+    schemaVersion: SCHEMA_VERSION,
+    name: '',
+    bpm: 120,
+    crackedUpVersion: pkg.version,
+    script: '',
+    values: emptyValues(),
+    tracks: [track],
+    samples: {},
+  };
+  return applyOperation(doc, {
+    type: 'setControlValue',
+    scope: track.id,
+    key: stepGridKey(sequence),
+    value: [...steps],
+  }).tracks[0]!;
+}
+
 /** What New Track adds: sampler into gain into `channel`, one 16-step sequence, and controls for them. */
 export function newTrack(name: string, buffer = 'kick'): TrackDocument {
-  return {
-    id: newTrackId(),
-    name,
-    script: samplerScript(buffer, ONE),
-    level: 1,
-    pan: 0,
-    values: emptyValues(),
-  };
+  return withPattern(
+    {
+      id: newTrackId(),
+      name,
+      script: samplerScript(buffer),
+      level: 1,
+      pan: 0,
+      values: emptyValues(),
+    },
+    'steps',
+    ONE,
+  );
 }
 
 const FILTER_CONTROLS = `slider('#filter', 'frequency');
@@ -99,7 +138,7 @@ waveform('#sampler');`;
 /**
  * A track that plays slices of a loop: each step's value says which slice (1 is the first; 0 is a
  * rest). The slices are the sound's: cut it differently in the source pane and the same steps play the
- * new pieces.
+ * new pieces. Its speed is synced to the sequence, so the loop stays in time when the tempo changes.
  */
 export function slicedLoopScript(buffer: string = LOOP_SAMPLE): string {
   return `// Chain
@@ -111,7 +150,7 @@ __()
 // Sequences: a step's value is the slice it plays (0 is a rest)
 __.transport.sequence(
   'slices',
-  { steps: [1, 0, 3, 3, 5, 0, 7, 8, 9, 0, 3, 12, 13, 14, 0, 16], step: '1/8' },
+  { steps: 16, step: '1/8' },
   (ev) => {
     if (ev.value) __('#sampler').trigger({ slice: ev.value - 1 });
   },
@@ -120,21 +159,25 @@ __.transport.sequence(
 // Controls
 stepGrid('slices');
 knob('#level', 'gain', { label: 'level' });
-slider('#sampler', 'speed');
+slider('#sampler', 'speed', { mode: 'sequence-sync' });
 waveform('#sampler');
 `;
 }
 
 /** What "Sliced loop" in the New Track menu adds. */
 export function newSlicedLoopTrack(name: string): TrackDocument {
-  return {
-    id: newTrackId(),
-    name,
-    script: slicedLoopScript(),
-    level: 1,
-    pan: 0,
-    values: emptyValues(),
-  };
+  return withPattern(
+    {
+      id: newTrackId(),
+      name,
+      script: slicedLoopScript(),
+      level: 1,
+      pan: 0,
+      values: emptyValues(),
+    },
+    'slices',
+    SLICED_LOOP_STEPS,
+  );
 }
 
 function track(
@@ -143,14 +186,18 @@ function track(
   steps: readonly number[],
   chain: string,
 ): TrackDocument {
-  return {
-    id,
-    name,
-    script: samplerScript(name, steps, chain, FILTER_CONTROLS),
-    level: 1,
-    pan: 0,
-    values: emptyValues(),
-  };
+  return withPattern(
+    {
+      id,
+      name,
+      script: samplerScript(name, steps.length, chain, FILTER_CONTROLS),
+      level: 1,
+      pan: 0,
+      values: emptyValues(),
+    },
+    'steps',
+    steps,
+  );
 }
 
 /** The project a person starts with when nothing is saved: three drum tracks that play. */

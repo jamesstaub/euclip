@@ -325,6 +325,18 @@ export default class AudioService extends Service {
     );
   }
 
+  /**
+   * Chooses a unit from a control's menu: one step to undo, whatever it takes (a speed going into or
+   * out of "sequence sync" has its number changed with its unit).
+   */
+  chooseControlMode(scopeId: string, key: string, choice: string): void {
+    const operations = this.runner?.modeOperations(scopeId, key, choice) ?? [];
+    const group = `unit-${scopeId}-${key}-${++this.#unitChoices}`;
+    for (const operation of operations)
+      this.project.apply(operation, { group });
+  }
+  #unitChoices = 0;
+
   setControlMode(
     scopeId: string,
     key: string,

@@ -534,6 +534,138 @@ module('Integration | Component | waveform', function (hooks) {
     assert.true(/^\D*\d+\D*$/.test(after), `a whole slice (${after})`);
   });
 
+  test('a point taken past its partner changes roles with it: start is always the lower, end the higher', async function (assert) {
+    await open();
+    const type = async (id: string, text: string): Promise<void> => {
+      await click(value(id));
+      const input = `[data-test-waveform-value="${id}"] [data-test-number-input]`;
+      await fillIn(input, text);
+      await triggerKeyEvent(input, 'keydown', 'Enter');
+    };
+    const near = (name: string, to: number): boolean =>
+      Math.abs((param(name) as number) - to) < 0.011;
+    const region = (start: number, end: number): boolean =>
+      near('start', start) ? near('end', end) : false;
+    await type('end', '2');
+    assert.strictEqual(param('end'), 2);
+    assert.strictEqual(param('start'), 0);
+
+    // the start's tab, dragged across the end at 2 s
+    await triggerEvent(STAGE, 'pointerdown', at(0, 26, { px: 6 }));
+    await triggerEvent(document.body, 'pointermove', at(0.25, 26, { px: 6 }));
+    assert.true(near('start', 1), 'on its own side it is the start');
+    await triggerEvent(document.body, 'pointermove', at(0.75, 26, { px: 6 }));
+    assert.true(
+      region(2, 3),
+      `across: the end stands where it was as the start (${String(param('start'))}), and the dragged one is the end (${String(param('end'))})`,
+    );
+    assert
+      .dom(handle('end'))
+      .hasClass('is-active', 'the handle under the pointer is the E now');
+    assert.dom(value('start')).hasText('2 s', 'the values follow');
+    assert.dom(value('end')).hasText('3 s');
+    // exactly onto the other: never the same value
+    await triggerEvent(document.body, 'pointermove', at(0.5, 26, { px: 6 }));
+    assert.strictEqual(param('end'), 2.001, 'held the gap away');
+    assert.strictEqual(param('start'), 2);
+    // back across in the same drag: the roles go back
+    await triggerEvent(document.body, 'pointermove', at(0.125, 26, { px: 6 }));
+    assert.true(
+      region(0.5, 2),
+      `back across (${String(param('start'))}, ${String(param('end'))})`,
+    );
+    assert.dom(handle('start')).hasClass('is-active');
+    await triggerEvent(document.body, 'pointermove', at(0.875, 26, { px: 6 }));
+    await triggerEvent(document.body, 'pointerup', at(0.875, 26));
+    assert.true(region(2, 3.5), 'let go across');
+    assert.deepEqual(
+      [stored('#sampler › start'), stored('#sampler › end')].map(
+        (v) => Math.round((v as number) * 10) / 10,
+      ),
+      [2, 3.5],
+      'stored as the lower and the higher',
+    );
+    project.undo();
+    await settled();
+    assert.strictEqual(param('start'), 0, 'one undo for the whole drag');
+    assert.strictEqual(param('end'), 2, 'both back');
+
+    // typed past the other
+    await type('start', '3.5');
+    assert.strictEqual(param('start'), 2, 'typed past the end: they swap');
+    assert.strictEqual(param('end'), 3.5);
+    project.undo();
+    await settled();
+    assert.strictEqual(param('start'), 0);
+    assert.strictEqual(param('end'), 2, 'one step');
+    await type('end', '0');
+    assert.strictEqual(param('end'), 0.001, 'typed onto the start: the gap');
+
+    // the keys on a handle: past the other, focus goes with the line
+    await type('end', '0.1');
+    (find(handle('start')) as HTMLElement).focus();
+    for (let i = 0; i < 6; i++) {
+      await triggerKeyEvent(document.activeElement!, 'keydown', 'ArrowRight');
+    }
+    assert.true(
+      region(0.1, param('end') as number)
+        ? (param('end') as number) > 0.1
+        : false,
+      `the keys carry it across (${String(param('start'))}, ${String(param('end'))})`,
+    );
+    assert.strictEqual(
+      document.activeElement,
+      find(handle('end')),
+      'focus is on the handle it has become',
+    );
+  });
+
+  test('the loop’s points swap between themselves, inside the region; a swap lands on snap points', async function (assert) {
+    await open();
+    const type = async (id: string, text: string): Promise<void> => {
+      await click(value(id));
+      const input = `[data-test-waveform-value="${id}"] [data-test-number-input]`;
+      await fillIn(input, text);
+      await triggerKeyEvent(input, 'keydown', 'Enter');
+    };
+    await click('[data-test-waveform-loop]');
+    await type('start', '0.5');
+    await type('end', '3.5');
+    await type('loopEnd', '2');
+    await type('loopStart', '1');
+    assert.deepEqual([param('loopStart'), param('loopEnd')], [1, 2]);
+    await type('loopStart', '3');
+    assert.deepEqual(
+      [param('loopStart'), param('loopEnd')],
+      [2, 3],
+      'typed past the loop end: they swap',
+    );
+    await type('loopEnd', '0');
+    assert.deepEqual(
+      [param('loopStart'), param('loopEnd')],
+      [0.5, 2],
+      'past the loop start, as far as the region goes: swapped, and kept inside the region',
+    );
+    assert.deepEqual(
+      [param('start'), param('end')],
+      [0.5, 3.5],
+      'the region is as it was',
+    );
+
+    // snapping to slices (every 0.25 s): the dragged point, across, lands on one
+    await click('[data-test-waveform-loop]');
+    await select('[data-test-snap]', 'slices');
+    await triggerEvent(STAGE, 'pointerdown', at(0.125, 26, { px: 6 }));
+    await triggerEvent(document.body, 'pointermove', at(0.94, 26, { px: 6 }));
+    await triggerEvent(document.body, 'pointerup', at(0.94, 26));
+    assert.strictEqual(param('start'), 3.5, 'the old end is the start');
+    assert.strictEqual(
+      param('end'),
+      3.75,
+      'the dragged point, on a slice boundary',
+    );
+  });
+
   test('the strip under the picture is dragged, and the picture follows on every move, before it is let go', async function (assert) {
     await open();
     await click('[data-test-zoom-in]');

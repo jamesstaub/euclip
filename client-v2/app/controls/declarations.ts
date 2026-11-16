@@ -27,6 +27,8 @@ export interface ControlOptions {
   label?: string;
   /** the slider mode to start in: 'linear', 'exponential', 'note', 'decibels' or 'stepped' */
   mode?: string;
+  /** a sampler's speed in the mode 'sequence-sync': the named sequence to sync to (default: the script's first) */
+  sequence?: string;
   /** a narrower range than the parameter's own, or the range of a control with no parameter */
   min?: number;
   max?: number;
@@ -169,6 +171,12 @@ const NUMBER_OPTIONS: readonly OptionSpec[] = [
     values: Object.keys(MODE_LABELS),
   },
   {
+    name: 'sequence',
+    type: 'string',
+    description:
+      "A sampler's speed with mode: 'sequence-sync': the named sequence of this script to sync to. Default: the first one the script makes.",
+  },
+  {
     name: 'min',
     type: 'number',
     description: 'A narrower lower end than the parameter’s own.',
@@ -235,7 +243,9 @@ const NUMBER_SIGNATURES: readonly SignatureSpec[] = [
 const OPTIONS =
   'Options: label, min, max, step, values, and mode: the unit the control starts in, which the person can change from its menu. ' +
   'What is on offer depends on the parameter: a frequency "hz", "note", "cents"; a level "linear", "decibels"; a time "seconds", "ms", "steps"; ' +
-  'a sampler start or end "seconds", "ms", "percent", "slice"; a speed "ratio", "semitones", "ratio-cents"; anything else "linear", "exponential", "stepped".';
+  'a sampler start or end "seconds", "ms", "percent", "slice"; a speed "ratio", "semitones", "ratio-cents", "sequence-sync"; anything else "linear", "exponential", "stepped". ' +
+  'A sampler\'s speed in "sequence-sync" is tied to a named sequence of the script: at 1 the whole sound lasts exactly one pass of the sequence, at 2 half of one, at 1/2 two, and it follows the tempo. ' +
+  "slider('#sampler', 'speed', { mode: 'sequence-sync', sequence: 'slices' }); without sequence, the script's first named one.";
 
 const TARGET =
   "The first argument says which nodes: a selector ('#filter', '.voice'), or what the script already has: " +
@@ -357,8 +367,9 @@ export const CONTROL_FUNCTIONS: readonly ControlFunction[] = [
     signature: 'stepGrid(name, options?)',
     description:
       "Declares a step grid for a named sequence of this script: stepGrid('steps'). Put it after the " +
-      "__.transport.sequence('steps', …) call. The steps written in that call are the default; a pattern edited " +
-      'in the grid is stored in the project and applied here when the script runs. A sequence has a grid only if a stepGrid() line, or controls(), declares one. ' +
+      "__.transport.sequence('steps', …) call. Give the sequence a count, { steps: 16 }, and the grid owns the pattern: it starts empty and plays what is set in it. " +
+      'Give it a pattern, { steps: [1, 0, 0, 0] }, and that is the default. Either way a pattern edited ' +
+      'in the grid is stored in the project and applied here when the script runs. A sequence has a grid only if a stepGrid() line, or controls(), declares one; a count with no grid plays every step. ' +
       'Returns the control: .value is the steps, .set(steps) changes grid and sequence together. Options: label, view.',
     signatures: [
       {
@@ -394,7 +405,7 @@ export const CONTROL_FUNCTIONS: readonly ControlFunction[] = [
     signature: 'controls() | controls(target, names?)',
     description:
       'With nothing, declares all the UI of what the script makes, in one line: a control for every parameter of every node it has made so far (the inserts of its buses too), a section per node; ' +
-      'a waveform editor for every sampler among them; and a step grid for every named sequence of the script, wherever in the script the sequence is. Put controls() after the chain. ' +
+      'a waveform editor for every sampler among them; and a step grid for every named sequence of the script, wherever in the script the sequence is (one made with a count, { steps: 16 }, starts empty: the grid owns its pattern). Put controls() after the chain. ' +
       'A slider(), knob(), toggle(), select(), stepGrid() or waveform() of your own for the same thing, before or after, is used instead of the one from controls(). ' +
       "With a target, only the parameters of those nodes (no grids, no waveform): controls('#kick'), controls(kick) for every node of a chain, controls(__.bus('drums').compressor(…)) for the inserts that adds to a bus, controls(__.bus('drums')) for the bus's level. " +
       "With a list, only the parameters named: controls('#kick', ['speed', 'start']). " +

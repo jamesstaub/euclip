@@ -1,5 +1,6 @@
+import { arrayDefaultProject } from 'client-v2/tests/helpers/runner';
 import { module, test } from 'qunit';
-import { defaultProject, newTrack } from 'client-v2/project/default-project';
+import { newTrack } from 'client-v2/project/default-project';
 import { applyOperation } from 'client-v2/project/operations';
 import {
   controlKey,
@@ -15,7 +16,7 @@ const FREQUENCY = controlKey('#filter', 'frequency');
 
 module('Unit | Project | operations', function () {
   test('the default project is a valid document', function (assert) {
-    const doc = defaultProject();
+    const doc = arrayDefaultProject();
     assert.true(isProjectDocument(doc));
     assert.strictEqual(doc.schemaVersion, SCHEMA_VERSION);
     assert.strictEqual(doc.tracks.length, 3);
@@ -47,7 +48,7 @@ module('Unit | Project | operations', function () {
   });
 
   test('an operation returns a new document and leaves the old one alone', function (assert) {
-    const doc = defaultProject();
+    const doc = arrayDefaultProject();
     const frozen = JSON.stringify(doc);
     const next = applyOperation(doc, { type: 'setBpm', bpm: 96 });
 
@@ -67,7 +68,7 @@ module('Unit | Project | operations', function () {
   });
 
   test('setBpm keeps the tempo a whole number in range', function (assert) {
-    const doc = defaultProject();
+    const doc = arrayDefaultProject();
     assert.strictEqual(applyOperation(doc, { type: 'setBpm', bpm: 0 }).bpm, 1);
     assert.strictEqual(
       applyOperation(doc, { type: 'setBpm', bpm: 9000 }).bpm,
@@ -81,7 +82,7 @@ module('Unit | Project | operations', function () {
   });
 
   test('setScript sets a track’s script or the project’s', function (assert) {
-    const doc = defaultProject();
+    const doc = arrayDefaultProject();
     const a = applyOperation(doc, {
       type: 'setScript',
       scope: 't-snare',
@@ -102,7 +103,7 @@ module('Unit | Project | operations', function () {
   });
 
   test('tracks are added, renamed and removed', function (assert) {
-    const doc = defaultProject();
+    const doc = arrayDefaultProject();
     const track = newTrack('bass');
     assert.true(/^t-\w{8}$/.test(track.id), 'a generated id');
     assert.true(
@@ -142,7 +143,7 @@ module('Unit | Project | operations', function () {
   });
 
   test('the channel strip is clamped', function (assert) {
-    const doc = defaultProject();
+    const doc = arrayDefaultProject();
     assert.strictEqual(
       applyOperation(doc, { type: 'setTrackLevel', id: 't-kick', level: -1 })
         .tracks[0]?.level,
@@ -161,7 +162,7 @@ module('Unit | Project | operations', function () {
   });
 
   test('a control’s value is stored by key, and reset forgets it', function (assert) {
-    const doc = defaultProject();
+    const doc = arrayDefaultProject();
     let next = applyOperation(doc, {
       type: 'setControlValue',
       scope: 't-kick',
@@ -231,7 +232,7 @@ module('Unit | Project | operations', function () {
   });
 
   test('a step grid’s pattern is a control value too, and a copy is kept', function (assert) {
-    const doc = defaultProject();
+    const doc = arrayDefaultProject();
     const key = stepGridKey('steps');
     const steps = [1, 1, 0, 0];
     let next = applyOperation(doc, {
@@ -260,7 +261,7 @@ module('Unit | Project | operations', function () {
   });
 
   test('a control’s own settings are kept beside its value, and survive a reset', function (assert) {
-    const doc = defaultProject();
+    const doc = arrayDefaultProject();
     let next = applyOperation(doc, {
       type: 'setControlOptions',
       scope: 't-kick',
@@ -310,7 +311,7 @@ module('Unit | Project | operations', function () {
   });
 
   test('the sample pool is edited by name', function (assert) {
-    const doc = defaultProject();
+    const doc = arrayDefaultProject();
     let next = applyOperation(doc, {
       type: 'setSample',
       name: 'tom',
@@ -398,7 +399,7 @@ module('Unit | Project | migration', function () {
   });
 
   test('a version 4 document: sequencer( calls become stepGrid(, and stored patterns keep their place', function (assert) {
-    const current = defaultProject();
+    const current = arrayDefaultProject();
     const old = {
       ...current,
       schemaVersion: 4,
@@ -447,13 +448,15 @@ module('Unit | Project | migration', function () {
       },
     });
     assert.false(
-      JSON.stringify(migrateProject(defaultProject())).includes('sequencer'),
+      JSON.stringify(migrateProject(arrayDefaultProject())).includes(
+        'sequencer',
+      ),
       'a new project has no trace of the old name',
     );
   });
 
   test('a current document passes through, and anything else is not opened', function (assert) {
-    const current = defaultProject();
+    const current = arrayDefaultProject();
     assert.strictEqual(migrateProject(current), current);
     assert.strictEqual(
       migrateProject({ ...current, schemaVersion: 6 }),

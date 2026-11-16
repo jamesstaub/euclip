@@ -4,7 +4,6 @@ import { service } from '@ember/service';
 import NumberEntry from 'client-v2/components/ui/number-entry';
 import PopupMenu, { type MenuItem } from 'client-v2/components/ui/popup-menu';
 import type { ControlView } from 'client-v2/audio/runner';
-import { MODE_LABELS } from 'client-v2/controls/modes';
 import { controlWidget, type ControlEntry } from 'client-v2/controls/registry';
 import { mappingOf, numberOf } from 'client-v2/controls/view';
 import intoView from 'client-v2/modifiers/into-view';
@@ -73,12 +72,12 @@ export default class ControlRow extends Component<ControlRowSignature> {
     const { control, scopeId } = this.args;
     // the units this kind of parameter can be shown in (a parameter with only one has nothing to choose)
     const modes: MenuItem[] =
-      control.modes.length > 1
-        ? control.modes.map((mode) => ({
-            label: MODE_LABELS[mode],
-            checked: mode === control.mode,
+      control.choices.length > 1
+        ? control.choices.map((choice) => ({
+            label: choice.label,
+            checked: choice.id === control.choice,
             onSelect: () =>
-              this.audio.setControlMode(scopeId, control.key, mode),
+              this.audio.chooseControlMode(scopeId, control.key, choice.id),
           }))
         : [];
     return [

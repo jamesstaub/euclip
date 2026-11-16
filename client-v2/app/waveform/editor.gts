@@ -29,6 +29,7 @@ import {
   type Mapping,
   type ModeName,
 } from 'client-v2/controls/modes';
+import { REGION_GAP } from 'client-v2/controls/live-range';
 import { mappingOf, numberOf } from 'client-v2/controls/view';
 import cssVars from 'client-v2/modifiers/css-vars';
 import selectOptions, {
@@ -86,6 +87,14 @@ type ValueCell =
       faint: boolean;
     }
   | { id: 'loop' | 'reverse'; number: false; name: string; short: string };
+
+/** The other point of a pair: the region's start and end, the loop's start and end. */
+const PARTNER: Readonly<Record<HandleId, HandleId>> = {
+  start: 'end',
+  end: 'start',
+  loopStart: 'loopEnd',
+  loopEnd: 'loopStart',
+};
 
 const HANDLE_MARKS: Readonly<Record<HandleId, string>> = {
   start: 'S',
@@ -418,7 +427,11 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
       short = name,
     ): ValueCell[] => {
       const control = this.control(id);
-      const map = control ? mappingOf(control) : null;
+      const map = control
+        ? id === 'speed'
+          ? mappingOf(control)
+          : this.#freeMap(control)
+        : null;
       if (!control || !map) return [];
       const value = numberOf(control.value);
       return [
@@ -880,7 +893,8 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
     onPosition: (position) => {
       const view = this.current;
       if (this.active) {
-        this.moveHandle(
+        // (taken past its partner, the handle under the pointer is the other end from here on)
+        this.active = this.moveHandle(
           this.active,
           view.start + position * (view.end - view.start),
           this.#dragGroup,
@@ -945,25 +959,84 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
     return time;
   }
 
-  moveHandle(id: HandleId, time: number, group?: string): void {
+  /**
+   * Moves one of the four points to a time. The region's two points, and the loop's two, are pairs:
+   * a point taken past its partner does not stop there. It becomes the other end (start is always the
+   * lower, end the higher), the partner takes the role it had and stays where it stood, and coming
+   * back across swaps them back. The two never meet: a pair is at least REGION_GAP apart (to the
+   * sampler, an end at or before its start means "the end of the sound").
+   *
+   * Returns the point that is at `time` afterwards: the one asked for, or after a crossing its partner.
+   * A caller that goes on asking for the point it began with (a number dragged in its box) is followed
+   * across for the length of its gesture.
+   */
+  moveHandle(
+    id: HandleId,
+    time: number,
+    group?: string,
+    snap = true,
+  ): HandleId {
+    const asked = id;
+    const crossed = this.#crossed;
+    if (
+      group !== undefined &&
+      crossed?.group === group &&
+      crossed.asked === id
+    ) {
+      id = crossed.acting;
+    }
     const control = this.control(id);
-    if (!control || control.meta.kind !== 'number') return;
+    if (!control || control.meta.kind !== 'number') return id;
     const meta = control.meta;
-    const low = Math.max(meta.min, meta.floor ?? meta.min);
-    const high = Math.max(low, Math.min(meta.max, meta.ceiling ?? meta.max));
-    const value = Math.min(high, Math.max(low, this.#snapped(time, true)));
-    if (value === control.value) return;
+    const loop = id === 'loopStart' || id === 'loopEnd';
+    const times = this.times;
+    // the region's points have the whole sound; the loop's are kept inside the region, as ever
+    const least = loop ? (times.start ?? meta.min) : meta.min;
+    const most = Math.max(least, loop ? (times.end ?? meta.max) : meta.max);
+    const hold = (value: number): number =>
+      Math.min(most, Math.max(least, value));
+    const wanted = hold(snap ? this.#snapped(time, true) : time);
+    const partnerId = PARTNER[id];
+    const partner = this.control(partnerId);
+    const other = times[partnerId];
+    const set = (which: ControlView, value: number): void =>
+      this.audio.setControl(this.args.scopeId, which.key, value, group);
+    if (!partner || other === undefined) {
+      if (wanted !== control.value) set(control, wanted);
+      return id;
+    }
+    // (+1: this point belongs above its partner; -1: below it)
+    const side = id === 'end' || id === 'loopEnd' ? 1 : -1;
+    if ((other - wanted) * side >= REGION_GAP) {
+      // Past the partner: the pair changes hands. Both are written, as times (an end never moved
+      // stands at the sound's length on screen, and is stored as that from here on), the one that
+      // widens the pair first so that they are never in the wrong order on the way: the partner's
+      // control takes this point's place, then this one's takes the partner's.
+      set(partner, wanted);
+      set(control, other);
+      if (group !== undefined) {
+        this.#crossed = { group, asked, acting: partnerId };
+      }
+      return partnerId;
+    }
+    // on its own side: as far as the gap from its partner, no nearer
+    const value =
+      (wanted - other) * side >= REGION_GAP
+        ? wanted
+        : hold(other + side * REGION_GAP);
+    if (value === control.value) return id;
     if (id === 'loopStart') {
       // A loop end at or before the loop start means "the whole region" to the sampler, so a loop
       // start alone would do nothing: the loop end is written down where it stands, with it.
-      const end = this.control('loopEnd');
       const raw = Number(this.node?.param('loopEnd').value) || 0;
-      if (end && typeof end.value === 'number' && !(raw > value)) {
-        this.audio.setControl(this.args.scopeId, end.key, end.value, group);
-      }
+      if (!(raw > value)) set(partner, other);
     }
-    this.audio.setControl(this.args.scopeId, control.key, value, group);
+    set(control, value);
+    return id;
   }
+
+  /** A gesture that has taken a point across its partner: which point it asked for, and which it now moves. */
+  #crossed: { group: string; asked: HandleId; acting: HandleId } | null = null;
 
   moveMarker(index: number, time: number, group?: string): void {
     const sound = this.sound;
@@ -1147,8 +1220,27 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
     );
     if (next === null) return;
     event.preventDefault();
-    this.moveHandle(handle.id, handle.map.toValue(next));
+    const free = this.#freeMap(handle.control) ?? handle.map;
+    const now = this.moveHandle(handle.id, free.toValue(next));
+    if (now !== handle.id) {
+      // across its partner: the keys go on moving the same line, which is the other end now
+      this.#stage
+        ?.querySelector<HTMLElement>(`[data-handle="${now}"]`)
+        ?.focus({ preventScroll: true });
+    }
   };
+
+  /**
+   * A point's mapping over the whole sound, without the limit its partner sets: a point may be taken
+   * past its partner (they change roles), so its travel does not stop there.
+   */
+  #freeMap(control: ControlView): Mapping | null {
+    if (control.meta.kind !== 'number') return null;
+    const range = { ...control.meta };
+    delete range.floor;
+    delete range.ceiling;
+    return mapping(control.mode, range);
+  }
 
   onMarkerKey = (marker: MarkerView, event: KeyboardEvent): void => {
     const view = this.current;
@@ -1276,9 +1368,17 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
 
   commit = (id: HandleId | 'speed', typed: string): boolean => {
     const control = this.control(id);
-    const value = control ? mappingOf(control)?.parse(typed) : null;
-    if (!control || value === null || value === undefined) return false;
-    this.audio.setControl(this.args.scopeId, control.key, value);
+    if (!control) return false;
+    if (id === 'speed') {
+      const value = mappingOf(control)?.parse(typed);
+      if (value === null || value === undefined) return false;
+      this.audio.setControl(this.args.scopeId, control.key, value);
+      return true;
+    }
+    // a point: typed past its partner it changes roles with it, as a dragged one does (one step to undo)
+    const value = this.#freeMap(control)?.parse(typed);
+    if (value === null || value === undefined) return false;
+    this.moveHandle(id, value, `typed-${++this.#group}`, false);
     return true;
   };
 

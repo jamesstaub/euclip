@@ -391,6 +391,57 @@ module('Integration | Component | app-shell', function (hooks) {
       assert.dom('[data-test-track="2"] [data-test-step-grid]').exists();
     });
 
+    test('a sequence written with a count has an empty grid that the person fills; undoing the first step empties it again', async function (assert) {
+      await render(<template><AppShell /></template>);
+      await click('[data-test-script-toggle]');
+      await typeScript(
+        () =>
+          `__().sampler({ id: 'sampler', buffer: 'kick' }).to('channel');
+__.transport.sequence('beat', { steps: 8 }, (ev) => { if (ev.value) __('#sampler').trigger(); });
+stepGrid('beat');
+__.transport.sequence('ones', { steps: [1, 1, 1, 1] }, () => {});
+stepGrid('ones');
+`,
+      );
+      const pressed = (name: string): number[] =>
+        findAll(
+          `[data-test-track="1"] [data-test-step-grid="${name}"] [data-test-step][aria-pressed="true"]`,
+        ).map((el) => Number(el.getAttribute('data-test-step')));
+      assert
+        .dom(
+          '[data-test-track="1"] [data-test-step-grid="beat"] [data-test-step]',
+        )
+        .exists({ count: 8 });
+      assert.deepEqual(pressed('beat'), [], 'a count: eight steps, none on');
+      assert.deepEqual(
+        pressed('ones'),
+        [0, 1, 2, 3],
+        'four written on are four on',
+      );
+      assert.strictEqual(
+        project.doc.tracks[0]!.values.controls['stepGrid › beat'],
+        undefined,
+        'the empty pattern is not written anywhere',
+      );
+
+      await click(
+        '[data-test-track="1"] [data-test-step-grid="beat"] [data-test-step="3"]',
+      );
+      assert.deepEqual(pressed('beat'), [3]);
+      assert.deepEqual(
+        project.doc.tracks[0]!.values.controls['stepGrid › beat']?.value,
+        [0, 0, 0, 1, 0, 0, 0, 0],
+        'the first step set stores the pattern',
+      );
+      project.undo();
+      await settled();
+      assert.deepEqual(pressed('beat'), [], 'undone: empty again');
+      assert.strictEqual(
+        project.doc.tracks[0]!.values.controls['stepGrid › beat'],
+        undefined,
+      );
+    });
+
     test('the footer’s sequence pane lists them, with Reset for a stored pattern; two step grids are named', async function (assert) {
       view.footerPane = 'sequence';
       await render(<template><AppShell /></template>);
@@ -401,7 +452,12 @@ module('Integration | Component | app-shell', function (hooks) {
       assert
         .dom('[data-test-pane="sequence"] [data-test-step]')
         .exists({ count: 16 });
-      assert.dom('[data-test-steps-reset]').doesNotExist();
+      assert
+        .dom('[data-test-steps-reset]')
+        .exists(
+          'the starting pattern is the grid’s own: stored, not in the script',
+        );
+      assert.deepEqual(pressedSteps(1), [0, 4, 8, 12]);
 
       await click('[data-test-pane="sequence"] [data-test-step="1"]');
       assert.deepEqual(
@@ -413,10 +469,14 @@ module('Integration | Component | app-shell', function (hooks) {
 
       assert.deepEqual(
         pressedSteps(1),
-        [0, 4, 8, 12],
-        'reset to the script’s pattern',
+        [],
+        'reset: the script gives a count and no pattern, so the grid is empty',
       );
       assert.deepEqual(project.doc.tracks[0]?.values.controls, {});
+      assert.dom('[data-test-steps-reset]').doesNotExist();
+      project.undo();
+      await settled();
+      assert.deepEqual(pressedSteps(1), [0, 1, 4, 8, 12], 'undone');
 
       await click('[data-test-script-toggle]');
       await typeScript(
@@ -1056,6 +1116,60 @@ slider(__.bus('drums'), 'gain');
         .hasAria('valuenow', '1');
     });
 
+    test('a speed’s menu has a sequence sync item for each named sequence; choosing one is one step to undo', async function (assert) {
+      await render(<template><AppShell /></template>);
+      await click('[data-test-script-toggle]');
+      await typeScript(
+        (text) =>
+          `${text}\n__.transport.sequence('fills', { steps: 8, step: '1/16' }, () => {});\n`,
+      );
+      await click('[data-test-script-toggle]');
+      const speed = row('#sampler › speed');
+      const speedOf = (): number =>
+        [
+          ...audio.engine!.scope('t-kick').scope('script').select('#sampler'),
+        ][0]!.param('speed').value as number;
+      await click(`${speed} [data-test-menu-button]`);
+      assert.deepEqual(
+        findAll('[data-test-menu-item]')
+          .map((item) => item.textContent?.trim())
+          .slice(0, 5),
+        [
+          'Ratio',
+          'Semitones',
+          'Cents',
+          'Sequence sync: steps',
+          'Sequence sync: fills',
+        ],
+      );
+      const length = audio.engine!.buffers.get('kick')!.duration!;
+      await click('[data-test-menu-item="Sequence sync: fills"]');
+      // eight sixteenths at 120 are 1 s; the speed was 1, and the nearest allowed multiplier of
+      // (the sound's length / 1 s) to that is what the control now holds
+      const state = project.doc.tracks[0]!.values.controls['#sampler › speed']!;
+      assert.deepEqual(state.options, {
+        mode: 'sequence-sync',
+        sequence: 'fills',
+      });
+      const multiplier = state.value as number;
+      assert.true(
+        Math.abs(speedOf() - length * multiplier) < 1e-6,
+        `the speed is the multiplier (${multiplier}) of length / sequence (${speedOf()})`,
+      );
+      assert.dom(speed).hasAttribute('data-mode', 'sequence-sync');
+      assert.dom(`${speed} [data-test-number-entry]`).includesText('× seq');
+
+      project.undo();
+      await settled();
+      assert.strictEqual(
+        project.doc.tracks[0]!.values.controls['#sampler › speed'],
+        undefined,
+        'one undo: the unit and the number together',
+      );
+      assert.dom(speed).hasAttribute('data-mode', 'ratio');
+      assert.strictEqual(speedOf(), 1, 'and the speed it had');
+    });
+
     test('a control’s menu offers the units its parameter can be shown in; the value stays in the parameter’s own', async function (assert) {
       await render(<template><AppShell /></template>);
       await click('[data-test-script-toggle]');
@@ -1082,6 +1196,7 @@ slider(__.bus('drums'), 'gain');
         'Ratio',
         'Semitones',
         'Cents',
+        'Sequence sync',
       ]);
       assert.deepEqual(await units('#sampler › start'), [
         'Seconds',
@@ -1210,10 +1325,7 @@ slider(__.bus('drums'), 'gain');
 
       await typeScript((text) =>
         text
-          .replace(
-            /\{ steps: \[[^\]]*\], step: '1\/16' \}/,
-            '{ steps: [1, 1, 0, 2, 0, 0] }',
-          )
+          .replace("{ steps: 16, step: '1/16' }", '{ steps: 6 }')
           .replace(
             ".lowpass({ id: 'filter', frequency: 2000, q: 2 })",
             ".highpass({ id: 'filter', frequency: 90, q: 1 })",
@@ -1223,10 +1335,11 @@ slider(__.bus('drums'), 'gain');
       assert
         .dom('[data-test-track="1"] [data-test-step]')
         .exists({ count: 6 }, 'the grid has the new length');
-      assert.deepEqual(pressedSteps(1), [0, 1, 3]);
-      assert
-        .dom('[data-test-track="1"] [data-test-step="3"]')
-        .hasText('2', 'a step holding 2 says so');
+      assert.deepEqual(
+        pressedSteps(1),
+        [0, 4],
+        'the grid’s pattern, as far as it goes',
+      );
       assert.dom('[data-test-script-error]').doesNotExist();
       assert.strictEqual(frequencyOf('t-kick'), 90, 'the new node is running');
 
