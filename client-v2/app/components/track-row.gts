@@ -69,6 +69,21 @@ export default class TrackRow extends Component<TrackRowSignature> {
     return this.audio.error(this.args.track.id)?.message;
   }
 
+  /** The track has per-step controls: their lanes are under its grids, and can be hidden from its row. */
+  get hasLanes(): boolean {
+    return this.stepGrids.some(
+      (grid) => this.audio.lanes(this.args.track.id, grid.name).length > 0,
+    );
+  }
+
+  get lanesHidden(): boolean {
+    return !this.view.isSectionOpen(this.args.track.id, '~lanes');
+  }
+
+  toggleLanes = (): void => {
+    this.view.setSectionOpen(this.args.track.id, '~lanes', this.lanesHidden);
+  };
+
   openGenerators = (): void => {
     this.args.onSelect(this.args.track.id);
     this.view.scriptOpen = false;
@@ -116,6 +131,7 @@ export default class TrackRow extends Component<TrackRowSignature> {
       aria-label="Track {{@order}}, {{@track.name}}"
       aria-current={{if @selected "true"}}
       data-error={{if this.error "true"}}
+      data-lanes={{if this.lanesHidden "hidden"}}
       data-test-track={{@order}}
       data-track-id={{@track.id}}
       ...attributes
@@ -164,7 +180,7 @@ export default class TrackRow extends Component<TrackRowSignature> {
               {{#if (more this.stepGrids)}}
                 <span class="track__grid-name truncate">{{grid.label}}</span>
               {{/if}}
-              <Grid @scopeId={{@track.id}} @control={{grid}} />
+              <Grid @scopeId={{@track.id}} @control={{grid}} @lanes={{true}} />
             </div>
           {{else}}
             <p class="track__no-grid" data-test-no-step-grid>No step grid
@@ -172,6 +188,16 @@ export default class TrackRow extends Component<TrackRowSignature> {
           {{/each}}
         </div>
 
+        {{#if this.hasLanes}}
+          <button
+            type="button"
+            class="btn btn--s btn--quiet track__lanes"
+            aria-pressed={{if this.lanesHidden "false" "true"}}
+            title="Show or hide this track's per-step lanes"
+            data-test-track-lanes
+            {{on "click" this.toggleLanes}}
+          >Lanes</button>
+        {{/if}}
         <PopupMenu
           class="track__actions"
           @label="Track {{@order}} menu"

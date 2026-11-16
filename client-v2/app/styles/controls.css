@@ -593,6 +593,16 @@ button.number-entry:disabled {
   color: var(--near-black);
 }
 
+.control-row__lane {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  font-size: var(--font-size-6);
+}
+
 .control-row__unknown {
   flex: 1 1 auto;
   font-size: var(--font-size-7);

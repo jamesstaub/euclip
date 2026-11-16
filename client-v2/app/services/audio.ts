@@ -8,6 +8,7 @@ import type { Node } from 'cracked-up';
 import {
   ProjectRunner,
   type ControlView,
+  type LaneView,
   type ScriptError,
   type StepGridView,
   type WaveformView,
@@ -672,6 +673,38 @@ export default class AudioService extends Service {
         },
         { group },
       );
+    }
+  }
+
+  /** The per-step controls of a sequence, as lanes under its grid. */
+  lanes(scopeId: string, sequence: string): LaneView[] {
+    void this.revision;
+    return this.runner?.lanes(scopeId, sequence) ?? [];
+  }
+
+  /** "Single value" or "Per step: name" chosen from a control's menu: one step to undo. */
+  chooseStepMode(scopeId: string, key: string, choice: string): void {
+    const group = `per-step-${++this.#unitChoices}`;
+    for (const operation of this.runner?.stepChoiceOperations(
+      scopeId,
+      key,
+      choice,
+    ) ?? []) {
+      this.project.apply(operation, { group });
+    }
+  }
+
+  /** One bar of a lane set: with a `group`, part of a gesture that is one step to undo. */
+  setLaneValue(
+    scopeId: string,
+    key: string,
+    index: number,
+    value: number,
+    group?: string,
+  ): void {
+    const operation = this.runner?.laneOperation(scopeId, key, index, value);
+    if (operation) {
+      this.project.apply(operation, group === undefined ? {} : { group });
     }
   }
 

@@ -1921,6 +1921,252 @@ waveform('#s');`;
     });
   });
 
+  module('a value for every step', function () {
+    const FREQ = '#f › frequency';
+    // four steps, the first and third hits; the callback notes where the filter is on every step
+    const LANE = (options = "{ perStep: 'beat' }", steps = '[1, 0, 1, 0]') =>
+      `__().sine({ id: 'tone', frequency: 220 }).lowpass({ id: 'f', frequency: 1000 }).to('channel');
+__.transport.sequence('beat', { steps: ${steps}, step: '1/4' }, (ev) => {
+  globalThis.euclipSeen.push([ev.index, [...__('#f')][0].param('frequency').value]);
+});
+slider('#f', 'frequency', ${options});`;
+    const seen = (): [number, number][] =>
+      (globalThis as unknown as { euclipSeen: [number, number][] }).euclipSeen;
+    const options = (h: Harness): Record<string, unknown> | undefined =>
+      h.doc.tracks[0]!.values.controls[FREQ]?.options as
+        Record<string, unknown> | undefined;
+    const choose = (h: Harness, choice: string): void => {
+      for (const op of h.runner.stepChoiceOperations(ONE, FREQ, choice))
+        h.apply(op);
+    };
+    const setBar = (h: Harness, index: number, value: number): void =>
+      h.apply(h.runner.laneOperation(ONE, FREQ, index, value));
+    const reset = (): void => {
+      (globalThis as unknown as { euclipSeen: unknown[] }).euclipSeen = [];
+    };
+
+    test('going per step fills every step with the single value; the values are kept through going back and forth', async function (assert) {
+      reset();
+      const h = await startProject(oneTrack(LANE('{}')));
+      move(h, ONE, FREQ, 700);
+      assert.deepEqual(
+        control(h, ONE, FREQ).stepChoices.map((choice) => choice.label),
+        ['Single value', 'Per step'],
+      );
+      assert.strictEqual(control(h, ONE, FREQ).stepChoice, 'single');
+      assert.deepEqual(h.runner.lanes(ONE, 'beat'), []);
+      assert.strictEqual(h.runner.stepListenerCount, 0);
+
+      choose(h, 'per-step:beat');
+      assert.deepEqual(options(h), {
+        perStep: 'beat',
+        stepValues: [700, 700, 700, 700],
+      });
+      assert.deepEqual(control(h, ONE, FREQ).perStep, {
+        sequence: 'beat',
+        missing: false,
+      });
+      const lane = h.runner.lanes(ONE, 'beat')[0]!;
+      assert.strictEqual(lane.label, 'frequency');
+      assert.deepEqual(lane.values, [700, 700, 700, 700]);
+      assert.strictEqual(h.runner.stepListenerCount, 1);
+
+      setBar(h, 1, 300);
+      setBar(h, 3, 5000);
+      choose(h, 'single');
+      assert.strictEqual(control(h, ONE, FREQ).perStep, undefined);
+      assert.strictEqual(
+        h.runner.stepListenerCount,
+        0,
+        'no listener left when no control needs one',
+      );
+      assert.deepEqual(
+        options(h)?.['stepValues'],
+        [700, 300, 700, 5000],
+        'kept for when it returns',
+      );
+      choose(h, 'per-step:beat');
+      assert.deepEqual(
+        h.runner.lanes(ONE, 'beat')[0]!.values,
+        [700, 300, 700, 5000],
+      );
+      assert.strictEqual(
+        control(h, ONE, FREQ).effective,
+        null,
+        'a lane is not "out of step"',
+      );
+    });
+
+    test('each step sets the parameter before the sequence’s own callback, rests included', async function (assert) {
+      reset();
+      const h = await startProject(oneTrack(LANE()), 2.2);
+      [400, 800, 1600, 3200].forEach((value, index) => setBar(h, index, value));
+      assert.strictEqual(
+        h.runner.sampler(ONE, 'f')!.param('frequency').value,
+        400,
+        'stopped: it holds the first step’s value',
+      );
+      reset();
+      await h.render();
+      // (four quarter notes at 120 are 2 s: the bar comes round once and starts again)
+      assert.deepEqual(seen().slice(0, 5), [
+        [0, 400],
+        [1, 800],
+        [2, 1600],
+        [3, 3200],
+        [0, 400],
+      ]);
+      assert.deepEqual(
+        h.derived,
+        [],
+        'nothing is written to the project by a step',
+      );
+      assert.strictEqual(
+        storedIn(h, ONE)[FREQ],
+        undefined,
+        'and the single value is untouched',
+      );
+    });
+
+    test('with a glide, each step’s value is glided to from the step: portamento', async function (assert) {
+      reset();
+      const h = await startProject(
+        oneTrack(LANE('{ perStep: true, glide: 0.1 }')),
+        1.2,
+      );
+      setBar(h, 1, 2000);
+      const arrivals: number[] = [];
+      h.runner
+        .sampler(ONE, 'f')!
+        .param('frequency')
+        .on('change', (change) => {
+          arrivals.push(Math.round(change.at * 1000) / 1000);
+        });
+      await h.render();
+      // step 1 is at 0.5 s: the change to 2000 arrives a glide later; step 2 (1 s) goes back
+      assert.deepEqual(arrivals.slice(0, 2), [0.6, 1.1]);
+    });
+
+    test('its length follows the sequence: values are kept as far as they go, new steps take the single value', async function (assert) {
+      reset();
+      const h = await startProject(oneTrack(LANE()));
+      move(h, ONE, FREQ, 900);
+      [1, 2, 3, 4].forEach((value, index) => setBar(h, index, value * 100));
+      await h.setScript(ONE, LANE("{ perStep: 'beat' }", '[1, 0, 1, 0, 1, 1]'));
+      assert.deepEqual(
+        h.runner.lanes(ONE, 'beat')[0]!.values,
+        [100, 200, 300, 400, 900, 900],
+      );
+      await h.setScript(ONE, LANE("{ perStep: 'beat' }", '[1, 0]'));
+      assert.deepEqual(h.runner.lanes(ONE, 'beat')[0]!.values, [100, 200]);
+      assert.strictEqual(
+        h.runner.stepListenerCount,
+        1,
+        'still one listener, through the rebuilds',
+      );
+    });
+
+    test('one listener for a sequence however many controls it has; the sequence gone, the control falls back and recovers', async function (assert) {
+      reset();
+      const two = `${LANE()}\nknob('#f', 'q', { perStep: 'beat' });\n__.transport.sequence('other', { steps: 3 }, () => {});\nslider('#tone', 'frequency', { perStep: 'other' });`;
+      const h = await startProject(oneTrack(two));
+      assert.strictEqual(h.runner.lanes(ONE, 'beat').length, 2);
+      assert.strictEqual(h.runner.lanes(ONE, 'other').length, 1);
+      assert.strictEqual(
+        h.runner.stepListenerCount,
+        2,
+        'one for each sequence, not for each control',
+      );
+      assert.deepEqual(
+        control(h, ONE, FREQ).stepChoices.map((choice) => choice.label),
+        ['Single value', 'Per step: beat', 'Per step: other'],
+      );
+
+      // the sequence renamed away: single value, the choice kept and said to be missing
+      move(h, ONE, FREQ, 1234);
+      await h.setScript(
+        ONE,
+        two.replace("sequence('beat'", "sequence('drums'"),
+      );
+      assert.deepEqual(control(h, ONE, FREQ).perStep, {
+        sequence: 'beat',
+        missing: true,
+      });
+      assert.deepEqual(h.runner.lanes(ONE, 'beat'), []);
+      assert.strictEqual(
+        h.runner.sampler(ONE, 'f')!.param('frequency').value,
+        1234,
+      );
+      assert.strictEqual(h.runner.stepListenerCount, 1);
+      assert.true(
+        control(h, ONE, FREQ).stepChoices.some(
+          (choice) => choice.label === 'Per step: beat (missing)',
+        ),
+      );
+      await h.setScript(ONE, two);
+      assert.deepEqual(control(h, ONE, FREQ).perStep, {
+        sequence: 'beat',
+        missing: false,
+      });
+      assert.strictEqual(h.runner.stepListenerCount, 2);
+
+      h.runner.dispose();
+      assert.strictEqual(
+        h.runner.stepListenerCount,
+        0,
+        'none left after teardown',
+      );
+    });
+
+    test('a script’s set() moves the parameter until the next step; .value is the step’s; nothing is stored', async function (assert) {
+      reset();
+      const h = await startProject(
+        oneTrack(`__().sine({ id: 'tone' }).lowpass({ id: 'f', frequency: 1000 }).to('channel');
+__.transport.sequence('beat', { steps: 2, step: '1/4' }, () => {});
+const cutoff = slider('#f', 'frequency', { perStep: 'beat' });
+globalThis.euclipCutoff = cutoff;`),
+      );
+      setBar(h, 0, 111);
+      const cutoff = (
+        globalThis as unknown as {
+          euclipCutoff: { value: unknown; set(v: number): void };
+        }
+      ).euclipCutoff;
+      assert.strictEqual(cutoff.value, 111, '.value reads the step’s value');
+      cutoff.set(5000);
+      assert.strictEqual(
+        h.runner.sampler(ONE, 'f')!.param('frequency').value,
+        5000,
+      );
+      assert.deepEqual(h.derived, [], 'the lane is not rewritten');
+      assert.deepEqual(h.runner.lanes(ONE, 'beat')[0]!.values[0], 111);
+    });
+
+    test('a step listener that throws is not the script’s error, and its sequence is not muted', async function (assert) {
+      reset();
+      const h = await startProject(oneTrack(LANE()), 1.2);
+      const sequence = h.engine
+        .scope(ONE)
+        .scope('script')
+        .transport.get('beat')!;
+      const logged = console.error;
+      const faults: unknown[] = [];
+      console.error = (...args: unknown[]) => faults.push(args);
+      try {
+        sequence.on('step', () => {
+          throw new Error('a fault of the app');
+        });
+        await h.render();
+      } finally {
+        console.error = logged;
+      }
+      assert.strictEqual(h.runner.error(ONE), null, 'the script is not blamed');
+      assert.false(sequence.muted, 'and goes on playing');
+      assert.true(faults.length > 0, 'it is reported as the app’s');
+      assert.true(seen().length >= 2, 'the sequence’s own callback still ran');
+    });
+  });
+
   module('a speed synced to a sequence', function () {
     const SPEED = '#s › speed';
     // the loop is 4 s; 16 eighths at 120 are 4 s, 8 sixteenths 1 s

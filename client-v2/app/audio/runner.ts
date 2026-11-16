@@ -25,6 +25,7 @@ import type {
   Param,
   ParamChange,
   Scope,
+  Sequence,
   SequenceEvent,
 } from 'cracked-up';
 import {
@@ -152,6 +153,20 @@ export interface ControlView {
    * stepped): how long the parameter takes to get to where the control is put. Absent for the rest.
    */
   glide?: GlideView;
+  /**
+   * The ways the control can hold its value, as its menu lists them: a single value, or one for every
+   * step of a named sequence of the script (an item per sequence). Empty where that is not offered
+   * (a toggle, a select, a control with no parameter, a script with no named sequence).
+   */
+  stepChoices: ModeChoice[];
+  stepChoice: string;
+  /** It has a value for every step of a sequence (see `LaneView`). Absent: a single value. */
+  perStep?: {
+    /** the sequence, as chosen */
+    sequence: string;
+    /** the sequence is not in the script now: the control is at its single value meanwhile */
+    missing: boolean;
+  };
   /** its range depends on something not there yet (a sample still loading): what, in words */
   waiting?: string;
 }
@@ -164,6 +179,24 @@ export interface GlideView {
   /** it follows a control of the script's own (`{ glide: thatControl }`): that control's label */
   follows?: string;
 }
+
+/**
+ * A per-step control as a lane under its sequence's grid: a bar for every step, each the control's
+ * value on that step.
+ */
+export interface LaneView {
+  /** the control's key */
+  key: string;
+  label: string;
+  /** the control as its row would show it: its unit, range and mode are the lane's */
+  control: ControlView;
+  /** a value for each step of the sequence, in the parameter's own terms */
+  values: number[];
+}
+
+const SINGLE = 'single';
+const PER_STEP = 'per-step';
+const stepChoice = (sequence: string): string => `${PER_STEP}:${sequence}`;
 
 /** One item of a control's unit menu. */
 export interface ModeChoice {
@@ -424,6 +457,8 @@ export class ProjectRunner {
   }
 
   dispose(): void {
+    for (const held of this.#stepListeners.values()) held.off();
+    this.#stepListeners.clear();
     for (const off of this.#off) off();
     for (const timer of this.#timers) clearTimeout(timer);
     this.#timers.clear();
@@ -510,6 +545,16 @@ export class ProjectRunner {
       warn: (warning) => warnings.push(warning),
       moved: (key, value, glide) =>
         this.#movedByScript(runtime, key, value, glide ?? 0),
+      perStep: (key) => {
+        const declaration =
+          declared.get(key) ??
+          runtime.declarations.find((candidate) => candidate.key === key);
+        const per = declaration && this.#perStepOf(runtime, declaration);
+        if (!declaration || !per?.found) return null;
+        const values = this.#stepValues(runtime, declaration, per.sequence);
+        const at = this.#lastStep.get(`${runtime.id}/${per.sequence}`) ?? 0;
+        return { value: values[at] ?? values[0] ?? 0 };
+      },
       glide: (key) =>
         this.#controlViews(runtime.id, true).find((view) => view.key === key)
           ?.glide?.seconds ?? 0,
@@ -539,6 +584,7 @@ export class ProjectRunner {
       runtime.declarations = [...declared.values()];
       // (every sequence is made by now, wherever in the script: synced speeds are put right)
       this.#resync(runtime);
+      this.#reconcileStepListeners();
       runtime.claims = claims;
       runtime.warnings = this.#explain(runtime, warnings);
       // One bad node does not stop the rest of a build applying: what could be built is now running.
@@ -634,6 +680,8 @@ export class ProjectRunner {
         // (a unit that is "synced to a sequence" changes what the stored number means)
         const runtime = this.#scopes.get(op.scope);
         if (runtime) this.#resync(runtime);
+        // (a control may have gone per step, or back, or had a bar moved)
+        this.#reconcileStepListeners();
         break;
       }
       case 'setScript':
@@ -925,14 +973,17 @@ export class ProjectRunner {
           group,
           meta,
           value,
-          effective: this.#settledAway(runtime, declaration.key, away)
-            ? (now as number | boolean | string)
-            : null,
+          effective: this.#perStepOf(runtime, declaration)?.found
+            ? null // (its parameter is wherever its lane has put it: that is the control's own doing)
+            : this.#settledAway(runtime, declaration.key, away)
+              ? (now as number | boolean | string)
+              : null,
           stored: stored !== undefined,
           mode,
           modes,
           choices,
           choice,
+          ...this.#stepChoices(runtime, declaration, meta),
           ...(sweepable &&
           meta.kind === 'number' &&
           meta.duration === undefined &&
@@ -1432,6 +1483,321 @@ export class ProjectRunner {
     return view.glide.seconds > 0 ? { glide: view.glide.seconds } : FOLLOW;
   }
 
+  // --- A value for every step ------------------------------------------------------------------------
+
+  /**
+   * Whether a control holds a value for every step of a sequence, and of which: by the person's choice,
+   * else by the script's `perStep`. Null for a single value. Only a number control on a parameter.
+   */
+  #perStepOf(
+    runtime: ScopeRuntime,
+    declaration: Declaration,
+  ): { sequence: string; found: boolean } | null {
+    const binding = declaration.bindings[0];
+    if (binding?.type !== 'param') return null;
+    if (declaration.kind !== 'slider' && declaration.kind !== 'knob')
+      return null;
+    const chosen = valuesOf(this.#host.getDoc(), runtime.id)?.controls[
+      declaration.key
+    ]?.options?.perStep;
+    const wanted = chosen ?? declaration.options.perStep;
+    if (wanted === undefined || wanted === false) return null;
+    const sequence =
+      typeof wanted === 'string' ? wanted : this.#sequenceNames(runtime)[0];
+    if (sequence === undefined) return null;
+    return {
+      sequence,
+      found: runtime.scope.transport.get(sequence) !== undefined,
+    };
+  }
+
+  /** A per-step control's values, fitted to its sequence as it is now: kept as far as they go, the rest its single value. */
+  #stepValues(
+    runtime: ScopeRuntime,
+    declaration: Declaration,
+    sequence: string,
+  ): number[] {
+    const state = valuesOf(this.#host.getDoc(), runtime.id)?.controls[
+      declaration.key
+    ];
+    const kept = state?.options?.stepValues ?? [];
+    const single = this.#singleValue(runtime, declaration);
+    const length = runtime.scope.transport.get(sequence)?.steps.length ?? 0;
+    return Array.from({ length }, (_, index) => {
+      const value = kept[index];
+      return typeof value === 'number' && Number.isFinite(value)
+        ? value
+        : single;
+    });
+  }
+
+  /** The control's single value: what the project holds, else what the script gives the parameter. */
+  #singleValue(runtime: ScopeRuntime, declaration: Declaration): number {
+    const stored = valuesOf(this.#host.getDoc(), runtime.id)?.controls[
+      declaration.key
+    ]?.value;
+    if (typeof stored === 'number') return stored;
+    const fallback = runtime.defaults.get(declaration.key);
+    if (typeof fallback === 'number') return fallback;
+    const binding = declaration.bindings[0];
+    const node =
+      binding?.type === 'param'
+        ? this.#select(runtime, binding.selector)[0]
+        : undefined;
+    const value =
+      binding?.type === 'param' ? node?.param(binding.param).value : 0;
+    return typeof value === 'number' ? value : 0;
+  }
+
+  #stepChoices(
+    runtime: ScopeRuntime,
+    declaration: Declaration,
+    meta: ControlMeta,
+  ): Pick<ControlView, 'stepChoices' | 'stepChoice' | 'perStep'> {
+    const binding = declaration.bindings[0];
+    const offered =
+      binding?.type === 'param' &&
+      meta.kind === 'number' &&
+      (declaration.kind === 'slider' || declaration.kind === 'knob');
+    const names = offered ? this.#sequenceNames(runtime) : [];
+    const per = this.#perStepOf(runtime, declaration);
+    if (names.length === 0 && !per)
+      return { stepChoices: [], stepChoice: SINGLE };
+    const stepChoices: ModeChoice[] = [
+      { id: SINGLE, label: 'Single value' },
+      ...names.map((name) => ({
+        id: stepChoice(name),
+        label: names.length === 1 ? 'Per step' : `Per step: ${name}`,
+      })),
+    ];
+    if (per && !names.includes(per.sequence)) {
+      stepChoices.push({
+        id: stepChoice(per.sequence),
+        label: `Per step: ${per.sequence} (missing)`,
+      });
+    }
+    return {
+      stepChoices,
+      stepChoice: per ? stepChoice(per.sequence) : SINGLE,
+      ...(per
+        ? { perStep: { sequence: per.sequence, missing: !per.found } }
+        : {}),
+    };
+  }
+
+  /** The per-step controls of a sequence, as lanes, in the order the script declares them. */
+  lanes(scopeId: string, sequence: string): LaneView[] {
+    const runtime = this.#scopes.get(scopeId);
+    if (!runtime) return [];
+    const views = this.#controlViews(scopeId, true);
+    const lanes: LaneView[] = [];
+    for (const declaration of runtime.declarations) {
+      const per = this.#perStepOf(runtime, declaration);
+      if (!per?.found || per.sequence !== sequence) continue;
+      const control = views.find((view) => view.key === declaration.key);
+      if (!control) continue;
+      lanes.push({
+        key: declaration.key,
+        label: control.label,
+        control,
+        values: this.#stepValues(runtime, declaration, sequence),
+      });
+    }
+    return lanes;
+  }
+
+  /**
+   * What choosing "Single value" or "Per step: name" from a control's menu comes to, for one step to
+   * undo. Going per step the first time, every step takes the control's single value, so nothing
+   * jumps; values it had per step before are kept and come back.
+   */
+  stepChoiceOperations(
+    scopeId: string,
+    key: string,
+    choice: string,
+  ): Operation[] {
+    const runtime = this.#scopes.get(scopeId);
+    const declaration = runtime?.declarations.find((d) => d.key === key);
+    if (!runtime || !declaration) return [];
+    if (choice === SINGLE) {
+      return [
+        {
+          type: 'setControlOptions',
+          scope: scopeId,
+          key,
+          // (false where the script says per step: the person's "single" has to outrank it)
+          options: {
+            perStep:
+              declaration.options.perStep === undefined ? undefined : false,
+          },
+        },
+      ];
+    }
+    const sequence = choice.slice(PER_STEP.length + 1);
+    const kept = valuesOf(this.#host.getDoc(), scopeId)?.controls[key]?.options
+      ?.stepValues;
+    const length = runtime.scope.transport.get(sequence)?.steps.length ?? 0;
+    const single = this.#singleValue(runtime, declaration);
+    return [
+      {
+        type: 'setControlOptions',
+        scope: scopeId,
+        key,
+        options: {
+          perStep: sequence,
+          ...(kept === undefined
+            ? { stepValues: new Array<number>(length).fill(single) }
+            : {}),
+        },
+      },
+    ];
+  }
+
+  /** A lane's values with one step set (the document's operation for a bar moved or typed). */
+  laneOperation(
+    scopeId: string,
+    key: string,
+    index: number,
+    value: number,
+  ): Operation | null {
+    const runtime = this.#scopes.get(scopeId);
+    const declaration = runtime?.declarations.find((d) => d.key === key);
+    const per =
+      runtime && declaration ? this.#perStepOf(runtime, declaration) : null;
+    if (!runtime || !declaration || !per?.found) return null;
+    const values = this.#stepValues(runtime, declaration, per.sequence);
+    if (index < 0 || index >= values.length || values[index] === value) {
+      return null;
+    }
+    values[index] = value;
+    return {
+      type: 'setControlOptions',
+      scope: scopeId,
+      key,
+      options: { stepValues: values },
+    };
+  }
+
+  /**
+   * The step listeners in place: one for each sequence that has per-step controls, by scope and name.
+   * They are attached outside any build (a rebuild does not add another), follow the sequence the
+   * name now belongs to, and are taken off when no control needs them.
+   */
+  readonly #stepListeners = new Map<
+    string,
+    { sequence: Sequence; off: () => void }
+  >();
+
+  /** How many step listeners are attached. For tests. */
+  get stepListenerCount(): number {
+    return this.#stepListeners.size;
+  }
+
+  /** Brings the step listeners in line with what the scripts and the project now ask for. */
+  #reconcileStepListeners(): void {
+    const wanted = new Map<string, { runtime: ScopeRuntime; name: string }>();
+    for (const runtime of this.#scopes.values()) {
+      for (const declaration of runtime.declarations) {
+        const per = this.#perStepOf(runtime, declaration);
+        if (per?.found) {
+          wanted.set(`${runtime.id}/${per.sequence}`, {
+            runtime,
+            name: per.sequence,
+          });
+        }
+      }
+    }
+    for (const [key, held] of this.#stepListeners) {
+      const want = wanted.get(key);
+      if (
+        !want ||
+        want.runtime.scope.transport.get(want.name) !== held.sequence
+      ) {
+        held.off();
+        this.#stepListeners.delete(key);
+      }
+    }
+    for (const [key, { runtime, name }] of wanted) {
+      if (this.#stepListeners.has(key)) continue;
+      const sequence = runtime.scope.transport.get(name);
+      if (!sequence) continue;
+      const off = sequence.on('step', (event) =>
+        this.#onStep(runtime.id, name, event),
+      );
+      this.#stepListeners.set(key, { sequence, off });
+    }
+    for (const runtime of this.#scopes.values()) this.#holdStepValues(runtime);
+  }
+
+  /** The step of each sequence last set by its listener, by scope and name: what the parameters hold while stopped. */
+  readonly #lastStep = new Map<string, number>();
+
+  /**
+   * A step of a sequence that has per-step controls is about to sound: each of them is set to its
+   * value for that step, at the step's time, before the sequence's own callback runs (so a sampler it
+   * triggers on this step plays with it). Rests too. Parameter sets and nothing else: no document
+   * write, nothing drawn, nothing the UI is waiting on.
+   */
+  #onStep(scopeId: string, name: string, event: SequenceEvent): void {
+    const runtime = this.#scopes.get(scopeId);
+    if (!runtime) return;
+    this.#lastStep.set(`${scopeId}/${name}`, event.index);
+    this.#setStepValues(runtime, name, event.index, event.time);
+  }
+
+  #setStepValues(
+    runtime: ScopeRuntime,
+    name: string,
+    index: number,
+    at: number | undefined,
+  ): void {
+    const values = valuesOf(this.#host.getDoc(), runtime.id);
+    this.#applying = true;
+    try {
+      for (const declaration of runtime.declarations) {
+        const binding = declaration.bindings[0];
+        if (binding?.type !== 'param') continue;
+        const per = this.#perStepOf(runtime, declaration);
+        if (!per?.found || per.sequence !== name) continue;
+        const kept = values?.controls[declaration.key]?.options?.stepValues;
+        const value =
+          typeof kept?.[index] === 'number'
+            ? kept[index]
+            : this.#singleValue(runtime, declaration);
+        // (a glide the control has is portamento between steps; with none the step's value lands on the step)
+        const stored = values?.controls[declaration.key]?.options?.glide;
+        const glide =
+          typeof stored === 'number'
+            ? stored
+            : (declaration.options.glide ?? 0);
+        const how = {
+          ...(at === undefined ? {} : { at }),
+          ...(glide > 0 ? { glide } : {}),
+        };
+        for (const node of this.#reach(runtime, declaration)) {
+          node.param(binding.param).set(value, how);
+        }
+      }
+    } finally {
+      this.#applying = false;
+    }
+  }
+
+  /** While the transport is stopped a per-step control's parameter holds the step last played, or the first. */
+  #holdStepValues(runtime: ScopeRuntime): void {
+    if (this.engine.transport.state === 'started') return;
+    const names = new Set<string>();
+    for (const declaration of runtime.declarations) {
+      const per = this.#perStepOf(runtime, declaration);
+      if (per?.found) names.add(per.sequence);
+    }
+    for (const name of names) {
+      const steps = runtime.scope.transport.get(name)?.steps.length ?? 0;
+      const last = this.#lastStep.get(`${runtime.id}/${name}`) ?? 0;
+      this.#setStepValues(runtime, name, last < steps ? last : 0, undefined);
+    }
+  }
+
   // --- A speed synced to a sequence ----------------------------------------------------------------
 
   /** The named sequences of a scope's script, in the order it makes them. */
@@ -1785,6 +2151,15 @@ export class ProjectRunner {
   #onScopeError(runtime: ScopeRuntime, error: GraphError): void {
     const origin = error.origin;
     if (!origin || origin.scope !== runtime.scope) return;
+    if (origin.kind === 'listener') {
+      // One of Euclip's own step listeners threw (the per-step values): the app's fault, not the
+      // script's. Its sequence is not muted and the script is not blamed.
+      console.error(
+        'Euclip: a fault in the app while following a sequence’s steps.',
+        error.cause ?? error,
+      );
+      return;
+    }
     if (origin.sequence) {
       origin.sequence.muted = true;
       if (origin.name !== null) runtime.errored.add(origin.name);

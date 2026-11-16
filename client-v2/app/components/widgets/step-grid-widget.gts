@@ -6,7 +6,10 @@ import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import Hint from 'client-v2/components/ui/hint';
-import type { StepGridView } from 'client-v2/audio/runner';
+import type { LaneView, StepGridView } from 'client-v2/audio/runner';
+import { ControlGesture } from 'client-v2/controls/gesture';
+import { mappingOf } from 'client-v2/controls/view';
+import cssVars from 'client-v2/modifiers/css-vars';
 import {
   applyGenerator,
   applyTool,
@@ -58,6 +61,11 @@ export interface StepGridWidgetSignature {
      * compact grid is steps only.
      */
     generators?: boolean;
+    /**
+     * With the lanes of the sequence's per-step controls under it, in the same step columns: a bar
+     * for every step, drawn and dragged like a slider.
+     */
+    lanes?: boolean;
   };
 }
 
@@ -113,6 +121,7 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
   willDestroy(): void {
     super.willDestroy();
     clearTimeout(this.#press);
+    this.laneGesture.release();
   }
 
   get editingValue(): string {
@@ -311,6 +320,253 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
     box.style.left = `${wantLeft - zero.left}px`;
     box.style.top = `${wantTop - zero.top}px`;
   });
+
+  // --- lanes: a per-step control's value on every step, in the grid's own columns ---------------------
+
+  /** The sequence's per-step controls. (Their bars are items of the grid itself, so they stand under their steps.) */
+  get lanes(): LaneView[] {
+    return this.args.lanes
+      ? this.audio.lanes(this.args.scopeId, this.args.control.name)
+      : [];
+  }
+
+  /** the bar the pointer is on or dragging, to say its value in the lane's head */
+  @tracked laneAt: { key: string; index: number } | null = null;
+  /** the bar whose value is being typed */
+  @tracked laneEditing: { key: string; index: number } | null = null;
+
+  #lane: {
+    key: string;
+    index: number;
+    start: number;
+    group: string;
+    rects: DOMRect[];
+  } | null = null;
+
+  #laneOf(key: string): LaneView | undefined {
+    return this.lanes.find((lane) => lane.key === key);
+  }
+
+  /** Where along a bar's travel a value is: 0 at its foot, 1 at its top. */
+  barPosition = (lane: LaneView, value: number): number =>
+    mappingOf(lane.control)?.toPosition(value) ?? 0;
+
+  /** What a lane's head says: the value of the bar under the pointer, in the control's unit. */
+  laneSays = (lane: LaneView): string => {
+    const at = this.laneAt;
+    if (!at || at.key !== lane.key) return '';
+    const value = lane.values[at.index];
+    return value === undefined
+      ? ''
+      : `step ${at.index + 1}: ${mappingOf(lane.control)?.format(value) ?? String(value)}`;
+  };
+
+  /** The bar a pointer is over: the one in its column, in the nearest row (a long sequence wraps). */
+  #barAt(event: PointerEvent): number {
+    const lane = this.#lane;
+    if (!lane) return 0;
+    let best = lane.index;
+    let distance = Infinity;
+    lane.rects.forEach((rect, index) => {
+      const dx =
+        event.clientX < rect.left
+          ? rect.left - event.clientX
+          : event.clientX > rect.right
+            ? event.clientX - rect.right
+            : 0;
+      const dy =
+        event.clientY < rect.top
+          ? rect.top - event.clientY
+          : event.clientY > rect.bottom
+            ? event.clientY - rect.bottom
+            : 0;
+      // (its column first: a pointer dragged above or below the lane still paints the bar it is over)
+      const far = dx * 1000 + dy;
+      if (far < distance) {
+        distance = far;
+        best = index;
+      }
+    });
+    return best;
+  }
+
+  #setBar(position: number): void {
+    const held = this.#lane;
+    const lane = held && this.#laneOf(held.key);
+    const map = lane && mappingOf(lane.control);
+    if (!held || !lane || !map) return;
+    if (this.laneAt?.key !== held.key || this.laneAt.index !== held.index) {
+      this.laneAt = { key: held.key, index: held.index };
+    }
+    this.audio.setLaneValue(
+      this.args.scopeId,
+      held.key,
+      held.index,
+      map.toValue(position),
+      held.group,
+    );
+  }
+
+  /**
+   * A lane's bars are dragged as sliders are, with the gestures every control shares: across the
+   * steps to paint their values, up and down for one; Shift moves the bar it began on finely; a double
+   * click (or tap), or a long press, opens the number box on a bar. The whole gesture is one step to undo.
+   */
+  laneGesture = new ControlGesture({
+    position: () => {
+      const held = this.#lane;
+      const lane = held && this.#laneOf(held.key);
+      return held && lane
+        ? this.barPosition(lane, lane.values[held.index] ?? 0)
+        : 0;
+    },
+    positionAt: (event) => {
+      const held = this.#lane;
+      if (!held) return 0;
+      held.index = this.#barAt(event);
+      const rect = held.rects[held.index];
+      return rect ? 1 - (event.clientY - rect.top) / (rect.height || 1) : 0;
+    },
+    // (Shift: the bar the gesture began on, a tenth as fast)
+    travel: (event, from) => {
+      const held = this.#lane;
+      const rect = held?.rects[held.start];
+      if (held) held.index = held.start;
+      return (from.clientY - event.clientY) / (rect?.height || 1);
+    },
+    onPosition: (position) => this.#setBar(position),
+    onReset: () => this.#editBar(),
+    onMenu: () => this.#editBar(),
+  });
+
+  #editBar(): void {
+    const held = this.#lane;
+    if (held) this.laneEditing = { key: held.key, index: held.index };
+  }
+
+  laneDown = (event: PointerEvent): void => {
+    const bar = (event.target as Element).closest<HTMLElement>(
+      '[data-lane-step]',
+    );
+    const key = bar?.dataset['lane'];
+    if (!bar || key === undefined) return;
+    const grid = event.currentTarget as HTMLElement;
+    const index = Number(bar.dataset['laneStep']);
+    this.#lane = {
+      key,
+      index,
+      start: index,
+      group: `lane-${++generatorGestures}`,
+      rects: [
+        ...grid.querySelectorAll<HTMLElement>(
+          `[data-lane-step][data-lane="${CSS.escape(key)}"]`,
+        ),
+      ].map((element) => element.getBoundingClientRect()),
+    };
+    this.laneGesture.down(event);
+  };
+
+  laneHover = (event: PointerEvent): void => {
+    if (this.laneGesture.active) return;
+    const bar = (event.target as Element).closest<HTMLElement>(
+      '[data-lane-step]',
+    );
+    const key = bar?.dataset['lane'];
+    const index = Number(bar?.dataset['laneStep']);
+    if (!bar || key === undefined) {
+      if (this.laneAt !== null) this.laneAt = null;
+    } else if (this.laneAt?.key !== key || this.laneAt.index !== index) {
+      this.laneAt = { key, index };
+    }
+  };
+
+  laneLeave = (): void => {
+    if (!this.laneGesture.active && this.laneAt !== null) this.laneAt = null;
+  };
+
+  /** The arrow keys on a focused bar step its value, as a slider's do; Enter opens the number box. */
+  laneKey = (lane: LaneView, index: number, event: KeyboardEvent): void => {
+    const map = mappingOf(lane.control);
+    if (!map) return;
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.laneEditing = { key: lane.key, index };
+      return;
+    }
+    const step = map.keyStep * (event.shiftKey && !map.discrete ? 0.1 : 1);
+    const at = map.toPosition(lane.values[index] ?? 0);
+    const next =
+      event.key === 'ArrowUp'
+        ? at + step
+        : event.key === 'ArrowDown'
+          ? at - step
+          : null;
+    if (next === null) return;
+    event.preventDefault();
+    this.audio.setLaneValue(
+      this.args.scopeId,
+      lane.key,
+      index,
+      map.toValue(Math.min(1, Math.max(0, next))),
+    );
+  };
+
+  get laneEditingText(): string {
+    const editing = this.laneEditing;
+    const lane = editing && this.#laneOf(editing.key);
+    const value = lane?.values[editing!.index];
+    return lane && value !== undefined
+      ? (mappingOf(lane.control)?.format(value) ?? String(value))
+      : '';
+  }
+
+  commitLane = (typed: string): boolean => {
+    const editing = this.laneEditing;
+    const lane = editing && this.#laneOf(editing.key);
+    const value = lane ? mappingOf(lane.control)?.parse(typed) : null;
+    if (!editing || value === null || value === undefined) return false;
+    this.audio.setLaneValue(
+      this.args.scopeId,
+      editing.key,
+      editing.index,
+      value,
+    );
+    return true;
+  };
+
+  laneDone = (): void => {
+    this.laneEditing = null;
+  };
+
+  /** Puts the number box on its bar: centred on it, moved only as far as keeps it on the screen. */
+  placeOnBar = modifier(
+    (box: HTMLElement, [editing]: [{ key: string; index: number } | null]) => {
+      const grid = box.parentElement;
+      if (!editing || !grid) return;
+      const bar = grid.querySelector<HTMLElement>(
+        `[data-lane-step="${editing.index}"][data-lane="${CSS.escape(editing.key)}"]`,
+      );
+      if (!bar) return;
+      box.style.left = '0px';
+      box.style.top = '0px';
+      const on = bar.getBoundingClientRect();
+      const zero = box.getBoundingClientRect();
+      const clamp = (value: number, low: number, high: number): number =>
+        Math.min(Math.max(value, low), Math.max(low, high));
+      const left = clamp(
+        on.left + on.width / 2 - zero.width / 2,
+        4,
+        window.innerWidth - 4 - zero.width,
+      );
+      const top = clamp(
+        on.top + on.height / 2 - zero.height / 2,
+        4,
+        window.innerHeight - 4 - zero.height,
+      );
+      box.style.left = `${left - zero.left}px`;
+      box.style.top = `${top - zero.top}px`;
+    },
+  );
 
   // --- pattern generators (controls/generators.ts): the dials write the pattern as they move ------------
 
@@ -527,6 +783,8 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
   }
 
   <template>
+    {{! template-lint-disable no-pointer-down-event-binding }}
+    {{! (a lane's bar is dragged from where the pointer goes down, as a slider is) }}
     <div
       class="step-grid"
       role="group"
@@ -535,6 +793,9 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
       data-stored={{if @control.stored "true"}}
       data-test-step-grid={{@control.name}}
       ...attributes
+      {{on "pointerdown" this.laneDown}}
+      {{on "pointermove" this.laneHover}}
+      {{on "pointerleave" this.laneLeave}}
     >
       {{#each @control.steps key="@index" as |value index|}}
         {{! template-lint-disable no-pointer-down-event-binding }}
@@ -560,6 +821,43 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
           {{on "keydown" (fn this.onKeydown index)}}
         >{{shown value}}</button>
       {{/each}}
+      {{#each this.lanes key="key" as |lane|}}
+        {{! a lane: its head across the grid, then a bar under every step (items of the same grid) }}
+        <div class="lane__head" data-test-lane={{lane.key}}>
+          <b class="truncate">{{lane.label}}</b>
+          <span class="lane__says" data-test-lane-says>{{this.laneSays
+              lane
+            }}</span>
+        </div>
+        {{#each lane.values key="@index" as |value index|}}
+          {{! template-lint-disable no-invalid-interactive }}
+          <span
+            class="lane__bar
+              {{if (is index @control.playhead) 'lane__bar--current'}}"
+            role="slider"
+            tabindex="0"
+            aria-label="{{lane.label}}, step {{plusOne index}}"
+            aria-orientation="vertical"
+            aria-valuenow={{value}}
+            data-lane={{lane.key}}
+            data-lane-step={{index}}
+            {{cssVars pos=(this.barPosition lane value)}}
+            {{on "keydown" (fn this.laneKey lane index)}}
+          ></span>
+        {{/each}}
+      {{/each}}
+      {{#if this.laneEditing}}
+        <NumberEntry
+          class="step-entry lane-entry"
+          @text={{this.laneEditingText}}
+          @label="Step value"
+          @open={{true}}
+          @onCommit={{this.commitLane}}
+          @onDone={{this.laneDone}}
+          data-test-lane-entry
+          {{this.placeOnBar this.laneEditing}}
+        />
+      {{/if}}
       {{#if (editingAt this.editing)}}
         <NumberEntry
           class="step-entry"
@@ -707,6 +1005,10 @@ const TOOLS: readonly { id: Tool; label: string; says: string }[] = [
 
 let generatorGestures = 0;
 let generatorPanels = 0;
+
+function plusOne(index: number): number {
+  return index + 1;
+}
 
 function editingAt(index: number | null): boolean {
   return index !== null;

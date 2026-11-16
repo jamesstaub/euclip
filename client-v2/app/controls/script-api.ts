@@ -59,6 +59,11 @@ export interface ControlHost {
   sync(key: string): ((value: number) => number) | null;
   /** seconds a control's parameter takes to get where the control is put, as things stand (0: at once) */
   glide(key: string): number;
+  /**
+   * For a control that has a value for every step of a sequence (as things stand when it is asked):
+   * its value on the step now playing. Null for a control with a single value.
+   */
+  perStep(key: string): { value: number } | null;
 }
 
 /** What a declaration returns to the script. */
@@ -289,6 +294,8 @@ export function createControlApi(
 
     return {
       get value() {
+        const step = host.perStep(key);
+        if (step) return step.value;
         return (
           host.stored(key) ??
           (sync ? 1 : reach(bindings)[0]?.param(param).value)
@@ -298,6 +305,9 @@ export function createControlApi(
         // (with a glide it starts where it is called, on the step in a callback, and sweeps from there)
         const seconds = host.glide(key);
         set(value, seconds);
+        // A control that has a value for every step: the parameter goes where the script puts it
+        // until the next step, whose own value then applies. Its lane is not rewritten.
+        if (host.perStep(key)) return;
         host.moved(key, value, seconds);
       },
     };

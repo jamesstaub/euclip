@@ -205,3 +205,100 @@
   font-size: var(--font-size-7);
   text-align: end;
 }
+
+/*
+ * Lanes: a per-step control's value on every step. A lane's head and its bars are items of the step
+ * grid itself, so each bar stands in its step's column, exactly under it (and wraps as the steps do).
+ * A bar is a slider with no handle: dark, filled in the sliders' blue from its foot to its value.
+ */
+.lane__head {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  block-size: 1.125rem;
+  margin-block-start: var(--space-1);
+  overflow: hidden;
+  font-size: 0.625rem;
+  line-height: 1.125rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.lane__says {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: none;
+}
+
+.lane__bar {
+  position: relative;
+  block-size: 2.75rem;
+  overflow: hidden;
+  border: var(--border-width-1) solid var(--step-line);
+  background: var(--dark-gray);
+  cursor: ns-resize;
+
+  /* dragged across and up and down: neither is a scroll */
+  touch-action: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: 0;
+    block-size: calc(var(--pos, 0) * 100%);
+    background: var(--light-blue);
+  }
+
+  &.lane__bar--current::before {
+    background: var(--step-current);
+  }
+
+  &:focus-visible {
+    outline-offset: -3px;
+  }
+}
+
+.step-grid .lane-entry {
+  inline-size: 5.5rem;
+}
+
+/*
+ * In a track's row the lanes are shown where the steps are one row of sixteen (a mouse, a wide list).
+ * Where the steps wrap into rows of eight (a phone, a touch tablet) they are in the sequence pane only.
+ * A track's lanes can be hidden from its row.
+ */
+.track .lane__head,
+.track .lane__bar {
+  display: none;
+}
+
+/* the button that hides a track's lanes is only where they can be shown */
+.track__lanes {
+  display: none;
+  grid-area: actions;
+  justify-self: end;
+  margin-inline-end: var(--target-min);
+}
+
+@media (pointer: fine) {
+  @container track-list (min-width: 36rem) {
+    .track__lanes {
+      display: inline-flex;
+    }
+
+    .track:not([data-lanes="hidden"]) .lane__head {
+      display: flex;
+    }
+
+    .track:not([data-lanes="hidden"]) .lane__bar {
+      display: block;
+    }
+  }
+}

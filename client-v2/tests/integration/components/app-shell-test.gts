@@ -693,6 +693,85 @@ stepGrid('ones');
         .includesText('4 of 16', 'the other grid is as it was');
     });
 
+    test('a slider set to “Per step” becomes a lane under its sequence’s grid: bars in the steps’ columns, painted by a drag, one step to undo', async function (assert) {
+      view.footerPane = 'controls';
+      await render(<template><AppShell /></template>);
+      const options = (): Record<string, unknown> | undefined =>
+        project.doc.tracks[0]!.values.controls[FREQUENCY]?.options as
+          | Record<string, unknown>
+          | undefined;
+      await click(`${row(FREQUENCY)} [data-test-menu-button]`);
+      assert.dom('[data-test-menu-item="Single value"]').hasAria('checked', 'true');
+      await click('[data-test-menu-item="Per step"]');
+      assert.deepEqual(options()?.['stepValues'], new Array(16).fill(2000), 'every step takes the value it had');
+      // its row in the controls pane is a stub that says so, with its menu and a way to its lane
+      assert.dom(`${row(FREQUENCY)} [data-test-control-lane]`).includesText('per step of steps');
+      assert.dom(`${row(FREQUENCY)} [data-test-slider]`).doesNotExist();
+      assert.dom(`${row(FREQUENCY)} [data-test-menu-button]`).exists();
+      await click(`${row(FREQUENCY)} [data-test-show-lane]`);
+      assert.dom('[data-test-pane="sequence"]').exists('the sequence pane, where the lane is');
+
+      const pane = '[data-test-pane="sequence"] [data-test-step-grid="steps"]';
+      assert.dom(`${pane} [data-test-lane="${FREQUENCY}"]`).includesText('frequency');
+      const bars = findAll(`${pane} [data-lane-step]`);
+      assert.strictEqual(bars.length, 16, 'a bar for every step');
+      // each bar stands under its step: the same horizontal centre
+      const centre = (el: Element): number => {
+        const rect = el.getBoundingClientRect();
+        return rect.left + rect.width / 2;
+      };
+      const stepsIn = findAll(`${pane} [data-test-step]`);
+      const off = Math.max(...bars.map((bar, index) => Math.abs(centre(bar) - centre(stepsIn[index]!))));
+      assert.true(off < 1, `bars are in their steps’ columns (worst ${off.toFixed(2)} px)`);
+
+      // a drag across the bars paints them: down on the first, along to the third, low in the bar
+      const at = (index: number, share: number) => {
+        const rect = bars[index]!.getBoundingClientRect();
+        return { pointerId: 1, button: 0, buttons: 1, isPrimary: true, pointerType: 'mouse', clientX: rect.left + rect.width / 2, clientY: rect.bottom - share * rect.height };
+      };
+      await triggerEvent(bars[0]!, 'pointerdown', at(0, 0.5));
+      await triggerEvent(document.body, 'pointermove', at(1, 0.25));
+      assert.dom(`${pane} [data-test-lane-says]`).includesText('step 2', 'the lane says the value of the bar being dragged');
+      await triggerEvent(document.body, 'pointermove', at(2, 0.75));
+      await triggerEvent(document.body, 'pointerup', at(2, 0.75));
+      const painted = options()!['stepValues'] as number[];
+      assert.true(painted.slice(0, 3).every((value) => value !== 2000), `three bars set in one drag (${painted.slice(0, 4).map((v) => Math.round(v)).join(', ')})`);
+      assert.true(painted[1]! < painted[0]!, 'lower in a bar is a lower value');
+      assert.true(painted[2]! > painted[0]!);
+      assert.strictEqual(painted[3], 2000, 'the rest are as they were');
+      project.undo();
+      await settled();
+      assert.deepEqual(options()?.['stepValues'], new Array(16).fill(2000), 'the whole drag is one step to undo');
+
+      // a double click opens the number box on the bar, in the control's unit
+      await triggerEvent(bars[4]!, 'pointerdown', at(4, 0.5));
+      await triggerEvent(document.body, 'pointerup', at(4, 0.5));
+      await triggerEvent(bars[4]!, 'pointerdown', at(4, 0.5));
+      await triggerEvent(document.body, 'pointerup', at(4, 0.5));
+      assert.dom(`${pane} [data-test-lane-entry]`).exists();
+      await fillIn(`${pane} [data-test-lane-entry] [data-test-number-input]`, '440');
+      await triggerKeyEvent(`${pane} [data-test-lane-entry] [data-test-number-input]`, 'keydown', 'Enter');
+      assert.strictEqual((options()!['stepValues'] as number[])[4], 440);
+      assert.strictEqual(frequencyOf('t-kick'), (options()!['stepValues'] as number[])[0], 'stopped: the parameter holds the first step’s value');
+
+      // the track’s row has the lane too, and a way to hide it; back to a single value it is gone
+      assert.dom('[data-test-track="1"] [data-lane-step]').exists({ count: 16 });
+      assert.dom('[data-test-track="2"] [data-lane-step]').doesNotExist();
+      await click('[data-test-track="1"] [data-test-track-lanes]');
+      assert.dom('[data-test-track="1"]').hasAttribute('data-lanes', 'hidden');
+      await click('[data-test-track="1"] [data-test-track-lanes]');
+      assert.dom('[data-test-track="1"]').doesNotHaveAttribute('data-lanes');
+      view.footerPane = 'controls';
+      await settled();
+      await click(`${row(FREQUENCY)} [data-test-menu-button]`);
+      await click('[data-test-menu-item="Single value"]');
+      assert.dom('[data-lane-step]').doesNotExist();
+      assert.dom(`${row(FREQUENCY)} [data-test-slider]`).exists('a slider again');
+      project.undo();
+      await settled();
+      assert.dom('[data-test-track="1"] [data-lane-step]').exists({ count: 16 }, 'undo: per step again, its values with it');
+    });
+
     test('the footer’s sequence pane lists them, with Reset for a stored pattern; two step grids are named', async function (assert) {
       view.footerPane = 'sequence';
       await render(<template><AppShell /></template>);
@@ -876,6 +955,8 @@ stepGrid('ones');
           'Hz',
           'Note',
           'Note and cents',
+          'Single value',
+          'Per step',
           'Glide: off…',
           'Reset glide',
           'Reset',
@@ -1521,6 +1602,7 @@ slider(__.bus('drums'), 'gain');
             (label) =>
               label !== 'Reset' &&
               !/glide/i.test(label ?? '') &&
+              !/^(Single value|Per step)/.test(label ?? '') &&
               label !== 'Show in script' &&
               label !== 'Learn MIDI (coming)',
           );

@@ -38,6 +38,16 @@ export interface ControlUserOptions {
    * panel reopens where it was. The pattern itself is the grid's stored value; this is not a recipe.
    */
   generator?: Record<string, unknown>;
+  /**
+   * A slider or knob that has a value for every step of a sequence: the sequence's name; `false` for
+   * "a single value" where the script says per step; absent: as the script says.
+   */
+  perStep?: string | false;
+  /**
+   * Its value for each step, in the parameter's own terms (as its single value is). Kept when it goes
+   * back to a single value, for when it returns.
+   */
+  stepValues?: number[];
 }
 
 /**

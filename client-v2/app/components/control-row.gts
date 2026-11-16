@@ -7,13 +7,16 @@ import PopupMenu, { type MenuItem } from 'client-v2/components/ui/popup-menu';
 import type { ControlView } from 'client-v2/audio/runner';
 import { controlWidget, type ControlEntry } from 'client-v2/controls/registry';
 import { GLIDE_MAPPING } from 'client-v2/controls/modes';
-import { unitMenuItems } from 'client-v2/controls/unit-menu';
+import { stepMenuItems, unitMenuItems } from 'client-v2/controls/unit-menu';
 import { mappingOf, numberOf } from 'client-v2/controls/view';
 import intoView from 'client-v2/modifiers/into-view';
 import onEscape from 'client-v2/modifiers/on-escape';
 import onOutside from 'client-v2/modifiers/on-outside';
 import type AudioService from 'client-v2/services/audio';
 import type ViewService from 'client-v2/services/view';
+
+/** The name a track's lanes are opened and closed under, with its other sections (services/view.ts). */
+export const LANES_SECTION = '~lanes';
 
 export interface ControlRowSignature {
   Element: HTMLLIElement;
@@ -143,8 +146,12 @@ export default class ControlRow extends Component<ControlRowSignature> {
                 this.audio.setControlGlide(scopeId, control.key, undefined),
             },
           ];
+    const steps = stepMenuItems(control, (choice) =>
+      this.audio.chooseStepMode(scopeId, control.key, choice),
+    );
     return [
       ...modes,
+      ...steps,
       ...glides,
       {
         label: 'Reset',
@@ -160,6 +167,27 @@ export default class ControlRow extends Component<ControlRowSignature> {
       { label: 'Learn MIDI (coming)', disabled: true },
     ];
   }
+
+  /**
+   * It has a value for every step of a sequence (and the sequence is there): its row here is a stub,
+   * and its values are a lane under that sequence's grid.
+   */
+  get lane(): string | undefined {
+    const per = this.args.control.perStep;
+    return per && !per.missing ? per.sequence : undefined;
+  }
+
+  /** Its sequence is not in the script now: it is at its single value meanwhile, and says so. */
+  get laneMissing(): string | undefined {
+    const per = this.args.control.perStep;
+    return per?.missing ? per.sequence : undefined;
+  }
+
+  /** Shows the lane: the sequence pane, where every grid has its lanes under it. */
+  showLane = (): void => {
+    this.view.setSectionOpen(this.args.scopeId, LANES_SECTION, true);
+    this.view.setFooterPane('sequence');
+  };
 
   openMenu = (): void => {
     this.menuOpen = true;
@@ -195,7 +223,18 @@ export default class ControlRow extends Component<ControlRowSignature> {
         title={{@control.label}}
       >{{@control.label}}</span>
 
-      {{#if this.entry}}
+      {{#if this.lane}}
+        <span class="control-row__lane" data-test-control-lane>
+          <span class="truncate">per step of
+            <b>{{this.lane}}</b></span>
+          <button
+            type="button"
+            class="btn btn--s btn--on-yellow"
+            data-test-show-lane
+            {{on "click" this.showLane}}
+          >Show lane</button>
+        </span>
+      {{else if this.entry}}
         <this.entry.component
           class="control-row__widget"
           @scopeId={{@scopeId}}
@@ -212,6 +251,14 @@ export default class ControlRow extends Component<ControlRowSignature> {
         {{/if}}
       {{else}}
         <span class="control-row__unknown">No widget called “{{@control.kind}}”.</span>
+      {{/if}}
+
+      {{#if this.laneMissing}}
+        <span
+          class="control-row__effective"
+          role="status"
+          data-test-lane-missing
+        >no sequence ‘{{this.laneMissing}}’: single value</span>
       {{/if}}
 
       {{#if this.effectiveText}}
