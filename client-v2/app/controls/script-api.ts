@@ -122,7 +122,7 @@ export function createControlApi(
   api: ScopeApi,
   host: ControlHost,
   lineOfCaller: () => number | undefined = () => undefined,
-): ControlApi {
+): { functions: ControlApi; finish(): void } {
   /**
    * Turns what a function was given into nodes: a selector string, a chain (all of its nodes), a
    * selection, a node, or a list of nodes. Null if it is none of those.
@@ -465,18 +465,33 @@ export function createControlApi(
       });
       return INERT;
     }
+    return grid(name, isOptions(options) ? options : {}, false, line);
+  };
+
+  /** The sequences that have a grid declared, so that `controls()` adds one only where there is none. */
+  const gridded = new Set<string>();
+
+  /** Declares the grid of a named sequence that exists, and applies the pattern the project holds for it. */
+  function grid(
+    name: string,
+    options: ControlOptions,
+    implicit: boolean,
+    line: number | undefined,
+  ): ControlHandle {
     const key = stepGridKey(name);
+    gridded.add(name);
     host.declare({
       key,
       kind: 'stepGrid',
       bindings: [{ type: 'sequence', name }],
       nodes: [],
-      options: isOptions(options) ? options : {},
-      implicit: false,
+      options,
+      implicit,
       line,
     });
     const stored = host.stored(key);
-    if (Array.isArray(stored)) {
+    const sequence = api.transport.get(name);
+    if (sequence && Array.isArray(stored)) {
       sequence.update({ steps: fitSteps(stored, sequence.steps) });
     }
     return {
@@ -490,7 +505,7 @@ export function createControlApi(
         host.moved(key, [...value]);
       },
     };
-  };
+  }
 
   /**
    * `waveform('#sampler')`: a waveform editor for each sampler found. The editor is a view over
@@ -533,61 +548,81 @@ export function createControlApi(
       return;
     }
     const options = isOptions(second) ? second : {};
-    for (const node of samplers) {
-      const selector = idSelector(node);
-      // The sound it plays, first: a stored choice is set here, after the node, so it has the last word.
-      if (STORED_BUFFER_CHOICE) {
-        const key = controlKey(selector, BUFFER_OPTION);
-        host.declare({
-          key,
-          kind: BUFFER_OPTION,
-          bindings: [{ type: 'option', selector, option: BUFFER_OPTION }],
-          nodes: [node.id],
-          options: {},
-          implicit: true,
-          hidden: true,
-          line,
-        });
-        const stored = host.stored(key);
-        if (typeof stored === 'string' && stored !== '') {
-          node.setOption(BUFFER_OPTION, stored);
-        }
-      }
-      const bindings: Binding[] = [];
-      for (const name of WAVEFORM_PARAMS) {
-        if (!(name in node.params)) continue;
-        const meta = node.param(name).meta;
-        bindings.push({ type: 'param', selector, param: name });
-        bound(
-          call,
-          'waveform',
-          KIND_FOR_PARAM[meta.kind],
-          [meta.kind],
-          [node],
-          null,
-          name,
-          {},
-          true,
-          line,
-          true,
-        );
-      }
-      bindings.push({ type: 'option', selector, option: BUFFER_OPTION });
-      host.declare({
-        key: controlKey(selector, WAVEFORM_PART),
-        kind: 'waveform',
-        bindings,
-        nodes: [node.id],
-        options,
-        implicit: false,
-        line,
-      });
-    }
+    for (const node of samplers) waveformOf(node, options, false, call, line);
   };
 
   /**
-   * `controls()`: every parameter of every node the script has made so far, a section per node.
-   * `controls(target)`: of the nodes found. `controls(target, ['speed'])`: only those named.
+   * Declares the waveform editor of one sampler: the sound it plays (a stored choice is applied), its
+   * region, loop and speed as ordinary controls, and the editor over them.
+   */
+  function waveformOf(
+    node: Node,
+    options: ControlOptions,
+    implicit: boolean,
+    call: string,
+    line: number | undefined,
+  ): void {
+    const selector = idSelector(node);
+    // The sound it plays, first: a stored choice is set here, after the node, so it has the last word.
+    if (STORED_BUFFER_CHOICE) {
+      const key = controlKey(selector, BUFFER_OPTION);
+      host.declare({
+        key,
+        kind: BUFFER_OPTION,
+        bindings: [{ type: 'option', selector, option: BUFFER_OPTION }],
+        nodes: [node.id],
+        options: {},
+        implicit: true,
+        hidden: true,
+        line,
+      });
+      const stored = host.stored(key);
+      if (typeof stored === 'string' && stored !== '') {
+        node.setOption(BUFFER_OPTION, stored);
+      }
+    }
+    const bindings: Binding[] = [];
+    for (const name of WAVEFORM_PARAMS) {
+      if (!(name in node.params)) continue;
+      const meta = node.param(name).meta;
+      bindings.push({ type: 'param', selector, param: name });
+      bound(
+        call,
+        'waveform',
+        KIND_FOR_PARAM[meta.kind],
+        [meta.kind],
+        [node],
+        null,
+        name,
+        {},
+        true,
+        line,
+        true,
+      );
+    }
+    bindings.push({ type: 'option', selector, option: BUFFER_OPTION });
+    host.declare({
+      key: controlKey(selector, WAVEFORM_PART),
+      kind: 'waveform',
+      bindings,
+      nodes: [node.id],
+      options,
+      implicit,
+      line,
+    });
+  }
+
+  /** The line of a `controls()` with no arguments, if the script has called it: see `finish`. */
+  let everything: { line: number | undefined } | null = null;
+
+  /**
+   * `controls()`: all the UI of what the script makes. A control for every parameter of every node it
+   * has made so far (a section per node), a waveform editor for every sampler among them, and a step
+   * grid for every named sequence of the script (those are added when the script has finished, so a
+   * sequence made after the call has its grid too). An explicit `slider`, `stepGrid` or `waveform` for
+   * the same thing, before or after, is used instead.
+   * `controls(target)`: the parameters of the nodes found, and nothing else.
+   * `controls(target, ['speed'])`: only those named.
    * Each node's controls are keyed by that node's id, whatever found it.
    */
   functions['controls'] = (
@@ -648,10 +683,11 @@ export function createControlApi(
     }
     const call = `controls(${target.said}${Array.isArray(list) ? ', [...]' : ''})`;
     if (target.nodes.length === 0) {
+      if (first === undefined) everything = { line };
       host.warn({
         message:
           first === undefined
-            ? 'controls(): the script has made no nodes at this point, so there are no controls. Put it after the chain.'
+            ? 'controls(): the script has made no nodes at this point, so there are no controls for nodes. Put it after the chain.'
             : target.selector === null
               ? `${call}: there are no nodes there, so there are no controls.`
               : `${call}: the selector matches no node, so there are no controls.`,
@@ -692,10 +728,30 @@ export function createControlApi(
       }
       handles[node.id] = own;
     }
+    if (first === undefined) {
+      everything = { line };
+      for (const node of target.nodes) {
+        if (isSampler(node)) waveformOf(node, {}, true, 'controls()', line);
+      }
+    }
     return handles;
   };
 
-  return functions;
+  return {
+    functions,
+    /**
+     * Call when the script has run to its end, still inside the build: `controls()` gives every named
+     * sequence of the script a grid, wherever in the script the sequence is made, unless a `stepGrid`
+     * line has declared one.
+     */
+    finish(): void {
+      if (!everything) return;
+      for (const sequence of api.transport.sequences) {
+        if (sequence.name === null || gridded.has(sequence.name)) continue;
+        grid(sequence.name, {}, true, everything.line);
+      }
+    },
+  };
 }
 
 /**

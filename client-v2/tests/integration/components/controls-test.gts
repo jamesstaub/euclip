@@ -12,6 +12,7 @@ import {
 } from '@ember/test-helpers';
 import { tracked } from '@glimmer/tracking';
 import { setupRenderingTest } from 'client-v2/tests/helpers';
+import Hint from 'client-v2/components/ui/hint';
 import Knob from 'client-v2/components/ui/knob';
 import NumberEntry from 'client-v2/components/ui/number-entry';
 import PopupMenu, { type MenuItem } from 'client-v2/components/ui/popup-menu';
@@ -896,6 +897,337 @@ module('Integration | Component | controls', function (hooks) {
       assert.dom('[data-test-menu]').exists();
       await triggerEvent('#elsewhere', 'pointerdown');
       assert.dom('[data-test-menu]').doesNotExist('a press outside closes it');
+    });
+  });
+
+  module('hint', function () {
+    test('a "?" that opens its hints on a press, and closes on a second, on Escape, or a press elsewhere', async function (assert) {
+      await render(
+        <template>
+          <button type="button" id="elsewhere">elsewhere</button>
+          <Hint @label="About this thing">
+            <p>What it is for.</p>
+          </Hint>
+        </template>,
+      );
+      const opener = '[data-test-hint-button]';
+      assert.dom(opener).hasText('?');
+      assert.dom(opener).hasAria('label', 'About this thing');
+      assert.dom(opener).hasAria('expanded', 'false');
+      assert.dom(opener).hasTagName('button', 'reachable by the keyboard');
+      assert
+        .dom('[data-test-hint]')
+        .doesNotExist('nothing is shown until it is asked for');
+
+      await click(opener);
+      assert.dom(opener).hasAria('expanded', 'true');
+      assert.dom('[data-test-hint]').hasText('What it is for.');
+      assert.dom('[data-test-hint]').hasAttribute('role', 'note');
+      assert.strictEqual(
+        find(opener)!.getAttribute('aria-controls'),
+        find('[data-test-hint]')!.id,
+      );
+      const panel = find('[data-test-hint]')!.getBoundingClientRect();
+      assert.true(panel.left >= 0, 'it is inside the screen');
+      assert.true(panel.right <= window.innerWidth);
+      assert.true(panel.bottom <= window.innerHeight);
+      assert.strictEqual(
+        getComputedStyle(find('[data-test-hint]')!).borderRadius,
+        '0px',
+        'square',
+      );
+
+      await click(opener);
+      assert.dom('[data-test-hint]').doesNotExist('a second press closes it');
+
+      await click(opener);
+      await triggerKeyEvent('[data-test-hint]', 'keydown', 'Escape');
+      assert.dom('[data-test-hint]').doesNotExist('Escape closes it');
+      assert.dom(opener).isFocused('and gives focus back to the button');
+
+      await click(opener);
+      await triggerEvent('#elsewhere', 'pointerdown');
+      assert
+        .dom('[data-test-hint]')
+        .doesNotExist('a press elsewhere closes it');
+
+      await triggerEvent(opener, 'mouseenter');
+      await triggerEvent(opener, 'pointerenter');
+      assert
+        .dom('[data-test-hint]')
+        .doesNotExist('hovering alone does nothing');
+    });
+  });
+
+  module('number entry box', function () {
+    test('a number with a mapping is also a slider with no track: dragged across, stepped with the arrows, and a click still opens it', async function (assert) {
+      const state = new State();
+      const gestures: (string | undefined)[] = [];
+      const change = (value: number, gesture?: string): void => {
+        gestures.push(gesture);
+        state.value = value;
+      };
+      const commit = (): boolean => true;
+      const text = (value: number): string => `${Math.round(value)} %`;
+      await render(
+        <template>
+          <NumberEntry
+            @text={{text state.value}}
+            @label="start"
+            @value={{state.value}}
+            @mapping={{state.mapping}}
+            @onChange={{change}}
+            @onCommit={{commit}}
+          />
+        </template>,
+      );
+      const entry = '[data-test-number-entry]';
+      const rect = find(entry)!.getBoundingClientRect();
+      const point = (dx: number, more: object = {}) => ({
+        pointerId: 1,
+        button: 0,
+        buttons: 1,
+        isPrimary: true,
+        pointerType: 'mouse',
+        clientX: rect.left + rect.width / 2 + dx,
+        clientY: rect.top + rect.height / 2,
+        ...more,
+      });
+      assert.dom(entry).hasClass('number-entry--drag');
+
+      // a click that wobbles: nothing moves, and the field opens with its text selected
+      await triggerEvent(entry, 'pointerdown', point(0));
+      await triggerEvent(entry, 'pointermove', point(3));
+      await triggerEvent(entry, 'pointerup', point(3));
+      await click(entry);
+      assert.strictEqual(state.value, 50, 'a click moves nothing');
+      const field = find('[data-test-number-input]') as HTMLInputElement;
+      assert.strictEqual(
+        `${field.selectionStart}-${field.selectionEnd}`,
+        `0-${field.value.length}`,
+        'and opens the field, its text selected',
+      );
+      await triggerKeyEvent(field, 'keydown', 'Escape');
+
+      // a drag: 200 px is the whole range; it goes on outside the box, and ends where it is let go
+      await triggerEvent(entry, 'pointerdown', point(0));
+      await triggerEvent(entry, 'pointermove', point(5));
+      await triggerEvent(document.body, 'pointermove', point(40));
+      assert.strictEqual(
+        state.value,
+        70,
+        '40 px of the 200 that are the range',
+      );
+      await triggerEvent(document.body, 'pointermove', point(-600));
+      assert.strictEqual(state.value, 0, 'held at the end of the range');
+      await triggerEvent(document.body, 'pointermove', point(-600 + 60));
+      assert.strictEqual(state.value, 30);
+      await triggerEvent(
+        document.body,
+        'pointermove',
+        point(-600 + 60 + 100, { shiftKey: true }),
+      );
+      assert.strictEqual(state.value, 35, 'Shift: a tenth as fast');
+      await triggerEvent(document.body, 'pointerup', point(-440));
+      await triggerEvent(
+        document.body,
+        'pointermove',
+        point(0, { buttons: 0 }),
+      );
+      assert.strictEqual(state.value, 35, 'let go outside the box: it is over');
+      assert.strictEqual(
+        new Set(gestures).size,
+        1,
+        'every change of the drag names the one gesture',
+      );
+      assert.strictEqual(typeof gestures[0], 'string');
+      await click(entry); // (the click a browser sends as a drag ends on the box)
+      assert
+        .dom('[data-test-number-input]')
+        .doesNotExist('a drag does not open the field');
+      await click(entry);
+      assert.dom('[data-test-number-input]').exists('the next click does');
+      await triggerKeyEvent('[data-test-number-input]', 'keydown', 'Escape');
+
+      // a finger that sets off up or down is scrolling
+      const touch = { pointerType: 'touch' };
+      await triggerEvent(entry, 'pointerdown', point(0, touch));
+      await triggerEvent(
+        entry,
+        'pointermove',
+        point(2, { ...touch, clientY: rect.top + 40 }),
+      );
+      await triggerEvent(document.body, 'pointermove', point(80, touch));
+      await triggerEvent(document.body, 'pointerup', point(80, touch));
+      assert.strictEqual(state.value, 35, 'not a drag of the number');
+      await triggerEvent(entry, 'pointerdown', point(0, touch));
+      await triggerEvent(entry, 'pointermove', point(10, touch));
+      await triggerEvent(document.body, 'pointermove', point(30, touch));
+      await triggerEvent(document.body, 'pointerup', point(30, touch));
+      assert.strictEqual(
+        Math.round(state.value),
+        50,
+        'across, a finger drags it',
+      );
+
+      // the keys of a slider
+      gestures.length = 0;
+      await triggerKeyEvent(entry, 'keydown', 'ArrowUp');
+      assert.true(state.value > 50.5, 'arrow up steps it up');
+      const stepped = state.value;
+      await triggerKeyEvent(entry, 'keydown', 'ArrowDown', { shiftKey: true });
+      assert.true(state.value < stepped, 'arrow down steps it down');
+      assert.true(
+        stepped - state.value < (stepped - 50) / 2,
+        'Shift steps finer',
+      );
+      assert.deepEqual(gestures, [undefined, undefined]);
+    });
+
+    test('a number with no mapping, or a disabled one, is not dragged', async function (assert) {
+      const state = new State();
+      const commit = (): boolean => true;
+      await render(
+        <template>
+          <NumberEntry @text="120" @label="plain" @onCommit={{commit}} />
+          <NumberEntry
+            @text="50"
+            @label="off"
+            @disabled={{true}}
+            @value={{state.value}}
+            @mapping={{state.mapping}}
+            @onChange={{state.change}}
+            @onCommit={{commit}}
+          />
+        </template>,
+      );
+      assert.dom('.number-entry--drag').doesNotExist();
+    });
+
+    test('while a value is typed the field is the person’s: a change to the value it shows does not write into it', async function (assert) {
+      const state = new State();
+      const commits: string[] = [];
+      const commit = (text: string): boolean => {
+        commits.push(text);
+        return true;
+      };
+      const text = (value: number): string => `${value} Hz`;
+      await render(
+        <template>
+          <NumberEntry
+            @text={{text state.value}}
+            @label="frequency"
+            @onCommit={{commit}}
+          />
+        </template>,
+      );
+      await click('[data-test-number-entry]');
+      const field = find('[data-test-number-input]') as HTMLInputElement;
+      assert.strictEqual(field.value, '50 Hz', 'it opens on the value');
+      // Backspace to empty, the value changing under it (a script moving the parameter as it plays)
+      for (const [typed, moved] of [
+        ['50 H', 51],
+        ['5', 52],
+        ['', 53],
+        ['4', 54],
+        ['44', 55],
+      ] as const) {
+        field.value = typed;
+        await triggerEvent(field, 'input');
+        state.value = moved;
+        await settled();
+        assert.strictEqual(
+          field.value,
+          typed,
+          `"${typed}" stays "${typed}" when the value becomes ${moved}`,
+        );
+        assert.strictEqual(
+          find('[data-test-number-input]'),
+          field,
+          'and it is the same field',
+        );
+      }
+      await triggerKeyEvent(field, 'keydown', 'Enter');
+      assert.deepEqual(
+        commits,
+        ['44'],
+        'what was typed is what is committed, once',
+      );
+      assert
+        .dom('[data-test-number-entry]')
+        .hasText('55 Hz', 'closed, it shows the value again');
+    });
+
+    test('the field a value is typed in takes exactly the readout’s box, whatever is typed', async function (assert) {
+      const state = new State();
+      const commit = (): boolean => true;
+      await render(
+        <template>
+          {{! template-lint-disable no-inline-styles }}
+          <div style="display: flex; gap: 4px; width: 320px">
+            <span id="before">before</span>
+            <NumberEntry
+              @text="2 kHz"
+              @label="frequency"
+              @onCommit={{commit}}
+            />
+            <span id="after">after</span>
+          </div>
+          <span hidden>{{state.value}}</span>
+        </template>,
+      );
+      const box = (selector: string): string => {
+        const rect = find(selector)!.getBoundingClientRect();
+        return [rect.left, rect.top, rect.width, rect.height]
+          .map((n) => n.toFixed(2))
+          .join(' ');
+      };
+      const before = {
+        entry: box('.number-entry-box'),
+        next: box('#after'),
+        prev: box('#before'),
+      };
+      assert.strictEqual(
+        box('[data-test-number-entry]'),
+        before.entry,
+        'the readout fills its box',
+      );
+
+      await click('[data-test-number-entry]');
+      assert.dom('[data-test-number-input]').isFocused();
+      assert.deepEqual(
+        {
+          entry: box('.number-entry-box'),
+          next: box('#after'),
+          prev: box('#before'),
+        },
+        before,
+        'focused: the same box, the same neighbours',
+      );
+      assert.strictEqual(
+        box('[data-test-number-input]'),
+        before.entry,
+        'the field is laid exactly over it',
+      );
+      await fillIn('[data-test-number-input]', '123456.789012345 kHz and more');
+      assert.deepEqual(
+        {
+          entry: box('.number-entry-box'),
+          next: box('#after'),
+          prev: box('#before'),
+        },
+        before,
+        'a long value does not widen it',
+      );
+      await triggerKeyEvent('[data-test-number-input]', 'keydown', 'Escape');
+      assert.deepEqual(
+        {
+          entry: box('.number-entry-box'),
+          next: box('#after'),
+          prev: box('#before'),
+        },
+        before,
+      );
     });
   });
 });

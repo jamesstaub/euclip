@@ -32,18 +32,6 @@
   }
 }
 
-/* how the script reaches the strip: the words it ends its chain with */
-.channel-strip__route {
-  color: var(--yellow);
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  font-weight: var(--font-weight-normal);
-  letter-spacing: 0;
-  text-transform: none;
-  white-space: nowrap;
-  cursor: help;
-}
-
 .channel-strip__controls {
   display: flex;
   flex: 1 1 0;

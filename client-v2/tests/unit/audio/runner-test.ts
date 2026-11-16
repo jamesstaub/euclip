@@ -1532,6 +1532,165 @@ slider('#env', 'attack');`),
     });
   });
 
+  module('controls() is all the UI', function () {
+    const kinds = (h: Harness, scope = ONE): string[] =>
+      h.runner
+        .declarations(scope)
+        .filter((d) => !d.hidden)
+        .map((d) => `${d.kind} ${d.key}${d.implicit ? '' : ' (explicit)'}`);
+
+    test('one line: controls for every node, a waveform for every sampler, a grid for every named sequence', async function (assert) {
+      const h = await startProject(
+        oneTrack(`__().sampler({ id: 's', buffer: 'kick' }).gain({ id: 'g', gain: 0.8 }).to('channel');
+__.transport.sequence('steps', { steps: [1, 0, 1, 0] }, (ev) => { if (ev.value) __('#s').trigger(); });
+controls();
+__.transport.sequence('late', { steps: [0, 1] }, () => {});
+__.transport.sequence({ steps: 4 }, () => {});`),
+      );
+      assert.deepEqual(h.runner.warnings(ONE), []);
+      assert.strictEqual(h.runner.error(ONE), null);
+      assert.deepEqual(
+        h.runner
+          .stepGrids(ONE)
+          .map((grid) => `${grid.name} ${grid.steps.join('')}`),
+        ['steps 1010', 'late 01'],
+        'a grid for each named sequence, the one made after the call too; none for the unnamed one',
+      );
+      assert.deepEqual(
+        h.runner.waveforms(ONE).map((w) => w.nodeId),
+        ['s'],
+        'a waveform for the sampler',
+      );
+      assert.deepEqual(
+        [...new Set(h.runner.controls(ONE).map((c) => c.group.id))],
+        ['s', 'g'],
+        'and the nodes’ parameters, as before',
+      );
+      assert.strictEqual(
+        h.runner.waveforms(ONE)[0]!.params['start']!.key,
+        '#s › start',
+        'the waveform is a view over the same controls',
+      );
+      assert.strictEqual(
+        h.runner.stepGrids(ONE)[0]!.line,
+        3,
+        'each points at the controls() line',
+      );
+
+      // a pattern edited in such a grid is stored and applied like any other
+      h.apply(h.runner.toggleStepOperation(ONE, 'late', 0));
+      assert.deepEqual(
+        h.doc.tracks[0]!.values.controls['stepGrid › late']?.value,
+        [1, 1],
+      );
+      await h.setScript(ONE, `${scriptOf(h, ONE)}\n// again`);
+      assert.deepEqual(
+        h.runner.stepGrids(ONE).find((grid) => grid.name === 'late')!.steps,
+        [1, 1],
+      );
+    });
+
+    test('a stepGrid, waveform or slider of the script’s own is used instead, before or after, with no duplicate and no warning', async function (assert) {
+      const BODY = `__().sampler({ id: 's', buffer: 'kick' }).to('channel');
+__.transport.sequence('steps', { steps: 4 }, () => {});`;
+      for (const [order, script] of [
+        [
+          'before',
+          `${BODY}\nstepGrid('steps', { label: 'Hits' });\nwaveform('#s', { label: 'Drum' });\nknob('#s', 'gain');\ncontrols();`,
+        ],
+        [
+          'after',
+          `${BODY}\ncontrols();\nstepGrid('steps', { label: 'Hits' });\nwaveform('#s', { label: 'Drum' });\nknob('#s', 'gain');`,
+        ],
+      ] as const) {
+        const h = await startProject(oneTrack(script));
+        assert.deepEqual(h.runner.warnings(ONE), [], `${order}: no warnings`);
+        assert.deepEqual(
+          h.runner.stepGrids(ONE).map((grid) => grid.label),
+          ['Hits'],
+          `${order}: one grid, the script’s own`,
+        );
+        assert.deepEqual(
+          h.runner.waveforms(ONE).map((w) => w.label),
+          ['Drum'],
+          `${order}: one waveform, the script’s own`,
+        );
+        assert.deepEqual(
+          kinds(h)
+            .filter((kind) => /stepGrid|waveform|gain/.test(kind))
+            .sort(),
+          [
+            'knob #s › gain (explicit)',
+            'stepGrid stepGrid › steps (explicit)',
+            'waveform #s › waveform (explicit)',
+          ],
+          `${order}: each once`,
+        );
+        assert.strictEqual(control(h, ONE, '#s › gain').kind, 'knob');
+      }
+    });
+
+    test('controls(target) stays about those nodes’ parameters: no grid, no waveform', async function (assert) {
+      const h = await startProject(
+        oneTrack(`__().sampler({ id: 's', buffer: 'kick' }).to('channel');
+__.transport.sequence('steps', { steps: 4 }, () => {});
+controls('#s');`),
+      );
+      assert.deepEqual(h.runner.stepGrids(ONE), []);
+      assert.deepEqual(h.runner.waveforms(ONE), []);
+      assert.strictEqual(h.runner.controls(ONE).length, 8);
+    });
+
+    test('a script of only sequences: controls() still gives them grids', async function (assert) {
+      const h = await startProject(
+        oneTrack(
+          `controls();\n__.transport.sequence('steps', { steps: [1, 1] }, () => {});`,
+        ),
+      );
+      assert.deepEqual(
+        h.runner.stepGrids(ONE).map((grid) => grid.name),
+        ['steps'],
+      );
+      assert.true(
+        h.runner.warnings(ONE)[0]!.message.includes('no nodes at this point'),
+        'it says there were no nodes to make controls for',
+      );
+    });
+
+    test('a step can be given a value: 0 is off, above 0 is on with that value, and it is what comes back', async function (assert) {
+      const h = await startProject();
+      h.apply(h.runner.setStepOperation(KICK, 'steps', 2, 3));
+      assert.strictEqual(grid(h, KICK).steps[2], 3);
+      assert.strictEqual(
+        h.engine.scope(KICK).scope('script').transport.get('steps')!.steps[2],
+        3,
+        'the sequence has it',
+      );
+      h.apply(h.runner.toggleStepOperation(KICK, 'steps', 2));
+      assert.strictEqual(grid(h, KICK).steps[2], 0);
+      h.apply(h.runner.toggleStepOperation(KICK, 'steps', 2));
+      assert.strictEqual(
+        grid(h, KICK).steps[2],
+        3,
+        'switched on again, it is 3 again',
+      );
+      h.apply(h.runner.setStepOperation(KICK, 'steps', 2, 0));
+      assert.strictEqual(grid(h, KICK).steps[2], 0);
+      h.apply(h.runner.setStepOperation(KICK, 'steps', 3, 0.25));
+      assert.strictEqual(
+        grid(h, KICK).steps[3],
+        0.25,
+        'a fraction is a value too',
+      );
+      assert.strictEqual(h.runner.setStepOperation(KICK, 'steps', 99, 1), null);
+      assert.strictEqual(h.runner.setStepOperation(KICK, 'nope', 0, 1), null);
+      assert.strictEqual(
+        h.runner.setStepOperation(KICK, 'steps', 0, NaN),
+        null,
+      );
+    });
+  });
+
   module('declared step grids', function () {
     test('a grid exists only for a sequence with a stepGrid() line', async function (assert) {
       const h = await startProject(

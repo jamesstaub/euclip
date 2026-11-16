@@ -23,6 +23,7 @@ import { VIEW_STORAGE_KEY } from 'client-v2/services/view';
 import type ViewService from 'client-v2/services/view';
 
 const FREQUENCY = controlKey('#filter', 'frequency');
+const STEPS = stepGridKey('steps');
 const row = (key: string): string => `[data-test-control="${key}"]`;
 
 /** Replaces the whole text of the footer's editor, as if typed, and waits for it to run. */
@@ -118,6 +119,200 @@ module('Integration | Component | app-shell', function (hooks) {
   });
 
   module('step grids', function () {
+    module('a step’s value', function () {
+      const step = (index: number): string =>
+        `[data-test-track="1"] [data-test-step="${index}"]`;
+      const steps = (): number[] =>
+        project.doc.tracks[0]!.values.controls[STEPS]?.value as number[];
+      const live = (): readonly number[] => audio.stepGrids('t-kick')[0]!.steps;
+      const type = async (text: string, key = 'Enter'): Promise<void> => {
+        await fillIn('[data-test-step-entry] [data-test-number-input]', text);
+        await triggerKeyEvent(
+          '[data-test-step-entry] [data-test-number-input]',
+          'keydown',
+          key,
+        );
+      };
+
+      test('a double click opens a number box on the step; Enter commits, and the whole thing is one step to undo', async function (assert) {
+        await render(<template><AppShell /></template>);
+        assert.strictEqual(
+          live()[1],
+          0,
+          'the second step is off to begin with',
+        );
+
+        // a double click is two clicks and then the double click
+        await click(step(1));
+        assert.strictEqual(
+          live()[1],
+          1,
+          'the first click toggles at once: nothing waits',
+        );
+        await click(step(1));
+        await triggerEvent(step(1), 'dblclick');
+        assert
+          .dom('[data-test-step-entry]')
+          .exists('the box is open on the step');
+        assert.strictEqual(live()[1], 1, 'and the step is on, with 1');
+        assert
+          .dom('[data-test-step-entry] [data-test-number-input]')
+          .isFocused();
+        assert
+          .dom('[data-test-step-entry] [data-test-number-input]')
+          .hasValue('1');
+        assert
+          .dom('[data-test-step-entry] [data-test-number-input]')
+          .hasAria('label', 'Step 2 value');
+
+        await type('3');
+        assert
+          .dom('[data-test-step-entry]')
+          .doesNotExist('Enter commits and closes');
+        assert.strictEqual(steps()[1], 3);
+        assert.dom(step(1)).hasText('3', 'the step shows its value');
+        assert.dom(step(1)).hasAria('pressed', 'true');
+        assert.dom(step(1)).isFocused('focus is back on the step');
+
+        project.undo();
+        await settled();
+        assert.strictEqual(
+          live()[1],
+          0,
+          'one undo takes back the clicks and the value together',
+        );
+        assert.false(project.canUndo);
+      });
+
+      test('a double click that changes nothing leaves nothing to undo; Escape gives up; 0 turns the step off', async function (assert) {
+        await render(<template><AppShell /></template>);
+        assert.strictEqual(live()[0], 1);
+        await click(step(0));
+        await click(step(0));
+        await triggerEvent(step(0), 'dblclick');
+        assert.strictEqual(live()[0], 1, 'on, as it was');
+        await type('7', 'Escape');
+        assert.dom('[data-test-step-entry]').doesNotExist();
+        assert.strictEqual(live()[0], 1, 'Escape gives up what was typed');
+        assert.false(
+          project.canUndo,
+          'two toggles that cancel out are not a step to undo',
+        );
+
+        await triggerKeyEvent(step(0), 'keydown', 'Enter');
+        assert
+          .dom('[data-test-step-entry]')
+          .exists('Enter on a focused step opens the box');
+        await type('0');
+        assert.strictEqual(steps()[0], 0);
+        assert.dom(step(0)).hasAria('pressed', 'false', '0 is off');
+
+        await triggerKeyEvent(step(4), 'keydown', '5');
+        const field = '[data-test-step-entry] [data-test-number-input]';
+        assert
+          .dom(field)
+          .hasValue('5', 'a digit opens the box with that digit in it');
+        assert
+          .dom(field)
+          .hasAttribute('inputmode', 'numeric', 'a phone shows its digit pad');
+        assert.dom(field).hasAttribute('maxlength', '3');
+        // only digits get in: a point, a minus, an exponent and letters are dropped as they are typed
+        const input = find(field) as HTMLInputElement;
+        for (const [typed, kept] of [
+          ['1.5', '15'],
+          ['-7', '7'],
+          ['1e3', '13'],
+          ['loud', ''],
+          ['12345', '123'],
+        ] as const) {
+          input.value = typed;
+          await triggerEvent(field, 'input');
+          assert.strictEqual(input.value, kept, `"${typed}" is "${kept}"`);
+        }
+        await type('12');
+        assert.strictEqual(steps()[4], 12, 'a whole number');
+        assert.dom(step(4)).hasText('12');
+
+        await triggerKeyEvent(step(4), 'keydown', '.');
+        assert
+          .dom('[data-test-step-entry]')
+          .doesNotExist(
+            'a point does not open the box: values are whole numbers',
+          );
+        await triggerKeyEvent(step(4), 'keydown', 'Enter');
+        await type('999');
+        assert.strictEqual(steps()[4], 999, 'up to 999');
+        await triggerKeyEvent(step(4), 'keydown', 'Enter');
+        await type('');
+        assert
+          .dom('[data-test-step-entry]')
+          .doesNotExist('nothing typed: nothing changed');
+        assert.strictEqual(steps()[4], 999);
+        await triggerKeyEvent(step(4), 'keydown', ' ');
+        assert
+          .dom('[data-test-step-entry]')
+          .doesNotExist('Space is still the key that toggles');
+      });
+
+      test('a long press with a finger opens the box, and lifting the finger does not toggle', async function (assert) {
+        await render(<template><AppShell /></template>);
+        const touch = {
+          pointerType: 'touch',
+          pointerId: 5,
+          isPrimary: true,
+          clientX: 10,
+          clientY: 10,
+        };
+        await triggerEvent(step(2), 'pointerdown', touch);
+        await triggerEvent(step(2), 'pointerup', touch);
+        await click(step(2));
+        assert.strictEqual(
+          live()[2],
+          1,
+          'a tap toggles at once, as a click does',
+        );
+        assert.dom('[data-test-step-entry]').doesNotExist();
+
+        await triggerEvent(step(2), 'pointerdown', touch);
+        await new Promise((resolve) => setTimeout(resolve, 650));
+        await settled();
+        assert.dom('[data-test-step-entry="2"]').exists('held: the box opens');
+        await triggerEvent(step(2), 'pointerup', touch);
+        await triggerEvent(step(2), 'click');
+        assert.strictEqual(
+          live()[2],
+          1,
+          'the click that ends the press is not a toggle',
+        );
+        assert
+          .dom('[data-test-step-entry]')
+          .exists('and the box is still open');
+        await type('4');
+        assert.strictEqual(steps()[2], 4);
+
+        // a finger that moves off (a scroll) is not a long press
+        await triggerEvent(step(3), 'pointerdown', touch);
+        await triggerEvent(step(3), 'pointermove', { ...touch, clientY: 60 });
+        await new Promise((resolve) => setTimeout(resolve, 650));
+        assert.dom('[data-test-step-entry]').doesNotExist();
+
+        // the same grid in the sequence pane opens the same box
+        view.footerPane = 'sequence';
+        await settled();
+        await triggerKeyEvent(
+          '[data-test-pane="sequence"] [data-test-step="6"]',
+          'keydown',
+          'Enter',
+        );
+        assert
+          .dom('[data-test-pane="sequence"] [data-test-step-entry="6"]')
+          .exists();
+        await type('2');
+        assert.strictEqual(steps()[6], 2);
+        assert.dom(step(6)).hasText('2', 'and the track row’s grid shows it');
+      });
+    });
+
     test('a track row shows the step grids its script declares', async function (assert) {
       await render(<template><AppShell /></template>);
 
@@ -341,7 +536,11 @@ module('Integration | Component | app-shell', function (hooks) {
         'Enter',
       );
 
-      assert.strictEqual(frequencyOf('t-kick'), 440);
+      assert.strictEqual(
+        frequencyOf('t-kick'),
+        440,
+        `stored ${JSON.stringify(project.doc.tracks[0]?.values.controls[FREQUENCY])}; field still open: ${String(find(`${row(FREQUENCY)} [data-test-number-input]`) !== null)}; focus on ${document.activeElement?.tagName}.${document.activeElement?.className}`,
+      );
       assert
         .dom(`${row(FREQUENCY)} [data-test-number-entry]`)
         .hasText('440 Hz');
@@ -674,7 +873,7 @@ module('Integration | Component | app-shell', function (hooks) {
         .exists('the rest still works');
     });
 
-    test('an empty state explains how to add a control', async function (assert) {
+    test('an empty pane says so; how to add a control is behind its "?"', async function (assert) {
       await render(<template><AppShell /></template>);
       await click('[data-test-script-toggle]');
       await typeScript(
@@ -684,8 +883,21 @@ module('Integration | Component | app-shell', function (hooks) {
 
       assert
         .dom('[data-test-pane="controls"] [data-test-pane-empty]')
-        .includesText("slider('#filter', 'frequency')");
+        .hasText(
+          'This script declares no controls.',
+          'what is so, and no more',
+        );
       assert.dom('[data-test-control]').doesNotExist();
+      assert
+        .dom('[data-test-hint]')
+        .doesNotExist('no help until it is asked for');
+      await click('[data-test-controls-hint] [data-test-hint-button]');
+      assert
+        .dom('[data-test-controls-hint] [data-test-hint]')
+        .includesText("slider('#filter', 'frequency')");
+      assert
+        .dom('[data-test-controls-hint] [data-test-hint]')
+        .includesText('controls()');
     });
 
     test('control.set() from a script is stored but is not a step to undo', async function (assert) {
@@ -744,13 +956,21 @@ module('Integration | Component | app-shell', function (hooks) {
 
     test('the channel strip says how the script reaches it, and when the script does not', async function (assert) {
       await render(<template><AppShell /></template>);
-      assert.dom('[data-test-channel-route]').hasText(".to('channel')");
       assert
-        .dom('[data-test-channel-route]')
-        .hasAttribute(
-          'title',
-          /passes through this level and pan, then to main/,
+        .dom('[data-test-channel-strip]')
+        .doesNotIncludeText(
+          'passes through',
+          'the strip does not explain itself unasked',
         );
+      await click('[data-test-channel-hint] [data-test-hint-button]');
+      assert
+        .dom('[data-test-channel-hint] [data-test-hint]')
+        .includesText('passes through this level and pan, then to main');
+      assert
+        .dom('[data-test-channel-hint] [data-test-hint]')
+        .includesText(".to('channel')");
+      await click('[data-test-channel-hint] [data-test-hint-button]');
+      assert.dom('[data-test-hint]').doesNotExist('a second press closes it');
       assert.dom('[data-test-channel-strip]').doesNotHaveAttribute('data-idle');
       assert.dom('[data-test-channel-idle]').doesNotExist();
 
@@ -778,7 +998,6 @@ module('Integration | Component | app-shell', function (hooks) {
 
     test('chains are separate blocks, a bus is a block with its level first, and a node with no id says so', async function (assert) {
       await render(<template><AppShell /></template>);
-      assert.dom('[data-test-no-id-note]').doesNotExist();
       await click('[data-test-script-toggle]');
       await typeScript(
         () => `__.bus('drums').compressor({ id: 'squash' }).to('channel');
@@ -822,7 +1041,14 @@ slider(__.bus('drums'), 'gain');
           'title',
           /its stored values follow its position in the script/,
         );
-      assert.dom('[data-test-no-id-note]').includesText('Give it one');
+      await click('[data-test-controls-hint] [data-test-hint-button]');
+      assert
+        .dom('[data-test-controls-hint] [data-test-hint]')
+        .includesText(
+          'Give it one',
+          'what "no id" means is in the pane’s hints',
+        );
+      await click('[data-test-controls-hint] [data-test-hint-button]');
       assert
         .dom(
           `[data-test-control-chain][data-bus="drums"] ${row('bus drums › gain')} [data-test-slider]`,
@@ -1042,6 +1268,50 @@ slider(__.bus('drums'), 'gain');
   });
 
   module('tracks and transport', function () {
+    test('a click on a row’s background selects its track; its controls keep to their own jobs', async function (assert) {
+      await render(<template><AppShell /></template>);
+      const current = (): string =>
+        find('[data-test-track][aria-current="true"]')!.getAttribute(
+          'data-test-track',
+        )!;
+      await click('[data-test-track="1"] [data-test-track-select]');
+      assert.strictEqual(current(), '1');
+
+      // the row itself (its padding and gaps), and what is in it that is not a control
+      await click('[data-test-track="2"] [data-test-track-row]');
+      assert.strictEqual(current(), '2', 'the row’s background');
+      await click('[data-test-track="3"] .track__sequence');
+      assert.strictEqual(current(), '3', 'the space the grid sits in');
+      await click('[data-test-track="1"] .track__source');
+      assert.strictEqual(current(), '1', 'beside the name');
+      await click('[data-test-track="output"] [data-test-track-row]');
+      assert.strictEqual(current(), 'output', 'the main output’s row too');
+      assert.false(project.canUndo, 'selecting is not something to undo');
+
+      // a step toggles, once, and (as before) does not select
+      const before = pressedSteps(2);
+      await click('[data-test-track="2"] [data-test-step="5"]');
+      assert.deepEqual(
+        pressedSteps(2),
+        [...before, 5].sort((a, b) => a - b),
+        'a step is toggled exactly once',
+      );
+      assert.strictEqual(current(), 'output', 'and selects nothing');
+      await click('[data-test-track="2"] .step-grid');
+      assert.strictEqual(
+        current(),
+        'output',
+        'nor does the grid between steps',
+      );
+
+      // the row is not a button, and has none inside one
+      assert.dom('[data-test-track-row][role]').doesNotExist();
+      assert.dom('[data-test-track-row][tabindex]').doesNotExist();
+      assert
+        .dom('[data-test-track="2"] [data-test-track-select]')
+        .hasTagName('button', 'the number is still the control that selects');
+    });
+
     test('New Track adds a track from the template, with its grid and controls, and selects it', async function (assert) {
       await render(<template><AppShell /></template>);
 
@@ -1097,6 +1367,117 @@ slider(__.bus('drums'), 'gain');
       assert
         .dom('[data-test-track="output"] [data-test-menu-button]')
         .doesNotExist('the main output cannot be removed');
+    });
+
+    test('the tempo field is the person’s while they type in it: nothing writes into it until they are done', async function (assert) {
+      await render(<template><AppShell /></template>);
+      const tempo = '[data-test-transport-tempo]';
+      const field = find(tempo) as HTMLInputElement;
+      /** One key's worth of typing: the field's text becomes this, as a key press makes it. */
+      const typed = async (text: string): Promise<void> => {
+        field.value = text;
+        await triggerEvent(tempo, 'input');
+      };
+      /** Something else changes the project, as a script's callback does while it plays. */
+      const elsewhere = async (level: number): Promise<void> => {
+        project.apply(
+          { type: 'setTrackLevel', id: 't-kick', level },
+          { derived: true },
+        );
+        await settled();
+      };
+
+      await focus(tempo);
+      assert.dom(tempo).hasValue('120');
+      // Backspace, Backspace, Backspace: the project changing between the keys
+      await typed('12');
+      await elsewhere(0.9);
+      assert
+        .dom(tempo)
+        .hasValue(
+          '12',
+          'after one Backspace, with the project changing under it',
+        );
+      await typed('1');
+      await elsewhere(0.8);
+      assert.dom(tempo).hasValue('1');
+      await typed('');
+      await elsewhere(0.7);
+      assert
+        .dom(tempo)
+        .hasValue('', 'empty stays empty: the old tempo is not written back');
+      assert.strictEqual(
+        project.doc.bpm,
+        120,
+        'and nothing has been committed',
+      );
+      await typed('9');
+      await elsewhere(0.6);
+      assert.dom(tempo).hasValue('9');
+      await typed('96');
+      await elsewhere(0.5);
+      assert.dom(tempo).hasValue('96');
+      assert.strictEqual(
+        project.doc.bpm,
+        120,
+        'still not committed: half a number is not a tempo',
+      );
+      const undoable = project.canUndo;
+      await triggerEvent(tempo, 'change'); // Enter, or leaving the field
+      assert.strictEqual(project.doc.bpm, 96, 'committed');
+      assert.strictEqual(audio.engine!.transport.bpm, 96);
+      assert.dom(tempo).hasValue('96');
+      project.undo();
+      await settled();
+      assert.strictEqual(
+        project.doc.bpm,
+        120,
+        'one step to undo for the whole edit',
+      );
+      assert.strictEqual(project.canUndo, undoable);
+      assert
+        .dom(tempo)
+        .hasValue(
+          '96',
+          'the field has focus still: an undo does not write into it either',
+        );
+      await triggerEvent(tempo, 'blur');
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      field.blur();
+      await settled();
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      assert
+        .dom(tempo)
+        .hasValue(
+          '120',
+          'once focus has left, it shows the tempo the project has',
+        );
+
+      // not focused: a change from elsewhere (an undo, a script) shows at once
+      project.apply({ type: 'setBpm', bpm: 140 });
+      await settled();
+      assert.dom(tempo).hasValue('140');
+
+      // Escape gives up what was typed; nothing, or nonsense, puts the stored tempo back
+      await focus(tempo);
+      await typed('7');
+      await triggerKeyEvent(tempo, 'keydown', 'Escape');
+      assert.dom(tempo).hasValue('140', 'Escape restores');
+      assert.strictEqual(project.doc.bpm, 140);
+      await typed('');
+      await triggerEvent(tempo, 'change');
+      assert
+        .dom(tempo)
+        .hasValue('140', 'nothing typed: the stored tempo again');
+      assert.strictEqual(project.doc.bpm, 140);
+      await typed('9999');
+      await triggerEvent(tempo, 'change');
+      assert.strictEqual(
+        project.doc.bpm,
+        500,
+        'out of range is brought into it',
+      );
+      assert.dom(tempo).hasValue('500');
     });
 
     test('play, stop and tempo', async function (assert) {

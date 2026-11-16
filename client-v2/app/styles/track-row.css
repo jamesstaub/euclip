@@ -30,6 +30,16 @@
   column-gap: var(--space-2);
   min-block-size: var(--track-row-min);
   padding-inline: var(--space-3) var(--space-2);
+
+  /* its background selects the track (a pointer's convenience: the number is the control) */
+  cursor: pointer;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* the grid is not background: between its steps nothing is selected */
+.track__row .step-grid {
+  cursor: default;
 }
 
 .track__order {

@@ -46,7 +46,7 @@ knob('#level', 'gain', { label: 'Level' });
 - **The number in the node is the default:** it applies when nothing is stored, and it is what "reset" returns to. A parameter with no control is fixed by the code.
 - **Range, unit and curve** come from the parameter metadata of the node the selector finds.
 - **Identity** is the selector plus the parameter name. A selector may match several nodes (`slider('.voice', 'detune')`), which gives one control for all of them. A selector that matches nothing is shown as a warning on that line.
-- **`controls('#kick')`** declares a control for every parameter of the node, of the kind that suits each; `controls('#kick', ['speed', 'start'])` for those named. With no list, the less common ones are shown collapsed under "more" in the footer.
+- **`controls()`** with no arguments is the one "create all the UI" call: a control for every parameter of every node the script has made so far (a section per node), a waveform editor for every sampler, and a step grid for every named sequence of the script (grids are added when the script has run to its end, so the sequence may come after the call). An explicit `slider`, `stepGrid` or `waveform` for the same thing, before or after, is used instead, with no duplicate. **`controls('#kick')`** is narrower: the parameters of those nodes and nothing else; `controls('#kick', ['speed', 'start'])` for those named.
 - **A control with no node:** `const density = slider('density', { min: 0, max: 1 })`, read as `density.value`.
 - **Changing a value from code** can be done two ways:
   - `__('#filter').set({ frequency: 900 })` moves the parameter and not the control. The control shows that the parameter is away from its value (R8).
@@ -148,6 +148,7 @@ Decided by the project owner on 2026-11-13:
 
 - **Layout follows v1:** transport in the project bar at the top; the footer is the selected track's detail, and becomes a bottom sheet on small screens.
 - **Poppins is shipped with the app** (self-hosted).
+- **Hints are behind a "?".** Nothing in the app explains itself by default. An interface that has something to say about how it works (the waveform editor, the controls, step grid and source panes, the channel strip, the sound browser) has a small "?" button that opens a popover with the hints; it opens on a click or a tap (never on hover alone), and closes on a second one, on Escape, or on a press elsewhere. It is one shared component (`ui/hint`), built in the app, and every interface uses it rather than writing help into its layout. What is going on now is not a hint and stays where it applies: errors and warnings, a count or a value, a label, a control being out of step with its parameter, "this script declares no controls".
 - **Deferred, by decision:**
   - Drag handles to resize most containers (wanted eventually; the grid areas should be sized by custom properties so handles can be added).
   - A limited UI for very small screens (around 320 px), to be planned separately. Until then, layouts are simply as responsive as they can be.

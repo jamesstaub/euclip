@@ -350,35 +350,10 @@
   }
 }
 
-/* ---- keyboard hints: only where there is likely to be a keyboard ---- */
-
-.sound-hints {
-  display: flex;
-  flex: none;
-  flex-wrap: wrap;
-  gap: var(--space-1) var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border-block-start: var(--border-width-1) solid var(--white-30);
-  color: var(--text-muted);
-  font-size: var(--font-size-6);
-
-  & kbd {
-    display: inline-block;
-    min-inline-size: 1.75rem;
-    margin-inline-end: var(--space-2);
-    padding-inline: var(--space-1);
-    border: var(--border-width-1) solid var(--text-muted);
-    color: var(--text-on-dark);
-    font-size: var(--font-size-5);
-    line-height: var(--line-height-title);
-    text-align: center;
-  }
-}
-
-@media (hover: none), (width < 48rem) {
-  .sound-hints {
-    display: none;
-  }
+/* the "?" in the header: beside the title, before the close button */
+.sound-browser__hint {
+  margin-inline-end: var(--space-2);
+  color: var(--text-on-dark);
 }
 
 /* ---- in this project: the real pool ---- */

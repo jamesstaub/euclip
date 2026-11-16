@@ -1,7 +1,7 @@
 import type { TOC } from '@ember/component/template-only';
 import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
-import TrackRow from 'client-v2/components/track-row';
+import TrackRow, { selectFromBackground } from 'client-v2/components/track-row';
 import { PROJECT_SCOPE, type TrackDocument } from 'client-v2/project/schema';
 
 function is(a: string, b: string): boolean {
@@ -61,7 +61,12 @@ const TrackList: TOC<TrackListSignature> = <template>
           data-error={{if @projectError "true"}}
           data-test-track="output"
         >
-          <div class="track__row">
+          {{! template-lint-disable no-invalid-interactive }}
+          <div
+            class="track__row"
+            data-test-track-row
+            {{on "click" (fn selectFromBackground @onSelect PROJECT_SCOPE)}}
+          >
             <button
               type="button"
               class="track__order"

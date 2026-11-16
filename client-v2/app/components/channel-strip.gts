@@ -2,6 +2,7 @@ import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { modifier } from 'ember-modifier';
 import { service } from '@ember/service';
+import Hint from 'client-v2/components/ui/hint';
 import Slider from 'client-v2/components/ui/slider';
 import { mapping } from 'client-v2/controls/modes';
 import type { TrackDocument } from 'client-v2/project/schema';
@@ -11,9 +12,6 @@ import type ProjectService from 'client-v2/services/project';
 /** The level fader: decibels, from silence to a little above unity. */
 const LEVEL = mapping('decibels', { min: 0, max: 1.5 });
 const PAN = mapping('linear', { min: -1, max: 1 });
-/** What the strip has to do with the script. */
-const ROUTE_HINT =
-  "Sound this track sends to 'channel' passes through this level and pan, then to main";
 /** The strip as a column is 6.5rem wide; as a row it is the width of the footer. */
 const UPRIGHT_BELOW_PX = 200;
 
@@ -87,11 +85,15 @@ export default class ChannelStrip extends Component<ChannelStripSignature> {
     >
       <div class="channel-strip__title">
         <h3>channel strip</h3>
-        <code
-          class="channel-strip__route"
-          title={{ROUTE_HINT}}
-          data-test-channel-route
-        >.to('channel')</code>
+        <Hint @label="About the channel strip" data-test-channel-hint>
+          <p>Sound this track sends to
+            <code>'channel'</code>
+            passes through this level and pan, then to main. A track’s script
+            ends its chain with
+            <code>.to('channel')</code>.</p>
+          <p>The strip is Euclip’s, not the script’s: its level and pan are kept
+            in the project.</p>
+        </Hint>
       </div>
       {{#if this.idle}}
         <p

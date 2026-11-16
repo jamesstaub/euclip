@@ -14,6 +14,8 @@ const DOUBLE_TAP_MS = 350;
 const SLOP_PX = 8;
 /** A mouse is steadier: any real movement is a drag (and so never half of a double click). */
 const MOUSE_SLOP_PX = 2;
+/** ...unless the control is also pressed like a button: then a click may wobble this far. */
+const CLICK_SLOP_PX = 4;
 
 export interface GestureOptions {
   /** the control's position now */
@@ -33,6 +35,13 @@ export interface GestureOptions {
   /** how far the pointer has moved along the control's axis since `from`, as a share of full travel */
   travel(event: PointerEvent, from: PointerEvent, element: Element): number;
   onPosition(position: number): void;
+  /**
+   * The control is also something to press (a number you click to type in): nothing moves until the
+   * pointer has really set off, a mouse's included, so that a click is a click.
+   */
+  waitForDrag?: boolean;
+  /** the press has become a drag */
+  onDragStart?(): void;
   /** double click, or double tap */
   onReset?(): void;
   /** long press with a finger or pen, or the context-menu button */
@@ -133,8 +142,10 @@ export class ControlGesture {
       const dx = Math.abs(event.clientX - this.#start.clientX);
       const dy = Math.abs(event.clientY - this.#start.clientY);
       const mouse = event.pointerType === 'mouse';
-      const far = Math.hypot(dx, dy) > (mouse ? MOUSE_SLOP_PX : SLOP_PX);
-      if (!far && !mouse) return;
+      const wait = this.#options.waitForDrag === true;
+      const slop = !mouse ? SLOP_PX : wait ? CLICK_SLOP_PX : MOUSE_SLOP_PX;
+      const far = Math.hypot(dx, dy) > slop;
+      if (!far && (!mouse || wait)) return;
       if (far && !mouse) {
         const axis = this.#options.axis?.();
         if ((axis === 'x' && dy > dx) || (axis === 'y' && dx > dy)) {
@@ -144,7 +155,10 @@ export class ControlGesture {
         }
       }
       this.#dragged = far;
-      if (far) clearTimeout(this.#pressTimer);
+      if (far) {
+        clearTimeout(this.#pressTimer);
+        this.#options.onDragStart?.();
+      }
     }
     if (this.#options.positionAt && !event.shiftKey) {
       this.#set(this.#options.positionAt(event, element));

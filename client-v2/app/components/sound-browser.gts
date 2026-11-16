@@ -4,6 +4,7 @@ import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import Icon from 'client-v2/components/icon';
+import Hint from 'client-v2/components/ui/hint';
 import type { WaveformView } from 'client-v2/audio/runner';
 import type AudioService from 'client-v2/services/audio';
 import type { PoolEntry } from 'client-v2/services/audio';
@@ -158,6 +159,24 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
     >
       <header class="sound-browser__header">
         <h2 class="sound-browser__title">Sounds</h2>
+        <Hint
+          class="sound-browser__hint"
+          @label="About the sound browser"
+          data-test-sounds-hint
+        >
+          <p><b>In this project</b>
+            lists the project’s own sounds. Use gives one to the selected
+            track’s sampler (the one its script declares a
+            <code>waveform</code>
+            for).</p>
+          <p>Add an audio file with the button there, or drop one anywhere on
+            this panel.</p>
+          <ul>
+            {{#each HINTS as |hint|}}
+              <li><kbd>{{hint.key}}</kbd> {{hint.does}}</li>
+            {{/each}}
+          </ul>
+        </Hint>
         <button
           type="button"
           class="icon-btn sound-browser__close"
@@ -226,7 +245,6 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
               {{on "change" this.pickFile}}
             />
           </label>
-          <span>or drop one here</span>
         </div>
         {{#if this.notice}}
           <p
@@ -351,11 +369,6 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
 
       {{/if}}
 
-      <p class="sound-hints" aria-hidden="true">
-        {{#each HINTS as |hint|}}
-          <span><kbd>{{hint.key}}</kbd>{{hint.does}}</span>
-        {{/each}}
-      </p>
     </aside>
   </template>
 }

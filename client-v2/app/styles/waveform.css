@@ -24,6 +24,8 @@
   /* the least the picture can be and still be worked: the ruler, a handle's tab, a strip of the sound */
   --wf-stage-min: 4.75rem;
 
+  /* (its values are laid out by its own width: beside a list of waveforms, in a sheet, or expanded) */
+  container: waveform / inline-size;
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
@@ -128,10 +130,17 @@
 
 /* ---- tools: zoom, snapping, slices. They wrap; on a tablet and up they sit in one row ---- */
 
+/*
+ * The tools are a toolbar: a dark strip, with the app's buttons for a dark surface. What is under the
+ * picture is not tools but values, and looks like the app's other controls (below).
+ */
 .waveform__tools {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1) var(--space-3);
+  padding: var(--space-1);
+  background: var(--dark-gray);
+  color: var(--light-gray);
 }
 
 .waveform__tool-group {
@@ -143,17 +152,20 @@
 }
 
 /*
- * In a narrow footer (a phone) the editor as it sits in the pane keeps to what fits above the picture:
- * the sound, zoom, and Expand. Snapping, the slice tools and adding a file are in the expanded editor,
- * which has the whole screen.
- */
-
-/*
- * In a narrow footer (a phone) the editor as it sits in the pane is the sound, the picture and the
+ * A narrow editor (a phone's; or one beside a list of waveforms) as it sits in the pane is the sound, the picture and the
  * numbers, with Expand: zoom, snapping, the slice tools, adding a file and the unit are in the
  * expanded editor, which has the whole screen. (Two fingers still zoom the picture here.)
  */
-@container track-footer (width < 34rem) {
+@container waveform (width < 36rem) {
+  /* (one row: the name, the sound, the "?", Expand) */
+  .waveform:not(.waveform--expanded) .waveform__head {
+    flex-wrap: nowrap;
+  }
+
+  .waveform:not(.waveform--expanded) .waveform__sound {
+    flex: 1 1 4rem;
+  }
+
   .waveform:not(.waveform--expanded) .waveform__tool-group--more,
   .waveform:not(.waveform--expanded) .waveform__tools,
   .waveform:not(.waveform--expanded) .waveform__unit {
@@ -175,23 +187,25 @@
   gap: var(--space-1);
 }
 
-.btn.waveform__disclosure.is-open,
-.btn.waveform__apply {
-  border-color: var(--near-black);
-  background: var(--dark-gray);
-  color: var(--yellow);
+/* open: filled, as a pressed button on the dark strip is */
+.btn.waveform__disclosure.is-open {
+  background: var(--yellow);
+  color: var(--near-black);
 }
 
+/*
+ * The panel belongs to the strip above it: tools, tabs and panel are one dark area over the picture.
+ * The tab that is showing is filled yellow, as the open Slices button is; Apply is the filled button.
+ */
 .waveform__panel {
   display: grid;
-  gap: var(--space-1);
-  border: var(--border-dark);
-  background: var(--yellow);
+  background: var(--dark-gray);
+  color: var(--light-gray);
 }
 
 .waveform__tabs {
   display: flex;
-  border-block-end: var(--border-dark);
+  border-block: 1px solid var(--mid-gray);
 }
 
 .waveform__tab {
@@ -200,9 +214,9 @@
   min-block-size: var(--target-min);
   padding: 0 var(--space-2);
   border: 0;
-  border-inline-end: var(--border-dark);
-  background: var(--dark-yellow);
-  color: var(--near-black);
+  border-inline-end: 1px solid var(--mid-gray);
+  background: var(--near-black);
+  color: var(--light-gray);
   font-size: var(--font-size-6);
   font-weight: var(--font-weight-bold);
 
@@ -211,8 +225,8 @@
   }
 
   &[aria-selected="true"] {
-    background: var(--dark-gray);
-    color: var(--yellow);
+    background: var(--yellow);
+    color: var(--near-black);
   }
 }
 
@@ -222,6 +236,26 @@
   align-items: center;
   gap: var(--space-1) var(--space-3);
   padding: var(--space-1) var(--space-2);
+  background: var(--dark-gray);
+  color: var(--light-gray);
+}
+
+.btn.waveform__apply:not(:disabled) {
+  border-color: var(--yellow);
+  background: var(--yellow);
+  color: var(--near-black);
+}
+
+@media (hover: hover) {
+  .btn.waveform__apply:not(:disabled):hover {
+    background: var(--dark-yellow);
+  }
+}
+
+/* (the slider's own track is the strip's grey: here it is the darker one, outlined) */
+.waveform__tabpanel .slider__track {
+  background: var(--near-black);
+  outline: 1px solid var(--mid-gray);
 }
 
 /* what Apply would give, and whose it would be: slices are the sound's, on every track that plays it */
@@ -267,6 +301,7 @@
   border: var(--border-dark);
   background: var(--light-yellow);
   font-size: var(--font-size-5);
+  color: var(--dark-gray);
 }
 
 .waveform__notice {
@@ -434,7 +469,8 @@
   block-size: 0.75rem;
   border: var(--border-dark);
   background: var(--dark-gray);
-  cursor: pointer;
+  cursor: grab;
+  touch-action: pan-y; /* (dragged across; up and down the pane still scrolls) */
 }
 
 @media (pointer: coarse) {
@@ -451,24 +487,7 @@
   background: var(--light-blue);
 }
 
-/*
- * One line on the two kinds of thing drawn on the sound: the region (solid lines with S and E tabs,
- * hanging in the sound) and the slices (dashed lines with a flag in the ruler).
- */
-.waveform__hint {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0 var(--space-1);
-  margin: 0;
-  font-size: 0.6875rem;
-  line-height: 1.5;
-
-  & code {
-    font-family: var(--font-mono);
-  }
-}
-
+/* the swatches the editor's hints use for the region's handles and a slice's flag */
 .waveform__key {
   display: inline-grid;
   place-items: center;
@@ -483,6 +502,7 @@
 .waveform__key--region {
   border: var(--border-width-1) solid var(--near-black);
   background: var(--yellow);
+  color: var(--near-black);
 }
 
 /* a slice's flag: the triangle the ruler has */
@@ -490,73 +510,158 @@
   inline-size: 0;
   block-size: 0;
   border: 0.375rem solid transparent;
-  border-block-start: 0.5625rem solid var(--dark-gray);
+  border-block-start: 0.5625rem solid var(--light-gray);
   border-block-end: 0;
+  vertical-align: middle;
 }
 
 /* ---- the numbers: the same controls a slider for each would be ---- */
 
+/*
+ * The values are cells of a fixed grid. How many columns there are depends only on how wide the editor
+ * is; every cell is there always (the loop's two points too, while the loop is off), and a cell's box
+ * is its track's: nothing typed, toggled, focused or shown in another unit can change a cell's size or
+ * move another cell. What does not fit a cell is cut short inside it.
+ */
 .waveform__values {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1) var(--space-3);
-}
-
-.waveform__value {
-  display: inline-flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: var(--space-1);
-  font-weight: var(--font-weight-bold);
-  text-transform: uppercase;
-
-  & .number-entry {
-    inline-size: auto;
-    min-inline-size: 4.5rem;
-    border-color: var(--dark-gray);
-    font-weight: var(--font-weight-normal);
-    text-transform: none;
-  }
-}
-
-/* the loop points while the loop is off: there, but not in play */
-.waveform__value--faint {
-  opacity: 0.55;
+  min-inline-size: 0;
 }
 
 /*
- * In a narrow footer the numbers are two to a row, with the switches and speed three to a row under
- * them, and the one line of help waits for the expanded editor: everything fits the sheet.
+ * A value is a box of the same family as a row of the controls pane: the name, the number to type
+ * into, and along its foot where the number is in its range, in the blue a slider's fill has.
  */
-@container track-footer (width < 34rem) {
-  .waveform:not(.waveform--expanded) .waveform__hint {
+.waveform__value {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-inline-size: 0;
+  padding-inline-start: var(--space-2);
+  overflow: hidden;
+  border: var(--border-dark);
+  background: var(--dark-yellow);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+
+  /* the number's box is one width whatever is in it: digits, a unit, a field being typed in */
+  & .number-entry-box {
+    flex: none;
+    inline-size: 4.25rem;
+  }
+
+  & .number-entry {
+    font-weight: var(--font-weight-normal);
+    text-transform: none;
+  }
+
+  /* the switch and its word take the same room on as off */
+  & .toggle {
+    flex: none;
+    padding-inline-end: var(--space-1);
+  }
+
+  & .toggle__text {
+    inline-size: 1.75rem;
+    overflow: hidden;
+  }
+}
+
+/* a cell's name gives way before its control does */
+.waveform__label {
+  flex: 1 1 0;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.waveform__unit {
+  min-inline-size: 0;
+
+  & .waveform__select {
+    flex: 1 1 auto;
+    inline-size: 100%;
+    min-inline-size: 0;
+  }
+}
+
+/*
+ * Eight across in a very wide editor; four across (two rows) in most; and in a narrow one (a phone, or
+ * beside a list of waveforms on a tablet) three to a row (speed and the region; the loop and its two
+ * points; reverse), with the unit on a row of its own where it is shown (the expanded editor).
+ */
+.waveform__label-short {
+  display: none;
+}
+
+@container waveform (width < 76rem) {
+  .waveform__values {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@container waveform (width < 36rem) {
+  .waveform__values {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .waveform__unit {
+    grid-column: span 6;
+  }
+
+  .waveform__value {
+    grid-column: span 2;
+  }
+
+  /* the switches say on and off with their square alone (left and O; right, blue and I) */
+  .waveform__value .toggle__text {
     display: none;
   }
 
-  .waveform:not(.waveform--expanded) .waveform__values {
-    display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: var(--space-1);
-
-    & .waveform__value {
-      grid-column: span 2;
-      justify-content: space-between;
-      min-inline-size: 0;
-    }
-
-    & .waveform__value--number {
-      grid-column: span 3;
-    }
-
-    & .number-entry {
-      min-inline-size: 3.5rem;
-    }
-
-    /* (the square says it: left and O, or right, blue and I) */
-    & .toggle__text {
-      display: none;
-    }
+  .waveform__value .number-entry-box {
+    inline-size: 3.75rem;
   }
+
+  /* a narrow cell says it shortly: beside the Loop switch its points are "from" and "to" */
+  .waveform__label-full {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .waveform__label-short {
+    display: inline;
+  }
+}
+
+.waveform__meter {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  block-size: 0.25rem;
+  background: var(--dark-gray);
+  pointer-events: none;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    inline-size: calc(var(--pos, 0) * 100%);
+    background: var(--light-blue);
+  }
+}
+
+/* the loop's points while the loop is off: in their places, not in play */
+.waveform__value--faint {
+  opacity: 0.5;
 }
 
 /* ---- the source pane: one editor, fitted to the footer, and a list of them when there are several ---- */
@@ -634,7 +739,7 @@
   }
 }
 
-@container track-footer (width < 34rem) {
+@container track-footer (width < 48rem) {
   .source-tabs {
     display: none;
   }
@@ -646,4 +751,19 @@
   .waveform__title--several {
     display: none;
   }
+}
+
+/* a tool that cannot be used now: still legible on the dark strip, plainly not live */
+.waveform__tools .btn:disabled,
+.waveform__tabpanel .btn:disabled {
+  border-color: var(--mid-gray);
+  background: var(--dark-gray);
+  color: var(--light-silver);
+  opacity: 1;
+}
+
+/* (a menu on the strip is the app's yellow menu, with its own dark text) */
+.waveform__tools .select,
+.waveform__tabpanel .select {
+  color: var(--dark-gray);
 }

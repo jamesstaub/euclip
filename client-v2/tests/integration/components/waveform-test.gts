@@ -116,7 +116,11 @@ module('Integration | Component | waveform', function (hooks) {
     await click('[data-test-script-toggle]');
     assert.dom('[data-test-waveform]').doesNotExist();
     assert
-      .dom('[data-test-pane="source"] [data-test-pane-empty]')
+      .dom('[data-test-pane="source"] [data-test-pane-empty] span')
+      .hasText('This script declares no waveform.');
+    await click('[data-test-source-hint] [data-test-hint-button]');
+    assert
+      .dom('[data-test-source-hint] [data-test-hint]')
       .includesText("waveform('#sampler')");
   });
 
@@ -380,10 +384,16 @@ module('Integration | Component | waveform', function (hooks) {
     assert.deepEqual([...ref.slices], [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4]);
     assert
       .dom('[data-test-slices-panel]')
-      .doesNotExist('applying closes the panel');
-    assert.dom('[data-test-slices-toggle]').hasAria('expanded', 'false');
+      .exists('applying leaves the panel open');
+    assert.dom('[data-test-slice-tab="equal"]').hasAria('selected', 'true');
+    assert.dom('[data-test-slices-toggle]').hasText('Slices (8)');
+    assert
+      .dom('[data-test-slice-marker]')
+      .exists({ count: 7 }, 'the preview has become the sound’s own flags');
+    assert
+      .dom('[data-test-slices-apply]')
+      .isDisabled('nothing new to apply until a setting changes');
 
-    await click('[data-test-slices-toggle]');
     await click('[data-test-slice-tab="tempo"]');
     assert.dom('[data-test-slice-tab="tempo"]').hasAria('selected', 'true');
     assert.dom('[data-test-tempo-step]').exists();
@@ -394,7 +404,6 @@ module('Integration | Component | waveform', function (hooks) {
     await click('[data-test-slices-apply]');
     assert.strictEqual(ref.slices.length, 33);
 
-    await click('[data-test-slices-toggle]');
     await triggerKeyEvent(
       '[data-test-slice-tab="tempo"]',
       'keydown',
@@ -423,13 +432,172 @@ module('Integration | Component | waveform', function (hooks) {
     project.undo();
     await settled();
     assert.strictEqual(ref.slices.length, 33, 'undone as one step');
+  });
+
+  test('Clear removes the sound’s slices and leaves the panel open on its tab', async function (assert) {
+    await open();
+    const ref = audio.engine!.buffers.get('loop')!;
+    assert.strictEqual(ref.slices.length, 17, 'a sound with slices');
     await click('[data-test-slices-toggle]');
+    await click('[data-test-slice-tab="tempo"]');
+    const preview = find('[data-test-slices-count]')!.textContent.trim();
+    assert.dom('[data-test-slice-clear]').isNotDisabled();
+
     await click('[data-test-slice-clear]');
-    assert.deepEqual([...ref.slices], [0, 4]);
+    assert.deepEqual([...ref.slices], [0, 4], 'the slices are gone');
     assert.strictEqual(project.doc.samples['loop']!.slices, undefined);
+    assert.dom('[data-test-slices-panel]').exists('the panel is still open');
+    assert.dom('[data-test-slices-toggle]').hasAria('expanded', 'true');
+    assert.dom('[data-test-slices-toggle]').hasText('Slices (1)');
+    assert
+      .dom('[data-test-slice-tab="tempo"]')
+      .hasAria('selected', 'true', 'on the same tab');
+    assert
+      .dom('[data-test-slices-count]')
+      .hasText(preview, 'with its preview as it was');
+    assert.dom('[data-test-slice-clear]').isDisabled('nothing left to clear');
+    assert
+      .dom('[data-test-slices-apply]')
+      .isNotDisabled('and the first cut can be made from here');
+
     project.undo();
     await settled();
-    assert.strictEqual(ref.slices.length, 33);
+    assert.strictEqual(ref.slices.length, 17, 'undo brings them back');
+    assert.dom('[data-test-slices-panel]').exists();
+    assert.dom('[data-test-slice-clear]').isNotDisabled();
+
+    // from no slices: the first cut
+    await click('[data-test-slice-clear]');
+    await click('[data-test-slices-apply]');
+    assert.strictEqual(ref.slices.length, 33, 'sixteenths at 120 in 4 s');
+    assert.dom('[data-test-slices-panel]').exists();
+  });
+
+  test('the values are in their order, and a number dragged in its box moves its handle with it', async function (assert) {
+    await open();
+    assert.deepEqual(
+      findAll('[data-test-waveform-value]').map((cell) =>
+        cell.getAttribute('data-test-waveform-value'),
+      ),
+      ['speed', 'start', 'end', 'loop', 'loopStart', 'loopEnd', 'reverse'],
+    );
+    await select('[data-test-waveform-unit]', 'percent');
+    const entry = '[data-test-waveform-value="start"] [data-test-number-entry]';
+    const rect = find(entry)!.getBoundingClientRect();
+    const point = (dx: number) => ({
+      pointerId: 1,
+      button: 0,
+      buttons: 1,
+      isPrimary: true,
+      pointerType: 'mouse',
+      clientX: rect.left + rect.width / 2 + dx,
+      clientY: rect.top + rect.height / 2,
+    });
+    const handle = (): number =>
+      parseFloat(
+        (find('[data-handle="start"]') as HTMLElement).style.getPropertyValue(
+          '--x',
+        ),
+      );
+    const began = find(entry)!.textContent.trim();
+    const from = handle();
+    await triggerEvent(entry, 'pointerdown', point(0));
+    await triggerEvent(entry, 'pointermove', point(5));
+    await triggerEvent(document.body, 'pointermove', point(55));
+    await triggerEvent(document.body, 'pointermove', point(100));
+    await triggerEvent(document.body, 'pointerup', point(100));
+    // 100 px of 200: half the sample
+    assert.dom(entry).hasText('50%');
+    assert.true(
+      handle() > from + 10,
+      `the handle on the picture went too (${from} to ${handle()})`,
+    );
+    project.undo();
+    await settled();
+    assert.dom(entry).hasText(began, 'the whole drag is one step to undo');
+    project.redo();
+    await settled();
+    assert.dom(entry).hasText('50%');
+    assert
+      .dom('[data-test-number-input]')
+      .doesNotExist('and the field did not open');
+
+    // by slices: whole ones
+    await select('[data-test-waveform-unit]', 'slice');
+    const before = find(entry)!.textContent.trim();
+    await triggerEvent(entry, 'pointerdown', point(0));
+    await triggerEvent(entry, 'pointermove', point(5));
+    await triggerEvent(document.body, 'pointermove', point(-25));
+    await triggerEvent(document.body, 'pointerup', point(-25));
+    const after = find(entry)!.textContent.trim();
+    assert.notStrictEqual(after, before, 'a drag steps through the slices');
+    assert.true(/^\D*\d+\D*$/.test(after), `a whole slice (${after})`);
+  });
+
+  test('the strip under the picture is dragged, and the picture follows on every move, before it is let go', async function (assert) {
+    await open();
+    await click('[data-test-zoom-in]');
+    await click('[data-test-zoom-in]');
+    const mini = '[data-test-waveform-mini]';
+    const rect = find(mini)!.getBoundingClientRect();
+    const point = (along: number, more: object = {}) => ({
+      pointerId: 1,
+      button: 0,
+      buttons: 1,
+      isPrimary: true,
+      pointerType: 'mouse',
+      clientX: rect.left + along * rect.width,
+      clientY: rect.top + rect.height / 2,
+      ...more,
+    });
+    const left = (): number =>
+      parseFloat(
+        (find('.waveform__mini-view') as HTMLElement).style.getPropertyValue(
+          '--left',
+        ),
+      );
+    const drawn = (): string =>
+      find('[data-test-waveform]')!.getAttribute('data-view') ?? '';
+    const width = parseFloat(
+      (find('.waveform__mini-view') as HTMLElement).style.getPropertyValue(
+        '--width',
+      ),
+    );
+    const undoable = project.canUndo;
+    // pressed on the window: it does not jump, and then goes with the pointer
+    const start = left();
+    const grab = (start + width / 2) / 100;
+    await triggerEvent(mini, 'pointerdown', point(grab));
+    assert.true(Math.abs(left() - start) < 0.01, 'held where it was pressed');
+    const seen: number[] = [];
+    const views: string[] = [drawn()];
+    for (const by of [0.05, 0.1, 0.15, 0.2]) {
+      await triggerEvent(document.body, 'pointermove', point(grab + by));
+      seen.push(Math.round(left() - start));
+      views.push(drawn());
+    }
+    assert.deepEqual(
+      seen,
+      [5, 10, 15, 20],
+      'the window is where the pointer has taken it, on each move',
+    );
+    assert.strictEqual(
+      new Set(views).size,
+      5,
+      'and the picture’s view with it, before the button is up',
+    );
+    await triggerEvent(document.body, 'pointerup', point(grab + 0.2));
+    await triggerEvent(
+      document.body,
+      'pointermove',
+      point(0.1, { buttons: 0 }),
+    );
+    assert.strictEqual(Math.round(left() - start), 20, 'let go: it stays');
+    // pressed outside the window: its middle goes there
+    await triggerEvent(mini, 'pointerdown', point(0.05));
+    await triggerEvent(document.body, 'pointerup', point(0.05));
+    assert.true(left() < 1, 'a press elsewhere looks there');
+    assert.strictEqual(project.canUndo, undoable, 'nothing to undo');
   });
 
   test('zoom and scroll: buttons, the wheel around the pointer, and where it is shown', async function (assert) {
@@ -604,18 +772,241 @@ module('Integration | Component | waveform', function (hooks) {
     );
   });
 
-  test('region and slices are told apart, and one line says which trigger plays which', async function (assert) {
+  test('region and slices are both there; what each is for is in the editor’s hints, not on show', async function (assert) {
     await open();
-    assert.dom('[data-test-waveform-hint]').includesText('trigger()');
-    assert.dom('[data-test-waveform-hint]').includesText('trigger({ slice })');
     assert
       .dom(handle('start'))
       .exists('the region’s handles are there on a sliced sound too');
     assert.dom(handle('end')).exists();
-    await select('[data-test-sound-select]', 'kick');
     assert
-      .dom('[data-test-waveform-hint]')
-      .doesNotExist('a sound that is one slice needs no such line');
+      .dom('[data-test-waveform]')
+      .doesNotIncludeText('trigger()', 'no explanation on show');
+    await click('[data-test-waveform-hint] [data-test-hint-button]');
+    assert
+      .dom('[data-test-waveform-hint] [data-test-hint]')
+      .includesText('trigger()');
+    assert
+      .dom('[data-test-waveform-hint] [data-test-hint]')
+      .includesText('trigger({ slice })');
+    assert
+      .dom('[data-test-waveform-hint] [data-test-hint]')
+      .includesText('every track that plays it shares them');
+  });
+
+  test('the menus keep their options: drawing the editor again does not make them anew', async function (assert) {
+    await open();
+    const options = (selector: string): Element[] => [
+      ...find(selector)!.querySelectorAll('option'),
+    ];
+    const unit = find('[data-test-waveform-unit]');
+    const sound = find('[data-test-sound-select]');
+    const before = {
+      unit: options('[data-test-waveform-unit]'),
+      sound: options('[data-test-sound-select]'),
+      snap: options('[data-test-snap]'),
+    };
+    assert.true(before.unit.length >= 4);
+    // every node added to or taken from a menu, from now on
+    let touched = 0;
+    const watch = new MutationObserver((records) => {
+      for (const record of records) {
+        touched += record.addedNodes.length + record.removedNodes.length;
+      }
+    });
+    for (const selector of [
+      '[data-test-waveform-unit]',
+      '[data-test-sound-select]',
+      '[data-test-snap]',
+    ]) {
+      watch.observe(find(selector)!, { childList: true, subtree: true });
+    }
+
+    // things that draw the editor again: a value moves, the transport plays, a play cursor's frame passes
+    audio.setControl(loopId, '#sampler › start', 0.5);
+    audio.setControl(loopId, '#level › gain', 0.4);
+    audio.play();
+    await settled();
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve)),
+    );
+    audio.stop();
+    await settled();
+
+    const same = (now: Element[], then: Element[]): boolean =>
+      now.length === then.length &&
+      now.every((option, index) => option === then[index]);
+    assert.strictEqual(
+      find('[data-test-waveform-unit]'),
+      unit,
+      'the unit menu is the same element',
+    );
+    assert.true(
+      same(options('[data-test-waveform-unit]'), before.unit),
+      'with the same option elements',
+    );
+    assert.strictEqual(find('[data-test-sound-select]'), sound);
+    assert.true(
+      same(options('[data-test-sound-select]'), before.sound),
+      'the sound menu’s too',
+    );
+    assert.true(same(options('[data-test-snap]'), before.snap));
+
+    watch
+      .takeRecords()
+      .forEach(
+        (record) =>
+          (touched += record.addedNodes.length + record.removedNodes.length),
+      );
+    assert.strictEqual(
+      touched,
+      0,
+      'and not one node of any menu was added or removed while the editor was drawn again',
+    );
+
+    // choosing a unit: the options stay, the choice shows, and it is one step
+    await select('[data-test-waveform-unit]', 'ms');
+    assert.true(
+      same(options('[data-test-waveform-unit]'), before.unit),
+      'still the same options after choosing one',
+    );
+    assert.dom('[data-test-waveform-unit]').hasValue('ms');
+    assert.dom(value('start')).hasText('500 ms');
+    project.undo();
+    await settled();
+    assert
+      .dom('[data-test-waveform-unit]')
+      .hasValue('seconds', 'one undo: all four points back in seconds');
+    assert.strictEqual(
+      project.doc.tracks.at(-1)!.values.controls['#sampler › loopEnd']?.options,
+      undefined,
+    );
+    assert.true(same(options('[data-test-waveform-unit]'), before.unit));
+    watch
+      .takeRecords()
+      .forEach(
+        (record) =>
+          (touched += record.addedNodes.length + record.removedNodes.length),
+      );
+    watch.disconnect();
+    assert.strictEqual(touched, 0, 'nor by choosing a unit and undoing it');
+  });
+
+  test('the values are cells of a fixed grid: toggling, a unit, a long value or focus moves and resizes nothing', async function (assert) {
+    await open();
+    // each cell's box within the values area (the small test page may scroll the pane under a click)
+    const cells = (): string[] => {
+      const area = find('.waveform__values')!;
+      const origin = area.getBoundingClientRect();
+      return [
+        `area ${origin.width.toFixed(1)} ${origin.height.toFixed(1)}`,
+        ...[...area.children]
+          .filter((cell) => getComputedStyle(cell).display !== 'none')
+          .map((cell) => {
+            const rect = cell.getBoundingClientRect();
+            return [
+              rect.left - origin.left,
+              rect.top - origin.top,
+              rect.width,
+              rect.height,
+            ]
+              .map((n) => n.toFixed(1))
+              .join(' ');
+          }),
+      ];
+    };
+    const before = cells();
+    assert
+      .dom('[data-test-waveform-value="loopStart"]')
+      .exists('the loop’s points have their cells while the loop is off');
+    assert
+      .dom('[data-test-waveform-value="loopStart"] [data-test-number-entry]')
+      .isDisabled('not to be changed then');
+    assert
+      .dom('[data-test-waveform-value="loopStart"]')
+      .hasClass('waveform__value--faint');
+
+    await click('[data-test-waveform-loop]');
+    assert.deepEqual(
+      cells(),
+      before,
+      'Loop on: every cell where it was, the size it was',
+    );
+    assert
+      .dom('[data-test-waveform-value="loopStart"] [data-test-number-entry]')
+      .isNotDisabled();
+    await click('[data-test-waveform-reverse]');
+    assert.deepEqual(cells(), before, 'Reverse on');
+    for (const unit of ['ms', 'steps', 'percent', 'slice', 'seconds']) {
+      await select('[data-test-waveform-unit]', unit);
+      assert.deepEqual(cells(), before, `shown in ${unit}`);
+    }
+    await click(value('loopEnd'));
+    assert.deepEqual(cells(), before, 'a field focused');
+    await fillIn(
+      '[data-test-waveform-value="loopEnd"] [data-test-number-input]',
+      '1234567.8901234567',
+    );
+    assert.deepEqual(cells(), before, 'a long value typed');
+    await triggerKeyEvent(
+      '[data-test-waveform-value="loopEnd"] [data-test-number-input]',
+      'keydown',
+      'Escape',
+    );
+    audio.setControl(loopId, '#sampler › speed', 0.123456789);
+    await settled();
+    assert.deepEqual(cells(), before, 'a value with many digits');
+    await click('[data-test-waveform-loop]');
+    await click('[data-test-waveform-reverse]');
+    assert.deepEqual(cells(), before, 'and off again');
+  });
+
+  test('typing a value takes no more room than reading it: nothing beside it moves', async function (assert) {
+    await open();
+    const box = (selector: string): string => {
+      const rect = find(selector)!.getBoundingClientRect();
+      return [rect.left, rect.top, rect.width, rect.height]
+        .map((n) => n.toFixed(2))
+        .join(' ');
+    };
+    const around = (): Record<string, string> => ({
+      start: box('[data-test-waveform-value="start"]'),
+      end: box('[data-test-waveform-value="end"]'),
+      loop: box('[data-test-waveform-loop]'),
+      values: box('.waveform__values'),
+      stage: box(STAGE),
+    });
+    const before = around();
+    const entry = box('[data-test-waveform-value="start"] .number-entry-box');
+    await click(value('start'));
+    assert
+      .dom('[data-test-waveform-value="start"] [data-test-number-input]')
+      .isFocused();
+    assert.strictEqual(
+      box('[data-test-waveform-value="start"] .number-entry-box'),
+      entry,
+      'the box is the same box',
+    );
+    assert.strictEqual(
+      box('[data-test-waveform-value="start"] [data-test-number-input]'),
+      entry,
+      'and the field fills exactly it',
+    );
+    assert.deepEqual(
+      around(),
+      before,
+      'its neighbours, the row and the picture are where they were',
+    );
+    await fillIn(
+      '[data-test-waveform-value="start"] [data-test-number-input]',
+      '0.123456789',
+    );
+    assert.deepEqual(around(), before, 'however much is typed');
+    await triggerKeyEvent(
+      '[data-test-waveform-value="start"] [data-test-number-input]',
+      'keydown',
+      'Escape',
+    );
+    assert.deepEqual(around(), before);
   });
 
   module('several samplers on one track', function () {

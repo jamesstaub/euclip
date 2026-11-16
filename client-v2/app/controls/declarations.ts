@@ -358,7 +358,7 @@ export const CONTROL_FUNCTIONS: readonly ControlFunction[] = [
     description:
       "Declares a step grid for a named sequence of this script: stepGrid('steps'). Put it after the " +
       "__.transport.sequence('steps', …) call. The steps written in that call are the default; a pattern edited " +
-      'in the grid is stored in the project and applied here when the script runs. A sequence with no stepGrid() has no grid. ' +
+      'in the grid is stored in the project and applied here when the script runs. A sequence has a grid only if a stepGrid() line, or controls(), declares one. ' +
       'Returns the control: .value is the steps, .set(steps) changes grid and sequence together. Options: label, view.',
     signatures: [
       {
@@ -393,13 +393,16 @@ export const CONTROL_FUNCTIONS: readonly ControlFunction[] = [
     accepts: ['number', 'boolean', 'choice'],
     signature: 'controls() | controls(target, names?)',
     description:
-      'With nothing, declares a control for every parameter of every node the script has made so far (the inserts of its buses too), a section per node: put controls() after the chain. ' +
-      "With a target, for those nodes: controls('#kick'), controls(kick) for every node of a chain, controls(__.bus('drums').compressor(…)) for the inserts that adds to a bus, controls(__.bus('drums')) for the bus's level. " +
+      'With nothing, declares all the UI of what the script makes, in one line: a control for every parameter of every node it has made so far (the inserts of its buses too), a section per node; ' +
+      'a waveform editor for every sampler among them; and a step grid for every named sequence of the script, wherever in the script the sequence is. Put controls() after the chain. ' +
+      'A slider(), knob(), toggle(), select(), stepGrid() or waveform() of your own for the same thing, before or after, is used instead of the one from controls(). ' +
+      "With a target, only the parameters of those nodes (no grids, no waveform): controls('#kick'), controls(kick) for every node of a chain, controls(__.bus('drums').compressor(…)) for the inserts that adds to a bus, controls(__.bus('drums')) for the bus's level. " +
       "With a list, only the parameters named: controls('#kick', ['speed', 'start']). " +
-      'Each parameter gets the kind that suits it. A slider(), knob(), toggle() or select() for the same node and parameter is used instead of the one from controls().',
+      'Each parameter gets the kind that suits it.',
     signatures: [
       {
-        description: 'Every node the script has made so far.',
+        description:
+          'All the UI of what the script makes: controls for every node made so far, a waveform for every sampler, a step grid for every named sequence.',
         args: [],
         returns: 'controls',
       },

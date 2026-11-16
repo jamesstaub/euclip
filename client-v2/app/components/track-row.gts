@@ -15,6 +15,27 @@ function more(grids: readonly StepGridView[]): boolean {
 
 const Grid = stepGridWidget().component;
 
+/** What on a row does a job of its own: a click on (or in) any of these is not a click on the row. */
+const OWN =
+  'button, input, select, textarea, a, label, [role], [tabindex], .step-grid';
+
+/**
+ * A click on a row's background (its padding, the gaps, the space beside the grid) selects its track.
+ * The row is not a button and holds none of its controls inside one: the number stays the control
+ * that selects for the keyboard and a screen reader, and this only widens what a pointer can hit.
+ * It listens to `click`, so a finger that scrolls the list from the background selects nothing.
+ */
+export function selectFromBackground(
+  onSelect: (id: string) => void,
+  id: string,
+  event: Event,
+): void {
+  const row = event.currentTarget as Element;
+  const own = (event.target as Element).closest(OWN);
+  if (own && own !== row && row.contains(own)) return;
+  onSelect(id);
+}
+
 export interface TrackRowSignature {
   Element: HTMLElement;
   Args: {
@@ -56,6 +77,20 @@ export default class TrackRow extends Component<TrackRowSignature> {
     this.menuOpen = open;
   };
 
+  /** (a press on the background that closes the row's open menu has done its job: it selects nothing) */
+  #menuWasOpen = false;
+  notePress = (): void => {
+    this.#menuWasOpen = this.menuOpen;
+  };
+
+  onRowClick = (event: Event): void => {
+    if (this.#menuWasOpen) {
+      this.#menuWasOpen = false;
+      return;
+    }
+    selectFromBackground(this.args.onSelect, this.args.track.id, event);
+  };
+
   <template>
     <article
       class="track {{if @selected 'track--active'}}"
@@ -66,7 +101,14 @@ export default class TrackRow extends Component<TrackRowSignature> {
       data-track-id={{@track.id}}
       ...attributes
     >
-      <div class="track__row">
+      {{! template-lint-disable no-invalid-interactive no-pointer-down-event-binding }}
+      {{! (the row's background selects, for a pointer; the number button is the control that does) }}
+      <div
+        class="track__row"
+        data-test-track-row
+        {{on "pointerdown" this.notePress capture=true}}
+        {{on "click" this.onRowClick}}
+      >
         <button
           type="button"
           class="track__order"

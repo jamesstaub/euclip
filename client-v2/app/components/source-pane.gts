@@ -5,6 +5,7 @@ import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import { waitForPromise } from '@ember/test-waiters';
 import type { ComponentLike } from '@glint/template';
+import Hint from 'client-v2/components/ui/hint';
 import type { WaveformView } from 'client-v2/audio/runner';
 import {
   waveformWidget,
@@ -161,10 +162,16 @@ export default class SourcePane extends Component<SourcePaneSignature> {
           {{/if}}
         </div>
       {{else}}
-        <p class="pane-empty" data-test-pane-empty>This script declares no
-          waveform. One line, placed after the chain, shows a sampler’s sound
-          here with its start, end, loop points and slices:
-          <code>waveform('#sampler')</code>. Press Script to add it.</p>
+        <p class="pane-empty" data-test-pane-empty>
+          <span>This script declares no waveform.</span>
+          <Hint @label="About the source pane" data-test-source-hint>
+            <p>One line in the script, placed after the chain, shows a sampler’s
+              sound here with its start, end, loop points and slices:
+              <code>waveform('#sampler')</code>. Press Script to add it.</p>
+            <p>A script with several samplers can declare one for each; they are
+              listed here to choose between.</p>
+          </Hint>
+        </p>
       {{/if}}
     </section>
   </template>

@@ -3,6 +3,7 @@ import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import ControlRow from 'client-v2/components/control-row';
+import Hint from 'client-v2/components/ui/hint';
 import {
   OWN_GROUP,
   type ControlGroup,
@@ -93,12 +94,6 @@ export default class ControlsPane extends Component<ControlsPaneSignature> {
     return list;
   }
 
-  get anyByPosition(): boolean {
-    return this.chains.some((chain) =>
-      chain.sections.some((section) => section.byPosition),
-    );
-  }
-
   isOpen = (section: Section): boolean =>
     this.view.isSectionOpen(this.args.scopeId, section.id);
 
@@ -117,7 +112,25 @@ export default class ControlsPane extends Component<ControlsPaneSignature> {
       data-test-pane="controls"
       ...attributes
     >
-      <h3 class="pane-heading">{{@heading}}</h3>
+      <h3 class="pane-heading">
+        <span>{{@heading}}</span>
+        <Hint @label="About controls" data-test-controls-hint>
+          <p>A control is here because the script declares it. One line gives
+            every node its controls, placed after the chain:
+            <code>controls()</code>. Or one at a time, for a parameter of a
+            node:
+            <code>slider('#filter', 'frequency')</code>,
+            <code>knob('#level', 'gain')</code>,
+            <code>toggle('#sampler', 'loop')</code>. Press Script to write them.</p>
+          <p>The number in the script is the default; what you set here is kept
+            in the project. A control’s menu (⋮) changes its unit, resets it,
+            and shows its line in the script.</p>
+          <p><b>no id</b>: the node has no id in the script, so its values
+            follow its position in the script. Give it one to keep them when the
+            chain changes:
+            <code>.lowpass(\{ id: 'filter' })</code></p>
+        </Hint>
+      </h3>
       {{#each this.chains key="key" as |chain|}}
         <div
           class="control-chain {{if chain.title 'control-chain--named'}}"
@@ -171,19 +184,8 @@ export default class ControlsPane extends Component<ControlsPaneSignature> {
         </div>
       {{else}}
         <p class="pane-empty" data-test-pane-empty>This script declares no
-          controls. One line gives every node its controls:
-          <code>controls()</code>, placed after the chain. Or declare them one
-          by one, for a parameter of a node:
-          <code>slider('#filter', 'frequency')</code>,
-          <code>knob('#level', 'gain')</code>,
-          <code>toggle('#sampler', 'loop')</code>. Press Script to write them.</p>
+          controls.</p>
       {{/each}}
-      {{#if this.anyByPosition}}
-        <p class="controls-pane__note" data-test-no-id-note><b>no id</b>: the
-          node has no id in the script, so its values follow its position in the
-          script. Give it one to keep them when the chain changes:
-          <code>.lowpass(\{ id: 'filter' })</code></p>
-      {{/if}}
     </section>
   </template>
 }

@@ -318,22 +318,46 @@ export default class AudioService extends Service {
   }
 
   /** Forgets a control's value: what the script itself says applies again. */
-  resetControl(scopeId: string, key: string): void {
-    this.project.apply({ type: 'resetControl', scope: scopeId, key });
+  resetControl(scopeId: string, key: string, group?: string): void {
+    this.project.apply(
+      { type: 'resetControl', scope: scopeId, key },
+      group === undefined ? {} : { group },
+    );
   }
 
-  setControlMode(scopeId: string, key: string, mode: string | undefined): void {
-    this.project.apply({
-      type: 'setControlOptions',
-      scope: scopeId,
-      key,
-      options: { mode },
-    });
+  setControlMode(
+    scopeId: string,
+    key: string,
+    mode: string | undefined,
+    group?: string,
+  ): void {
+    this.project.apply(
+      { type: 'setControlOptions', scope: scopeId, key, options: { mode } },
+      group === undefined ? {} : { group },
+    );
   }
 
-  toggleStep(scopeId: string, sequence: string, index: number): void {
+  /** @param group the gesture it is part of (the two clicks of a double click): one step to undo */
+  toggleStep(
+    scopeId: string,
+    sequence: string,
+    index: number,
+    group?: string,
+  ): void {
     const op = this.runner?.toggleStepOperation(scopeId, sequence, index);
-    if (op) this.project.apply(op);
+    if (op) this.project.apply(op, group === undefined ? {} : { group });
+  }
+
+  /** Gives one step of a declared grid a value: 0 is off, anything above is on with that value. */
+  setStep(
+    scopeId: string,
+    sequence: string,
+    index: number,
+    value: number,
+    group?: string,
+  ): void {
+    const op = this.runner?.setStepOperation(scopeId, sequence, index, value);
+    if (op) this.project.apply(op, group === undefined ? {} : { group });
   }
 
   /** Runs a script now instead of after the pause. For tests, and for anything that cannot wait. */

@@ -17,6 +17,7 @@ import {
 } from 'cracked-up/util';
 import type { Node } from 'cracked-up';
 import Icon from 'client-v2/components/icon';
+import Hint from 'client-v2/components/ui/hint';
 import NumberEntry from 'client-v2/components/ui/number-entry';
 import Slider from 'client-v2/components/ui/slider';
 import Toggle from 'client-v2/components/ui/toggle';
@@ -30,6 +31,9 @@ import {
 } from 'client-v2/controls/modes';
 import { mappingOf, numberOf } from 'client-v2/controls/view';
 import cssVars from 'client-v2/modifiers/css-vars';
+import selectOptions, {
+  type SelectOption,
+} from 'client-v2/modifiers/select-options';
 import { MAX_FILE_TEXT } from 'client-v2/project/pool';
 import type AudioService from 'client-v2/services/audio';
 import type { PoolEntry } from 'client-v2/services/audio';
@@ -69,6 +73,20 @@ const HANDLE_NAMES: Readonly<Record<HandleId, string>> = {
   loopEnd: 'Loop end',
 };
 
+type ValueCell =
+  | {
+      id: HandleId | 'speed';
+      number: true;
+      name: string;
+      short: string;
+      text: string;
+      value: number;
+      map: Mapping;
+      position: number;
+      faint: boolean;
+    }
+  | { id: 'loop' | 'reverse'; number: false; name: string; short: string };
+
 const HANDLE_MARKS: Readonly<Record<HandleId, string>> = {
   start: 'S',
   end: 'E',
@@ -83,6 +101,11 @@ const SNAPS: readonly { value: Snap; label: string }[] = [
 ];
 
 const TEMPO_STEPS = ['1/4', '1/8', '1/16', '1/32'] as const;
+
+const TEMPO_CHOICES: readonly SelectOption[] = TEMPO_STEPS.map((step) => ({
+  value: step,
+  label: step,
+}));
 
 type SliceMethod = 'equal' | 'tempo' | 'onsets';
 
@@ -236,6 +259,7 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
     this.#background?.abort();
     this.handleGesture.release();
     this.markerGesture.release();
+    this.miniGesture.release();
   }
 
   // --- what it is a view over ------------------------------------------------------------------------
@@ -333,7 +357,8 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
     return this.control('start')?.mode ?? 'seconds';
   }
 
-  get units(): { value: ModeName; label: string }[] {
+  /** The units on offer, as the unit menu lists them. */
+  get units(): readonly SelectOption[] {
     return (this.control('start')?.modes ?? []).map((value) => ({
       value,
       label: MODE_LABELS[value],
@@ -380,28 +405,52 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
     return handles;
   }
 
-  /** The readouts under the picture: all four points, whether or not their handles are in view. */
-  get readouts(): {
-    id: HandleId;
-    name: string;
-    text: string;
-    faint: boolean;
-  }[] {
-    return HANDLES.flatMap((id) => {
+  /**
+   * The values under the picture, in their order: speed, the region, the loop with its two points
+   * beside its switch, reverse. Every cell is always there (a loop point while the loop is off is
+   * shown faint): nothing changes place.
+   */
+  get cells(): ValueCell[] {
+    // (`short`: what a narrow cell says. A loop point sits beside the Loop switch there: from, to.)
+    const number = (
+      id: HandleId | 'speed',
+      name: string,
+      short = name,
+    ): ValueCell[] => {
       const control = this.control(id);
       const map = control ? mappingOf(control) : null;
       if (!control || !map) return [];
-      // (the loop's points are shown, like their handles, while the loop is on)
-      if ((id === 'loopStart' || id === 'loopEnd') && !this.looping) return [];
+      const value = numberOf(control.value);
       return [
         {
           id,
-          name: HANDLE_NAMES[id],
-          text: map.format(numberOf(control.value)),
-          faint: false,
+          number: true,
+          name,
+          short,
+          text: map.format(value),
+          value,
+          map,
+          position: map.toPosition(value),
+          // (the loop's points keep their place while the loop is off: there, but not in play)
+          faint: (id === 'loopStart' || id === 'loopEnd') && !this.looping,
         },
       ];
-    });
+    };
+    const toggle = (
+      id: 'loop' | 'reverse',
+      name: string,
+      short = name,
+    ): ValueCell[] =>
+      this.control(id) ? [{ id, number: false, name, short }] : [];
+    return [
+      ...number('speed', 'Speed'),
+      ...number('start', HANDLE_NAMES.start),
+      ...number('end', HANDLE_NAMES.end),
+      ...toggle('loop', 'Loop'),
+      ...number('loopStart', HANDLE_NAMES.loopStart, 'From'),
+      ...number('loopEnd', HANDLE_NAMES.loopEnd, 'To'),
+      ...toggle('reverse', 'Reverse', 'Rev'),
+    ];
   }
 
   get markers(): MarkerView[] {
@@ -430,17 +479,18 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
     return SLICE_METHODS.find((entry) => entry.id === this.method)?.label ?? '';
   }
 
-  /** The one line on regions and slices: for a sound that has slices, while the slice panel is not in its place. */
-  get showHint(): boolean {
-    return this.hasSlices && !this.panel;
-  }
-
   get hasSlices(): boolean {
     return this.ready && this.slices.length > 2;
   }
 
   get sliceCount(): number {
     return Math.max(1, this.slices.length - 1);
+  }
+
+  /** (the part in view, in seconds: for whoever needs to know from outside, a test or a driver) */
+  get viewText(): string {
+    const view = this.current;
+    return `${view.start.toFixed(4)} ${view.end.toFixed(4)}`;
   }
 
   get miniLeft(): number {
@@ -749,6 +799,16 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
   /** One listener decides what a press is on: a slice flag, a handle, or the sound itself. */
   onPointerDown = (event: PointerEvent): void => {
     if (!this.ready) return;
+    // (the stage as it is this instant: a press can come before the resize observer has said that
+    // the stage changed size, and the handles' tabs are placed from its height)
+    const stage = this.#stage;
+    if (
+      stage &&
+      (stage.clientWidth !== this.width || stage.clientHeight !== this.height)
+    ) {
+      this.width = stage.clientWidth;
+      this.height = stage.clientHeight;
+    }
     const at = this.#local(event);
     if (event.pointerType === 'touch') {
       this.#pointers.set(event.pointerId, at);
@@ -1118,7 +1178,9 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
   };
 
   onKeydown = (event: KeyboardEvent): void => {
-    if (event.key === 'Escape' && this.expanded) {
+    // (Escape in a menu or a field is that menu's or field's: closing its list, giving up a typed value)
+    const own = (event.target as HTMLElement).closest('select, input');
+    if (event.key === 'Escape' && this.expanded && !own) {
       event.stopPropagation();
       this.expanded = false;
     }
@@ -1145,14 +1207,42 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
     );
   };
 
-  /** A press on the strip under the picture: look there. */
-  onMini = (event: MouseEvent): void => {
+  /**
+   * The strip under the picture: its window is dragged along to look elsewhere, the picture following
+   * on every move; a press outside the window brings the window's middle there first. (It answered to
+   * `click` once, which a browser sends only when the button comes up: the picture stood still until
+   * then.) The view is the editor's own state: nothing is stored and there is nothing to undo.
+   */
+  #miniGrab = 0;
+  miniGesture = new ControlGesture({
+    position: () =>
+      this.duration > 0 ? this.current.start / this.duration : 0,
+    axis: () => 'x',
+    positionAt: (event, element) => {
+      const rect = element.getBoundingClientRect();
+      return (event.clientX - rect.left - this.#miniGrab) / (rect.width || 1);
+    },
+    travel: (event, from, element) =>
+      (event.clientX - from.clientX) /
+      (element.getBoundingClientRect().width || 1),
+    onPosition: (position) => {
+      const view = this.current;
+      const span = view.end - view.start;
+      const start = position * this.duration;
+      this.setView({ start, end: start + span });
+    },
+  });
+
+  onMiniDown = (event: PointerEvent): void => {
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const view = this.current;
-    const span = view.end - view.start;
-    const centre =
-      ((event.clientX - rect.left) / (rect.width || 1)) * this.duration;
-    this.setView({ start: centre - span / 2, end: centre + span / 2 });
+    const width = rect.width || 1;
+    const left = (view.start / (this.duration || 1)) * width;
+    const size = ((view.end - view.start) / (this.duration || 1)) * width;
+    const x = event.clientX - rect.left;
+    // on the window: it is held where it was pressed. Elsewhere: by its middle.
+    this.#miniGrab = x >= left && x <= left + size ? x - left : size / 2;
+    this.miniGesture.down(event);
   };
 
   togglePlay = (): void => this.audio.toggle();
@@ -1171,22 +1261,41 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
     this.snap = (event.target as HTMLSelectElement).value as Snap;
   };
 
+  /** The four points share a unit. Choosing one is a single step: to undo, and to draw. */
   setUnit = (event: Event): void => {
     const mode = (event.target as HTMLSelectElement).value;
+    if (mode === this.unit) return;
+    const group = `unit-${++this.#group}`;
     for (const id of HANDLES) {
       const control = this.control(id);
       if (control) {
-        this.audio.setControlMode(this.args.scopeId, control.key, mode);
+        this.audio.setControlMode(this.args.scopeId, control.key, mode, group);
       }
     }
   };
 
-  commit = (id: HandleId, typed: string): boolean => {
+  commit = (id: HandleId | 'speed', typed: string): boolean => {
     const control = this.control(id);
     const value = control ? mappingOf(control)?.parse(typed) : null;
     if (!control || value === null || value === undefined) return false;
     this.audio.setControl(this.args.scopeId, control.key, value);
     return true;
+  };
+
+  /**
+   * A value dragged (or stepped with the keys) in its box. A point goes the way its handle on the
+   * picture goes (the same stored value, snapped and kept on its side of the others), so the two move
+   * together; a whole drag is one step to undo.
+   */
+  change = (id: HandleId | 'speed', value: number, gesture?: string): void => {
+    if (id !== 'speed') {
+      this.moveHandle(id, value, gesture);
+      return;
+    }
+    const control = this.control(id);
+    if (control) {
+      this.audio.setControl(this.args.scopeId, control.key, value, gesture);
+    }
   };
 
   setToggle = (name: string, value: boolean): void => {
@@ -1195,21 +1304,6 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
   };
 
   isOn = (name: string): boolean => this.control(name)?.value === true;
-
-  get speedText(): string {
-    const control = this.control('speed');
-    return control
-      ? (mappingOf(control)?.format(numberOf(control.value)) ?? '')
-      : '';
-  }
-
-  commitSpeed = (typed: string): boolean => {
-    const control = this.control('speed');
-    const value = control ? mappingOf(control)?.parse(typed) : null;
-    if (!control || value === null || value === undefined) return false;
-    this.audio.setControl(this.args.scopeId, control.key, value);
-    return true;
-  };
 
   showInScript = (): void => {
     const line = this.args.waveform.line;
@@ -1303,24 +1397,56 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
     return this.preview ? Math.max(1, this.preview.length - 1) : 0;
   }
 
-  /** Makes the boundaries shown the sound's slices, and closes the panel. */
+  /** What the count line reads: what Apply would give, or (just applied) what the sound has. */
+  get panelCount(): number {
+    return this.preview ? this.previewCount : this.sliceCount;
+  }
+
+  /**
+   * Makes the boundaries shown the sound's slices. The panel stays open, on its tab, as it does after
+   * Clear: it is closed with the button that opened it. The preview has become the real thing, so the
+   * sound's own (movable) boundaries show until a setting is changed again.
+   */
   applySlices = (): void => {
     const sound = this.sound;
     if (!sound || !this.preview) return;
     this.audio.setSlices(sound.key, this.preview);
     this.selected = -1;
-    this.panel = false;
     this.preview = null;
   };
 
+  /**
+   * Removes every slice of the sound (one step to undo). The panel, its tab and its setting stay as
+   * they are, preview included: this is where the next cut is set up.
+   */
   clearSlices = (): void => {
     const sound = this.sound;
-    if (!sound) return;
+    if (!sound || !this.hasSlices) return;
     this.audio.setSlices(sound.key, []);
     this.selected = -1;
-    this.panel = false;
-    this.preview = null;
+    if (this.panel && !this.preview) this.#refreshPreview();
   };
+
+  /** The script's waveforms, for the picker that stands in for the list of them where there is no room. */
+  get otherChoices(): readonly SelectOption[] {
+    return (this.args.others ?? []).map(({ key, label }) => ({
+      value: key,
+      label,
+    }));
+  }
+
+  /** The project's sounds, as the sound menu lists them (and "no sound", for a sampler that has none). */
+  get soundChoices(): readonly SelectOption[] {
+    const sounds = this.pool.map((entry) => ({
+      value: entry.name,
+      label: poolLabel(entry),
+    }));
+    return this.sound ? sounds : [{ value: '', label: 'no sound' }, ...sounds];
+  }
+
+  get soundValue(): string {
+    return this.sound?.key ?? '';
+  }
 
   get several(): boolean {
     return (this.args.others?.length ?? 0) > 1;
@@ -1331,7 +1457,7 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
 
   // --- which sound -----------------------------------------------------------------------------------
 
-  get pool(): PoolEntry[] {
+  get pool(): readonly PoolEntry[] {
     return this.audio.pool();
   }
 
@@ -1412,6 +1538,7 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
       data-snap={{this.snap}}
       data-panel={{if this.panel "open"}}
       data-zoomed={{if this.zoomed "true"}}
+      data-view={{this.viewText}}
       data-test-waveform={{@waveform.nodeId}}
       ...attributes
       {{on "keydown" this.onKeydown}}
@@ -1441,14 +1568,8 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
               class="select waveform__select"
               data-test-waveform-picker
               {{on "change" this.chooseOther}}
-            >
-              {{#each @others key="key" as |other|}}
-                <option
-                  value={{other.key}}
-                  selected={{eq other.key @waveform.key}}
-                >{{other.label}}</option>
-              {{/each}}
-            </select>
+              {{selectOptions this.otherChoices @waveform.key}}
+            ></select>
           </label>
         {{/if}}
 
@@ -1460,17 +1581,8 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
                 class="select waveform__select"
                 data-test-sound-select
                 {{on "change" this.chooseSound}}
-              >
-                {{#unless this.sound}}
-                  <option value="" selected>no sound</option>
-                {{/unless}}
-                {{#each this.pool key="name" as |entry|}}
-                  <option
-                    value={{entry.name}}
-                    selected={{eq entry.name this.sound.key}}
-                  >{{poolLabel entry}}</option>
-                {{/each}}
-              </select>
+                {{selectOptions this.soundChoices this.soundValue}}
+              ></select>
             </label>
             {{#if @waveform.soundStored}}
               <button
@@ -1506,6 +1618,27 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
         </div>
 
         <div class="waveform__head-actions">
+          <Hint @label="About the waveform editor" data-test-waveform-hint>
+            <p><span class="waveform__key waveform__key--region">S</span>
+              to
+              <span class="waveform__key waveform__key--region">E</span>
+              is the region: what
+              <code>trigger()</code>
+              plays.
+              <span class="waveform__key waveform__key--slice"></span>
+              marks a slice: what
+              <code>trigger(&#123; slice })</code>
+              plays. Both are always there.</p>
+            <p>Slices belong to the sound: every track that plays it shares
+              them. Drag a flag in the ruler to move one, double-click the sound
+              to add one, select one and press Delete to remove it. Slices
+              offers three ways to cut the whole sound; what it would give is
+              shown dashed in red until you apply.</p>
+            <p>Tap the sound to hear that slice. Pinch, or Ctrl and the wheel,
+              zooms; drag the sound to scroll. Double-click a handle to put it
+              back where the script has it. Expand gives the editor the whole
+              screen.</p>
+          </Hint>
           {{#if @waveform.line}}
             <button
               type="button"
@@ -1540,7 +1673,7 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
         <div class="waveform__tool-group">
           <button
             type="button"
-            class="btn btn--s btn--on-yellow"
+            class="btn btn--s"
             aria-label="Zoom out"
             disabled={{if this.zoomed false true}}
             data-test-zoom-out
@@ -1548,21 +1681,21 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
           >−</button>
           <button
             type="button"
-            class="btn btn--s btn--on-yellow"
+            class="btn btn--s"
             aria-label="Zoom in"
             data-test-zoom-in
             {{on "click" this.zoomIn}}
           >+</button>
           <button
             type="button"
-            class="btn btn--s btn--on-yellow"
+            class="btn btn--s"
             title="Zoom to what the sampler plays"
             data-test-zoom-region
             {{on "click" this.zoomRegion}}
           >Region</button>
           <button
             type="button"
-            class="btn btn--s btn--on-yellow"
+            class="btn btn--s"
             title="Show the whole sound"
             disabled={{if this.zoomed false true}}
             data-test-zoom-all
@@ -1575,20 +1708,13 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
             aria-label="Snapping"
             data-test-snap
             {{on "change" this.setSnap}}
-          >
-            {{#each SNAPS as |choice|}}
-              <option
-                value={{choice.value}}
-                selected={{eq choice.value this.snap}}
-              >{{choice.label}}</option>
-            {{/each}}
-          </select>
+            {{selectOptions SNAPS this.snap}}
+          ></select>
         </div>
         <div class="waveform__tool-group waveform__tool-group--more">
           <button
             type="button"
-            class="btn btn--s btn--on-yellow waveform__disclosure
-              {{if this.panel 'is-open'}}"
+            class="btn btn--s waveform__disclosure {{if this.panel 'is-open'}}"
             aria-expanded={{if this.panel "true" "false"}}
             aria-controls={{this.panelId}}
             title="Cut the sound into slices: in equal parts, by the tempo, or where its hits are"
@@ -1603,14 +1729,14 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
           </button>
           <button
             type="button"
-            class="btn btn--s btn--on-yellow"
+            class="btn btn--s"
             title="Add a slice boundary where you last pressed (or double-click the sound)"
             data-test-slice-add
             {{on "click" this.addMarker}}
           >Add</button>
           <button
             type="button"
-            class="btn btn--s btn--on-yellow"
+            class="btn btn--s"
             title="Remove the selected slice boundary (or select it and press Delete)"
             disabled={{if (eq this.selected -1) true false}}
             data-test-slice-remove
@@ -1667,14 +1793,8 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
                   class="select waveform__select"
                   data-test-tempo-step
                   {{on "change" this.setTempoStep}}
-                >
-                  {{#each TEMPO_STEPS as |step|}}
-                    <option
-                      value={{step}}
-                      selected={{eq step this.tempoStep}}
-                    >{{step}}</option>
-                  {{/each}}
-                </select>
+                  {{selectOptions TEMPO_CHOICES this.tempoStep}}
+                ></select>
                 <span>at {{this.project.doc.bpm}} bpm</span>
               </label>
             {{else}}
@@ -1689,25 +1809,24 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
                 />
               </span>
             {{/if}}
-            <span
+            <b
               class="waveform__count"
               title="Shown dashed in red over the sound until you apply"
-            >
-              <b data-test-slices-count>{{this.previewCount}}
-                {{if (eq this.previewCount 1) "slice" "slices"}}</b>
-              <span data-test-slices-note>of the sound{{#if this.sound}}
-                  “{{this.sound.key}}”{{/if}}, for every track that plays it</span>
-            </span>
+              data-test-slices-count
+            >{{this.panelCount}}
+              {{if (eq this.panelCount 1) "slice" "slices"}}</b>
             <button
               type="button"
               class="btn btn--s waveform__apply"
+              disabled={{if this.preview false true}}
               data-test-slices-apply
               {{on "click" this.applySlices}}
             >Apply</button>
             <button
               type="button"
-              class="btn btn--s btn--on-yellow"
+              class="btn btn--s"
               title="Remove every slice boundary: the sound is one slice again"
+              disabled={{if this.hasSlices false true}}
               data-test-slice-clear
               {{on "click" this.clearSlices}}
             >Clear</button>
@@ -1804,28 +1923,15 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
         <div
           class="waveform__mini"
           role="presentation"
-          title="The part of the sound in view. Press to look elsewhere."
+          title="The part of the sound in view. Drag it, or press elsewhere, to look there."
           data-test-waveform-mini
-          {{on "click" this.onMini}}
+          {{on "pointerdown" this.onMiniDown}}
         >
           <span
             class="waveform__mini-view"
             {{cssVars left=this.miniLeft width=this.miniWidth}}
           ></span>
         </div>
-      {{/if}}
-
-      {{#if this.showHint}}
-        <p class="waveform__hint" data-test-waveform-hint>
-          <span class="waveform__key waveform__key--region">S</span>
-          <span>to</span>
-          <span class="waveform__key waveform__key--region">E</span>
-          <span>is what <code>trigger()</code> plays;</span>
-          <span class="waveform__key waveform__key--slice"></span>
-          <span>a slice is what
-            <code>trigger(&#123; slice })</code>
-            plays.</span>
-        </p>
       {{/if}}
 
       <div class="waveform__values">
@@ -1835,61 +1941,67 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
             class="select waveform__select"
             data-test-waveform-unit
             {{on "change" this.setUnit}}
-          >
-            {{#each this.units as |unit|}}
-              <option
-                value={{unit.value}}
-                selected={{eq unit.value this.unit}}
-              >{{unit.label}}</option>
-            {{/each}}
-          </select>
+            {{selectOptions this.units this.unit}}
+          ></select>
         </label>
-        {{#each this.readouts key="id" as |readout|}}
-          <span
-            class="waveform__value waveform__value--number
-              {{if readout.faint 'waveform__value--faint'}}"
-            data-test-waveform-value={{readout.id}}
-          >
-            <span>{{readout.name}}</span>
-            <NumberEntry
-              @text={{readout.text}}
-              @label={{readout.name}}
-              @onCommit={{fn this.commit readout.id}}
-            />
-          </span>
+        {{#each this.cells key="id" as |cell|}}
+          {{#if cell.number}}
+            <span
+              class="waveform__value waveform__value--number
+                {{if cell.faint 'waveform__value--faint'}}"
+              data-test-waveform-value={{cell.id}}
+            >
+              <span class="waveform__label" title={{cell.name}}>
+                <span class="waveform__label-full">{{cell.name}}</span>
+                <span
+                  class="waveform__label-short"
+                  aria-hidden="true"
+                >{{cell.short}}</span>
+              </span>
+              <NumberEntry
+                @text={{cell.text}}
+                @label={{cell.name}}
+                @disabled={{cell.faint}}
+                @value={{cell.value}}
+                @mapping={{cell.map}}
+                @onChange={{fn this.change cell.id}}
+                @onCommit={{fn this.commit cell.id}}
+              />
+              <span
+                class="waveform__meter"
+                {{cssVars pos=cell.position}}
+              ></span>
+            </span>
+          {{else}}
+            <span
+              class="waveform__value waveform__value--switch"
+              data-test-waveform-value={{cell.id}}
+            >
+              <span class="waveform__label" title={{cell.name}}>
+                <span class="waveform__label-full">{{cell.name}}</span>
+                <span
+                  class="waveform__label-short"
+                  aria-hidden="true"
+                >{{cell.short}}</span>
+              </span>
+              {{#if (eq cell.id "loop")}}
+                <Toggle
+                  @checked={{this.isOn "loop"}}
+                  @label="Loop"
+                  @onChange={{fn this.setToggle "loop"}}
+                  data-test-waveform-loop
+                />
+              {{else}}
+                <Toggle
+                  @checked={{this.isOn "reverse"}}
+                  @label="Reverse"
+                  @onChange={{fn this.setToggle "reverse"}}
+                  data-test-waveform-reverse
+                />
+              {{/if}}
+            </span>
+          {{/if}}
         {{/each}}
-        {{#if (this.control "loop")}}
-          <span class="waveform__value waveform__value--switch">
-            <span>Loop</span>
-            <Toggle
-              @checked={{this.isOn "loop"}}
-              @label="Loop"
-              @onChange={{fn this.setToggle "loop"}}
-              data-test-waveform-loop
-            />
-          </span>
-        {{/if}}
-        {{#if (this.control "reverse")}}
-          <span class="waveform__value waveform__value--switch">
-            <span>Reverse</span>
-            <Toggle
-              @checked={{this.isOn "reverse"}}
-              @label="Reverse"
-              @onChange={{fn this.setToggle "reverse"}}
-              data-test-waveform-reverse
-            />
-          </span>
-        {{/if}}
-        {{#if (this.control "speed")}}
-          <span class="waveform__value waveform__value--switch">
-            <span>Speed</span>
-            <NumberEntry
-              @text={{this.speedText}}
-              @label="Speed"
-              @onCommit={{this.commitSpeed}}
-            />
-          </span>
-        {{/if}}
       </div>
     </section>
   </template>

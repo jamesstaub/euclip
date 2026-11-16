@@ -5,6 +5,7 @@ import { service } from '@ember/service';
 import type { StepGridView } from 'client-v2/audio/runner';
 import { stepGridWidget } from 'client-v2/controls/registry';
 import Icon from 'client-v2/components/icon';
+import Hint from 'client-v2/components/ui/hint';
 import type AudioService from 'client-v2/services/audio';
 import type ViewService from 'client-v2/services/view';
 
@@ -62,7 +63,19 @@ export default class SequencePane extends Component<SequencePaneSignature> {
       data-test-pane="sequence"
       ...attributes
     >
-      <h3 class="pane-heading">Sequences</h3>
+      <h3 class="pane-heading">
+        <span>Sequences</span>
+        <Hint @label="About step grids" data-test-sequence-hint>
+          <p>A grid appears for each
+            <code>stepGrid('name')</code>
+            line in the script, placed after the
+            <code>__.transport.sequence('name', …)</code>
+            it belongs to.</p>
+          <p>The steps written in the script are the default. A pattern edited
+            here, or in the track’s row, is kept in the project; Reset goes back
+            to the script’s.</p>
+        </Hint>
+      </h3>
       {{#each this.stepGrids key="key" as |grid|}}
         <div class="sequence-card" data-test-sequence={{grid.name}}>
           <p class="sequence-card__head">
@@ -98,12 +111,8 @@ export default class SequencePane extends Component<SequencePaneSignature> {
           />
         </div>
       {{else}}
-        <p class="pane-empty" data-test-pane-empty>This script declares no grid.
-          A grid appears for each
-          <code>stepGrid('name')</code>
-          line placed after the
-          <code>__.transport.sequence('name', …)</code>
-          it belongs to.</p>
+        <p class="pane-empty" data-test-pane-empty>This script declares no step
+          grid.</p>
       {{/each}}
     </section>
   </template>

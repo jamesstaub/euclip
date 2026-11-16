@@ -37,6 +37,11 @@ interface HistoryEntry {
   group?: string;
 }
 
+/** Whether two documents say the same thing. (Used once per grouped gesture's operation: documents are small.) */
+function sameDocument(a: ProjectDocument, b: ProjectDocument): boolean {
+  return a === b || JSON.stringify(a) === JSON.stringify(b);
+}
+
 /**
  * The project store: holds the document as tracked state, and is the one path every change takes.
  *
@@ -135,8 +140,16 @@ export default class ProjectService extends Service {
             sameTarget(last.op, op) &&
             now - last.at < UNDO_GROUP_MS)
       ) {
-        // part of the same gesture: keep the document from before the gesture began
-        this.past = [...this.past.slice(0, -1), { ...last, at: now }];
+        // part of the same gesture: keep the document from before the gesture began; and if the
+        // gesture has come back to where it began (a double click's two toggles), it is no step at all
+        this.past =
+          group !== undefined &&
+          // (a grid's steps, or forgetting them: not asked of every move of a dragged handle)
+          ((op.type === 'setControlValue' && Array.isArray(op.value)) ||
+            op.type === 'resetControl') &&
+          sameDocument(last.doc, after)
+            ? this.past.slice(0, -1)
+            : [...this.past.slice(0, -1), { ...last, at: now }];
       } else {
         this.past = [
           ...this.past.slice(-UNDO_LIMIT + 1),

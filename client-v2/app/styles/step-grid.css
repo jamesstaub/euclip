@@ -9,6 +9,7 @@
  */
 
 .step-grid {
+  position: relative; /* the box a step's value is typed in is laid over the grid */
   display: grid;
   grid-template-columns: repeat(8, minmax(0, 1fr));
   max-inline-size: calc(8 * var(--step-size-max));
@@ -67,5 +68,30 @@
       grid-template-columns: repeat(auto-fill, var(--step-size));
       max-inline-size: calc(16 * var(--step-size) + 2 * var(--space-2));
     }
+  }
+}
+
+/*
+ * The box a step's value is typed in: laid over the step, centred on it (the widget places it), wide
+ * enough for three digits and no wider, a finger's height. Where a step is smaller than that it lies
+ * over a little of its neighbours while it is open.
+ */
+.step-grid .step-entry {
+  position: absolute;
+  z-index: 2;
+  inline-size: calc(3ch + 1rem);
+  font-size: var(--font-size-5);
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 var(--border-width-2) var(--near-black);
+
+  & .number-entry {
+    min-block-size: max(2rem, var(--target-min));
+    padding-inline: 0;
+    font-size: inherit;
+    text-align: center;
+  }
+
+  & .number-entry--editing {
+    justify-content: center;
   }
 }

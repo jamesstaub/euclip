@@ -401,10 +401,17 @@ export class ProjectRunner {
       stored: (key) =>
         valuesOf(this.#host.getDoc(), scopeId)?.controls[key]?.value,
       declare: (declaration) => {
-        // a sampler has one waveform editor: the first line that declares it (a later
-        // waveform('sampler') that also finds it adds nothing, and does not undo its label)
-        if (declaration.kind === 'waveform' && declared.has(declaration.key)) {
-          return false;
+        // A sampler has one waveform editor and a sequence one grid. One the script wrote
+        // (waveform('#kick'), stepGrid('steps')) is used instead of the one controls() would give,
+        // whichever comes first; of two it wrote, the first waveform line stands (a later
+        // waveform('sampler') that also finds the sampler adds nothing, and does not undo its label).
+        const same = declared.get(declaration.key);
+        if (
+          same &&
+          (declaration.kind === 'waveform' || declaration.kind === 'stepGrid')
+        ) {
+          if (declaration.implicit) return false;
+          if (declaration.kind === 'waveform' && !same.implicit) return false;
         }
         const wanted = [...new Set(claimsOf(declaration))];
         // Who has the better claim to a parameter, wherever each is in the script: an explicit
@@ -428,7 +435,9 @@ export class ProjectRunner {
     };
     try {
       const result = await runtime.scope.build((api) => {
-        program(api, createControlApi(api, host, currentScriptLine));
+        const controls = createControlApi(api, host, currentScriptLine);
+        program(api, controls.functions);
+        controls.finish();
       });
       runtime.built = true;
       runtime.declarations = [...declared.values()];
@@ -1085,6 +1094,39 @@ export class ProjectRunner {
       steps[index] = memory[index] || 1;
     }
     runtime.stepMemory.set(name, memory);
+    return { type: 'setControlValue', scope: scopeId, key, value: steps };
+  }
+
+  /**
+   * The operation for giving a step of a declared grid a value. 0 is a rest; a value above 0 is what
+   * the sequence's callback is handed (`ev.value`), and what the step comes back to after being off.
+   */
+  setStepOperation(
+    scopeId: string,
+    name: string,
+    index: number,
+    value: number,
+  ): Operation | null {
+    const runtime = this.#scopes.get(scopeId);
+    const key = stepGridKey(name);
+    const sequence = runtime?.scope.transport.get(name);
+    if (
+      !runtime ||
+      !sequence ||
+      !Number.isFinite(value) ||
+      !runtime.declarations.some((declaration) => declaration.key === key) ||
+      index < 0 ||
+      index >= sequence.steps.length
+    ) {
+      return null;
+    }
+    const steps = [...sequence.steps];
+    steps[index] = value;
+    if (value !== 0) {
+      const memory = runtime.stepMemory.get(name) ?? [];
+      memory[index] = value;
+      runtime.stepMemory.set(name, memory);
+    }
     return { type: 'setControlValue', scope: scopeId, key, value: steps };
   }
 

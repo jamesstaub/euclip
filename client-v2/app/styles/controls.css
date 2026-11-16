@@ -229,24 +229,72 @@
 
 /* ---- the readout, and typing a value into it ---- */
 
-.number-entry {
+/*
+ * The box is one size whether the value is being read or typed: the readout sets it, and the field a
+ * value is typed into is laid over the readout, which stays (unseen) to hold the box. Taking focus
+ * changes colours and draws a ring; it never changes a width, a border or a padding, so nothing beside
+ * it moves or wraps.
+ */
+.number-entry-box {
+  position: relative;
+  display: inline-flex;
   flex: none;
   inline-size: 5.5rem;
+  min-inline-size: 0;
+}
+
+.number-entry {
+  display: inline-flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: flex-end;
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
   min-block-size: var(--target-min);
+  margin: 0;
   padding: 0 var(--space-1);
   border: var(--border-width-1) solid transparent;
   background: transparent;
   font-size: var(--font-size-6);
-  font-variant-numeric: tabular-nums;
+  line-height: var(--line-height-title);
   text-align: end;
   white-space: nowrap;
+
+  /* what is longer than the box is cut short inside it: the box does not grow */
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+}
+
+button.number-entry:disabled {
+  opacity: 1; /* (its cell says it is not in play) */
+}
+
+/* a number that is also dragged along, as a slider is: across, so the page still scrolls up and down */
+.number-entry--drag {
+  cursor: ew-resize;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.number-entry--held {
+  visibility: hidden;
 }
 
 .number-entry--editing {
+  position: absolute;
+  inset: 0;
+  block-size: 100%;
+  min-block-size: 0;
   border-color: var(--dark-gray);
   background: var(--white);
   color: var(--near-black);
   font-size: var(--font-size-5); /* 16px: iOS does not zoom the page on focus */
+
+  &:focus-visible {
+    outline: var(--border-width-2) solid var(--focus-ring);
+    outline-offset: 0;
+  }
 
   &[aria-invalid] {
     border-color: var(--step-current);
