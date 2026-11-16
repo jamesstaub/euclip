@@ -8,6 +8,7 @@ import type { StepGridView } from 'client-v2/audio/runner';
 import { stepGridWidget } from 'client-v2/controls/registry';
 import type { TrackDocument } from 'client-v2/project/schema';
 import type AudioService from 'client-v2/services/audio';
+import type ViewService from 'client-v2/services/view';
 
 function more(grids: readonly StepGridView[]): boolean {
   return grids.length > 1;
@@ -56,6 +57,7 @@ export interface TrackRowSignature {
  */
 export default class TrackRow extends Component<TrackRowSignature> {
   @service declare audio: AudioService;
+  @service declare view: ViewService;
 
   @tracked menuOpen = false;
 
@@ -67,9 +69,26 @@ export default class TrackRow extends Component<TrackRowSignature> {
     return this.audio.error(this.args.track.id)?.message;
   }
 
+  openGenerators = (): void => {
+    this.args.onSelect(this.args.track.id);
+    this.view.scriptOpen = false;
+    this.view.footerOpen = true;
+    this.view.setFooterPane('sequence');
+  };
+
   get menuItems(): MenuItem[] {
     return [
-      { label: 'Remove', onSelect: () => this.args.onRemove(this.args.track) },
+      {
+        // (a track row's grid is steps only: the generators are with the grid in the sequence pane)
+        label: 'Pattern generators',
+        disabled: this.stepGrids.length === 0,
+        onSelect: this.openGenerators,
+      },
+      {
+        label: 'Remove',
+        separated: true,
+        onSelect: () => this.args.onRemove(this.args.track),
+      },
     ];
   }
 

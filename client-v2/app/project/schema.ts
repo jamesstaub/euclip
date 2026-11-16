@@ -33,6 +33,11 @@ export interface ControlUserOptions {
   sequence?: string;
   /** seconds the parameter takes to get to where the control is put; absent: the script's (default 0) */
   glide?: number;
+  /**
+   * A step grid: the dials of the pattern generator last used on it (controls/generators.ts), so its
+   * panel reopens where it was. The pattern itself is the grid's stored value; this is not a recipe.
+   */
+  generator?: Record<string, unknown>;
 }
 
 /**

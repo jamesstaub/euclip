@@ -107,6 +107,7 @@ export default class SequencePane extends Component<SequencePaneSignature> {
           <Grid
             @scopeId={{@scopeId}}
             @control={{grid}}
+            @generators={{true}}
             data-linked={{if (this.isLinked grid) "true"}}
           />
         </div>

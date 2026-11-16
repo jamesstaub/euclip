@@ -5,7 +5,26 @@ import NumberEntry from 'client-v2/components/ui/number-entry';
 import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
+import Hint from 'client-v2/components/ui/hint';
 import type { StepGridView } from 'client-v2/audio/runner';
+import {
+  applyGenerator,
+  applyTool,
+  binaryMax,
+  COMBINES,
+  defaultGenerator,
+  GENERATORS,
+  hitsOf,
+  isEdited,
+  readGenerator,
+  written,
+  type Combine,
+  type GeneratorKind,
+  type GeneratorState,
+  type Tool,
+} from 'client-v2/controls/generators';
+import { mapping, type Mapping } from 'client-v2/controls/modes';
+import selectOptions from 'client-v2/modifiers/select-options';
 import type AudioService from 'client-v2/services/audio';
 
 function pressed(value: number): 'true' | 'false' {
@@ -34,6 +53,11 @@ export interface StepGridWidgetSignature {
     /** the scope whose script declared it */
     scopeId: string;
     control: StepGridView;
+    /**
+     * With its pattern generators and tools under it (the sequence pane's grids). A track row's
+     * compact grid is steps only.
+     */
+    generators?: boolean;
   };
 }
 
@@ -288,6 +312,220 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
     box.style.top = `${wantTop - zero.top}px`;
   });
 
+  // --- pattern generators (controls/generators.ts): the dials write the pattern as they move ------------
+
+  /** the generator panel is showing */
+  @tracked generating = false;
+  /** the tab showing, when the person has turned to one whose dials have not written yet */
+  @tracked tab: GeneratorKind | null = null;
+
+  panelId = `step-gen-${++generatorPanels}`;
+
+  toggleGenerating = (): void => {
+    this.generating = !this.generating;
+  };
+
+  /** The dials as they stand: the ones stored with the grid, else ones that suit its pattern. */
+  get generator(): GeneratorState {
+    const steps = this.args.control.steps;
+    return (
+      readGenerator(this.args.control.generator, steps) ??
+      defaultGenerator(steps)
+    );
+  }
+
+  get kind(): GeneratorKind {
+    return this.tab ?? this.generator.kind;
+  }
+
+  isKind = (kind: GeneratorKind): boolean => this.kind === kind;
+
+  setKind = (kind: GeneratorKind): void => {
+    // (turning to a tab shows its dials; the pattern is written when one of them moves)
+    this.tab = kind;
+  };
+
+  onTabKey = (event: KeyboardEvent): void => {
+    const at = GENERATORS.findIndex((entry) => entry.id === this.kind);
+    const step =
+      event.key === 'ArrowRight' || event.key === 'ArrowDown'
+        ? 1
+        : event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+          ? -1
+          : 0;
+    if (step === 0) return;
+    event.preventDefault();
+    const next =
+      GENERATORS[(at + step + GENERATORS.length) % GENERATORS.length]!;
+    this.tab = next.id;
+    (event.currentTarget as HTMLElement)
+      .querySelector<HTMLElement>(`[data-test-gen-tab="${next.id}"]`)
+      ?.focus();
+  };
+
+  get dials(): Dial[] {
+    const state = this.generator;
+    const length = this.args.control.steps.length;
+    const whole = (
+      id: string,
+      label: string,
+      value: number,
+      min: number,
+      max: number,
+    ): Dial => {
+      const map = mapping('stepped', { min, max: Math.max(min, max), step: 1 });
+      return { id, label, value, text: String(value), map };
+    };
+    switch (this.kind) {
+      case 'euclid':
+        return [
+          whole('hits', 'Hits', state.hits, 0, length),
+          whole('rotate', 'Rotate', state.rotate, 0, length - 1),
+        ];
+      case 'binary':
+        return [whole('number', 'Number', state.number, 0, binaryMax(length))];
+      case 'onoff':
+        return [
+          whole('on', 'On', state.on, 0, length),
+          whole('off', 'Off', state.off, 0, length),
+        ];
+      case 'sieve':
+        return [
+          whole('every0', 'Every', state.sieve[0][0], 0, length),
+          whole(
+            'from0',
+            'from',
+            state.sieve[0][1],
+            0,
+            Math.max(0, state.sieve[0][0] - 1),
+          ),
+          whole('every1', 'and every', state.sieve[1][0], 0, length),
+          whole(
+            'from1',
+            'from',
+            state.sieve[1][1],
+            0,
+            Math.max(0, state.sieve[1][0] - 1),
+          ),
+        ];
+    }
+  }
+
+  /** What the dials say, in words: "5 of 16, rotate 2". */
+  get dialsSay(): string {
+    const state = this.generator;
+    const length = this.args.control.steps.length;
+    switch (this.kind) {
+      case 'euclid':
+        return `${state.hits} of ${length}, rotate ${state.rotate}`;
+      case 'binary':
+        return `${state.number} in binary`;
+      case 'onoff':
+        return `${state.on} on, ${state.off} off, repeated`;
+      case 'sieve':
+        return (
+          state.sieve
+            .filter(([every]) => every > 0)
+            .map(([every, from]) => `every ${every} from ${from}`)
+            .join(' and ') || 'no steps'
+        );
+    }
+  }
+
+  #withDial(id: string, value: number): GeneratorState {
+    const state: GeneratorState = { ...this.generator, kind: this.kind };
+    const sieve: GeneratorState['sieve'] = [
+      [...state.sieve[0]],
+      [...state.sieve[1]],
+    ];
+    switch (id) {
+      case 'hits':
+        return { ...state, hits: value };
+      case 'rotate':
+        return { ...state, rotate: value };
+      case 'number':
+        return { ...state, number: value };
+      case 'on':
+        return { ...state, on: value };
+      case 'off':
+        return { ...state, off: value };
+      case 'every0':
+      case 'every1': {
+        const row = id === 'every0' ? 0 : 1;
+        sieve[row] = [value, Math.min(sieve[row][1], Math.max(0, value - 1))];
+        return { ...state, sieve };
+      }
+      case 'from0':
+      case 'from1': {
+        const row = id === 'from0' ? 0 : 1;
+        sieve[row] = [sieve[row][0], value];
+        return { ...state, sieve };
+      }
+      default:
+        return state;
+    }
+  }
+
+  /** Writes what the dials now make into the grid: live, and one step to undo for the gesture. */
+  #write(state: GeneratorState, gesture?: string): void {
+    const made = applyGenerator(state, this.args.control.steps);
+    this.audio.setPattern(
+      this.args.scopeId,
+      this.args.control.key,
+      made.steps,
+      made.generator,
+      gesture ?? `generate-${++generatorGestures}`,
+    );
+  }
+
+  /** A dial dragged or stepped. */
+  turnDial = (id: string, value: number, gesture?: string): void => {
+    this.#write(this.#withDial(id, value), gesture);
+  };
+
+  /** A dial's value typed. */
+  typeDial = (dial: Dial, typed: string): boolean => {
+    const value = dial.map.parse(typed);
+    if (value === null) return false;
+    this.#write(this.#withDial(dial.id, value));
+    return true;
+  };
+
+  combines = COMBINES;
+
+  setCombine = (event: Event): void => {
+    const combine = (event.target as HTMLSelectElement).value as Combine;
+    if (combine === this.generator.combine) return;
+    this.#write({ ...this.generator, kind: this.kind, combine });
+  };
+
+  /** A tool on the pattern as it stands: one step to undo. */
+  useTool = (tool: Tool): void => {
+    this.audio.setPattern(
+      this.args.scopeId,
+      this.args.control.key,
+      applyTool(tool, this.args.control.steps),
+      undefined,
+      `tool-${++generatorGestures}`,
+    );
+  };
+
+  get hits(): number {
+    return hitsOf(this.args.control.steps);
+  }
+
+  get writtenOut(): string {
+    return written(this.args.control.steps);
+  }
+
+  /** Steps have been changed by hand since the dials last wrote: said quietly, and nothing is overwritten. */
+  get edited(): boolean {
+    return isEdited(
+      readGenerator(this.args.control.generator, this.args.control.steps),
+      this.args.control.steps,
+    );
+  }
+
   <template>
     <div
       class="step-grid"
@@ -339,8 +577,136 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
         />
       {{/if}}
     </div>
+    {{#if @generators}}
+      <div class="step-gen" data-test-generators={{@control.name}}>
+        <div class="step-gen__bar">
+          <button
+            type="button"
+            class="btn btn--s step-gen__open {{if this.generating 'is-open'}}"
+            aria-expanded={{if this.generating "true" "false"}}
+            aria-controls={{this.panelId}}
+            data-test-gen-toggle
+            {{on "click" this.toggleGenerating}}
+          >Generate</button>
+          <span
+            class="step-gen__tools"
+            role="group"
+            aria-label="Turn the {{@control.label}} pattern"
+          >
+            {{#each TOOLS as |tool|}}
+              <button
+                type="button"
+                class="btn btn--s"
+                aria-label={{tool.says}}
+                title={{tool.says}}
+                data-test-gen-tool={{tool.id}}
+                {{on "click" (fn this.useTool tool.id)}}
+              >{{tool.label}}</button>
+            {{/each}}
+          </span>
+          <span class="step-gen__summary" role="status" data-test-gen-summary>
+            <b>{{this.hits}} of {{@control.steps.length}}</b>
+            <code class="truncate">{{this.writtenOut}}</code>
+            {{#if this.edited}}
+              <i
+                title="Steps were changed by hand since the dials last wrote. Nothing is overwritten until a dial is moved."
+                data-test-gen-edited
+              >edited</i>
+            {{/if}}
+          </span>
+          <Hint @label="About pattern generators" data-test-gen-hint>
+            <p><b>Generate</b>
+              opens dials that write a rhythm into this grid as you turn them:
+              Euclidean (hits spread evenly), Binary (a number’s bits), On / off
+              (a group repeated) and Sieve (every N-th step, twice over).</p>
+            <p>The grid’s pattern is what plays and what is kept. The dials are
+              a tool: change steps by hand afterwards and they stay as you set
+              them, marked “edited”, until a dial is moved again.</p>
+            <p>A step that is on keeps the value it had (a slice number, say); a
+              new hit is 1. The grid’s length is the script’s.</p>
+            <p>◀ ▶ turn the pattern one step, Reverse plays it backwards, Invert
+              swaps hits and rests.</p>
+          </Hint>
+        </div>
+        {{#if this.generating}}
+          <div class="step-gen__panel" id={{this.panelId}} data-test-gen-panel>
+            {{! template-lint-disable no-invalid-interactive }}
+            <div
+              class="waveform__tabs"
+              role="tablist"
+              aria-label="Which generator"
+              {{on "keydown" this.onTabKey}}
+            >
+              {{#each GENERATORS as |entry|}}
+                <button
+                  type="button"
+                  class="waveform__tab"
+                  role="tab"
+                  aria-selected={{if (this.isKind entry.id) "true" "false"}}
+                  tabindex={{if (this.isKind entry.id) "0" "-1"}}
+                  data-test-gen-tab={{entry.id}}
+                  {{on "click" (fn this.setKind entry.id)}}
+                >{{entry.label}}</button>
+              {{/each}}
+            </div>
+            <div
+              class="step-gen__dials"
+              role="tabpanel"
+              aria-label={{this.kind}}
+            >
+              {{#each this.dials key="id" as |dial|}}
+                <span class="step-gen__dial" data-test-gen-dial={{dial.id}}>
+                  <span class="step-gen__label">{{dial.label}}</span>
+                  <NumberEntry
+                    @text={{dial.text}}
+                    @label={{dial.label}}
+                    @inputmode="numeric"
+                    @value={{dial.value}}
+                    @mapping={{dial.map}}
+                    @onChange={{fn this.turnDial dial.id}}
+                    @onCommit={{fn this.typeDial dial}}
+                  />
+                </span>
+              {{/each}}
+              <label class="step-gen__dial step-gen__dial--combine">
+                <span class="step-gen__label">Onto what is there</span>
+                <select
+                  class="select"
+                  data-test-gen-combine
+                  {{on "change" this.setCombine}}
+                  {{selectOptions this.combines this.generator.combine}}
+                ></select>
+              </label>
+              <span
+                class="step-gen__says"
+                data-test-gen-says
+              >{{this.dialsSay}}</span>
+            </div>
+          </div>
+        {{/if}}
+      </div>
+    {{/if}}
   </template>
 }
+
+/** A dial of a generator: a whole number in a range, dragged, stepped or typed. */
+interface Dial {
+  id: string;
+  label: string;
+  value: number;
+  text: string;
+  map: Mapping;
+}
+
+const TOOLS: readonly { id: Tool; label: string; says: string }[] = [
+  { id: 'left', label: '◀', says: 'Turn the pattern one step earlier' },
+  { id: 'right', label: '▶', says: 'Turn the pattern one step later' },
+  { id: 'reverse', label: 'Reverse', says: 'Play the pattern backwards' },
+  { id: 'invert', label: 'Invert', says: 'Swap hits and rests' },
+];
+
+let generatorGestures = 0;
+let generatorPanels = 0;
 
 function editingAt(index: number | null): boolean {
   return index !== null;

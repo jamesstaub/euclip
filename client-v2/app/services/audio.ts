@@ -647,6 +647,34 @@ export default class AudioService extends Service {
   }
   #unitChoices = 0;
 
+  /**
+   * A pattern generator wrote a grid's pattern: the steps, and the dials that made them (kept so the
+   * panel reopens where it was). One step to undo with whatever else is in the gesture.
+   */
+  setPattern(
+    scopeId: string,
+    key: string,
+    steps: readonly number[],
+    generator: object | undefined,
+    group: string,
+  ): void {
+    this.project.apply(
+      { type: 'setControlValue', scope: scopeId, key, value: [...steps] },
+      { group },
+    );
+    if (generator !== undefined) {
+      this.project.apply(
+        {
+          type: 'setControlOptions',
+          scope: scopeId,
+          key,
+          options: { generator: { ...generator } },
+        },
+        { group },
+      );
+    }
+  }
+
   /** Sets how long a control's parameter takes to get where the control is put; undefined forgets it (the script's applies). */
   setControlGlide(
     scopeId: string,

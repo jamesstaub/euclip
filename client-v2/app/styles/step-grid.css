@@ -95,3 +95,113 @@
     justify-content: center;
   }
 }
+
+/*
+ * A grid's pattern generators and tools (the sequence pane's grids have them; a track row's compact
+ * grid does not). The dark toolbar look of the waveform editor's tools: buttons in yellow outline, the
+ * open one filled. Every dial is a fixed cell: nothing moves when a value does.
+ */
+.step-gen {
+  display: grid;
+  gap: 0;
+  margin-block-start: var(--space-1);
+  background: var(--dark-gray);
+  color: var(--light-gray);
+}
+
+.step-gen__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-1);
+}
+
+.btn.step-gen__open.is-open {
+  background: var(--yellow);
+  color: var(--near-black);
+}
+
+.step-gen__tools {
+  display: inline-flex;
+  gap: var(--space-1);
+}
+
+/* what the pattern is now: how many hits, and written out */
+.step-gen__summary {
+  display: inline-flex;
+  flex: 1 1 8rem;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  font-size: var(--font-size-7);
+
+  & b {
+    flex: none;
+    white-space: nowrap;
+  }
+
+  & code {
+    flex: 0 1 auto;
+    min-inline-size: 0;
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
+  }
+
+  & i {
+    flex: none;
+    color: var(--yellow);
+  }
+}
+
+.step-gen .hint__button {
+  color: var(--light-gray);
+}
+
+.step-gen__panel {
+  display: grid;
+}
+
+.step-gen__dials {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-1) var(--space-2);
+}
+
+/* a dial: its name and a number box of one width, whatever it holds */
+.step-gen__dial {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--target-min);
+
+  & .number-entry-box {
+    inline-size: 4rem;
+    border: var(--border-width-1) solid var(--mid-gray);
+    background: var(--light-yellow);
+    color: var(--near-black);
+  }
+
+  & .select {
+    inline-size: 11rem;
+    color: var(--dark-gray);
+    font-size: var(--font-size-6);
+  }
+}
+
+.step-gen__label {
+  font-size: var(--font-size-7);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.step-gen__says {
+  flex: 1 1 8rem;
+  min-inline-size: 0;
+  font-size: var(--font-size-7);
+  text-align: end;
+}

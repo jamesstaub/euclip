@@ -6,6 +6,7 @@ import {
   findAll,
   focus,
   render,
+  select,
   settled,
   triggerEvent,
   triggerKeyEvent,
@@ -440,6 +441,256 @@ stepGrid('ones');
         project.doc.tracks[0]!.values.controls['stepGrid › beat'],
         undefined,
       );
+    });
+
+    test('a grid in the sequence pane has pattern generators: a dial writes the pattern as it moves, one step to undo, and the dials are remembered', async function (assert) {
+      view.footerPane = 'sequence';
+      await render(<template><AppShell /></template>);
+      const gen = '[data-test-pane="sequence"] [data-test-generators="steps"]';
+      const pattern = (): string =>
+        audio
+          .stepGrids('t-kick')[0]!
+          .steps.map((step) => (step ? 'x' : '.'))
+          .join('');
+      const options = (): Record<string, unknown> | undefined =>
+        project.doc.tracks[0]!.values.controls[STEPS]?.options?.generator;
+      assert.dom(gen).exists('with the grid, in the sequence pane');
+      assert
+        .dom('[data-test-track="1"] [data-test-generators]')
+        .doesNotExist('the track row’s compact grid is steps only');
+      assert.dom(`${gen} [data-test-gen-summary]`).includesText('4 of 16');
+      assert
+        .dom(`${gen} [data-test-gen-summary]`)
+        .includesText('x...x...x...x...');
+      assert
+        .dom(`${gen} [data-test-gen-panel]`)
+        .doesNotExist('the dials are behind Generate');
+      assert.dom(`${gen} [data-test-gen-edited]`).doesNotExist();
+
+      await click(`${gen} [data-test-gen-toggle]`);
+      assert.deepEqual(
+        findAll(`${gen} [data-test-gen-tab]`).map(
+          (tab) =>
+            `${tab.textContent.trim()}${tab.getAttribute('aria-selected') === 'true' ? '*' : ''}`,
+        ),
+        ['Euclidean*', 'Binary', 'On / off', 'Sieve'],
+      );
+      assert
+        .dom(`${gen} [data-test-gen-dial="hits"] [data-test-number-entry]`)
+        .hasText('4', 'the dials start from the pattern that is there');
+      assert.strictEqual(
+        options(),
+        undefined,
+        'opening the panel writes nothing',
+      );
+      assert.false(project.canUndo);
+
+      // typed: five hits
+      const hits = `${gen} [data-test-gen-dial="hits"]`;
+      await click(`${hits} [data-test-number-entry]`);
+      await fillIn(`${hits} [data-test-number-input]`, '5');
+      await triggerKeyEvent(
+        `${hits} [data-test-number-input]`,
+        'keydown',
+        'Enter',
+      );
+      const five = pattern();
+      assert.strictEqual(five.split('x').length - 1, 5, `five hits (${five})`);
+      assert.deepEqual(
+        pressedSteps(1).length,
+        5,
+        'the track row’s grid follows',
+      );
+      assert.dom(`${gen} [data-test-gen-says]`).hasText('5 of 16, rotate 0');
+      assert.strictEqual(options()?.['hits'], 5);
+      assert.strictEqual(options()?.['made'], five);
+
+      // a key step on the rotate dial: live, and its own step to undo
+      await triggerKeyEvent(
+        `${gen} [data-test-gen-dial="rotate"] [data-test-number-entry]`,
+        'keydown',
+        'ArrowUp',
+      );
+      assert.notStrictEqual(pattern(), five, 'rotated');
+      assert.strictEqual(pattern().split('x').length - 1, 5);
+      project.undo();
+      await settled();
+      assert.strictEqual(pattern(), five, 'one undo: the rotation');
+      assert.strictEqual(options()?.['rotate'], 0, 'the dial with it');
+      project.undo();
+      await settled();
+      assert.strictEqual(
+        pattern(),
+        'x...x...x...x...',
+        'and again: the five hits',
+      );
+      project.redo();
+      await settled();
+
+      // a dial dragged: every move writes, the whole drag is one step
+      const entry = `${hits} [data-test-number-entry]`;
+      const rect = find(entry)!.getBoundingClientRect();
+      const at = (dx: number) => ({
+        pointerId: 1,
+        button: 0,
+        buttons: 1,
+        isPrimary: true,
+        pointerType: 'mouse',
+        clientX: rect.left + rect.width / 2 + dx,
+        clientY: rect.top + rect.height / 2,
+      });
+      await triggerEvent(entry, 'pointerdown', at(0));
+      await triggerEvent(document.body, 'pointermove', at(30));
+      const midway = pattern();
+      await triggerEvent(document.body, 'pointermove', at(60));
+      await triggerEvent(document.body, 'pointerup', at(60));
+      assert.notStrictEqual(
+        midway,
+        five,
+        'it changed while the dial was still being dragged',
+      );
+      assert.notStrictEqual(pattern(), midway);
+      project.undo();
+      await settled();
+      assert.strictEqual(pattern(), five, 'the drag is one step to undo');
+
+      // a step changed by hand: "edited", and nothing is overwritten until a dial moves
+      await click('[data-test-pane="sequence"] [data-test-step="1"]');
+      const byHand = pattern();
+      assert.dom(`${gen} [data-test-gen-edited]`).exists();
+      assert.strictEqual(pattern(), byHand);
+
+      // another generator: its tab shows its dials, and writes when one moves
+      await click(`${gen} [data-test-gen-tab="onoff"]`);
+      assert.strictEqual(pattern(), byHand, 'turning to a tab writes nothing');
+      await triggerKeyEvent(
+        `${gen} [data-test-gen-dial="off"] [data-test-number-entry]`,
+        'keydown',
+        'ArrowDown',
+      );
+      assert.strictEqual(
+        pattern(),
+        'x..x..x..x..x..x',
+        'one on, two off, repeated to fill',
+      );
+      assert.dom(`${gen} [data-test-gen-edited]`).doesNotExist();
+
+      // the dials are remembered with the grid: the pane redrawn shows the same tab and numbers
+      view.footerPane = 'controls';
+      await settled();
+      view.footerPane = 'sequence';
+      await settled();
+      await click(`${gen} [data-test-gen-toggle]`);
+      assert
+        .dom(`${gen} [data-test-gen-tab="onoff"]`)
+        .hasAria('selected', 'true');
+      assert
+        .dom(`${gen} [data-test-gen-dial="off"] [data-test-number-entry]`)
+        .hasText('2');
+    });
+
+    test('the tools turn the pattern; Or, And and Xor meet what is there; a step’s value is kept', async function (assert) {
+      view.footerPane = 'sequence';
+      await render(<template><AppShell /></template>);
+      const gen = '[data-test-pane="sequence"] [data-test-generators="steps"]';
+      const steps = (): number[] => audio.stepGrids('t-kick')[0]!.steps;
+      const pattern = (): string =>
+        steps()
+          .map((step) => (step ? 'x' : '.'))
+          .join('');
+      audio.setStep('t-kick', 'steps', 4, 7);
+      await settled();
+
+      await click(`${gen} [data-test-gen-tool="right"]`);
+      assert.strictEqual(pattern(), '.x...x...x...x..');
+      assert.strictEqual(steps()[5], 7, 'the value went round with its step');
+      await click(`${gen} [data-test-gen-tool="left"]`);
+      assert.strictEqual(pattern(), 'x...x...x...x...');
+      await click(`${gen} [data-test-gen-tool="reverse"]`);
+      assert.strictEqual(pattern(), '...x...x...x...x');
+      await click(`${gen} [data-test-gen-tool="invert"]`);
+      assert.strictEqual(pattern(), 'xxx.xxx.xxx.xxx.');
+      project.undo();
+      await settled();
+      assert.strictEqual(
+        pattern(),
+        '...x...x...x...x',
+        'each tool is one step to undo',
+      );
+      project.undo();
+      await settled();
+      assert.strictEqual(steps()[4], 7);
+
+      // Or: the generated rhythm is laid over what is there; the 7 stays on its step
+      await click(`${gen} [data-test-gen-toggle]`);
+      await select(`${gen} [data-test-gen-combine]`, 'or');
+      assert.strictEqual(
+        pattern(),
+        'x...x...x...x...',
+        'four evenly, Or-ed with the same four',
+      );
+      await click(`${gen} [data-test-gen-tab="binary"]`);
+      const number = `${gen} [data-test-gen-dial="number"]`;
+      await click(`${number} [data-test-number-entry]`);
+      await fillIn(`${number} [data-test-number-input]`, '3');
+      await triggerKeyEvent(
+        `${number} [data-test-number-input]`,
+        'keydown',
+        'Enter',
+      );
+      assert.strictEqual(
+        pattern(),
+        'x...x...x...x.xx',
+        'the last two bits added to what was there',
+      );
+      assert.strictEqual(steps()[4], 7, 'a step that stays on keeps its value');
+      assert.strictEqual(steps()[15], 1, 'a new hit is 1');
+      await select(`${gen} [data-test-gen-combine]`, 'and');
+      assert.strictEqual(
+        pattern(),
+        '................',
+        'And: only where both hit',
+      );
+      await select(`${gen} [data-test-gen-combine]`, 'xor');
+      assert.strictEqual(pattern(), 'x...x...x...x.xx');
+      await select(`${gen} [data-test-gen-combine]`, 'replace');
+      assert.strictEqual(pattern(), '..............xx');
+    });
+
+    test('each grid of a track has its own generators; a track’s menu leads to them', async function (assert) {
+      view.footerPane = 'controls';
+      await render(<template><AppShell /></template>);
+      await click('[data-test-script-toggle]');
+      await typeScript(
+        (text) =>
+          `${text}\n__.transport.sequence('fill', { steps: [0, 0, 1, 0, 0, 0] }, () => {});\nstepGrid('fill');`,
+      );
+      await click('[data-test-script-toggle]');
+      await click(
+        '[data-test-track="1"] .track__actions [data-test-menu-button]',
+      );
+      await click('[data-test-menu-item="Pattern generators"]');
+      assert
+        .dom('[data-test-pane="sequence"]')
+        .exists('the sequence pane, where they are');
+      assert.dom('[data-test-generators]').exists({ count: 2 });
+      // the array in the script is the default; a generated pattern is stored and wins
+      const fill = '[data-test-generators="fill"]';
+      await click(`${fill} [data-test-gen-toggle]`);
+      await triggerKeyEvent(
+        `${fill} [data-test-gen-dial="hits"] [data-test-number-entry]`,
+        'keydown',
+        'ArrowUp',
+      );
+      assert.deepEqual(
+        audio.stepGrids('t-kick')[1]!.steps,
+        [1, 0, 0, 1, 0, 0],
+        'two of six, on the second grid',
+      );
+      assert.true(audio.stepGrids('t-kick')[1]!.stored);
+      assert
+        .dom('[data-test-generators="steps"] [data-test-gen-summary]')
+        .includesText('4 of 16', 'the other grid is as it was');
     });
 
     test('the footer’s sequence pane lists them, with Reset for a stored pattern; two step grids are named', async function (assert) {

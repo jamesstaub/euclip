@@ -219,6 +219,8 @@ export interface StepGridView {
   /** how its steps are drawn. Only 'toggles' exists so far. */
   view: string;
   line?: number;
+  /** the dials of the generator last used on it, as stored (read with controls/generators.ts) */
+  generator?: Record<string, unknown>;
 }
 
 /** The names the editors' catalog is given from the live project. */
@@ -1179,6 +1181,9 @@ export class ProjectRunner {
         label: declaration.options.label ?? binding.name,
         steps: [...sequence.steps],
         stored: Array.isArray(values?.controls[declaration.key]?.value),
+        ...(values?.controls[declaration.key]?.options?.generator
+          ? { generator: values.controls[declaration.key]!.options!.generator }
+          : {}),
         playhead: runtime.playheads.get(binding.name) ?? null,
         disabled: runtime.errored.has(binding.name),
         view: declaration.options.view ?? 'toggles',
