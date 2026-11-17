@@ -4,6 +4,7 @@ import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import ControlRow from 'client-v2/components/control-row';
 import Hint from 'client-v2/components/ui/hint';
+import intoView from 'client-v2/modifiers/into-view';
 import {
   OWN_GROUP,
   type ControlGroup,
@@ -97,6 +98,16 @@ export default class ControlsPane extends Component<ControlsPaneSignature> {
   isOpen = (section: Section): boolean =>
     this.view.isSectionOpen(this.args.scopeId, section.id);
 
+  /** The signal chain sent the person to this section: it is outlined for a moment. */
+  isLocated = (section: Section): boolean => {
+    const located = this.view.located;
+    return (
+      located !== null &&
+      located.scopeId === this.args.scopeId &&
+      located.section === section.id
+    );
+  };
+
   /** The person opened or closed a section (the browser has already done it on screen). */
   toggled = (section: Section, event: Event): void =>
     this.view.setSectionOpen(
@@ -149,6 +160,8 @@ export default class ControlsPane extends Component<ControlsPaneSignature> {
               open={{this.isOpen section}}
               aria-label={{section.label}}
               data-test-control-group={{section.id}}
+              data-located={{if (this.isLocated section) "true"}}
+              {{intoView (this.isLocated section)}}
               {{on "toggle" (fn this.toggled section)}}
             >
               <summary class="control-group__title">

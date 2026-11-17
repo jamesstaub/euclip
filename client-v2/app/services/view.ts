@@ -1,13 +1,18 @@
 import Service from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 
-export type FooterPane = 'sequence' | 'source' | 'controls';
+export type FooterPane = 'chain' | 'source' | 'controls' | 'sequence';
 
+/** In the order the footer's menu shows them. */
 export const FOOTER_PANES: readonly FooterPane[] = [
-  'sequence',
+  'chain',
   'source',
   'controls',
+  'sequence',
 ];
+
+/** How long a section of the controls pane stays outlined after the signal chain sent the person to it. */
+export const LOCATE_MS = 1800;
 
 /** Where the view is remembered. It belongs to the person and the device, never to the project document. */
 export const VIEW_STORAGE_KEY = 'euclip:view';
@@ -208,6 +213,7 @@ export default class ViewService extends Service {
   willDestroy(): void {
     super.willDestroy();
     clearTimeout(this.#linkTimer);
+    clearTimeout(this.#locateTimer);
   }
 
   /**
@@ -232,6 +238,36 @@ export default class ViewService extends Service {
 
   setFooterPane(pane: FooterPane): void {
     this.footerPane = pane;
+    this.#save();
+  }
+
+  /**
+   * The section of the controls pane the signal chain has sent the person to: it is scrolled to and
+   * outlined for a moment. The token is new each time, so asking for the same node twice shows it twice.
+   */
+  @tracked located: { scopeId: string; section: string; token: number } | null =
+    null;
+  #locateTimer: ReturnType<typeof setTimeout> | undefined;
+
+  /** A node of the signal chain was opened: its controls, scrolled to and outlined. */
+  showControlsOf(scopeId: string, nodeId: string): void {
+    this.footerPane = 'controls';
+    this.footerOpen = true;
+    this.scriptOpen = false;
+    // (a closed section would hide what is being pointed at)
+    this.setSectionOpen(scopeId, nodeId, true);
+    this.located = { scopeId, section: nodeId, token: ++this.#token };
+    clearTimeout(this.#locateTimer);
+    this.#locateTimer = setTimeout(() => (this.located = null), LOCATE_MS);
+    this.#save();
+  }
+
+  /** A sampler of the signal chain was opened: its waveform, chosen in the source pane. */
+  showSourceOf(scopeId: string, waveformKey: string | null): void {
+    if (waveformKey !== null) this.chooseWaveform(scopeId, waveformKey);
+    this.footerPane = 'source';
+    this.footerOpen = true;
+    this.scriptOpen = false;
     this.#save();
   }
 

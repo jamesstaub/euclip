@@ -4,6 +4,7 @@ import type { SafeString } from '@ember/template';
 import arrow from 'client-v2/assets/icons/arrow.svg?raw';
 import automation from 'client-v2/assets/icons/automation.svg?raw';
 import cancel from 'client-v2/assets/icons/fi-cancel.svg?raw';
+import chain from 'client-v2/assets/icons/chain.svg?raw';
 import chevron from 'client-v2/assets/icons/chevron.svg?raw';
 import code from 'client-v2/assets/icons/fi-code.svg?raw';
 import dots from 'client-v2/assets/icons/fi-dots.svg?raw';
@@ -40,6 +41,7 @@ const ICONS = {
   arrow: inline(arrow),
   automation: inline(automation),
   cancel: inline(cancel),
+  chain: inline(chain),
   chevron: inline(chevron),
   code: inline(code),
   dots: inline(dots),

@@ -183,17 +183,21 @@
 
 /* ---- the body: the script, or the main output's controls: one thing, filling it ---- */
 
-.track-footer__body--script,
-.track-footer__body--master {
-  grid-template: "pane" minmax(0, 1fr) / minmax(0, 1fr);
-}
-
 .track-footer__body--script {
   display: flex;
   padding: var(--space-2);
+  grid-template: "pane" minmax(0, 1fr) / minmax(0, 1fr);
 }
 
-/* ---- the menu: sequence / source / controls ---- */
+/* the main output has two panes to choose between (its signal chain and its controls): a row of tabs on top */
+.track-footer__body--master {
+  grid-template:
+    "tabs" auto
+    "pane" minmax(0, 1fr)
+    / minmax(0, 1fr);
+}
+
+/* ---- the menu: signal chain / source / controls / sequence ---- */
 
 .footer-tabs {
   grid-area: tabs;
@@ -201,12 +205,19 @@
   min-inline-size: 0;
 }
 
+.track-footer__body--master .footer-tabs {
+  max-inline-size: 24rem;
+}
+
 .footer-tab {
   display: flex;
   flex: 1 1 0;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
+  gap: var(--space-1);
+  text-align: center;
+  line-height: var(--line-height-solid);
   min-inline-size: 0;
   min-block-size: max(2.25rem, var(--target-min));
   padding: var(--space-1) var(--space-2);
@@ -246,12 +257,12 @@
       / auto auto minmax(0, 1fr);
   }
 
-  .footer-tabs {
+  .track-footer__body:not(.track-footer__body--master) .footer-tabs {
     flex-direction: column;
     inline-size: 5.5rem;
   }
 
-  .footer-tab {
+  .track-footer__body:not(.track-footer__body--master) .footer-tab {
     flex-direction: column;
     gap: var(--space-1);
 

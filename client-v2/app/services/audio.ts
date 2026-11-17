@@ -4,7 +4,8 @@ import { isDestroying } from '@ember/destroyable';
 import { isTesting, macroCondition } from '@embroider/macros';
 import { buildWaiter, waitForPromise } from '@ember/test-waiters';
 import { createEngine, type Engine } from 'cracked-up';
-import type { Node } from 'cracked-up';
+import type { Node, NodeTypeInfo } from 'cracked-up';
+import type { ChainGraph } from 'client-v2/audio/chain-view';
 import {
   ProjectRunner,
   type ControlView,
@@ -233,6 +234,27 @@ export default class AudioService extends Service {
   sendsToChannel(trackId: string): boolean {
     void this.revision;
     return this.runner?.sendsToChannel(trackId) ?? true;
+  }
+
+  /** The graph the scope's running script made, as rows for the Signal chain tab. Null until it has built. */
+  chainGraph(scopeId: string): ChainGraph | null {
+    void this.revision;
+    return this.runner?.chainGraph(scopeId) ?? null;
+  }
+
+  /** A number parameter's base value on a node of a scope's script; undefined when there is none. */
+  paramValue(
+    scopeId: string,
+    nodeId: string,
+    param: string,
+  ): number | undefined {
+    void this.revision;
+    return this.runner?.paramValue(scopeId, nodeId, param);
+  }
+
+  /** The node types the library offers. */
+  nodeTypes(): readonly NodeTypeInfo[] {
+    return this.runner?.nodeTypes() ?? [];
   }
 
   /** The waveform editors the scope's script declares. */

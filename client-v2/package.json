@@ -39,6 +39,7 @@
     "@codemirror/view": "^6.43.15",
     "@lezer/common": "^1.5.5",
     "@lezer/highlight": "^1.2.5",
+    "acorn": "^8.19.0",
     "cracked-up": "file:../../cracked-up"
   },
   "devDependencies": {

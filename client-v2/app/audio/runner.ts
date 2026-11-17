@@ -23,6 +23,7 @@ import type {
   Engine,
   GraphError,
   Node,
+  NodeTypeInfo,
   Param,
   ParamChange,
   Scope,
@@ -35,6 +36,8 @@ import {
   type Program,
 } from 'client-v2/audio/compile';
 import { normalizeSlices } from 'cracked-up/util';
+import { buildModel, readScope } from 'cracked-up/inspect';
+import { buildChainGraph, type ChainGraph } from 'client-v2/audio/chain-view';
 import {
   BUFFER_OPTION,
   CHANNEL_BUS,
@@ -741,6 +744,38 @@ export class ProjectRunner {
   sendsToChannel(scopeId: string): boolean {
     const runtime = this.#scopes.get(scopeId);
     return !runtime?.built || runtime.sendsToChannel;
+  }
+
+  /**
+   * The graph the running version of a scope's script made, arranged for the Signal chain tab. Null
+   * while nothing has built. It reads the live scope (the library's own model of it), so it is complete
+   * and true whether or not Euclip can edit the script that made it.
+   */
+  chainGraph(scopeId: string): ChainGraph | null {
+    const runtime = this.#scopes.get(scopeId);
+    if (!runtime?.built) return null;
+    const { source } = readScope(runtime.scope, () => false);
+    // (a track's script scope has no children of its own; the project's root has every track's scope: not drawn here)
+    return buildChainGraph(
+      buildModel({ ...source, children: [] }, () => false),
+    );
+  }
+
+  /** A number parameter's base value on a node of a scope's script, as it is now; undefined if there is none. */
+  paramValue(
+    scopeId: string,
+    nodeId: string,
+    param: string,
+  ): number | undefined {
+    const runtime = this.#scopes.get(scopeId);
+    const node = runtime ? this.#select(runtime, `#${nodeId}`)[0] : undefined;
+    const value = node?.param(param).value;
+    return typeof value === 'number' ? value : undefined;
+  }
+
+  /** The node types the library offers, for the picker that adds one to a chain. */
+  nodeTypes(): readonly NodeTypeInfo[] {
+    return this.engine.registry.list();
   }
 
   /** What the running version declares, as plain data, in the order it declared it. */
