@@ -708,6 +708,37 @@ export default class AudioService extends Service {
     }
   }
 
+  /** Sets a grid's length or step length (the project's, over the script's); undefined forgets it. */
+  setGridShape(
+    scopeId: string,
+    key: string,
+    shape: { length?: number | undefined; step?: string | undefined },
+    group?: string,
+  ): void {
+    this.project.apply(
+      { type: 'setControlOptions', scope: scopeId, key, options: shape },
+      group === undefined ? {} : { group },
+    );
+  }
+
+  /** A grid back to the script's: its pattern, its length and its step length. One step to undo. */
+  resetGrid(scopeId: string, key: string): void {
+    const group = `reset-grid-${++this.#unitChoices}`;
+    this.project.apply(
+      {
+        type: 'setControlOptions',
+        scope: scopeId,
+        key,
+        options: { length: undefined, step: undefined },
+      },
+      { group },
+    );
+    this.project.apply(
+      { type: 'resetControl', scope: scopeId, key },
+      { group },
+    );
+  }
+
   /** Sets how long a control's parameter takes to get where the control is put; undefined forgets it (the script's applies). */
   setControlGlide(
     scopeId: string,

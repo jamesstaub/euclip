@@ -39,6 +39,12 @@ export interface ControlUserOptions {
    */
   generator?: Record<string, unknown>;
   /**
+   * A step grid: how many steps its sequence has, and how long each is (`'1/16'`), where the person
+   * has set them on the grid. Absent: as the script says (`steps: 16`, `step: '1/16'`).
+   */
+  length?: number;
+  step?: string;
+  /**
    * A slider or knob that has a value for every step of a sequence: the sequence's name; `false` for
    * "a single value" where the script says per step; absent: as the script says.
    */

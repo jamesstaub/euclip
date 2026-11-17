@@ -185,6 +185,22 @@ module('Integration | Component | app-shell', function (hooks) {
         assert.false(project.canUndo);
       });
 
+      test('two quick taps on neighbouring steps are two taps, not a double click on the second', async function (assert) {
+        await render(<template><AppShell /></template>);
+        const step = (index: number): string =>
+          `[data-test-track="2"] [data-test-step="${index}"]`;
+        await click(step(1));
+        await click(step(2));
+        // (what a browser sends when two taps land close together, as they do on narrow steps)
+        await triggerEvent(step(2), 'dblclick');
+        assert.dom('[data-test-step-entry]').doesNotExist('no value box');
+        assert.deepEqual(
+          pressedSteps(2).filter((index) => index === 1 || index === 2),
+          [1, 2],
+          'each tap toggled its own step',
+        );
+      });
+
       test('a double click that changes nothing leaves nothing to undo; Escape gives up; 0 turns the step off', async function (assert) {
         await render(<template><AppShell /></template>);
         assert.strictEqual(live()[0], 1);
@@ -507,7 +523,7 @@ stepGrid('ones');
 
       // a key step on the rotate dial: live, and its own step to undo
       await triggerKeyEvent(
-        `${gen} [data-test-gen-dial="rotate"] [data-test-number-entry]`,
+        `${gen} [data-test-gen-dial="rotate"] [data-test-slider]`,
         'keydown',
         'ArrowUp',
       );
@@ -528,22 +544,22 @@ stepGrid('ones');
       await settled();
 
       // a dial dragged: every move writes, the whole drag is one step
-      const entry = `${hits} [data-test-number-entry]`;
+      const entry = `${hits} [data-test-slider]`;
       const rect = find(entry)!.getBoundingClientRect();
-      const at = (dx: number) => ({
+      const at = (along: number) => ({
         pointerId: 1,
         button: 0,
         buttons: 1,
         isPrimary: true,
         pointerType: 'mouse',
-        clientX: rect.left + rect.width / 2 + dx,
+        clientX: rect.left + along * rect.width,
         clientY: rect.top + rect.height / 2,
       });
-      await triggerEvent(entry, 'pointerdown', at(0));
-      await triggerEvent(document.body, 'pointermove', at(30));
+      await triggerEvent(entry, 'pointerdown', at(0.5));
+      await triggerEvent(document.body, 'pointermove', at(0.7));
       const midway = pattern();
-      await triggerEvent(document.body, 'pointermove', at(60));
-      await triggerEvent(document.body, 'pointerup', at(60));
+      await triggerEvent(document.body, 'pointermove', at(0.9));
+      await triggerEvent(document.body, 'pointerup', at(0.9));
       assert.notStrictEqual(
         midway,
         five,
@@ -564,7 +580,7 @@ stepGrid('ones');
       await click(`${gen} [data-test-gen-tab="onoff"]`);
       assert.strictEqual(pattern(), byHand, 'turning to a tab writes nothing');
       await triggerKeyEvent(
-        `${gen} [data-test-gen-dial="off"] [data-test-number-entry]`,
+        `${gen} [data-test-gen-dial="off"] [data-test-slider]`,
         'keydown',
         'ArrowDown',
       );
@@ -632,7 +648,7 @@ stepGrid('ones');
       await click(`${gen} [data-test-gen-tab="binary"]`);
       const number = `${gen} [data-test-gen-dial="number"]`;
       await click(`${number} [data-test-number-entry]`);
-      await fillIn(`${number} [data-test-number-input]`, '3');
+      await fillIn(`${number} [data-test-number-input]`, '2');
       await triggerKeyEvent(
         `${number} [data-test-number-input]`,
         'keydown',
@@ -640,21 +656,21 @@ stepGrid('ones');
       );
       assert.strictEqual(
         pattern(),
-        'x...x...x...x.xx',
-        'the last two bits added to what was there',
+        'x.x.x.x.x.x.x.x.',
+        '2 is x. over and over, added to what was there',
       );
       assert.strictEqual(steps()[4], 7, 'a step that stays on keeps its value');
-      assert.strictEqual(steps()[15], 1, 'a new hit is 1');
+      assert.strictEqual(steps()[2], 1, 'a new hit is 1');
       await select(`${gen} [data-test-gen-combine]`, 'and');
       assert.strictEqual(
         pattern(),
-        '................',
+        'x...x...x...x...',
         'And: only where both hit',
       );
       await select(`${gen} [data-test-gen-combine]`, 'xor');
-      assert.strictEqual(pattern(), 'x...x...x...x.xx');
+      assert.strictEqual(pattern(), '..x...x...x...x.');
       await select(`${gen} [data-test-gen-combine]`, 'replace');
-      assert.strictEqual(pattern(), '..............xx');
+      assert.strictEqual(pattern(), 'x.x.x.x.x.x.x.x.');
     });
 
     test('each grid of a track has its own generators; a track’s menu leads to them', async function (assert) {
@@ -678,7 +694,7 @@ stepGrid('ones');
       const fill = '[data-test-generators="fill"]';
       await click(`${fill} [data-test-gen-toggle]`);
       await triggerKeyEvent(
-        `${fill} [data-test-gen-dial="hits"] [data-test-number-entry]`,
+        `${fill} [data-test-gen-dial="hits"] [data-test-slider]`,
         'keydown',
         'ArrowUp',
       );
@@ -698,21 +714,32 @@ stepGrid('ones');
       await render(<template><AppShell /></template>);
       const options = (): Record<string, unknown> | undefined =>
         project.doc.tracks[0]!.values.controls[FREQUENCY]?.options as
-          | Record<string, unknown>
-          | undefined;
+          Record<string, unknown> | undefined;
       await click(`${row(FREQUENCY)} [data-test-menu-button]`);
-      assert.dom('[data-test-menu-item="Single value"]').hasAria('checked', 'true');
+      assert
+        .dom('[data-test-menu-item="Single value"]')
+        .hasAria('checked', 'true');
       await click('[data-test-menu-item="Per step"]');
-      assert.deepEqual(options()?.['stepValues'], new Array(16).fill(2000), 'every step takes the value it had');
+      assert.deepEqual(
+        options()?.['stepValues'],
+        new Array(16).fill(2000),
+        'every step takes the value it had',
+      );
       // its row in the controls pane is a stub that says so, with its menu and a way to its lane
-      assert.dom(`${row(FREQUENCY)} [data-test-control-lane]`).includesText('per step of steps');
+      assert
+        .dom(`${row(FREQUENCY)} [data-test-control-lane]`)
+        .includesText('per step of steps');
       assert.dom(`${row(FREQUENCY)} [data-test-slider]`).doesNotExist();
       assert.dom(`${row(FREQUENCY)} [data-test-menu-button]`).exists();
       await click(`${row(FREQUENCY)} [data-test-show-lane]`);
-      assert.dom('[data-test-pane="sequence"]').exists('the sequence pane, where the lane is');
+      assert
+        .dom('[data-test-pane="sequence"]')
+        .exists('the sequence pane, where the lane is');
 
       const pane = '[data-test-pane="sequence"] [data-test-step-grid="steps"]';
-      assert.dom(`${pane} [data-test-lane="${FREQUENCY}"]`).includesText('frequency');
+      assert
+        .dom(`${pane} [data-test-lane="${FREQUENCY}"]`)
+        .includesText('frequency');
       const bars = findAll(`${pane} [data-lane-step]`);
       assert.strictEqual(bars.length, 16, 'a bar for every step');
       // each bar stands under its step: the same horizontal centre
@@ -721,27 +748,57 @@ stepGrid('ones');
         return rect.left + rect.width / 2;
       };
       const stepsIn = findAll(`${pane} [data-test-step]`);
-      const off = Math.max(...bars.map((bar, index) => Math.abs(centre(bar) - centre(stepsIn[index]!))));
-      assert.true(off < 1, `bars are in their steps’ columns (worst ${off.toFixed(2)} px)`);
+      const off = Math.max(
+        ...bars.map((bar, index) =>
+          Math.abs(centre(bar) - centre(stepsIn[index]!)),
+        ),
+      );
+      assert.true(
+        off < 1,
+        `bars are in their steps’ columns (worst ${off.toFixed(2)} px)`,
+      );
 
       // a drag across the bars paints them: down on the first, along to the third, low in the bar
       const at = (index: number, share: number) => {
         const rect = bars[index]!.getBoundingClientRect();
-        return { pointerId: 1, button: 0, buttons: 1, isPrimary: true, pointerType: 'mouse', clientX: rect.left + rect.width / 2, clientY: rect.bottom - share * rect.height };
+        return {
+          pointerId: 1,
+          button: 0,
+          buttons: 1,
+          isPrimary: true,
+          pointerType: 'mouse',
+          clientX: rect.left + rect.width / 2,
+          clientY: rect.bottom - share * rect.height,
+        };
       };
       await triggerEvent(bars[0]!, 'pointerdown', at(0, 0.5));
       await triggerEvent(document.body, 'pointermove', at(1, 0.25));
-      assert.dom(`${pane} [data-test-lane-says]`).includesText('step 2', 'the lane says the value of the bar being dragged');
+      assert
+        .dom(`${pane} [data-test-lane-says]`)
+        .includesText(
+          'step 2',
+          'the lane says the value of the bar being dragged',
+        );
       await triggerEvent(document.body, 'pointermove', at(2, 0.75));
       await triggerEvent(document.body, 'pointerup', at(2, 0.75));
       const painted = options()!['stepValues'] as number[];
-      assert.true(painted.slice(0, 3).every((value) => value !== 2000), `three bars set in one drag (${painted.slice(0, 4).map((v) => Math.round(v)).join(', ')})`);
+      assert.true(
+        painted.slice(0, 3).every((value) => value !== 2000),
+        `three bars set in one drag (${painted
+          .slice(0, 4)
+          .map((v) => Math.round(v))
+          .join(', ')})`,
+      );
       assert.true(painted[1]! < painted[0]!, 'lower in a bar is a lower value');
       assert.true(painted[2]! > painted[0]!);
       assert.strictEqual(painted[3], 2000, 'the rest are as they were');
       project.undo();
       await settled();
-      assert.deepEqual(options()?.['stepValues'], new Array(16).fill(2000), 'the whole drag is one step to undo');
+      assert.deepEqual(
+        options()?.['stepValues'],
+        new Array(16).fill(2000),
+        'the whole drag is one step to undo',
+      );
 
       // a double click opens the number box on the bar, in the control's unit
       await triggerEvent(bars[4]!, 'pointerdown', at(4, 0.5));
@@ -749,13 +806,26 @@ stepGrid('ones');
       await triggerEvent(bars[4]!, 'pointerdown', at(4, 0.5));
       await triggerEvent(document.body, 'pointerup', at(4, 0.5));
       assert.dom(`${pane} [data-test-lane-entry]`).exists();
-      await fillIn(`${pane} [data-test-lane-entry] [data-test-number-input]`, '440');
-      await triggerKeyEvent(`${pane} [data-test-lane-entry] [data-test-number-input]`, 'keydown', 'Enter');
+      await fillIn(
+        `${pane} [data-test-lane-entry] [data-test-number-input]`,
+        '440',
+      );
+      await triggerKeyEvent(
+        `${pane} [data-test-lane-entry] [data-test-number-input]`,
+        'keydown',
+        'Enter',
+      );
       assert.strictEqual((options()!['stepValues'] as number[])[4], 440);
-      assert.strictEqual(frequencyOf('t-kick'), (options()!['stepValues'] as number[])[0], 'stopped: the parameter holds the first step’s value');
+      assert.strictEqual(
+        frequencyOf('t-kick'),
+        (options()!['stepValues'] as number[])[0],
+        'stopped: the parameter holds the first step’s value',
+      );
 
       // the track’s row has the lane too, and a way to hide it; back to a single value it is gone
-      assert.dom('[data-test-track="1"] [data-lane-step]').exists({ count: 16 });
+      assert
+        .dom('[data-test-track="1"] [data-lane-step]')
+        .exists({ count: 16 });
       assert.dom('[data-test-track="2"] [data-lane-step]').doesNotExist();
       await click('[data-test-track="1"] [data-test-track-lanes]');
       assert.dom('[data-test-track="1"]').hasAttribute('data-lanes', 'hidden');
@@ -766,10 +836,127 @@ stepGrid('ones');
       await click(`${row(FREQUENCY)} [data-test-menu-button]`);
       await click('[data-test-menu-item="Single value"]');
       assert.dom('[data-lane-step]').doesNotExist();
-      assert.dom(`${row(FREQUENCY)} [data-test-slider]`).exists('a slider again');
+      assert
+        .dom(`${row(FREQUENCY)} [data-test-slider]`)
+        .exists('a slider again');
       project.undo();
       await settled();
-      assert.dom('[data-test-track="1"] [data-lane-step]').exists({ count: 16 }, 'undo: per step again, its values with it');
+      assert
+        .dom('[data-test-track="1"] [data-lane-step]')
+        .exists({ count: 16 }, 'undo: per step again, its values with it');
+    });
+
+    test('a grid has a Length dial and a Step menu: stored with the grid, applied at once, and Reset returns to the script’s', async function (assert) {
+      view.footerPane = 'sequence';
+      await render(<template><AppShell /></template>);
+      const card = '[data-test-pane="sequence"] [data-test-sequence="steps"]';
+      const sequence = () =>
+        audio.engine!.scope('t-kick').scope('script').transport.get('steps')!;
+      const options = (): Record<string, unknown> | undefined =>
+        project.doc.tracks[0]!.values.controls[STEPS]?.options as
+          Record<string, unknown> | undefined;
+      assert
+        .dom(`${card} [data-test-grid-length] [data-test-number-entry]`)
+        .hasText('16');
+      assert.dom(`${card} [data-test-grid-step]`).hasValue('1/16');
+      assert.dom(`${card} [data-test-grid-script]`).hasText('');
+
+      // typed: twelve steps. The pattern is kept as far as it goes.
+      await click(`${card} [data-test-grid-length] [data-test-number-entry]`);
+      await fillIn(
+        `${card} [data-test-grid-length] [data-test-number-input]`,
+        '12',
+      );
+      await triggerKeyEvent(
+        `${card} [data-test-grid-length] [data-test-number-input]`,
+        'keydown',
+        'Enter',
+      );
+      assert.strictEqual(sequence().steps.length, 12);
+      assert.deepEqual(
+        pressedSteps(1),
+        [0, 4, 8],
+        'the track’s row has twelve steps, the same pattern',
+      );
+      assert
+        .dom('[data-test-track="1"] [data-test-step]')
+        .exists({ count: 12 });
+      assert.strictEqual(options()?.['length'], 12);
+      assert
+        .dom(`${card} [data-test-grid-script]`)
+        .hasText('script: 16 steps', 'what the script says, said quietly');
+      assert.true(
+        project.doc.tracks[0]!.script.includes('steps: 16'),
+        'the script is not touched',
+      );
+
+      // the dial by keys; the Step menu
+      await triggerKeyEvent(
+        `${card} [data-test-grid-length] [data-test-knob]`,
+        'keydown',
+        'ArrowUp',
+      );
+      assert.strictEqual(sequence().steps.length, 13);
+      await select(`${card} [data-test-grid-step]`, '1/8t');
+      assert.strictEqual(sequence().options.step, '1/8t');
+      assert
+        .dom(`${card} [data-test-grid-script]`)
+        .hasText('script: 16 steps, 1/16');
+      project.undo();
+      await settled();
+      assert.strictEqual(
+        sequence().options.step,
+        '1/16',
+        'one undo: the step length',
+      );
+      project.undo();
+      await settled();
+      assert.strictEqual(sequence().steps.length, 12, 'and again: the dial');
+
+      // the generator's dials refit: five of twelve becomes five of sixteen
+      const gen = `${card} [data-test-generators="steps"]`;
+      await click(`${gen} [data-test-gen-toggle]`);
+      for (let i = 0; i < 2; i++) {
+        await triggerKeyEvent(
+          `${gen} [data-test-gen-dial="hits"] [data-test-slider]`,
+          'keydown',
+          'ArrowUp',
+        );
+      }
+      assert.dom(`${gen} [data-test-gen-says]`).hasText('5 of 12, rotate 0');
+      await click(`${card} [data-test-grid-length] [data-test-number-entry]`);
+      await fillIn(
+        `${card} [data-test-grid-length] [data-test-number-input]`,
+        '16',
+      );
+      await triggerKeyEvent(
+        `${card} [data-test-grid-length] [data-test-number-input]`,
+        'keydown',
+        'Enter',
+      );
+      assert.dom(`${gen} [data-test-gen-says]`).hasText('5 of 16, rotate 0');
+      assert.strictEqual(
+        pressedSteps(1).length,
+        5,
+        'made again for the new length',
+      );
+      assert.dom(`${gen} [data-test-gen-edited]`).doesNotExist();
+
+      // Reset: the pattern, the length and the step length, in one step
+      await select(`${card} [data-test-grid-step]`, '1/8');
+      await click(`${card} [data-test-steps-reset]`);
+      assert.strictEqual(sequence().steps.length, 16);
+      assert.strictEqual(sequence().options.step, '1/16');
+      assert.strictEqual(options()?.['length'], undefined);
+      assert.strictEqual(options()?.['step'], undefined);
+      project.undo();
+      await settled();
+      assert.strictEqual(
+        sequence().options.step,
+        '1/8',
+        'one undo brings all of it back',
+      );
+      assert.strictEqual(pressedSteps(1).length, 5);
     });
 
     test('the footer’s sequence pane lists them, with Reset for a stored pattern; two step grids are named', async function (assert) {

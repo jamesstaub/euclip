@@ -2,6 +2,7 @@ import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { modifier } from 'ember-modifier';
 import NumberEntry from 'client-v2/components/ui/number-entry';
+import Slider from 'client-v2/components/ui/slider';
 import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
@@ -153,11 +154,15 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
     return group;
   }
 
+  /** the steps of the last two clicks: a double click is two on the same one */
+  #clicked: [number | null, number | null] = [null, null];
+
   toggle = (index: number): void => {
     if (this.#swallow) {
       this.#swallow = false;
       return;
     }
+    this.#clicked = [this.#clicked[1], index];
     this.audio.toggleStep(
       this.args.scopeId,
       this.args.control.name,
@@ -171,6 +176,9 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
    * a step that is on (with what it held, or 1), all as one gesture.
    */
   doubleClick = (index: number): void => {
+    // Two quick taps on neighbouring steps are near enough, where steps are narrow, for a browser to
+    // call them a double click on the second. They are two taps: each has toggled its own step.
+    if (this.#clicked[0] !== index) return;
     const group = this.#groupFor(index);
     if ((this.args.control.steps[index] ?? 0) === 0) {
       this.audio.toggleStep(
@@ -571,7 +579,10 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
   // --- pattern generators (controls/generators.ts): the dials write the pattern as they move ------------
 
   /** the generator panel is showing */
-  @tracked generating = false;
+  // (open to begin with where the screen is wide: there the generators stand beside the grid)
+  @tracked generating =
+    this.args.generators === true &&
+    window.matchMedia('(min-width: 100rem)').matches;
   /** the tab showing, when the person has turned to one whose dials have not written yet */
   @tracked tab: GeneratorKind | null = null;
 
@@ -639,7 +650,7 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
           whole('rotate', 'Rotate', state.rotate, 0, length - 1),
         ];
       case 'binary':
-        return [whole('number', 'Number', state.number, 0, binaryMax(length))];
+        return [whole('number', 'Number', state.number, 0, binaryMax())];
       case 'onoff':
         return [
           whole('on', 'On', state.on, 0, length),
@@ -734,9 +745,19 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
     );
   }
 
-  /** A dial dragged or stepped. */
-  turnDial = (id: string, value: number, gesture?: string): void => {
-    this.#write(this.#withDial(id, value), gesture);
+  /**
+   * A dial's slider moved: the pattern is rewritten at once. Every move of one drag (or one run of
+   * key presses on it) is the same gesture: one step to undo.
+   */
+  #dialGesture = '';
+
+  newDialGesture = (): void => {
+    this.#dialGesture = `dial-${++generatorGestures}`;
+  };
+
+  turnDial = (id: string, value: number): void => {
+    if (this.#dialGesture === '') this.newDialGesture();
+    this.#write(this.#withDial(id, Math.round(value)), this.#dialGesture);
   };
 
   /** A dial's value typed. */
@@ -904,6 +925,12 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
           </span>
           <span class="step-gen__summary" role="status" data-test-gen-summary>
             <b>{{this.hits}} of {{@control.steps.length}}</b>
+            {{#if this.generating}}
+              <span
+                class="step-gen__says"
+                data-test-gen-says
+              >{{this.dialsSay}}</span>
+            {{/if}}
             <code class="truncate">{{this.writtenOut}}</code>
             {{#if this.edited}}
               <i
@@ -929,6 +956,15 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
         {{#if this.generating}}
           <div class="step-gen__panel" id={{this.panelId}} data-test-gen-panel>
             {{! template-lint-disable no-invalid-interactive }}
+            <label class="step-gen__combine">
+              <span class="step-gen__label">Onto what is there</span>
+              <select
+                class="select"
+                data-test-gen-combine
+                {{on "change" this.setCombine}}
+                {{selectOptions this.combines this.generator.combine}}
+              ></select>
+            </label>
             <div
               class="waveform__tabs"
               role="tablist"
@@ -953,32 +989,30 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
               aria-label={{this.kind}}
             >
               {{#each this.dials key="id" as |dial|}}
-                <span class="step-gen__dial" data-test-gen-dial={{dial.id}}>
+                {{! template-lint-disable no-pointer-down-event-binding }}
+                {{! (a press or a key on a dial begins a gesture: all it then writes is one step to undo) }}
+                <span
+                  class="step-gen__dial"
+                  data-test-gen-dial={{dial.id}}
+                  {{on "pointerdown" this.newDialGesture capture=true}}
+                  {{on "keydown" this.newDialGesture capture=true}}
+                >
                   <span class="step-gen__label">{{dial.label}}</span>
+                  <Slider
+                    @value={{dial.value}}
+                    @mapping={{dial.map}}
+                    @label={{dial.label}}
+                    @onChange={{fn this.turnDial dial.id}}
+                  />
+                  {{! its value, as a control's row shows one: press it to type an exact number }}
                   <NumberEntry
                     @text={{dial.text}}
                     @label={{dial.label}}
                     @inputmode="numeric"
-                    @value={{dial.value}}
-                    @mapping={{dial.map}}
-                    @onChange={{fn this.turnDial dial.id}}
                     @onCommit={{fn this.typeDial dial}}
                   />
                 </span>
               {{/each}}
-              <label class="step-gen__dial step-gen__dial--combine">
-                <span class="step-gen__label">Onto what is there</span>
-                <select
-                  class="select"
-                  data-test-gen-combine
-                  {{on "change" this.setCombine}}
-                  {{selectOptions this.combines this.generator.combine}}
-                ></select>
-              </label>
-              <span
-                class="step-gen__says"
-                data-test-gen-says
-              >{{this.dialsSay}}</span>
             </div>
           </div>
         {{/if}}

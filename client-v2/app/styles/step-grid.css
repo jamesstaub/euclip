@@ -1,18 +1,22 @@
 /*
- * One named sequence of a track: a square button per step, touching (light grey = off, cyan = on, red
- * with a dark ring = the step being heard). A sequence has as many steps as its script gives it.
+ * One named sequence of a track: a button per step, touching (light grey = off, cyan = on, red with a
+ * dark ring = the step being heard). A sequence has as many steps as it is given.
  *
- * In a narrow track list the steps are laid 8 to a row and fill the width, so each stays big enough to
- * press (about 46px on a 390px phone) and nothing scrolls sideways. In a wide one they are 16 to a row,
- * and a longer sequence wraps onto further rows of 16. On a mouse the steps may shrink a little (never
- * below 1.25rem) before the row gives up its place beside the track's name.
+ * Sixteen to a row, everywhere: a longer sequence wraps onto further rows of sixteen, and a shorter
+ * one is part of a row. A step is a sixteenth of the room there is, up to --step-size, and the same
+ * width for every grid in a view: so step N of one track stands over step N of the next, and a lane's
+ * bar under its step. Its height does not shrink with it: on a phone a step is narrow (about 20px) and
+ * still a finger tall.
  */
 
 .step-grid {
+  /* the widest a step gets, and how tall it is whatever its width */
+  --step-w: var(--step-size);
+  --step-h: var(--step-size);
+
   position: relative; /* the box a step's value is typed in is laid over the grid */
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-  max-inline-size: calc(8 * var(--step-size-max));
+  grid-template-columns: repeat(16, minmax(0, var(--step-w)));
   padding: var(--space-2);
 }
 
@@ -20,7 +24,7 @@
   display: grid;
   place-items: center;
   inline-size: 100%;
-  aspect-ratio: 1;
+  block-size: var(--step-h);
   padding: 0;
   overflow: hidden;
   border: var(--border-width-1) solid var(--step-line);
@@ -29,6 +33,9 @@
   font-size: var(--font-size-7);
   font-weight: var(--font-weight-heavy);
   line-height: var(--line-height-solid);
+
+  /* (a narrow step is pressed, not double-tapped to zoom) */
+  touch-action: manipulation;
 
   &[aria-pressed="true"] {
     background: var(--step-on);
@@ -45,28 +52,11 @@
   }
 }
 
-/* 16 to a row */
+/* beside the name and the menu (a wide list, a mouse): give up a little size before giving up the line */
 @media (pointer: fine) {
-  @container track-list (min-width: 36rem) {
-    .step-grid {
-      grid-template-columns: repeat(auto-fill, var(--step-size));
-      max-inline-size: calc(16 * var(--step-size) + 2 * var(--space-2));
-    }
-  }
-
-  /* beside the name and the menu: give up a little size before giving up the line */
   @container track-list (min-width: 46rem) {
     .step-grid {
-      --step-size: clamp(1.25rem, calc((100cqi - 23rem) / 16), 2rem);
-    }
-  }
-}
-
-@media (pointer: coarse) {
-  @container track-list (min-width: 48rem) {
-    .step-grid {
-      grid-template-columns: repeat(auto-fill, var(--step-size));
-      max-inline-size: calc(16 * var(--step-size) + 2 * var(--space-2));
+      --step-w: clamp(1.25rem, calc((100cqi - 23rem) / 16), 2rem);
     }
   }
 }
@@ -104,6 +94,8 @@
 .step-gen {
   display: grid;
   gap: 0;
+  min-inline-size: 0;
+  overflow-x: clip;
   margin-block-start: var(--space-1);
   background: var(--dark-gray);
   color: var(--light-gray);
@@ -160,29 +152,78 @@
 
 .step-gen__panel {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "tabs combine"
+    "dials dials";
+
+  & .waveform__tabs {
+    grid-area: tabs;
+  }
+}
+
+/* how what is generated meets what is there: beside the tabs, whichever is showing */
+.step-gen__combine {
+  display: inline-flex;
+  grid-area: combine;
+  align-items: center;
+  gap: var(--space-2);
+  padding-inline: var(--space-2);
+
+  & .select {
+    inline-size: 10.5rem;
+    min-block-size: var(--target-min);
+    color: var(--dark-gray);
+    font-size: var(--font-size-7);
+  }
+}
+
+@container sequence-pane (max-width: 36rem) {
+  .step-gen__panel {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "tabs"
+      "combine"
+      "dials";
+  }
 }
 
 .step-gen__dials {
+  grid-area: dials;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  align-content: start;
   gap: var(--space-1) var(--space-2);
+
+  /* (room for the tab with the most dials, so turning to another tab changes no one's place) */
+  min-block-size: calc(2 * var(--target-min) + 3 * var(--space-1));
   padding: var(--space-1) var(--space-2);
 }
 
-/* a dial: its name and a number box of one width, whatever it holds */
+/* a dial: its name, a slider, and its value in a box of one width (press it to type) */
 .step-gen__dial {
   display: inline-flex;
-  flex: none;
+  flex: 1 1 12rem;
+  min-inline-size: 0;
+  max-inline-size: 26rem;
   align-items: center;
   gap: var(--space-2);
   min-block-size: var(--target-min);
 
+  & .slider {
+    flex: 1 1 6rem;
+    min-inline-size: 3rem;
+  }
+
+  & .slider__track {
+    background: var(--near-black);
+    outline: 1px solid var(--mid-gray);
+  }
+
   & .number-entry-box {
-    inline-size: 4rem;
-    border: var(--border-width-1) solid var(--mid-gray);
-    background: var(--light-yellow);
-    color: var(--near-black);
+    inline-size: 2.75rem;
+    color: var(--light-gray);
   }
 
   & .select {
@@ -200,10 +241,11 @@
 }
 
 .step-gen__says {
-  flex: 1 1 8rem;
+  flex: 0 1 auto;
   min-inline-size: 0;
-  font-size: var(--font-size-7);
-  text-align: end;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /*
@@ -217,13 +259,18 @@
   align-items: baseline;
   gap: var(--space-2);
   min-inline-size: 0;
-  block-size: 1.125rem;
+  block-size: 1.375rem;
   margin-block-start: var(--space-1);
   overflow: hidden;
-  font-size: 0.625rem;
-  line-height: 1.125rem;
+  font-size: var(--font-size-7);
+  line-height: 1.375rem;
   text-transform: uppercase;
   white-space: nowrap;
+
+  & b {
+    font-weight: var(--font-weight-heavy);
+    letter-spacing: 0.04em;
+  }
 }
 
 .lane__says {
@@ -252,7 +299,9 @@
     position: absolute;
     inset-inline: 0;
     inset-block-end: 0;
-    block-size: calc(var(--pos, 0) * 100%);
+
+    /* (never nothing: a lane whose values are at the foot of their range is still seen to be there) */
+    block-size: max(0.25rem, calc(var(--pos, 0) * 100%));
     background: var(--light-blue);
   }
 
@@ -269,36 +318,18 @@
   inline-size: 5.5rem;
 }
 
-/*
- * In a track's row the lanes are shown where the steps are one row of sixteen (a mouse, a wide list).
- * Where the steps wrap into rows of eight (a phone, a touch tablet) they are in the sequence pane only.
- * A track's lanes can be hidden from its row.
- */
-.track .lane__head,
-.track .lane__bar {
+/* A track's lanes can be hidden from its row (its Lanes button); they are always in the sequence pane. */
+.track[data-lanes="hidden"] .lane__head,
+.track[data-lanes="hidden"] .lane__bar {
   display: none;
 }
 
-/* the button that hides a track's lanes is only where they can be shown */
 .track__lanes {
-  display: none;
   grid-area: actions;
   justify-self: end;
   margin-inline-end: var(--target-min);
 }
 
-@media (pointer: fine) {
-  @container track-list (min-width: 36rem) {
-    .track__lanes {
-      display: inline-flex;
-    }
-
-    .track:not([data-lanes="hidden"]) .lane__head {
-      display: flex;
-    }
-
-    .track:not([data-lanes="hidden"]) .lane__bar {
-      display: block;
-    }
-  }
+.step-gen__dial--combine {
+  flex: 0 0 auto;
 }

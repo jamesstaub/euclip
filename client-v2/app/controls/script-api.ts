@@ -15,7 +15,7 @@
  * touch the DOM, the document or the app, so the same code can run inside the sandbox, with the host
  * interface carried over the sandbox's link.
  */
-import type { Bus, Node, ScopeApi } from 'cracked-up';
+import type { Bus, Duration, Node, ScopeApi } from 'cracked-up';
 import {
   BUFFER_OPTION,
   CHANNEL_BUS,
@@ -64,6 +64,8 @@ export interface ControlHost {
    * its value on the step now playing. Null for a control with a single value.
    */
   perStep(key: string): { value: number } | null;
+  /** a step grid's length and step length as set on the grid (the project's), where they have been */
+  gridShape(key: string): { length?: number; step?: string };
 }
 
 /** What a declaration returns to the script. */
@@ -587,28 +589,51 @@ export function createControlApi(
   ): ControlHandle {
     const key = stepGridKey(name);
     gridded.add(name);
+    const sequence = api.transport.get(name);
+    // The sequence as the script made it: read before anything here changes it.
+    const scripted = sequence
+      ? {
+          length: sequence.steps.length,
+          ...(sequence.options.step === undefined
+            ? {}
+            : { step: String(sequence.options.step) }),
+          ...(sequence.options.span === undefined
+            ? {}
+            : { span: String(sequence.options.span) }),
+        }
+      : undefined;
     host.declare({
       key,
       kind: 'stepGrid',
       bindings: [{ type: 'sequence', name }],
       nodes: [],
-      options,
+      options: scripted ? { ...options, sequenceShape: scripted } : options,
       implicit,
       line,
     });
     const stored = host.stored(key);
-    const sequence = api.transport.get(name);
-    if (sequence) {
+    if (sequence && scripted) {
       if (typeof sequence.options.steps === 'number') counted.add(name);
+      // The length and step length set on the grid (the project's) win over the script's numbers.
+      const shape = host.gridShape(key);
+      const length = gridLength(shape.length, scripted.length);
       // A sequence made with a count has no pattern of its own: its grid owns the pattern, and starts
       // empty. (Nothing is written into the project for that: only a step the person sets is.)
-      const code = counted.has(name)
-        ? sequence.steps.map(() => 0)
-        : sequence.steps;
+      const code = Array.from({ length }, (_, index) =>
+        counted.has(name) ? 0 : (sequence.steps[index] ?? 0),
+      );
+      const step =
+        shape.step !== undefined && scripted.span === undefined
+          ? { step: shape.step as Duration }
+          : {};
       if (Array.isArray(stored)) {
-        sequence.update({ steps: fitSteps(stored, code) });
-      } else if (counted.has(name)) {
-        sequence.update({ steps: code });
+        sequence.update({ steps: fitSteps(stored, code), ...step });
+      } else if (
+        counted.has(name) ||
+        length !== scripted.length ||
+        'step' in step
+      ) {
+        sequence.update({ steps: code, ...step });
       }
     }
     return {
@@ -869,6 +894,16 @@ export function createControlApi(
       }
     },
   };
+}
+
+/** The most steps a grid's Length dial gives a sequence. */
+export const GRID_LENGTH_MAX = 64;
+
+/** A grid's length: what is set on the grid when something is, held to 1..64; else the script's. */
+export function gridLength(set: number | undefined, scripted: number): number {
+  return typeof set === 'number' && Number.isFinite(set)
+    ? Math.min(GRID_LENGTH_MAX, Math.max(1, Math.round(set)))
+    : scripted;
 }
 
 /**

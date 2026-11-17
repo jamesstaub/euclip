@@ -82,13 +82,20 @@ type ValueCell =
       number: true;
       name: string;
       short: string;
+      mid: string;
       text: string;
       value: number;
       map: Mapping;
       position: number;
       faint: boolean;
     }
-  | { id: 'loop' | 'reverse'; number: false; name: string; short: string };
+  | {
+      id: 'loop' | 'reverse';
+      number: false;
+      name: string;
+      short: string;
+      mid: string;
+    };
 
 interface ValueGroup {
   id: 'speed' | 'time' | 'toggles';
@@ -455,6 +462,7 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
       id: HandleId | 'speed',
       name: string,
       short = name,
+      mid = short,
     ): ValueCell[] => {
       const control = this.control(id);
       const map = control
@@ -470,6 +478,7 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
           number: true,
           name,
           short,
+          mid,
           text: map.format(value),
           value,
           map,
@@ -484,7 +493,7 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
       name: string,
       short = name,
     ): ValueCell[] =>
-      this.control(id) ? [{ id, number: false, name, short }] : [];
+      this.control(id) ? [{ id, number: false, name, short, mid: short }] : [];
     // Left to right: the speed; the four places in the sound, which share a unit; the two switches.
     const groups: ValueGroup[] = [
       {
@@ -498,8 +507,8 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
         cells: [
           ...number('start', HANDLE_NAMES.start),
           ...number('end', HANDLE_NAMES.end),
-          ...number('loopStart', HANDLE_NAMES.loopStart, 'L start'),
-          ...number('loopEnd', HANDLE_NAMES.loopEnd, 'L end'),
+          ...number('loopStart', HANDLE_NAMES.loopStart, 'L start', 'Start'),
+          ...number('loopEnd', HANDLE_NAMES.loopEnd, 'L end', 'End'),
         ],
       },
       {
@@ -2189,6 +2198,10 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
                       class="waveform__label-short"
                       aria-hidden="true"
                     >{{cell.short}}</span>
+                    <span
+                      class="waveform__label-mid"
+                      aria-hidden="true"
+                    >{{cell.mid}}</span>
                   </span>
                   <NumberEntry
                     @text={{cell.text}}
@@ -2226,6 +2239,10 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
                       class="waveform__label-short"
                       aria-hidden="true"
                     >{{cell.short}}</span>
+                    <span
+                      class="waveform__label-mid"
+                      aria-hidden="true"
+                    >{{cell.mid}}</span>
                   </span>
                   {{#if (eq cell.id "loop")}}
                     <Toggle

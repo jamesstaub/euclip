@@ -1921,6 +1921,149 @@ waveform('#s');`;
     });
   });
 
+  module('a grid’s length and step length', function () {
+    const KEY = stepGridKey('s');
+    const SCRIPT = (steps = '8', more = '') =>
+      `__().sampler({ id: 's', buffer: 'loop' }).lowpass({ id: 'f', frequency: 1000 }).to('channel');
+__.transport.sequence('s', { steps: ${steps}, step: '1/16' }, () => {});
+stepGrid('s');
+${more}`;
+    const shape = (
+      h: Harness,
+      options: { length?: number; step?: string },
+    ): void =>
+      h.apply({ type: 'setControlOptions', scope: ONE, key: KEY, options });
+    const seq = (h: Harness) =>
+      h.engine.scope(ONE).scope('script').transport.get('s')!;
+
+    test('the script’s numbers are the defaults; what is set on the grid is stored, applied at once and on every run', async function (assert) {
+      const h = await startProject(oneTrack(SCRIPT()));
+      const view = grid(h, ONE, 's');
+      assert.deepEqual(
+        [
+          view.steps.length,
+          view.scriptLength,
+          view.lengthStored,
+          view.step,
+          view.scriptStep,
+          view.stepStored,
+          view.span,
+        ],
+        [8, 8, false, '1/16', '1/16', false, null],
+      );
+      move(h, ONE, KEY, [1, 0, 0, 1, 0, 0, 1, 1]);
+      shape(h, { length: 12 });
+      assert.deepEqual(
+        [...seq(h).steps],
+        [1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0],
+        'longer at once: the pattern kept, the new steps rests',
+      );
+      assert.true(grid(h, ONE, 's').lengthStored);
+      shape(h, { length: 5 });
+      assert.deepEqual([...seq(h).steps], [1, 0, 0, 1, 0]);
+      shape(h, { length: 8 });
+      assert.deepEqual(
+        [...seq(h).steps],
+        [1, 0, 0, 1, 0, 0, 1, 1],
+        'shortened and lengthened again: the steps that were hidden are back',
+      );
+      shape(h, { length: 12, step: '1/8t' });
+      assert.strictEqual(seq(h).options.step, '1/8t');
+      assert.strictEqual(grid(h, ONE, 's').step, '1/8t');
+      assert.true(grid(h, ONE, 's').stepStored);
+
+      // through a run of the script: the stored length and step length win over the script's
+      await h.runner.run(ONE);
+      assert.strictEqual(seq(h).steps.length, 12);
+      assert.strictEqual(seq(h).options.step, '1/8t');
+      assert.strictEqual(
+        grid(h, ONE, 's').scriptLength,
+        8,
+        'what the script says is still known',
+      );
+      assert.strictEqual(grid(h, ONE, 's').scriptStep, '1/16');
+
+      // forgotten: the script's again
+      shape(h, { length: undefined, step: undefined });
+      await h.runner.run(ONE);
+      assert.strictEqual(seq(h).steps.length, 8);
+      assert.strictEqual(seq(h).options.step, '1/16');
+      assert.deepEqual([...seq(h).steps], [1, 0, 0, 1, 0, 0, 1, 1]);
+      shape(h, { length: 999 });
+      assert.strictEqual(seq(h).steps.length, 64, 'held to 64');
+    });
+
+    test('an array in the script can be made longer or shorter too; a count stays the grid’s', async function (assert) {
+      const array = await startProject(oneTrack(SCRIPT('[1, 0, 1, 1]')));
+      shape(array, { length: 6 });
+      assert.deepEqual([...seq(array).steps], [1, 0, 1, 1, 0, 0]);
+      await array.runner.run(ONE);
+      assert.deepEqual(
+        [...seq(array).steps],
+        [1, 0, 1, 1, 0, 0],
+        'through a run',
+      );
+      shape(array, { length: 2 });
+      await array.runner.run(ONE);
+      assert.deepEqual([...seq(array).steps], [1, 0]);
+
+      const count = await startProject(oneTrack(SCRIPT('4')));
+      shape(count, { length: 6 });
+      await count.runner.run(ONE);
+      assert.deepEqual(
+        [...seq(count).steps],
+        [0, 0, 0, 0, 0, 0],
+        'still empty until it is filled',
+      );
+      assert.deepEqual(storedIn(count, ONE)[KEY], undefined);
+    });
+
+    test('what follows a sequence follows its length and step length: a synced speed, and a lane', async function (assert) {
+      // the loop is 4 s; 8 sixteenths at 120 are 1 s
+      const h = await startProject(
+        oneTrack(
+          SCRIPT(
+            '8',
+            "slider('#s', 'speed', { mode: 'sequence-sync' });\nslider('#f', 'frequency', { perStep: 's' });",
+          ),
+        ),
+      );
+      const speed = (): number =>
+        h.runner.sampler(ONE, 's')!.param('speed').value as number;
+      assert.true(Math.abs(speed() - 4) < 1e-6);
+      shape(h, { length: 16 });
+      assert.true(
+        Math.abs(speed() - 2) < 1e-6,
+        `twice as long: half the speed (${speed()})`,
+      );
+      assert.strictEqual(
+        h.runner.lanes(ONE, 's')[0]!.values.length,
+        16,
+        'the lane has a bar for every step',
+      );
+      shape(h, { length: 16, step: '1/8' });
+      assert.true(Math.abs(speed() - 1) < 1e-6, 'and with eighths, half again');
+      assert.strictEqual(h.runner.stepListenerCount, 1);
+    });
+
+    test('a sequence spread over a span has no step length to choose', async function (assert) {
+      const h = await startProject(
+        oneTrack(
+          `__.transport.sequence('s', { steps: 5, span: '1 bar' }, () => {});\nstepGrid('s');`,
+        ),
+      );
+      assert.strictEqual(grid(h, ONE, 's').span, '1 bar');
+      shape(h, { length: 7, step: '1/8' });
+      assert.strictEqual(seq(h).steps.length, 7, 'its length can change');
+      assert.strictEqual(
+        seq(h).options.step,
+        undefined,
+        'its step length is the span’s to say',
+      );
+      assert.strictEqual(seq(h).options.span, '1 bar');
+    });
+  });
+
   module('a value for every step', function () {
     const FREQ = '#f › frequency';
     // four steps, the first and third hits; the callback notes where the filter is on every step

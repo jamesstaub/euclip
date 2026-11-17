@@ -129,7 +129,6 @@
   --footer-max: 32rem;
   --source-width: 8rem;
   --step-size: 2rem;
-  --step-size-max: 3.5rem; /* when the grid wraps to 2 x 8 and its steps fill the width */
 
   /* the smallest box anything pressable gets */
   --target-min: 2rem;

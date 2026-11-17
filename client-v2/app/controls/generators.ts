@@ -19,6 +19,7 @@ import {
   onOffPattern,
   or,
   patternToString,
+  repeat,
   reverse,
   rotate,
   sieve,
@@ -63,9 +64,14 @@ export interface GeneratorState {
   base?: number[];
 }
 
-/** The largest number the binary dial offers: all of the steps on, up to 16 of them. */
-export function binaryMax(length: number): number {
-  return Math.pow(2, Math.min(16, Math.max(1, length))) - 1;
+/**
+ * The largest number the binary dial offers: 127, seven bits, as the original Euclip had. (Few enough
+ * values that a slider can be slid through them one at a time.)
+ */
+export const BINARY_MAX = 127;
+
+export function binaryMax(): number {
+  return BINARY_MAX;
 }
 
 const whole = (
@@ -80,12 +86,11 @@ const whole = (
 
 /** Dials to start from for a pattern that has none: ones that would make something like it. */
 export function defaultGenerator(steps: readonly number[]): GeneratorState {
-  const length = steps.length;
   return {
     kind: 'euclid',
     hits: countHits([...steps]),
     rotate: 0,
-    number: Math.min(binaryMax(length), binaryToNumber([...steps])),
+    number: Math.min(BINARY_MAX, binaryToNumber([...steps].slice(0, 7))),
     on: 1,
     off: 3,
     sieve: [
@@ -117,7 +122,7 @@ export function readGenerator(
       : base.kind,
     hits: whole(stored['hits'], 0, length, base.hits),
     rotate: whole(stored['rotate'], 0, Math.max(0, length - 1), 0),
-    number: whole(stored['number'], 0, binaryMax(length), base.number),
+    number: whole(stored['number'], 0, BINARY_MAX, base.number),
     on: whole(stored['on'], 0, length, base.on),
     off: whole(stored['off'], 0, length, base.off),
     sieve: [row(0), row(1)],
@@ -146,8 +151,12 @@ export function generate(state: GeneratorState, length: number): number[] {
   switch (state.kind) {
     case 'euclid':
       return fit(euclid(state.hits, length, state.rotate), length);
-    case 'binary':
-      return fit(binaryPattern(state.number, length), length);
+    case 'binary': {
+      // The number's own digits (no rests in front: 5 is x.x), over and over to the end of the grid.
+      // So a slow slide through the numbers is a slow change of a repeating figure. 0 is all rests.
+      const bits = binaryPattern(state.number);
+      return fit(repeat(bits, Math.ceil(length / bits.length)), length);
+    }
     case 'onoff': {
       const group = state.on + state.off;
       // (the group, as many times as it takes to fill the grid; what runs over the end is cut off)

@@ -19,6 +19,7 @@
 import type {
   BufferRef,
   Bus,
+  Duration,
   Engine,
   GraphError,
   Node,
@@ -57,6 +58,7 @@ import {
 import {
   createControlApi,
   fitSteps,
+  gridLength,
   type ControlHost,
 } from 'client-v2/controls/script-api';
 import { sameValue, type Operation } from 'client-v2/project/operations';
@@ -254,6 +256,15 @@ export interface StepGridView {
   line?: number;
   /** the dials of the generator last used on it, as stored (read with controls/generators.ts) */
   generator?: Record<string, unknown>;
+  /** how many steps the script gives it, and whether the grid's own Length is set (the project's) */
+  scriptLength: number;
+  lengthStored: boolean;
+  /** its step length now, the script's, and whether the grid's own is set; null: the transport's */
+  step: string | null;
+  scriptStep: string | null;
+  stepStored: boolean;
+  /** made with `span` (so many steps spread over a length): its step length is not one to choose */
+  span: string | null;
 }
 
 /** The names the editors' catalog is given from the live project. */
@@ -545,6 +556,16 @@ export class ProjectRunner {
       warn: (warning) => warnings.push(warning),
       moved: (key, value, glide) =>
         this.#movedByScript(runtime, key, value, glide ?? 0),
+      gridShape: (key) => {
+        const options = valuesOf(this.#host.getDoc(), scopeId)?.controls[key]
+          ?.options;
+        return {
+          ...(typeof options?.length === 'number'
+            ? { length: options.length }
+            : {}),
+          ...(typeof options?.step === 'string' ? { step: options.step } : {}),
+        };
+      },
       perStep: (key) => {
         const declaration =
           declared.get(key) ??
@@ -679,7 +700,11 @@ export class ProjectRunner {
       case 'setControlOptions': {
         // (a unit that is "synced to a sequence" changes what the stored number means)
         const runtime = this.#scopes.get(op.scope);
-        if (runtime) this.#resync(runtime);
+        if (runtime) {
+          // (a grid's length or step length: the sequence takes it, and what follows a sequence follows)
+          this.#applyGridShape(runtime, op.key);
+          this.#resync(runtime);
+        }
         // (a control may have gone per step, or back, or had a bar moved)
         this.#reconcileStepListeners();
         break;
@@ -1239,9 +1264,62 @@ export class ProjectRunner {
         disabled: runtime.errored.has(binding.name),
         view: declaration.options.view ?? 'toggles',
         ...(declaration.line === undefined ? {} : { line: declaration.line }),
+        scriptLength:
+          declaration.options.sequenceShape?.length ?? sequence.steps.length,
+        lengthStored:
+          typeof values?.controls[declaration.key]?.options?.length ===
+          'number',
+        step:
+          sequence.options.step === undefined
+            ? null
+            : String(sequence.options.step),
+        scriptStep: declaration.options.sequenceShape?.step ?? null,
+        stepStored:
+          typeof values?.controls[declaration.key]?.options?.step === 'string',
+        span: declaration.options.sequenceShape?.span ?? null,
       });
     }
     return views;
+  }
+
+  /**
+   * A grid's length or step length was set (or forgotten) on the grid: the sequence takes it now,
+   * keeping its place in the bar. What is set wins over the script's; with nothing set the script's
+   * own apply again, which is a matter of running the script.
+   */
+  #applyGridShape(runtime: ScopeRuntime, key: string): void {
+    const declaration = runtime.declarations.find((d) => d.key === key);
+    const binding = declaration?.bindings[0];
+    const scripted = declaration?.options.sequenceShape;
+    if (!declaration || binding?.type !== 'sequence' || !scripted) return;
+    const sequence = runtime.scope.transport.get(binding.name);
+    if (!sequence) return;
+    const state = valuesOf(this.#host.getDoc(), runtime.id)?.controls[key];
+    const length = gridLength(state?.options?.length, scripted.length);
+    const wantStep =
+      scripted.span === undefined ? (state?.options?.step ?? null) : null;
+    const nowStep =
+      sequence.options.step === undefined
+        ? null
+        : String(sequence.options.step);
+    const lengthSame = sequence.steps.length === length;
+    if (wantStep === null && nowStep !== (scripted.step ?? null)) {
+      // (back to the script's step length: only the script says what that is)
+      void this.run(runtime.id, true);
+      return;
+    }
+    if (lengthSame && (wantStep === null || wantStep === nowStep)) return;
+    const stored = state?.value;
+    const steps = Array.from({ length }, (_, index) =>
+      Array.isArray(stored)
+        ? (stored[index] ?? 0)
+        : (sequence.steps[index] ?? 0),
+    );
+    sequence.update({
+      steps,
+      ...(wantStep === null ? {} : { step: wantStep as Duration }),
+    });
+    runtime.stepMemory.delete(binding.name);
   }
 
   /** What the editors' catalog is to offer from the live project. */

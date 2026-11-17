@@ -41,6 +41,39 @@ const focusFirst = modifier<{ Element: HTMLElement }>((element) => {
   )?.focus();
 });
 
+/**
+ * A menu that opens above its button stands on the screen itself (not in the box that scrolls its
+ * button, which would cut it off): over the button where there is room, lower where there is not, and
+ * always inside the window. Worked out from where things are drawn and corrected by where the menu then
+ * is, so it does not matter what it is positioned against.
+ */
+const placeUp = modifier<{
+  Element: HTMLElement;
+  Args: { Positional: [up: boolean | undefined] };
+}>((menu, [up]) => {
+  const button = menu.parentElement?.querySelector<HTMLElement>(
+    '.popup-menu__button',
+  );
+  if (!up || !button) return;
+  menu.style.position = 'fixed';
+  menu.style.inset = 'auto';
+  menu.style.left = '0px';
+  menu.style.top = '0px';
+  const on = button.getBoundingClientRect();
+  const zero = menu.getBoundingClientRect();
+  const margin = 4;
+  const clamp = (value: number, low: number, high: number): number =>
+    Math.min(Math.max(value, low), Math.max(low, high));
+  const left = clamp(on.left, margin, window.innerWidth - margin - zero.width);
+  const top = clamp(
+    on.top - zero.height,
+    margin,
+    window.innerHeight - margin - zero.height,
+  );
+  menu.style.left = `${left - zero.left}px`;
+  menu.style.top = `${top - zero.top}px`;
+});
+
 export interface PopupMenuSignature {
   Element: HTMLDivElement;
   Args: {
@@ -123,6 +156,7 @@ export default class PopupMenu extends Component<PopupMenuSignature> {
           role="menu"
           aria-label={{@label}}
           data-test-menu
+          {{placeUp @up}}
           {{focusFirst}}
         >
           {{#each @items as |item|}}

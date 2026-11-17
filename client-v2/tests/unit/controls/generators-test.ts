@@ -37,12 +37,24 @@ module('Unit | Controls | generators', function () {
     );
     assert.strictEqual(
       written(generate(dials({ kind: 'binary', number: 5 }), 8)),
-      '.....x.x',
+      'x.xx.xx.',
+      'the number’s digits (x.x), repeated to fill',
     );
     assert.strictEqual(
-      written(generate(dials({ kind: 'binary', number: 255 }), 4)),
+      written(generate(dials({ kind: 'binary', number: 1 }), 4)),
       'xxxx',
-      'too big to fit: its front digits go',
+    );
+    assert.strictEqual(
+      written(generate(dials({ kind: 'binary', number: 0 }), 4)),
+      '....',
+    );
+    assert.strictEqual(
+      written(generate(dials({ kind: 'binary', number: 127 }), 16)),
+      'xxxxxxxxxxxxxxxx',
+    );
+    assert.strictEqual(
+      written(generate(dials({ kind: 'binary', number: 8 }), 16)),
+      'x...x...x...x...',
     );
     assert.strictEqual(
       written(generate(dials({ kind: 'onoff', on: 1, off: 3 }), 16)),
@@ -102,9 +114,7 @@ module('Unit | Controls | generators', function () {
       ),
       '....',
     );
-    assert.strictEqual(binaryMax(16), 65535);
-    assert.strictEqual(binaryMax(4), 15);
-    assert.strictEqual(binaryMax(32), 65535, 'capped at sixteen bits');
+    assert.strictEqual(binaryMax(), 127, 'seven bits, whatever the length');
   });
 
   test('a generated hit keeps the value its step had; a rest is 0', function (assert) {
@@ -206,7 +216,7 @@ module('Unit | Controls | generators', function () {
       kind: 'sieve',
       hits: 8,
       rotate: 0,
-      number: 255,
+      number: 127,
       on: 2,
       off: 3,
       sieve: [

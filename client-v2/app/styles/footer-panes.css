@@ -20,18 +20,55 @@
 
 /* ---- a sequence in the sequence pane ---- */
 
+/*
+ * The sequence pane: a card for each grid. A card is its header (name, count, the Length dial and the
+ * Step menu, Reset), its grid with any lanes under it in the same columns, and its generators.
+ *
+ * The grid is sixteen steps to a row, sized to the pane (a step is up to 2.5rem wide and a fixed
+ * height). Where the pane is wide the generators stand beside the grid and use the room there;
+ * otherwise they are under it. Opening Generate, or turning to another of its tabs, does not move the
+ * grid: the panel is under or beside it, and is one height whatever tab is showing.
+ */
+.sequence-pane {
+  container: sequence-pane / inline-size;
+}
+
+/* (the footer's menu already says "sequence": the heading is the "?" alone, taking no row of its own) */
+.sequence-pane .pane-heading {
+  float: inline-end;
+  padding-block: var(--space-1);
+
+  & > span {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
 .sequence-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "head"
+    "grid"
+    "gen";
+  align-items: start;
   margin-block-end: var(--space-2);
   border: var(--border-dark);
   background: var(--dark-yellow);
 }
 
 .sequence-card__head {
+  grid-area: head;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-1) var(--space-3);
   min-block-size: var(--target-min);
+  margin: 0;
   padding: var(--space-1) var(--space-2) 0;
   font-size: var(--font-size-7);
 
@@ -39,15 +76,82 @@
     font-weight: var(--font-weight-bold);
     text-transform: uppercase;
   }
+}
 
-  & .btn {
-    margin-inline-start: auto;
+/* the Length dial with its number, and the Step menu: each a fixed size, whatever it holds */
+.sequence-card__shape {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1);
+
+  & .knob {
+    inline-size: var(--target-min);
+    block-size: var(--target-min);
+  }
+
+  & .number-entry-box {
+    inline-size: 2.25rem;
+  }
+
+  & .select {
+    inline-size: 8.5rem;
+    min-block-size: var(--target-min);
+    font-size: var(--font-size-7);
   }
 }
 
-/* the card is the grid's frame: without the grid's own side padding a phone's steps stay 44px */
-.sequence-card .step-grid {
+.sequence-card__label {
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+}
+
+/* what the script says, where the grid says otherwise */
+.sequence-card__script {
+  flex: 0 1 auto;
+  min-inline-size: 0;
+  opacity: 0.8;
+}
+
+.sequence-card__code {
+  margin-inline-start: auto;
+}
+
+.sequence-card > .step-grid {
+  --step-w: 2.5rem;
+  --step-h: 2.25rem;
+
+  grid-area: grid;
   padding-inline: var(--space-1);
+}
+
+.sequence-card > .step-gen {
+  grid-area: gen;
+  min-inline-size: 0;
+}
+
+@media (pointer: coarse) {
+  .sequence-card > .step-grid {
+    --step-h: var(--target-min);
+  }
+}
+
+/* wide: the generators beside the grid */
+@container sequence-pane (min-width: 72rem) {
+  .sequence-card {
+    grid-template-columns:
+      minmax(0, calc(16 * 2.5rem + 2 * var(--space-1)))
+      minmax(28rem, 1fr);
+    grid-template-areas:
+      "head head"
+      "grid gen";
+    column-gap: var(--space-2);
+  }
+
+  .sequence-card > .step-gen {
+    margin-block: var(--space-2);
+    margin-inline-end: var(--space-2);
+  }
 }
 
 /* ---- nothing to show ---- */

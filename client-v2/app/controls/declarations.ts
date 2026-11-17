@@ -35,6 +35,11 @@ export interface ControlOptions {
    * is kept of that is the control's key, in `glideFrom`.
    */
   glide?: number;
+  /**
+   * A step grid: its sequence as the script made it (how many steps, and its step length or span), noted
+   * when the grid was declared, before a length or step length set on the grid was applied.
+   */
+  sequenceShape?: { length: number; step?: string; span?: string };
   /** the key of the control of its own whose value is this control's glide, read at every move */
   glideFrom?: string;
   /**
@@ -393,6 +398,7 @@ export const CONTROL_FUNCTIONS: readonly ControlFunction[] = [
     description:
       "Declares a step grid for a named sequence of this script: stepGrid('steps'). Put it after the " +
       "__.transport.sequence('steps', …) call. Give the sequence a count, { steps: 16 }, and the grid owns the pattern: it starts empty and plays what is set in it. " +
+      "The number of steps and the step length written there ({ steps: 16, step: '1/16' }) are the defaults: the grid has a Length dial and a Step menu, and what is set on them is kept in the project. " +
       'Give it a pattern, { steps: [1, 0, 0, 0] }, and that is the default. Either way a pattern edited ' +
       'in the grid is stored in the project and applied here when the script runs. A sequence has a grid only if a stepGrid() line, or controls(), declares one; a count with no grid plays every step. ' +
       'Returns the control: .value is the steps, .set(steps) changes grid and sequence together. Options: label, view.',
