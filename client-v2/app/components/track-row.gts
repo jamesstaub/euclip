@@ -69,19 +69,51 @@ export default class TrackRow extends Component<TrackRowSignature> {
     return this.audio.error(this.args.track.id)?.message;
   }
 
-  /** The track has per-step controls: their lanes are under its grids, and can be hidden from its row. */
-  get hasLanes(): boolean {
-    return this.stepGrids.some(
-      (grid) => this.audio.lanes(this.args.track.id, grid.name).length > 0,
+  /** The track's per-step controls, as lanes (the sequence pane shows them all; the row shows one). */
+  get laneChoices(): { key: string; label: string }[] {
+    return this.stepGrids.flatMap((grid) =>
+      this.audio
+        .lanes(this.args.track.id, grid.name)
+        .map((lane) => ({ key: lane.key, label: lane.label })),
     );
   }
 
-  get lanesHidden(): boolean {
-    return !this.view.isSectionOpen(this.args.track.id, '~lanes');
+  /** The lane the row shows: the one chosen, else (or if it is gone) the first; '' for none. */
+  get laneKey(): string {
+    const chosen = this.view.chosenLane(this.args.track.id);
+    if (chosen === '') return '';
+    const choices = this.laneChoices;
+    return (
+      choices.find((lane) => lane.key === chosen)?.key ?? choices[0]?.key ?? ''
+    );
   }
 
-  toggleLanes = (): void => {
-    this.view.setSectionOpen(this.args.track.id, '~lanes', this.lanesHidden);
+  get laneText(): string {
+    const lane = this.laneChoices.find((entry) => entry.key === this.laneKey);
+    return `Lane: ${lane?.label ?? 'none'}`;
+  }
+
+  get laneItems(): MenuItem[] {
+    const now = this.laneKey;
+    return [
+      ...this.laneChoices.map((lane) => ({
+        label: lane.label,
+        checked: lane.key === now,
+        onSelect: () => this.view.chooseLane(this.args.track.id, lane.key),
+      })),
+      {
+        label: 'None',
+        checked: now === '',
+        separated: true,
+        onSelect: () => this.view.chooseLane(this.args.track.id, null),
+      },
+    ];
+  }
+
+  @tracked laneMenuOpen = false;
+
+  setLaneMenuOpen = (open: boolean): void => {
+    this.laneMenuOpen = open;
   };
 
   openGenerators = (): void => {
@@ -131,7 +163,6 @@ export default class TrackRow extends Component<TrackRowSignature> {
       aria-label="Track {{@order}}, {{@track.name}}"
       aria-current={{if @selected "true"}}
       data-error={{if this.error "true"}}
-      data-lanes={{if this.lanesHidden "hidden"}}
       data-test-track={{@order}}
       data-track-id={{@track.id}}
       ...attributes
@@ -180,7 +211,12 @@ export default class TrackRow extends Component<TrackRowSignature> {
               {{#if (more this.stepGrids)}}
                 <span class="track__grid-name truncate">{{grid.label}}</span>
               {{/if}}
-              <Grid @scopeId={{@track.id}} @control={{grid}} @lanes={{true}} />
+              <Grid
+                @scopeId={{@track.id}}
+                @control={{grid}}
+                @lanes={{true}}
+                @laneKey={{this.laneKey}}
+              />
             </div>
           {{else}}
             <p class="track__no-grid" data-test-no-step-grid>No step grid
@@ -188,15 +224,15 @@ export default class TrackRow extends Component<TrackRowSignature> {
           {{/each}}
         </div>
 
-        {{#if this.hasLanes}}
-          <button
-            type="button"
-            class="btn btn--s btn--quiet track__lanes"
-            aria-pressed={{if this.lanesHidden "false" "true"}}
-            title="Show or hide this track's per-step lanes"
-            data-test-track-lanes
-            {{on "click" this.toggleLanes}}
-          >Lanes</button>
+        {{#if this.laneChoices.length}}
+          <PopupMenu
+            class="track__lanes"
+            @label="Track {{@order}} per-step lane"
+            @text={{this.laneText}}
+            @items={{this.laneItems}}
+            @open={{this.laneMenuOpen}}
+            @onOpenChange={{this.setLaneMenuOpen}}
+          />
         {{/if}}
         <PopupMenu
           class="track__actions"

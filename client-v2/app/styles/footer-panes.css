@@ -21,13 +21,13 @@
 /* ---- a sequence in the sequence pane ---- */
 
 /*
- * The sequence pane: a card for each grid. A card is its header (name, count, the Length dial and the
- * Step menu, Reset), its grid with any lanes under it in the same columns, and its generators.
+ * The sequence pane: a card for each grid. A card is its header (name, the Length dial and the Step
+ * menu, Reset), its generators (always shown), and under them its grid with any lanes in the same
+ * columns.
  *
  * The grid is sixteen steps to a row, sized to the pane (a step is up to 2.5rem wide and a fixed
- * height). Where the pane is wide the generators stand beside the grid and use the room there;
- * otherwise they are under it. Opening Generate, or turning to another of its tabs, does not move the
- * grid: the panel is under or beside it, and is one height whatever tab is showing.
+ * height). Turning to another generator tab does not move the grid: the dials are one height
+ * whatever tab is showing.
  */
 .sequence-pane {
   container: sequence-pane / inline-size;
@@ -53,8 +53,8 @@
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
     "head"
-    "grid"
-    "gen";
+    "gen"
+    "grid";
   align-items: start;
   margin-block-end: var(--space-2);
   border: var(--border-dark);
@@ -92,6 +92,7 @@
 
   & .number-entry-box {
     inline-size: 2.25rem;
+    font-variant-numeric: tabular-nums;
   }
 
   & .select {
@@ -108,8 +109,15 @@
 
 /* what the script says, where the grid says otherwise */
 .sequence-card__script {
-  flex: 0 1 auto;
-  min-inline-size: 0;
+  /* (a cell of its own size, there whether it says anything or not: its coming and going moves nothing) */
+  flex: none;
+  inline-size: 15rem;
+  max-inline-size: 100%;
+  min-block-size: 1lh;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
   opacity: 0.8;
 }
 
@@ -133,24 +141,6 @@
 @media (pointer: coarse) {
   .sequence-card > .step-grid {
     --step-h: var(--target-min);
-  }
-}
-
-/* wide: the generators beside the grid */
-@container sequence-pane (min-width: 72rem) {
-  .sequence-card {
-    grid-template-columns:
-      minmax(0, calc(16 * 2.5rem + 2 * var(--space-1)))
-      minmax(28rem, 1fr);
-    grid-template-areas:
-      "head head"
-      "grid gen";
-    column-gap: var(--space-2);
-  }
-
-  .sequence-card > .step-gen {
-    margin-block: var(--space-2);
-    margin-inline-end: var(--space-2);
   }
 }
 

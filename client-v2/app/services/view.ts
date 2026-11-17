@@ -24,6 +24,7 @@ interface Stored {
   footerPane?: unknown;
   collapsed?: unknown;
   snaps?: unknown;
+  lanes?: unknown;
 }
 
 function readStored(): Stored {
@@ -119,6 +120,31 @@ export default class ViewService extends Service {
 
   chooseSnap(scopeId: string, waveform: string, snap: string): void {
     this.snaps = { ...this.snaps, [`${scopeId}/${waveform}`]: snap };
+    this.#save();
+  }
+
+  /**
+   * The per-step lane a track's row shows (at most one), by track: a control's key, or '' for none.
+   * One not listed has not been chosen: the row shows the first. Remembered; nothing to undo.
+   */
+  @tracked private lanes: Readonly<Record<string, string>> =
+    this.#stored.lanes &&
+    typeof this.#stored.lanes === 'object' &&
+    !Array.isArray(this.#stored.lanes)
+      ? Object.fromEntries(
+          Object.entries(this.#stored.lanes).filter(
+            (entry): entry is [string, string] => typeof entry[1] === 'string',
+          ),
+        )
+      : {};
+
+  chosenLane(scopeId: string): string | undefined {
+    return this.lanes[scopeId];
+  }
+
+  chooseLane(scopeId: string, key: string | null): void {
+    if (this.lanes[scopeId] === (key ?? '')) return;
+    this.lanes = { ...this.lanes, [scopeId]: key ?? '' };
     this.#save();
   }
 
@@ -237,6 +263,7 @@ export default class ViewService extends Service {
           collapsed: this.collapsed,
           waveforms: this.waveforms,
           snaps: this.snaps,
+          lanes: this.lanes,
         }),
       );
     } catch {

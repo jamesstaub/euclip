@@ -21,11 +21,6 @@ import selectOptions, {
 import type AudioService from 'client-v2/services/audio';
 import type ViewService from 'client-v2/services/view';
 
-function countOf(grid: StepGridView): string {
-  const on = grid.steps.filter((value) => value !== 0).length;
-  return `${on} of ${grid.steps.length} steps on`;
-}
-
 const Grid = stepGridWidget().component;
 
 /** How many steps a grid's Length dial gives: 1 to 64. */
@@ -199,7 +194,6 @@ export default class SequencePane extends Component<SequencePaneSignature> {
         <div class="sequence-card" data-test-sequence={{grid.name}}>
           <div class="sequence-card__head">
             <b class="truncate">{{grid.label}}</b>
-            <span>{{countOf grid}}</span>
             {{#if grid.disabled}}
               <span data-test-sequence-disabled>stopped by an error</span>
             {{/if}}

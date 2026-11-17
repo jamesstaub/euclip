@@ -15,9 +15,6 @@ import onOutside from 'client-v2/modifiers/on-outside';
 import type AudioService from 'client-v2/services/audio';
 import type ViewService from 'client-v2/services/view';
 
-/** The name a track's lanes are opened and closed under, with its other sections (services/view.ts). */
-export const LANES_SECTION = '~lanes';
-
 export interface ControlRowSignature {
   Element: HTMLLIElement;
   Args: {
@@ -183,10 +180,16 @@ export default class ControlRow extends Component<ControlRowSignature> {
     return per?.missing ? per.sequence : undefined;
   }
 
-  /** Shows the lane: the sequence pane, where every grid has its lanes under it. */
+  /** Shows the lane in the track's row (its lane menu's choice), bringing the row into view. */
   showLane = (): void => {
-    this.view.setSectionOpen(this.args.scopeId, LANES_SECTION, true);
-    this.view.setFooterPane('sequence');
+    this.view.chooseLane(this.args.scopeId, this.args.control.key);
+    const id = this.args.scopeId;
+    // (the row is redrawn with the lane first)
+    void Promise.resolve().then(() => {
+      [...document.querySelectorAll<HTMLElement>('[data-track-id]')]
+        .find((row) => row.dataset['trackId'] === id)
+        ?.scrollIntoView({ block: 'nearest' });
+    });
   };
 
   openMenu = (): void => {

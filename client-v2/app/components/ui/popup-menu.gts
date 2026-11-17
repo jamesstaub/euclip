@@ -83,6 +83,8 @@ export interface PopupMenuSignature {
     /** the menu is controlled: whoever owns it says whether it is open (so a long press can open it) */
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    /** a word or two on the button, in place of the dots (a menu that says what is chosen) */
+    text?: string;
     /** the menu opens above its button (for one at the foot of a pane) */
     up?: boolean;
   };
@@ -141,14 +143,17 @@ export default class PopupMenu extends Component<PopupMenuSignature> {
     >
       <button
         type="button"
-        class="icon-btn popup-menu__button"
+        class="{{if @text 'btn btn--s btn--quiet' 'icon-btn'}}
+          popup-menu__button"
         aria-label={{@label}}
         aria-haspopup="menu"
         aria-expanded={{if @open "true" "false"}}
         data-test-menu-button
         {{on "click" this.toggle}}
       >
-        <Icon @name="dots" />
+        {{#if @text}}<span class="truncate">{{@text}}</span>{{else}}<Icon
+            @name="dots"
+          />{{/if}}
       </button>
       {{#if @open}}
         <ul

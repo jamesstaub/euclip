@@ -53,7 +53,25 @@ module('Unit | Service | view', function (hooks) {
         collapsed: [],
         waveforms: {},
         snaps: {},
+        lanes: {},
       },
+    );
+  });
+
+  test('the lane a track’s row shows is remembered per track; none is kept apart from not chosen', function (assert) {
+    const view = this.owner.lookup('service:view');
+    assert.strictEqual(view.chosenLane('a'), undefined);
+    view.chooseLane('a', 'q');
+    view.chooseLane('b', null);
+    assert.strictEqual(view.chosenLane('a'), 'q');
+    assert.strictEqual(view.chosenLane('b'), '');
+    assert.deepEqual(
+      (
+        JSON.parse(window.localStorage.getItem(VIEW_STORAGE_KEY) ?? 'null') as {
+          lanes: unknown;
+        }
+      ).lanes,
+      { a: 'q', b: '' },
     );
   });
 

@@ -474,16 +474,21 @@ stepGrid('ones');
       assert
         .dom('[data-test-track="1"] [data-test-generators]')
         .doesNotExist('the track row’s compact grid is steps only');
-      assert.dom(`${gen} [data-test-gen-summary]`).includesText('4 of 16');
-      assert
-        .dom(`${gen} [data-test-gen-summary]`)
-        .includesText('x...x...x...x...');
+      assert.dom('[data-test-gen-summary]').doesNotExist('no summary line');
+      assert.dom('[data-test-gen-toggle]').doesNotExist('no Generate toggle');
       assert
         .dom(`${gen} [data-test-gen-panel]`)
-        .doesNotExist('the dials are behind Generate');
-      assert.dom(`${gen} [data-test-gen-edited]`).doesNotExist();
-
-      await click(`${gen} [data-test-gen-toggle]`);
+        .exists('the dials are always shown');
+      assert.strictEqual(
+        findAll(
+          '[data-test-pane="sequence"] [data-test-generators], [data-test-pane="sequence"] [data-test-step-grid]',
+        )[0]?.getAttribute('data-test-generators'),
+        'steps',
+        'the generators come before the grid in the card',
+      );
+      assert
+        .dom('[data-test-pane="sequence"] [data-test-sequence="steps"] ')
+        .doesNotIncludeText('steps on', 'no count in the header');
       assert.deepEqual(
         findAll(`${gen} [data-test-gen-tab]`).map(
           (tab) =>
@@ -517,7 +522,6 @@ stepGrid('ones');
         5,
         'the track row’s grid follows',
       );
-      assert.dom(`${gen} [data-test-gen-says]`).hasText('5 of 16, rotate 0');
       assert.strictEqual(options()?.['hits'], 5);
       assert.strictEqual(options()?.['made'], five);
 
@@ -573,7 +577,6 @@ stepGrid('ones');
       // a step changed by hand: "edited", and nothing is overwritten until a dial moves
       await click('[data-test-pane="sequence"] [data-test-step="1"]');
       const byHand = pattern();
-      assert.dom(`${gen} [data-test-gen-edited]`).exists();
       assert.strictEqual(pattern(), byHand);
 
       // another generator: its tab shows its dials, and writes when one moves
@@ -589,14 +592,12 @@ stepGrid('ones');
         'x..x..x..x..x..x',
         'one on, two off, repeated to fill',
       );
-      assert.dom(`${gen} [data-test-gen-edited]`).doesNotExist();
 
       // the dials are remembered with the grid: the pane redrawn shows the same tab and numbers
       view.footerPane = 'controls';
       await settled();
       view.footerPane = 'sequence';
       await settled();
-      await click(`${gen} [data-test-gen-toggle]`);
       assert
         .dom(`${gen} [data-test-gen-tab="onoff"]`)
         .hasAria('selected', 'true');
@@ -638,7 +639,6 @@ stepGrid('ones');
       assert.strictEqual(steps()[4], 7);
 
       // Or: the generated rhythm is laid over what is there; the 7 stays on its step
-      await click(`${gen} [data-test-gen-toggle]`);
       await select(`${gen} [data-test-gen-combine]`, 'or');
       assert.strictEqual(
         pattern(),
@@ -692,7 +692,6 @@ stepGrid('ones');
       assert.dom('[data-test-generators]').exists({ count: 2 });
       // the array in the script is the default; a generated pattern is stored and wins
       const fill = '[data-test-generators="fill"]';
-      await click(`${fill} [data-test-gen-toggle]`);
       await triggerKeyEvent(
         `${fill} [data-test-gen-dial="hits"] [data-test-slider]`,
         'keydown',
@@ -705,8 +704,10 @@ stepGrid('ones');
       );
       assert.true(audio.stepGrids('t-kick')[1]!.stored);
       assert
-        .dom('[data-test-generators="steps"] [data-test-gen-summary]')
-        .includesText('4 of 16', 'the other grid is as it was');
+        .dom(
+          '[data-test-generators="steps"] [data-test-gen-dial="hits"] [data-test-number-entry]',
+        )
+        .hasText('4', 'the other grid is as it was');
     });
 
     test('a slider set to “Per step” becomes a lane under its sequence’s grid: bars in the steps’ columns, painted by a drag, one step to undo', async function (assert) {
@@ -732,9 +733,14 @@ stepGrid('ones');
       assert.dom(`${row(FREQUENCY)} [data-test-slider]`).doesNotExist();
       assert.dom(`${row(FREQUENCY)} [data-test-menu-button]`).exists();
       await click(`${row(FREQUENCY)} [data-test-show-lane]`);
-      assert
-        .dom('[data-test-pane="sequence"]')
-        .exists('the sequence pane, where the lane is');
+      assert.strictEqual(
+        view.footerPane,
+        'controls',
+        'Show lane leaves the footer tab alone',
+      );
+      assert.strictEqual(view.chosenLane('t-kick'), FREQUENCY);
+      view.footerPane = 'sequence';
+      await settled();
 
       const pane = '[data-test-pane="sequence"] [data-test-step-grid="steps"]';
       assert
@@ -827,10 +833,21 @@ stepGrid('ones');
         .dom('[data-test-track="1"] [data-lane-step]')
         .exists({ count: 16 });
       assert.dom('[data-test-track="2"] [data-lane-step]').doesNotExist();
-      await click('[data-test-track="1"] [data-test-track-lanes]');
-      assert.dom('[data-test-track="1"]').hasAttribute('data-lanes', 'hidden');
-      await click('[data-test-track="1"] [data-test-track-lanes]');
-      assert.dom('[data-test-track="1"]').doesNotHaveAttribute('data-lanes');
+      await click(
+        '[data-test-track="1"] .track__lanes [data-test-menu-button]',
+      );
+      assert
+        .dom('[data-test-track="1"] .track__lanes')
+        .includesText('frequency');
+      await click('[data-test-track="1"] [data-test-menu-item="None"]');
+      assert.dom('[data-test-track="1"] [data-lane-step]').doesNotExist();
+      await click(
+        '[data-test-track="1"] .track__lanes [data-test-menu-button]',
+      );
+      await click('[data-test-track="1"] [data-test-menu-item="frequency"]');
+      assert
+        .dom('[data-test-track="1"] [data-lane-step]')
+        .exists({ count: 16 });
       view.footerPane = 'controls';
       await settled();
       await click(`${row(FREQUENCY)} [data-test-menu-button]`);
@@ -844,6 +861,78 @@ stepGrid('ones');
       assert
         .dom('[data-test-track="1"] [data-lane-step]')
         .exists({ count: 16 }, 'undo: per step again, its values with it');
+    });
+
+    test('a track row shows one lane, chosen from its lane menu; Show lane chooses it without leaving the controls tab', async function (assert) {
+      view.footerPane = 'controls';
+      await render(<template><AppShell /></template>);
+      const Q = controlKey('#filter', 'q');
+      const track = '[data-test-track="1"]';
+      assert.dom(`${track} .track__lanes`).doesNotExist('no per-step control');
+      for (const key of [FREQUENCY, Q]) {
+        await click(`${row(key)} [data-test-menu-button]`);
+        await click('[data-test-menu-item="Per step"]');
+      }
+      assert
+        .dom(`${track} .track__lanes`)
+        .includesText('Lane: frequency', 'the first, to begin with');
+      assert
+        .dom(`${track} [data-lane-step]`)
+        .exists({ count: 16 }, 'one lane, not both');
+      assert.dom(`${track} [data-test-lane]`).exists({ count: 1 });
+
+      await click(`${track} .track__lanes [data-test-menu-button]`);
+      assert.deepEqual(
+        findAll(`${track} [data-test-menu-item]`).map((item) =>
+          item.textContent.trim(),
+        ),
+        ['frequency', 'q', 'None'],
+      );
+      await click(`${track} [data-test-menu-item="None"]`);
+      assert.dom(`${track} [data-lane-step]`).doesNotExist();
+      assert.dom(`${track} .track__lanes`).includesText('Lane: none');
+
+      await click(`${row(Q)} [data-test-show-lane]`);
+      assert.strictEqual(view.footerPane, 'controls', 'the tab is unchanged');
+      assert.dom(`${track} [data-test-lane="${Q}"]`).exists();
+      assert.dom(`${track} [data-test-lane]`).exists({ count: 1 });
+      assert.dom(`${track} .track__lanes`).includesText('Lane: q');
+    });
+
+    test('the sequence card header does not move when the length changes, and the generators stand above the grid', async function (assert) {
+      view.footerPane = 'sequence';
+      await render(<template><AppShell /></template>);
+      const card = '[data-test-pane="sequence"] [data-test-sequence="steps"]';
+      const boxes = (): string =>
+        findAll(`${card} .sequence-card__head > *`)
+          .map((el) => {
+            const box = el.getBoundingClientRect();
+            return `${box.left.toFixed(1)}+${box.width.toFixed(1)}`;
+          })
+          .join(' ');
+      const length = async (value: string): Promise<void> => {
+        await click(`${card} [data-test-grid-length] [data-test-number-entry]`);
+        await fillIn(
+          `${card} [data-test-grid-length] [data-test-number-input]`,
+          value,
+        );
+        await triggerKeyEvent(
+          `${card} [data-test-grid-length] [data-test-number-input]`,
+          'keydown',
+          'Enter',
+        );
+      };
+      await length('9');
+      const nine = boxes();
+      await length('10');
+      assert.strictEqual(boxes(), nine, '9 to 10: nothing moves or resizes');
+      assert.dom(`${card} [data-test-grid-script]`).exists('the note’s cell');
+      const gen = find(`${card} [data-test-generators]`)!;
+      const grid = find(`${card} [data-test-step-grid]`)!;
+      assert.true(
+        gen.getBoundingClientRect().bottom <= grid.getBoundingClientRect().top,
+        'the generators are above the grid',
+      );
     });
 
     test('a grid has a Length dial and a Step menu: stored with the grid, applied at once, and Reset returns to the script’s', async function (assert) {
@@ -915,7 +1004,6 @@ stepGrid('ones');
 
       // the generator's dials refit: five of twelve becomes five of sixteen
       const gen = `${card} [data-test-generators="steps"]`;
-      await click(`${gen} [data-test-gen-toggle]`);
       for (let i = 0; i < 2; i++) {
         await triggerKeyEvent(
           `${gen} [data-test-gen-dial="hits"] [data-test-slider]`,
@@ -923,7 +1011,9 @@ stepGrid('ones');
           'ArrowUp',
         );
       }
-      assert.dom(`${gen} [data-test-gen-says]`).hasText('5 of 12, rotate 0');
+      assert
+        .dom(`${gen} [data-test-gen-dial="hits"] [data-test-number-entry]`)
+        .hasText('5');
       await click(`${card} [data-test-grid-length] [data-test-number-entry]`);
       await fillIn(
         `${card} [data-test-grid-length] [data-test-number-input]`,
@@ -934,13 +1024,14 @@ stepGrid('ones');
         'keydown',
         'Enter',
       );
-      assert.dom(`${gen} [data-test-gen-says]`).hasText('5 of 16, rotate 0');
+      assert
+        .dom(`${gen} [data-test-gen-dial="hits"] [data-test-number-entry]`)
+        .hasText('5');
       assert.strictEqual(
         pressedSteps(1).length,
         5,
         'made again for the new length',
       );
-      assert.dom(`${gen} [data-test-gen-edited]`).doesNotExist();
 
       // Reset: the pattern, the length and the step length, in one step
       await select(`${card} [data-test-grid-step]`, '1/8');
@@ -2085,6 +2176,32 @@ slider(__.bus('drums'), 'gain');
       assert
         .dom('[data-test-track="output"] [data-test-menu-button]')
         .doesNotExist('the main output cannot be removed');
+    });
+
+    test('removing the selected track from its menu moves the selection to a neighbour; Undo brings it back with its values; Pattern generators selects the track and shows the sequence pane', async function (assert) {
+      view.footerPane = 'controls';
+      await render(<template><AppShell /></template>);
+      await click('[data-test-track="2"] [data-test-track-select]');
+      assert.dom('[data-test-track="2"]').hasAttribute('aria-current', 'true');
+      await click('[data-test-track="2"] [data-test-menu-button]');
+      await click('[data-test-track="2"] [data-test-menu-item="Remove"]');
+      assert.dom('[data-test-track]').exists({ count: 3 });
+      assert
+        .dom('[data-test-track="2"]')
+        .hasAttribute('aria-current', 'true', 'the next track is selected');
+      assert.dom('[data-test-track="2"] [data-test-track-name]').hasText('hat');
+      await click('[data-test-undo]');
+      assert
+        .dom('[data-test-track="2"] [data-test-track-name]')
+        .hasText('snare');
+      assert.deepEqual(pressedSteps(2), [4, 12, 15], 'its pattern is back');
+
+      await click('[data-test-track="1"] [data-test-menu-button]');
+      await click(
+        '[data-test-track="1"] [data-test-menu-item="Pattern generators"]',
+      );
+      assert.strictEqual(view.footerPane, 'sequence');
+      assert.dom('[data-test-track="1"]').hasAttribute('aria-current', 'true');
     });
 
     test('the tempo field is the person’s while they type in it: nothing writes into it until they are done', async function (assert) {
