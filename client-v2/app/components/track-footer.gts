@@ -8,7 +8,6 @@ import CodeEditor from 'client-v2/components/code-editor';
 import ControlsPane from 'client-v2/components/controls-pane';
 import Icon, { type IconName } from 'client-v2/components/icon';
 import SequencePane from 'client-v2/components/sequence-pane';
-import SignalChainPane from 'client-v2/components/signal-chain-pane';
 import SourcePane from 'client-v2/components/source-pane';
 import type { ScriptError } from 'client-v2/audio/runner';
 import type { LineProblem } from 'client-v2/modifiers/mount-editor';
@@ -20,23 +19,12 @@ import type { FooterPane } from 'client-v2/services/view';
 
 const BODY_ID = 'track-footer-body';
 
-// v1's three views of a track, and its signal chain first.
-const TABS: readonly {
-  pane: FooterPane;
-  label: string;
-  icon: IconName;
-  large?: boolean;
-}[] = [
-  { pane: 'chain', label: 'signal chain', icon: 'chain' },
-  { pane: 'source', label: 'source', icon: 'sound' },
-  { pane: 'controls', label: 'controls', icon: 'automation', large: true },
-  { pane: 'sequence', label: 'sequence', icon: 'squares' },
+// v1's three views of a track.
+const TABS: readonly { pane: FooterPane; icon: IconName; large?: boolean }[] = [
+  { pane: 'source', icon: 'sound' },
+  { pane: 'controls', icon: 'automation', large: true },
+  { pane: 'sequence', icon: 'squares' },
 ];
-
-/** The main output has no sources or sequences of its own: its buses, and their controls. */
-const MASTER_TABS = TABS.filter(
-  (tab) => tab.pane === 'chain' || tab.pane === 'controls',
-);
 
 function is(a: string, b: string): boolean {
   return a === b;
@@ -81,6 +69,13 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
     return this.args.track ? `${this.name} script` : 'Project script';
   }
 
+  /** The Script button's name; it says so when the script has an error, which nothing else shows. */
+  get scriptButtonLabel(): string {
+    return this.error
+      ? `${this.scriptLabel}: Script has an error`
+      : this.scriptLabel;
+  }
+
   get error(): ScriptError | null {
     return this.audio.error(this.scopeId);
   }
@@ -116,6 +111,11 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
     return this.error !== null || this.warnings.length > 0;
   }
 
+  /** The strip is for the script's own view; closed, an error is only a mark on the Script button. */
+  get showStatus(): boolean {
+    return this.view.footerOpen && this.view.scriptOpen;
+  }
+
   /** The whole of a long message is shown, instead of one line of it. */
   @tracked statusOpen = false;
 
@@ -125,12 +125,6 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
 
   isChosen = (pane: FooterPane): 'true' | 'false' =>
     this.view.footerPane === pane ? 'true' : 'false';
-
-  /** The main output's pane: its chain if that was chosen, else its controls (the only other it has). */
-  isMasterChosen = (pane: FooterPane): 'true' | 'false' =>
-    (this.view.footerPane === 'chain') === (pane === 'chain')
-      ? 'true'
-      : 'false';
 
   choosePane = (pane: FooterPane): void => this.view.setFooterPane(pane);
   toggleScript = (): void => this.view.toggleScript();
@@ -156,7 +150,7 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
         <button
           type="button"
           class="btn btn--s btn--on-yellow track-footer__script-btn"
-          aria-label={{this.scriptLabel}}
+          aria-label={{this.scriptButtonLabel}}
           aria-pressed={{if this.view.scriptOpen "true" "false"}}
           data-test-script-toggle
           {{on "click" this.toggleScript}}
@@ -164,7 +158,12 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
           <Icon @name="code" />
           <span class="track-footer__btn-label">Script</span>
           {{#if this.error}}
-            <span class="track-footer__alert" aria-hidden="true">!</span>
+            <span
+              class="track-footer__alert"
+              title="Script has an error"
+              data-test-script-alert
+              aria-hidden="true"
+            >!</span>
           {{/if}}
         </button>
 
@@ -227,18 +226,13 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
                   {{on "click" (fn this.choosePane tab.pane)}}
                 >
                   <Icon @name={{tab.icon}} class={{if tab.large "icon--l"}} />
-                  <span>{{tab.label}}</span>
+                  <span>{{tab.pane}}</span>
                 </button>
               {{/each}}
             </div>
 
             <div class="track-footer__pane scroll-y scroll--on-yellow">
-              {{#if (is this.view.footerPane "chain")}}
-                <SignalChainPane
-                  @scopeId={{this.scopeId}}
-                  @label={{this.name}}
-                />
-              {{else if (is this.view.footerPane "sequence")}}
+              {{#if (is this.view.footerPane "sequence")}}
                 <SequencePane @scopeId={{this.scopeId}} @label={{this.name}} />
               {{else if (is this.view.footerPane "source")}}
                 <SourcePane @scopeId={{this.scopeId}} @label={{this.name}} />
@@ -254,35 +248,12 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
             data-test-footer-body
             data-test-footer-ui
           >
-            <div class="footer-tabs" role="group" aria-label="Show">
-              {{#each MASTER_TABS as |tab|}}
-                <button
-                  type="button"
-                  class="footer-tab"
-                  aria-pressed={{this.isMasterChosen tab.pane}}
-                  data-test-footer-tab={{tab.pane}}
-                  {{on "click" (fn this.choosePane tab.pane)}}
-                >
-                  <Icon @name={{tab.icon}} class={{if tab.large "icon--l"}} />
-                  <span>{{tab.label}}</span>
-                </button>
-              {{/each}}
-            </div>
-
             <div class="track-footer__pane scroll-y scroll--on-yellow">
-              {{#if (is this.view.footerPane "chain")}}
-                <SignalChainPane
-                  @scopeId={{this.scopeId}}
-                  @label={{this.name}}
-                  data-test-pane="master-chain"
-                />
-              {{else}}
-                <ControlsPane
-                  @scopeId={{this.scopeId}}
-                  @heading="Main output"
-                  data-test-pane="master"
-                />
-              {{/if}}
+              <ControlsPane
+                @scopeId={{this.scopeId}}
+                @heading="Main output"
+                data-test-pane="master"
+              />
             </div>
           </div>
         {{/if}}
@@ -290,7 +261,7 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
 
       {{! Errors and warnings are laid over the bottom of the footer: they never move what is above. }}
       {{#if this.hasStatus}}
-        {{#if this.view.footerOpen}}
+        {{#if this.showStatus}}
           <div
             class="track-footer__status {{if this.statusOpen 'is-open'}}"
             data-test-footer-status

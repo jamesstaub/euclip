@@ -5,10 +5,21 @@
  */
 
 .signal-chain {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
   min-inline-size: 0;
+  padding: var(--space-1) 2rem var(--space-2) 0;
+  cursor: default;
+}
+
+/* the "?" sits in the corner, over the chain's first line */
+.signal-chain__hint {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  z-index: 1;
 }
 
 .signal-chain__status {
@@ -47,21 +58,24 @@
   align-items: center;
 }
 
+/* where the chain goes stays at the right edge of the line, so a long chain never hides it */
 .chain-link--end {
-  padding-inline-end: var(--space-2);
+  position: sticky;
+  inset-inline-end: 0;
+  padding-inline-end: var(--space-1);
 }
 
 .chain-node {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-inline-size: 5rem;
-  min-block-size: max(3rem, var(--target-min));
+  min-inline-size: 3.75rem;
+  min-block-size: max(2.5rem, var(--target-min));
   padding: var(--space-1) var(--space-2);
   border: var(--border-dark);
   background: var(--near-white);
   color: var(--text-on-light);
-  font-size: var(--font-size-6);
+  font-size: var(--font-size-7);
   text-align: start;
 
   & b {
@@ -93,7 +107,7 @@
   flex: none;
   inline-size: 1.5rem;
   block-size: 0;
-  border-block-start: var(--border-width-2) solid var(--dark-gray);
+  border-block-start: var(--border-width-2) solid currentcolor;
 
   &::after {
     content: "";
@@ -101,7 +115,7 @@
     inset-inline-end: 0;
     inset-block-start: calc(-0.3125rem - var(--border-width-1));
     border-block: 0.3125rem solid transparent;
-    border-inline-start: 0.4375rem solid var(--dark-gray);
+    border-inline-start: 0.4375rem solid currentcolor;
   }
 }
 
@@ -123,18 +137,19 @@
 .chain-dest {
   display: flex;
   align-items: center;
-  min-block-size: max(3rem, var(--target-min));
+  min-block-size: max(2.5rem, var(--target-min));
   padding: var(--space-1) var(--space-2);
-  border: var(--border-width-2) dashed var(--dark-gray);
+  border: var(--border-width-2) dashed var(--silver);
   background: var(--dark-gray);
   color: var(--text-on-dark);
   font-family: var(--font-mono);
-  font-size: var(--font-size-6);
+  font-size: var(--font-size-7);
   white-space: nowrap;
 
   &[data-kind="none"] {
     background: transparent;
     color: inherit;
+    border-color: currentcolor;
   }
 
   &[data-kind="param"] {
@@ -159,35 +174,23 @@
 }
 
 /*
- * What can be done with the chosen node: a bar that is always there, with a fixed height, so choosing
- * a node (or being told why something cannot be done) moves nothing under it.
+ * What can be done with the chosen node: one compact row of buttons under the chain, there only while
+ * something in the row is chosen, taking just the room its content needs.
  */
 .chain-actions {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-
-  /* it stays in view at the bottom of the pane while the rows scroll under it */
-  position: sticky;
-  inset-block-end: 0;
-  z-index: 1;
-
-  /* room for the buttons on two lines, and the reason; wide, they fit on one */
-  min-block-size: 12.5rem;
-  padding: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-1) var(--space-2);
   border: var(--border-dark);
   background: var(--light-yellow);
-}
-
-@container track-footer (min-width: 36rem) {
-  .chain-actions {
-    min-block-size: 8.5rem;
-  }
+  color: var(--text-on-light);
 }
 
 .chain-actions__what {
   margin: 0;
-  font-size: var(--font-size-6);
+  font-size: var(--font-size-7);
 
   & b {
     font-weight: var(--font-weight-heavy);
@@ -198,36 +201,14 @@
   & span {
     margin-inline-start: var(--space-1);
     font-family: var(--font-mono);
-    font-size: var(--font-size-7);
   }
 }
 
 .chain-actions__buttons {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  flex: 1 1 auto;
   gap: var(--space-1);
-
-  & .btn {
-    min-inline-size: 0;
-    line-height: var(--line-height-solid);
-    text-align: center;
-    white-space: normal;
-  }
-}
-
-@container track-footer (min-width: 36rem) {
-  .chain-actions__buttons {
-    display: flex;
-    flex-wrap: wrap;
-  }
-}
-
-.chain-actions__why {
-  max-block-size: 3.5rem;
-  margin: 0;
-  overflow-y: auto;
-  font-size: var(--font-size-7);
-  line-height: var(--line-height-copy, 1.4);
 }
 
 /* the picker of node types */

@@ -1,11 +1,10 @@
 import Service from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 
-export type FooterPane = 'chain' | 'source' | 'controls' | 'sequence';
+export type FooterPane = 'source' | 'controls' | 'sequence';
 
 /** In the order the footer's menu shows them. */
 export const FOOTER_PANES: readonly FooterPane[] = [
-  'chain',
   'source',
   'controls',
   'sequence',
@@ -30,6 +29,7 @@ interface Stored {
   collapsed?: unknown;
   snaps?: unknown;
   lanes?: unknown;
+  rows?: unknown;
 }
 
 function readStored(): Stored {
@@ -142,6 +142,33 @@ export default class ViewService extends Service {
           ),
         )
       : {};
+
+  /**
+   * What a track's row shows where its step grid is: 'steps' (the default) or its 'chain', the signal
+   * chain drawn from the running script. By track; remembered; nothing to undo.
+   */
+  @tracked private rows: Readonly<Record<string, string>> =
+    this.#stored.rows &&
+    typeof this.#stored.rows === 'object' &&
+    !Array.isArray(this.#stored.rows)
+      ? Object.fromEntries(
+          Object.entries(this.#stored.rows).filter(
+            (entry): entry is [string, string] => entry[1] === 'chain',
+          ),
+        )
+      : {};
+
+  rowView(scopeId: string): 'steps' | 'chain' {
+    return this.rows[scopeId] === 'chain' ? 'chain' : 'steps';
+  }
+
+  setRowView(scopeId: string, view: 'steps' | 'chain'): void {
+    if (this.rowView(scopeId) === view) return;
+    const { [scopeId]: _gone, ...rest } = this.rows;
+    void _gone;
+    this.rows = view === 'chain' ? { ...rest, [scopeId]: 'chain' } : rest;
+    this.#save();
+  }
 
   chosenLane(scopeId: string): string | undefined {
     return this.lanes[scopeId];
@@ -300,6 +327,7 @@ export default class ViewService extends Service {
           waveforms: this.waveforms,
           snaps: this.snaps,
           lanes: this.lanes,
+          rows: this.rows,
         }),
       );
     } catch {

@@ -1955,9 +1955,7 @@ slider(__.bus('drums'), 'gain');
       assert.dom('[data-test-track="output"]').hasAria('current', 'true');
       assert.dom('[data-test-footer-title]').includesText('Main output');
       assert.dom('[data-test-channel-strip]').doesNotExist();
-      assert
-        .dom('[data-test-footer-tab]')
-        .exists({ count: 2 }, 'its signal chain and its controls');
+      assert.dom('[data-test-footer-tab]').doesNotExist();
       assert
         .dom('[data-test-pane="master"] [data-test-control-group="glue"]')
         .exists();

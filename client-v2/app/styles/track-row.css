@@ -107,6 +107,20 @@
   gap: var(--space-1);
 }
 
+/* Steps / Signal chain: one icon that is pressed while the row shows the chain */
+.track__view {
+  color: var(--yellow);
+
+  .track--active & {
+    color: var(--dark-gray);
+  }
+
+  &[aria-pressed="true"] {
+    background: var(--light-blue);
+    color: var(--near-black);
+  }
+}
+
 .track__menu {
   color: var(--yellow);
 
@@ -164,11 +178,6 @@
   .track--active & {
     color: var(--text-on-light);
   }
-}
-
-/* the main output has no number of its own: it sits a little further in, as in v1 */
-.track--output .track__row {
-  padding-inline-start: var(--space-4);
 }
 
 /* ---- one line, when there is room for it ---- */

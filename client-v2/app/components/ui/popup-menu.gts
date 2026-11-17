@@ -164,7 +164,8 @@ export default class PopupMenu extends Component<PopupMenuSignature> {
           {{placeUp @up}}
           {{focusFirst}}
         >
-          {{#each @items as |item|}}
+          {{! keyed: the owner's list is made again whenever the running project changes (every step while it plays), and items replaced under the pointer cannot be clicked }}
+          {{#each @items key="label" as |item|}}
             <li role="none" class={{if item.separated "menu__separated"}}>
               <button
                 type="button"

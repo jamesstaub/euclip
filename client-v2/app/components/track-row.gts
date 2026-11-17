@@ -3,6 +3,8 @@ import { tracked } from '@glimmer/tracking';
 import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
+import Icon from 'client-v2/components/icon';
+import SignalChainPane from 'client-v2/components/signal-chain-pane';
 import PopupMenu, { type MenuItem } from 'client-v2/components/ui/popup-menu';
 import type { StepGridView } from 'client-v2/audio/runner';
 import { stepGridWidget } from 'client-v2/controls/registry';
@@ -60,6 +62,18 @@ export default class TrackRow extends Component<TrackRowSignature> {
   @service declare view: ViewService;
 
   @tracked menuOpen = false;
+
+  /** Whether the row shows the signal chain where the step grid is (per track, remembered). */
+  get showChain(): boolean {
+    return this.view.rowView(this.args.track.id) === 'chain';
+  }
+
+  toggleView = (): void => {
+    this.view.setRowView(
+      this.args.track.id,
+      this.showChain ? 'steps' : 'chain',
+    );
+  };
 
   get stepGrids(): StepGridView[] {
     return this.audio.stepGrids(this.args.track.id);
@@ -206,41 +220,66 @@ export default class TrackRow extends Component<TrackRowSignature> {
         </div>
 
         <div class="track__sequence">
-          {{#each this.stepGrids key="key" as |grid|}}
-            <div class="track__grid">
-              {{#if (more this.stepGrids)}}
-                <span class="track__grid-name truncate">{{grid.label}}</span>
-              {{/if}}
-              <Grid
-                @scopeId={{@track.id}}
-                @control={{grid}}
-                @lanes={{true}}
-                @laneKey={{this.laneKey}}
-              />
-            </div>
+          {{#if this.showChain}}
+            <SignalChainPane
+              @scopeId={{@track.id}}
+              @label="Track {{@order}}"
+              @onSelectTrack={{@onSelect}}
+            />
           {{else}}
-            <p class="track__no-grid" data-test-no-step-grid>No step grid
-              declared</p>
-          {{/each}}
+            {{#each this.stepGrids key="key" as |grid|}}
+              <div class="track__grid">
+                {{#if (more this.stepGrids)}}
+                  <span class="track__grid-name truncate">{{grid.label}}</span>
+                {{/if}}
+                <Grid
+                  @scopeId={{@track.id}}
+                  @control={{grid}}
+                  @lanes={{true}}
+                  @laneKey={{this.laneKey}}
+                />
+              </div>
+            {{else}}
+              <p class="track__no-grid" data-test-no-step-grid>No step grid
+                declared</p>
+            {{/each}}
+          {{/if}}
         </div>
 
         {{#if this.laneChoices.length}}
-          <PopupMenu
-            class="track__lanes"
-            @label="Track {{@order}} per-step lane"
-            @text={{this.laneText}}
-            @items={{this.laneItems}}
-            @open={{this.laneMenuOpen}}
-            @onOpenChange={{this.setLaneMenuOpen}}
-          />
+          {{#unless this.showChain}}
+            <PopupMenu
+              class="track__lanes"
+              @label="Track {{@order}} per-step lane"
+              @text={{this.laneText}}
+              @items={{this.laneItems}}
+              @open={{this.laneMenuOpen}}
+              @onOpenChange={{this.setLaneMenuOpen}}
+            />
+          {{/unless}}
         {{/if}}
-        <PopupMenu
-          class="track__actions"
-          @label="Track {{@order}} menu"
-          @items={{this.menuItems}}
-          @open={{this.menuOpen}}
-          @onOpenChange={{this.setMenuOpen}}
-        />
+        <div class="track__actions">
+          <button
+            type="button"
+            class="icon-btn track__view"
+            aria-label="Signal chain"
+            aria-pressed={{if this.showChain "true" "false"}}
+            title={{if
+              this.showChain
+              "Showing the signal chain: show the steps"
+              "Showing the steps: show the signal chain"
+            }}
+            data-test-track-view
+            {{on "click" this.toggleView}}
+          ><Icon @name="chain" /></button>
+          <PopupMenu
+            class="track__menu-button"
+            @label="Track {{@order}} menu"
+            @items={{this.menuItems}}
+            @open={{this.menuOpen}}
+            @onOpenChange={{this.setMenuOpen}}
+          />
+        </div>
       </div>
     </article>
   </template>

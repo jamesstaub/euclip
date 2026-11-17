@@ -48,6 +48,8 @@ export interface SignalChainPaneSignature {
     scopeId: string;
     /** the track's name, for accessible names */
     label: string;
+    /** a node was chosen: the track it is in is chosen too (so the footer shows it) */
+    onSelectTrack?: (scopeId: string) => void;
   };
 }
 
@@ -331,31 +333,94 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
     };
   }
 
-  /** The reasons actions are off, each once, for the line under the bar. */
-  get why(): string[] {
-    return [
-      ...new Set(
-        Object.values(this.reasons).filter(
-          (reason): reason is string => reason !== null,
-        ),
-      ),
-    ];
+  /** One sentence for the chosen item: what an action cannot do, or what the last one could not (behind the "?"). */
+  get reason(): string | null {
+    if (this.problem) return this.problem;
+    return (
+      Object.values(this.reasons).find(
+        (reason): reason is string => reason !== null,
+      ) ?? null
+    );
   }
 
+  /** The bar is there only while something in this row is chosen. */
+  get barShown(): boolean {
+    return (
+      this.confirming !== null ||
+      this.selected !== null ||
+      this.selectedDest !== null
+    );
+  }
+
+  /** A tap on a node chooses it, chooses its track, and shows it in the footer at once. */
   choose = (node: ChainNode): void => {
-    if (this.isSelected(node)) {
-      this.open(node);
-      return;
-    }
     this.chosen = { kind: 'node', id: node.id };
+    this.confirming = null;
+    this.problem = null;
+    this.args.onSelectTrack?.(this.args.scopeId);
+    this.open(node);
+  };
+
+  /** Escape, or a tap on empty space in the chain: nothing is chosen. */
+  clear = (): void => {
+    this.chosen = null;
     this.confirming = null;
     this.problem = null;
   };
 
+  onKeydown = (event: KeyboardEvent): void => {
+    if (event.key === 'Escape' && this.barShown) {
+      event.stopPropagation();
+      this.clear();
+    }
+  };
+
+  onBackground = (event: Event): void => {
+    if ((event.target as Element).closest('button, dialog, [role="toolbar"]')) {
+      return;
+    }
+    this.clear();
+  };
+
+  /** A tap on where a chain goes opens its Send to… list; where it cannot be changed, it says why. */
   chooseDest = (row: ChainRow): void => {
-    this.chosen = { kind: 'dest', id: row.key };
+    this.args.onSelectTrack?.(this.args.scopeId);
     this.confirming = null;
     this.problem = null;
+    if (this.sendWhy(row) === null) {
+      this.chosen = null;
+      this.newBus = '';
+      this.newBusOpen = false;
+      this.sending = row.key;
+    } else {
+      this.chosen = { kind: 'dest', id: row.key };
+    }
+  };
+
+  /** A tap on the parameter a modulator moves opens the list of places to move it to. */
+  chooseTarget = (row: ChainRow): void => {
+    const modulator = row.nodes[0];
+    if (!modulator) return;
+    this.args.onSelectTrack?.(this.args.scopeId);
+    this.problem = null;
+    const why = this.whyNot(modulator);
+    const refused =
+      why ??
+      (() => {
+        const plan = planModulator(
+          this.script,
+          this.refOf(modulator),
+          this.context,
+        );
+        return plan ? plan.cannot : null;
+      })();
+    if (refused === null) {
+      this.chosen = { kind: 'node', id: modulator.id };
+      this.retargeting = modulator.id;
+    } else {
+      this.chosen = { kind: 'node', id: modulator.id };
+      this.problem = refused;
+    }
   };
 
   open = (node: ChainNode): void => {
@@ -367,10 +432,6 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
     } else {
       this.view.showControlsOf(this.args.scopeId, node.id);
     }
-  };
-
-  openSelected = (): void => {
-    if (this.selected) this.open(this.selected);
   };
 
   // --- doing it -------------------------------------------------------------------------------------------
@@ -761,27 +822,34 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
   label = (node: ChainNode): string => nameOf(node);
 
   <template>
+    {{! template-lint-disable no-invalid-interactive }}
+    {{! (keys and taps on empty space clear the choice; every control inside is a button) }}
     <section
-      class="footer-pane signal-chain"
+      class="signal-chain"
       aria-label="{{@label}} signal chain"
       data-test-pane="chain"
       ...attributes
+      {{on "keydown" this.onKeydown}}
+      {{on "click" this.onBackground}}
     >
-      <h3 class="pane-heading">
-        <span>Signal chain</span>
-        <Hint @label="About the signal chain" data-test-chain-hint>
-          <p>This is the running script, drawn. Sound flows left to right, from
-            a node nothing feeds to the bus it is sent to. A dashed line is a
-            modulator moving a parameter.</p>
-          <p>Choose a node to see what you can do with it. Choose it again to
-            open it: a sampler opens its waveform in Source, anything else its
-            controls.</p>
-          <p>Adding, moving and removing write the change into the script, as if
-            you had typed it, and Undo takes it back. A node marked
-            <b>edit in script</b>
-            is made by code Euclip cannot change from here.</p>
-        </Hint>
-      </h3>
+      <Hint
+        @label="About the signal chain"
+        class="signal-chain__hint"
+        data-test-chain-hint
+      >
+        <p>This is the running script, drawn. Sound flows left to right, from a
+          node nothing feeds to the bus it is sent to. A dashed line is a
+          modulator moving a parameter.</p>
+        <p>Tap a node to choose it: its track is chosen and its controls (or a
+          sampler's waveform) show in the footer, and you can add, move or
+          remove it. Tap where a chain goes to send it elsewhere, or the
+          parameter a modulator moves to move it. Tap empty space, or press
+          Escape, to choose nothing.</p>
+        <p>Changes are written into the script as if you had typed them, and
+          Undo takes them back. A node marked
+          <b>edit in script</b>
+          is made by code Euclip cannot change from here.</p>
+      </Hint>
 
       {{#if this.hasError}}
         <p class="signal-chain__status" role="status" data-test-chain-error>The
@@ -796,10 +864,7 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
           data-test-chain-row={{row.kind}}
         >
           {{#if row.title}}
-            <h4
-              class="chain-row__title"
-              data-test-chain-title
-            >{{row.title}}</h4>
+            <h4 class="chain-row__title" data-test-row-title>{{row.title}}</h4>
           {{else if row.branch}}
             <h4 class="chain-row__title">branch</h4>
           {{/if}}
@@ -829,11 +894,13 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
                 </span>
               {{/if}}
               {{#if (isParam row)}}
-                <span
+                <button
+                  type="button"
                   class="chain-dest"
                   data-kind={{row.destination.kind}}
                   data-test-chain-dest={{row.destination.name}}
-                >{{row.destination.name}}</span>
+                  {{on "click" (fn this.chooseTarget row)}}
+                >{{row.destination.name}}</button>
               {{else}}
                 <button
                   type="button"
@@ -852,130 +919,123 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
           to draw yet.</p>
       {{/each}}
 
-      <div
-        class="chain-actions"
-        role="toolbar"
-        aria-label="What to do with the chosen node"
-        data-test-chain-actions
-      >
-        {{#if this.confirming}}
-          <p
-            class="chain-actions__what"
-            role="alertdialog"
-            data-test-chain-confirm
-          >{{this.confirmText}}</p>
-          <div class="chain-actions__buttons">
-            <button
-              type="button"
-              class="btn btn--s btn--solid"
-              data-test-chain-confirm-remove
-              {{on "click" this.confirmRemove}}
-            >Remove</button>
-            <button
-              type="button"
-              class="btn btn--s btn--on-yellow"
-              data-test-chain-confirm-cancel
-              {{on "click" this.cancelRemove}}
-            >Cancel</button>
-          </div>
-        {{else if this.selected}}
-          <p class="chain-actions__what" data-test-chain-chosen>
-            <b>{{this.selected.type}}</b>
-            {{#unless this.selected.autoId}}<span
-              >{{this.selected.id}}</span>{{/unless}}
-          </p>
-          <div class="chain-actions__buttons">
-            <button
-              type="button"
-              class="btn btn--s btn--on-yellow"
-              data-test-chain-action="open"
-              {{on "click" this.openSelected}}
-            >Open</button>
-            {{#if (is this.selectedKind "modulator")}}
+      {{#if this.barShown}}
+        <div
+          class="chain-actions"
+          role="toolbar"
+          aria-label="What to do with the chosen node"
+          data-test-chain-actions
+        >
+          {{#if this.confirming}}
+            <p
+              class="chain-actions__what"
+              role="alertdialog"
+              data-test-chain-confirm
+            >{{this.confirmText}}</p>
+            <div class="chain-actions__buttons">
               <button
                 type="button"
-                class="btn btn--s btn--on-yellow"
-                disabled={{this.reasons.retarget}}
-                data-test-chain-action="retarget"
-                {{on "click" this.openRetarget}}
-              >Retarget</button>
-              <button
-                type="button"
-                class="btn btn--s btn--on-yellow"
-                disabled={{this.reasons.remove}}
-                data-test-chain-action="remove-modulator"
-                {{on "click" this.removeModulator}}
-              >Remove</button>
-            {{else}}
-              <button
-                type="button"
-                class="btn btn--s btn--on-yellow"
-                disabled={{this.reasons.before}}
-                data-test-chain-action="add-before"
-                {{on "click" (fn this.openPicker "before")}}
-              >Add before</button>
-              <button
-                type="button"
-                class="btn btn--s btn--on-yellow"
-                disabled={{this.reasons.after}}
-                data-test-chain-action="add-after"
-                {{on "click" (fn this.openPicker "after")}}
-              >Add after</button>
-              <button
-                type="button"
-                class="btn btn--s btn--on-yellow"
-                disabled={{this.reasons.left}}
-                data-test-chain-action="move-left"
-                {{on "click" (fn this.move "left")}}
-              >Move left</button>
-              <button
-                type="button"
-                class="btn btn--s btn--on-yellow"
-                disabled={{this.reasons.right}}
-                data-test-chain-action="move-right"
-                {{on "click" (fn this.move "right")}}
-              >Move right</button>
-              <button
-                type="button"
-                class="btn btn--s btn--on-yellow"
-                disabled={{this.reasons.remove}}
-                data-test-chain-action="remove"
-                {{on "click" this.remove}}
+                class="btn btn--s btn--solid"
+                data-test-chain-confirm-remove
+                {{on "click" this.confirmRemove}}
               >Remove</button>
               <button
                 type="button"
                 class="btn btn--s btn--on-yellow"
-                disabled={{this.reasons.modulate}}
-                data-test-chain-action="modulate"
-                {{on "click" this.openModulate}}
-              >Add modulator</button>
-            {{/if}}
-          </div>
-        {{else if this.selectedDest}}
-          <p class="chain-actions__what" data-test-chain-chosen>
-            <b>Sent to</b>
-            <span>{{this.selectedDest.destination.name}}</span>
-          </p>
-          <div class="chain-actions__buttons">
-            <button
-              type="button"
-              class="btn btn--s btn--on-yellow"
-              disabled={{this.reasons.send}}
-              data-test-chain-action="send"
-              {{on "click" this.openSend}}
-            >Send to…</button>
-          </div>
-        {{else}}
-          <p class="chain-actions__what" data-test-chain-chosen>Choose a node.</p>
-        {{/if}}
-        <p class="chain-actions__why" role="status" data-test-chain-why>
-          {{#if this.problem}}{{this.problem}}{{else}}{{#each
-              this.why
-              as |reason|
-            }}{{reason}}
-            {{/each}}{{/if}}
-        </p>
-      </div>
+                data-test-chain-confirm-cancel
+                {{on "click" this.cancelRemove}}
+              >Cancel</button>
+            </div>
+          {{else if this.selected}}
+            <p class="chain-actions__what" data-test-chain-chosen>
+              <b>{{this.selected.type}}</b>
+              {{#unless this.selected.autoId}}<span
+                >{{this.selected.id}}</span>{{/unless}}
+            </p>
+            <div class="chain-actions__buttons">
+              {{#if (is this.selectedKind "modulator")}}
+                <button
+                  type="button"
+                  class="btn btn--s btn--on-yellow"
+                  disabled={{this.reasons.remove}}
+                  title={{this.reasons.remove}}
+                  data-test-chain-action="remove-modulator"
+                  {{on "click" this.removeModulator}}
+                >Remove</button>
+              {{else}}
+                <button
+                  type="button"
+                  class="btn btn--s btn--on-yellow"
+                  disabled={{this.reasons.before}}
+                  title={{this.reasons.before}}
+                  data-test-chain-action="add-before"
+                  {{on "click" (fn this.openPicker "before")}}
+                >Add before</button>
+                <button
+                  type="button"
+                  class="btn btn--s btn--on-yellow"
+                  disabled={{this.reasons.after}}
+                  title={{this.reasons.after}}
+                  data-test-chain-action="add-after"
+                  {{on "click" (fn this.openPicker "after")}}
+                >Add after</button>
+                <button
+                  type="button"
+                  class="btn btn--s btn--on-yellow"
+                  disabled={{this.reasons.left}}
+                  title={{this.reasons.left}}
+                  data-test-chain-action="move-left"
+                  {{on "click" (fn this.move "left")}}
+                >Move left</button>
+                <button
+                  type="button"
+                  class="btn btn--s btn--on-yellow"
+                  disabled={{this.reasons.right}}
+                  title={{this.reasons.right}}
+                  data-test-chain-action="move-right"
+                  {{on "click" (fn this.move "right")}}
+                >Move right</button>
+                <button
+                  type="button"
+                  class="btn btn--s btn--on-yellow"
+                  disabled={{this.reasons.remove}}
+                  title={{this.reasons.remove}}
+                  data-test-chain-action="remove"
+                  {{on "click" this.remove}}
+                >Remove</button>
+                <button
+                  type="button"
+                  class="btn btn--s btn--on-yellow"
+                  disabled={{this.reasons.modulate}}
+                  title={{this.reasons.modulate}}
+                  data-test-chain-action="modulate"
+                  {{on "click" this.openModulate}}
+                >Add modulator</button>
+              {{/if}}
+            </div>
+          {{else if this.selectedDest}}
+            <p class="chain-actions__what" data-test-chain-chosen>
+              <b>Sent to</b>
+              <span>{{this.selectedDest.destination.name}}</span>
+            </p>
+            <div class="chain-actions__buttons">
+              <button
+                type="button"
+                class="btn btn--s btn--on-yellow"
+                disabled={{this.reasons.send}}
+                title={{this.reasons.send}}
+                data-test-chain-action="send"
+                {{on "click" this.openSend}}
+              >Send to…</button>
+            </div>
+          {{/if}}
+          {{#if this.reason}}
+            <Hint @label="Why some actions are off" data-test-chain-why>
+              <p>{{this.reason}}</p>
+            </Hint>
+          {{/if}}
+        </div>
+      {{/if}}
 
       {{#if this.picking}}
         {{! template-lint-disable no-invalid-interactive }}

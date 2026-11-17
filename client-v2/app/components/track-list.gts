@@ -1,6 +1,7 @@
 import type { TOC } from '@ember/component/template-only';
 import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
+import SignalChainPane from 'client-v2/components/signal-chain-pane';
 import TrackRow, { selectFromBackground } from 'client-v2/components/track-row';
 import { PROJECT_SCOPE, type TrackDocument } from 'client-v2/project/schema';
 
@@ -86,6 +87,14 @@ const TrackList: TOC<TrackListSignature> = <template>
                   data-test-track-error
                 >!</span>
               {{/if}}
+            </div>
+            {{! the main output has no steps: its buses are drawn in its row, always }}
+            <div class="track__sequence">
+              <SignalChainPane
+                @scopeId={{PROJECT_SCOPE}}
+                @label="Main output"
+                @onSelectTrack={{@onSelect}}
+              />
             </div>
           </div>
         </article>
