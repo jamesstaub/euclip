@@ -3,7 +3,6 @@ import { tracked } from '@glimmer/tracking';
 import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
-import Icon from 'client-v2/components/icon';
 import SignalChainPane from 'client-v2/components/signal-chain-pane';
 import PopupMenu, { type MenuItem } from 'client-v2/components/ui/popup-menu';
 import type { StepGridView } from 'client-v2/audio/runner';
@@ -68,12 +67,8 @@ export default class TrackRow extends Component<TrackRowSignature> {
     return this.view.rowView(this.args.track.id) === 'chain';
   }
 
-  toggleView = (): void => {
-    this.view.setRowView(
-      this.args.track.id,
-      this.showChain ? 'steps' : 'chain',
-    );
-  };
+  showSteps = (): void => this.view.setRowView(this.args.track.id, 'steps');
+  showSignal = (): void => this.view.setRowView(this.args.track.id, 'chain');
 
   get stepGrids(): StepGridView[] {
     return this.audio.stepGrids(this.args.track.id);
@@ -208,6 +203,29 @@ export default class TrackRow extends Component<TrackRowSignature> {
           >
             <span class="truncate">{{@track.name}}</span>
           </button>
+          <div
+            class="track__view"
+            role="group"
+            aria-label="What the row shows"
+            data-test-track-view
+          >
+            <button
+              type="button"
+              class="track__view-option"
+              aria-label="Show steps"
+              aria-pressed={{if this.showChain "false" "true"}}
+              data-test-track-view-option="seq"
+              {{on "click" this.showSteps}}
+            >seq</button>
+            <button
+              type="button"
+              class="track__view-option"
+              aria-label="Show signal chain"
+              aria-pressed={{if this.showChain "true" "false"}}
+              data-test-track-view-option="signal"
+              {{on "click" this.showSignal}}
+            >signal</button>
+          </div>
           {{#if this.error}}
             <span
               class="track__alert"
@@ -258,28 +276,13 @@ export default class TrackRow extends Component<TrackRowSignature> {
             />
           {{/unless}}
         {{/if}}
-        <div class="track__actions">
-          <button
-            type="button"
-            class="icon-btn track__view"
-            aria-label="Signal chain"
-            aria-pressed={{if this.showChain "true" "false"}}
-            title={{if
-              this.showChain
-              "Showing the signal chain: show the steps"
-              "Showing the steps: show the signal chain"
-            }}
-            data-test-track-view
-            {{on "click" this.toggleView}}
-          ><Icon @name="chain" /></button>
-          <PopupMenu
-            class="track__menu-button"
-            @label="Track {{@order}} menu"
-            @items={{this.menuItems}}
-            @open={{this.menuOpen}}
-            @onOpenChange={{this.setMenuOpen}}
-          />
-        </div>
+        <PopupMenu
+          class="track__actions"
+          @label="Track {{@order}} menu"
+          @items={{this.menuItems}}
+          @open={{this.menuOpen}}
+          @onOpenChange={{this.setMenuOpen}}
+        />
       </div>
     </article>
   </template>

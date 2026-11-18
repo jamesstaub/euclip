@@ -64,7 +64,9 @@
   grid-area: source;
   position: relative; /* the error mark is laid over its corner */
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
   min-inline-size: 0;
 }
 
@@ -72,8 +74,13 @@
 .track__source-btn {
   inline-size: var(--source-width);
   max-inline-size: 100%;
-  margin: var(--space-2);
+  min-block-size: 1.75rem;
+  margin: var(--space-1) var(--space-2);
   font-size: var(--font-size-7);
+
+  @media (pointer: coarse) {
+    min-block-size: var(--target-min);
+  }
 
   & span {
     min-inline-size: 0;
@@ -107,17 +114,58 @@
   gap: var(--space-1);
 }
 
-/* Steps / Signal chain: one icon that is pressed while the row shows the chain */
+/* seq | signal: two options under the name button, the width of it; the chosen one is filled */
 .track__view {
-  color: var(--yellow);
+  display: flex;
+  inline-size: var(--source-width);
+  max-inline-size: 100%;
+  margin: 0 var(--space-2) var(--space-1);
+}
 
-  .track--active & {
-    color: var(--dark-gray);
+.track__view-option {
+  flex: 1 1 0;
+  min-inline-size: 0;
+  min-block-size: 1.5rem;
+  padding: 0 var(--space-1);
+  border: var(--border-width-2) solid var(--yellow);
+  background: transparent;
+  color: var(--yellow);
+  font-size: var(--font-size-7);
+  line-height: var(--line-height-solid);
+
+  & + & {
+    margin-inline-start: calc(-1 * var(--border-width-2));
   }
 
   &[aria-pressed="true"] {
-    background: var(--light-blue);
+    background: var(--yellow);
     color: var(--near-black);
+  }
+
+  /* on the yellow of the chosen row: dark outline, dark fill for the chosen one */
+  .track--active & {
+    border-color: var(--dark-gray);
+    color: var(--dark-gray);
+
+    &[aria-pressed="true"] {
+      background: var(--dark-gray);
+      color: var(--yellow);
+    }
+  }
+
+  /* hover and press keep text readable: a translucent wash, never a fill that matches the text */
+  &:not([aria-pressed="true"]):hover,
+  &:not([aria-pressed="true"]):active {
+    background: var(--white-30);
+  }
+
+  .track--active &:not([aria-pressed="true"]):hover,
+  .track--active &:not([aria-pressed="true"]):active {
+    background: var(--black-10);
+  }
+
+  @media (pointer: coarse) {
+    min-block-size: 2rem;
   }
 }
 

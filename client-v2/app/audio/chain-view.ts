@@ -119,7 +119,7 @@ export function buildChainGraph(view: ViewGraph): ChainGraph {
     const node = byKey.get(key);
     if (!node) return { kind: 'none', name: 'nowhere' };
     if (node.kind === 'bus') return { kind: 'bus', name: node.id };
-    if (node.kind === 'output') return { kind: 'output', name: 'speakers' };
+    if (node.kind === 'output') return { kind: 'output', name: 'dac' };
     if (node.insertOf !== null) return { kind: 'bus', name: node.insertOf };
     return null;
   };

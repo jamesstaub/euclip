@@ -10,16 +10,8 @@
   flex-direction: column;
   gap: var(--space-1);
   min-inline-size: 0;
-  padding: var(--space-1) 2rem var(--space-2) 0;
+  padding: var(--space-1) 0 var(--space-2);
   cursor: default;
-}
-
-/* the "?" sits in the corner, over the chain's first line */
-.signal-chain__hint {
-  position: absolute;
-  inset-block-start: 0;
-  inset-inline-end: 0;
-  z-index: 1;
 }
 
 .signal-chain__status {
@@ -50,19 +42,31 @@
   padding: var(--space-1) 0 var(--space-2);
   overflow-x: auto;
   list-style: none;
+
+  /* a line that scrolls fades at the end (or ends) that has more beyond it */
+  &[data-more="end"] {
+    mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+  }
+
+  &[data-more="start"] {
+    mask-image: linear-gradient(to left, #000 calc(100% - 2rem), transparent);
+  }
+
+  &[data-more="both"] {
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 2rem,
+      #000 calc(100% - 2rem),
+      transparent
+    );
+  }
 }
 
 .chain-link {
   display: flex;
   flex: none;
   align-items: center;
-}
-
-/* where the chain goes stays at the right edge of the line, so a long chain never hides it */
-.chain-link--end {
-  position: sticky;
-  inset-inline-end: 0;
-  padding-inline-end: var(--space-1);
 }
 
 .chain-node {

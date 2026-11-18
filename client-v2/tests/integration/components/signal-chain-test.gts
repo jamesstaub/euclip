@@ -14,6 +14,8 @@ import type ProjectService from 'client-v2/services/project';
 import type ViewService from 'client-v2/services/view';
 
 const KICK = 't-kick';
+const reasonText = (): string =>
+  document.querySelector('[data-test-chain-reason]')?.textContent?.trim() ?? '';
 const pane = '[data-test-track="1"] [data-test-pane="chain"]';
 const master = '[data-test-track="output"] [data-test-pane="chain"]';
 
@@ -35,10 +37,7 @@ module('Integration | Component | signal chain', function (hooks) {
   /** The one sentence behind a "?": opened, and read. */
   async function why(): Promise<string> {
     await click('[data-test-chain-why] .hint__button');
-    return (
-      document.querySelector('[data-test-chain-why] p')?.textContent?.trim() ??
-      ''
-    );
+    return reasonText();
   }
 
   /** Replaces a track's script as if it had been typed, and runs it. */
@@ -65,15 +64,15 @@ module('Integration | Component | signal chain', function (hooks) {
       ['source', 'controls', 'sequence'],
     );
     assert
-      .dom('[data-test-track="1"] [data-test-track-view]')
+      .dom('[data-test-track="1"] [data-test-track-view-option="signal"]')
       .hasAria('pressed', 'true');
     assert
-      .dom('[data-test-track="2"] [data-test-track-view]')
+      .dom('[data-test-track="2"] [data-test-track-view-option="signal"]')
       .hasAria('pressed', 'false');
     assert
       .dom('[data-test-track="2"] [data-test-step]')
       .exists('steps are the default');
-    await click('[data-test-track="2"] [data-test-track-view]');
+    await click('[data-test-track="2"] [data-test-track-view-option="signal"]');
     assert.dom('[data-test-track="2"] [data-test-pane="chain"]').exists();
     assert.dom('[data-test-track="2"] [data-test-step]').doesNotExist();
     assert.strictEqual(view.rowView('t-snare'), 'chain');
@@ -86,8 +85,45 @@ module('Integration | Component | signal chain', function (hooks) {
       'remembered, and not an undo step',
     );
     assert.false(project.canUndo);
-    await click('[data-test-track="2"] [data-test-track-view]');
+    await click('[data-test-track="2"] [data-test-track-view-option="seq"]');
     assert.dom('[data-test-track="2"] [data-test-step]').exists();
+  });
+
+  test('a row’s toggle is seq | signal, right after its name button, and says which is shown', async function (assert) {
+    await render(<template><AppShell /></template>);
+    const row = '[data-test-track="2"]';
+    const name = document.querySelector(`${row} [data-test-track-name]`)!;
+    const toggle = document.querySelector(`${row} [data-test-track-view]`)!;
+    assert.strictEqual(
+      name.nextElementSibling,
+      toggle,
+      'it sits after the name button',
+    );
+    assert.strictEqual(toggle.getAttribute('role'), 'group');
+    const options = [...toggle.querySelectorAll('button')];
+    assert.deepEqual(
+      options.map((o) => o.textContent?.trim()),
+      ['seq', 'signal'],
+    );
+    assert.deepEqual(
+      options.map((o) => o.getAttribute('aria-label')),
+      ['Show steps', 'Show signal chain'],
+    );
+    assert.deepEqual(
+      options.map((o) => o.getAttribute('aria-pressed')),
+      ['true', 'false'],
+    );
+    await click(options[1]!);
+    assert.deepEqual(
+      options.map((o) => o.getAttribute('aria-pressed')),
+      ['false', 'true'],
+    );
+    assert
+      .dom('[data-test-track="output"] [data-test-track-view]')
+      .doesNotExist('the main output has none');
+    assert
+      .dom(`${row} [data-test-chain-hint], ${row} [data-test-chain-why]`)
+      .doesNotExist('no "?" until something is chosen');
   });
 
   test('the default kick track is drawn: sampler, filter, level, ending at channel', async function (assert) {
@@ -129,7 +165,7 @@ module('Integration | Component | signal chain', function (hooks) {
 
   test('tapping the sampler chooses its track and shows its waveform in the footer, with the chain still in view', async function (assert) {
     await render(<template><AppShell /></template>);
-    await click('[data-test-track="2"] [data-test-track-view]');
+    await click('[data-test-track="2"] [data-test-track-view-option="signal"]');
     await click('[data-test-track="2"] [data-test-chain-node="sampler"]');
     assert.dom('[data-test-track="2"]').hasAria('current', 'true');
     assert.strictEqual(view.footerPane, 'source');
@@ -196,7 +232,7 @@ module('Integration | Component | signal chain', function (hooks) {
       .dom('[data-test-chain-row="bus"] [data-test-chain-node="glue"]')
       .exists();
     assert
-      .dom('[data-test-chain-row="bus"] [data-test-chain-dest="speakers"]')
+      .dom('[data-test-chain-row="bus"] [data-test-chain-dest="dac"]')
       .exists();
   });
 
@@ -395,7 +431,7 @@ module('Integration | Component | signal chain', function (hooks) {
       assert.dom(drums).exists();
       // main's own chip is the speakers: nothing to change
       await click(
-        '[data-test-track="output"] [data-test-pane="chain"] [data-test-chain-dest="speakers"]',
+        '[data-test-track="output"] [data-test-pane="chain"] [data-test-chain-dest="dac"]',
       );
       assert.dom('[data-test-chain-send]').doesNotExist('nothing to send');
       assert.true((await why()).includes('speakers'));

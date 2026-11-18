@@ -291,7 +291,7 @@
   grid-area: actions;
   max-inline-size: 11rem;
   justify-self: end;
-  margin-inline-end: calc(2 * var(--target-min) + var(--space-1));
+  margin-inline-end: var(--target-min);
 }
 
 .step-gen__dial--combine {

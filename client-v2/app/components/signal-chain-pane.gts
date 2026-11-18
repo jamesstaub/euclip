@@ -99,6 +99,42 @@ function analysed(text: string, context: EditContext): Analysis | Cannot {
   return value;
 }
 
+/**
+ * Says on a scrolling line which of its ends has more beyond it (`data-more`: start, end, both, none),
+ * which the style turns into a fade at that edge.
+ */
+const scrollFade = modifier((line: HTMLElement) => {
+  const update = (): void => {
+    const start = line.scrollLeft > 1;
+    const end = line.scrollLeft + line.clientWidth < line.scrollWidth - 1;
+    line.dataset['more'] =
+      start && end ? 'both' : start ? 'start' : end ? 'end' : 'none';
+  };
+  update();
+  line.addEventListener('scroll', update, { passive: true });
+  const watch =
+    typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update);
+  watch?.observe(line);
+  for (const child of line.children) watch?.observe(child);
+  return () => {
+    line.removeEventListener('scroll', update);
+    watch?.disconnect();
+  };
+});
+
+/** When the action bar appears, its row is scrolled so the bar is whole and clear of the footer. */
+const showAboveFooter = modifier((bar: HTMLElement) => {
+  const footer = document.querySelector('.track-footer');
+  const list = bar.closest('.track-list');
+  if (!footer || !list) return;
+  const over =
+    bar.getBoundingClientRect().bottom - footer.getBoundingClientRect().top;
+  if (over > 0) list.scrollBy({ top: over + 8 });
+  const under =
+    list.getBoundingClientRect().top - bar.getBoundingClientRect().top;
+  if (under > 0) list.scrollBy({ top: -under - 8 });
+});
+
 const showModal = modifier((dialog: HTMLDialogElement) => {
   if (!dialog.open) dialog.showModal();
 });
@@ -832,24 +868,6 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
       {{on "keydown" this.onKeydown}}
       {{on "click" this.onBackground}}
     >
-      <Hint
-        @label="About the signal chain"
-        class="signal-chain__hint"
-        data-test-chain-hint
-      >
-        <p>This is the running script, drawn. Sound flows left to right, from a
-          node nothing feeds to the bus it is sent to. A dashed line is a
-          modulator moving a parameter.</p>
-        <p>Tap a node to choose it: its track is chosen and its controls (or a
-          sampler's waveform) show in the footer, and you can add, move or
-          remove it. Tap where a chain goes to send it elsewhere, or the
-          parameter a modulator moves to move it. Tap empty space, or press
-          Escape, to choose nothing.</p>
-        <p>Changes are written into the script as if you had typed them, and
-          Undo takes them back. A node marked
-          <b>edit in script</b>
-          is made by code Euclip cannot change from here.</p>
-      </Hint>
 
       {{#if this.hasError}}
         <p class="signal-chain__status" role="status" data-test-chain-error>The
@@ -868,7 +886,7 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
           {{else if row.branch}}
             <h4 class="chain-row__title">branch</h4>
           {{/if}}
-          <ol class="chain-row__line">
+          <ol class="chain-row__line" {{scrollFade}}>
             {{#each row.nodes key="id" as |node|}}
               <li class="chain-link">
                 <button
@@ -923,6 +941,7 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
         <div
           class="chain-actions"
           role="toolbar"
+          {{showAboveFooter}}
           aria-label="What to do with the chosen node"
           data-test-chain-actions
         >
@@ -1029,11 +1048,24 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
               >Send to…</button>
             </div>
           {{/if}}
-          {{#if this.reason}}
-            <Hint @label="Why some actions are off" data-test-chain-why>
-              <p>{{this.reason}}</p>
-            </Hint>
-          {{/if}}
+          <Hint @label="About the signal chain" data-test-chain-why>
+            <p>This is the running script, drawn. Sound flows left to right,
+              from a node nothing feeds to the bus it is sent to. A dashed line
+              is a modulator moving a parameter.</p>
+            <p>Tap a node to choose it: its track is chosen and its controls (or
+              a sampler's waveform) show in the footer, and you can add, move or
+              remove it. Tap where a chain goes to send it elsewhere, or the
+              parameter a modulator moves to move it. Tap empty space, or press
+              Escape, to choose nothing.</p>
+            <p>Changes are written into the script as if you had typed them, and
+              Undo takes them back. A node marked
+              <b>edit in script</b>
+              is made by code Euclip cannot change from here.</p>
+            {{#if this.reason}}
+              <p><b>Why something is off:</b>
+                <span data-test-chain-reason>{{this.reason}}</span></p>
+            {{/if}}
+          </Hint>
         </div>
       {{/if}}
 
