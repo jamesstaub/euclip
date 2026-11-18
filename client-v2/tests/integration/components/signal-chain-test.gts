@@ -6,12 +6,14 @@ import {
   render,
   settled,
   triggerKeyEvent,
+  waitUntil,
 } from '@ember/test-helpers';
 import { setupRenderingTest } from 'client-v2/tests/helpers';
 import AppShell from 'client-v2/components/app-shell';
 import type AudioService from 'client-v2/services/audio';
 import type ProjectService from 'client-v2/services/project';
 import type ViewService from 'client-v2/services/view';
+import type ChainMetersService from 'client-v2/services/chain-meters';
 
 const KICK = 't-kick';
 const reasonText = (): string =>
@@ -31,7 +33,7 @@ module('Integration | Component | signal chain', function (hooks) {
     audio = this.owner.lookup('service:audio');
     view.footerOpen = true;
     view.footerPane = 'controls';
-    view.setRowView(KICK, 'chain');
+    view.setRowsView('chain');
   });
 
   /** The one sentence behind a "?": opened, and read. */
@@ -55,7 +57,7 @@ module('Integration | Component | signal chain', function (hooks) {
     await settled();
   }
 
-  test('the footer’s tabs are source, controls, sequence, and a row’s toggle is remembered', async function (assert) {
+  test('the footer’s tabs are source, controls, sequence', async function (assert) {
     await render(<template><AppShell /></template>);
     assert.deepEqual(
       findAll('[data-test-footer-tab]').map((tab) =>
@@ -63,67 +65,147 @@ module('Integration | Component | signal chain', function (hooks) {
       ),
       ['source', 'controls', 'sequence'],
     );
-    assert
-      .dom('[data-test-track="1"] [data-test-track-view-option="signal"]')
-      .hasAria('pressed', 'true');
-    assert
-      .dom('[data-test-track="2"] [data-test-track-view-option="signal"]')
-      .hasAria('pressed', 'false');
-    assert
-      .dom('[data-test-track="2"] [data-test-step]')
-      .exists('steps are the default');
-    await click('[data-test-track="2"] [data-test-track-view-option="signal"]');
-    assert.dom('[data-test-track="2"] [data-test-pane="chain"]').exists();
-    assert.dom('[data-test-track="2"] [data-test-step]').doesNotExist();
-    assert.strictEqual(view.rowView('t-snare'), 'chain');
-    const stored = JSON.parse(
-      window.localStorage.getItem('euclip:view') ?? '{}',
-    ) as { rows: Record<string, string> };
-    assert.strictEqual(
-      stored.rows['t-snare'],
-      'chain',
-      'remembered, and not an undo step',
-    );
-    assert.false(project.canUndo);
-    await click('[data-test-track="2"] [data-test-track-view-option="seq"]');
-    assert.dom('[data-test-track="2"] [data-test-step]').exists();
   });
 
-  test('a row’s toggle is seq | signal, right after its name button, and says which is shown', async function (assert) {
+  test('the project bar has one Seq / Signal toggle for every row, and no title', async function (assert) {
+    view.setRowsView('steps');
     await render(<template><AppShell /></template>);
-    const row = '[data-test-track="2"]';
-    const name = document.querySelector(`${row} [data-test-track-name]`)!;
-    const toggle = document.querySelector(`${row} [data-test-track-view]`)!;
-    assert.strictEqual(
-      name.nextElementSibling,
-      toggle,
-      'it sits after the name button',
-    );
-    assert.strictEqual(toggle.getAttribute('role'), 'group');
-    const options = [...toggle.querySelectorAll('button')];
+    const bar = '[data-test-app-header] .project-bar';
+    assert
+      .dom('.project-bar__title')
+      .doesNotExist('the title is not in the bar');
+    assert.dom(`${bar} [data-test-project-title]`).hasClass('sr-only');
+    assert.dom('[data-test-track-view]').doesNotExist('no toggle on a row');
+    const options = [
+      ...document.querySelectorAll(`${bar} [data-test-rows-view] button`),
+    ];
     assert.deepEqual(
       options.map((o) => o.textContent?.trim()),
-      ['seq', 'signal'],
+      ['Seq', 'Signal'],
     );
     assert.deepEqual(
       options.map((o) => o.getAttribute('aria-label')),
-      ['Show steps', 'Show signal chain'],
+      ['Show steps', 'Show signal chains'],
     );
     assert.deepEqual(
       options.map((o) => o.getAttribute('aria-pressed')),
       ['true', 'false'],
     );
+    assert
+      .dom('[data-test-track="2"] [data-test-step]')
+      .exists('steps are the default');
+    assert.dom('[data-test-track="1"] [data-test-pane="chain"]').doesNotExist();
+
     await click(options[1]!);
     assert.deepEqual(
       options.map((o) => o.getAttribute('aria-pressed')),
       ['false', 'true'],
     );
+    for (const row of ['1', '2', '3']) {
+      assert
+        .dom(`[data-test-track="${row}"] [data-test-pane="chain"]`)
+        .exists(`track ${row}`);
+      assert.dom(`[data-test-track="${row}"] [data-test-step]`).doesNotExist();
+    }
     assert
-      .dom('[data-test-track="output"] [data-test-track-view]')
-      .doesNotExist('the main output has none');
-    assert
-      .dom(`${row} [data-test-chain-hint], ${row} [data-test-chain-why]`)
-      .doesNotExist('no "?" until something is chosen');
+      .dom('[data-test-track="output"] [data-test-pane="chain"]')
+      .exists('the main output always');
+    const stored = JSON.parse(
+      window.localStorage.getItem('euclip:view') ?? '{}',
+    ) as { rowsView: string };
+    assert.strictEqual(stored.rowsView, 'chain', 'remembered');
+    assert.false(project.canUndo, 'not an undo step');
+    await click(options[0]!);
+    assert.dom('[data-test-track="3"] [data-test-step]').exists();
+  });
+
+  test('the transport is centred in the project bar', async function (assert) {
+    await render(<template><AppShell /></template>);
+    const bar = document
+      .querySelector('[data-test-app-header] .project-bar')!
+      .getBoundingClientRect();
+    const transport = document
+      .querySelector('[data-test-app-header] [data-test-transport]')!
+      .getBoundingClientRect();
+    assert.true(
+      Math.abs(
+        bar.left + bar.width / 2 - (transport.left + transport.width / 2),
+      ) <= 1,
+    );
+  });
+
+  module('meters', function (meterHooks) {
+    let meters: ChainMetersService;
+    meterHooks.beforeEach(function () {
+      meters = this.owner.lookup('service:chain-meters');
+      meters.forceRunning = true;
+      meters.reducedMotion = false;
+    });
+
+    /** The pictures are watched for being on screen, which is told a moment after they are drawn. */
+    async function seen(count: number): Promise<void> {
+      await waitUntil(() => audio.ready && meters.visibleCount >= count, {
+        timeout: 3000,
+      });
+    }
+
+    test('taps are made only for pictures on screen, and go with them', async function (assert) {
+      view.setRowsView('steps');
+      await render(<template><AppShell /></template>);
+      await seen(1);
+      meters.step(0.02);
+      assert.strictEqual(
+        meters.visibleCount,
+        1,
+        'only the main output shows a chain in Seq',
+      );
+      assert.strictEqual(meters.tapCount, 1, 'its one insert');
+
+      view.setRowsView('chain');
+      await seen(4);
+      meters.step(0.02);
+      assert.strictEqual(
+        meters.tapCount,
+        10,
+        'three tracks of three nodes, and the insert',
+      );
+
+      view.setRowsView('steps');
+      await settled();
+      meters.step(2);
+      meters.step(0.02);
+      assert.strictEqual(
+        meters.tapCount,
+        1,
+        'the rows that went take their taps',
+      );
+    });
+
+    test('a rebuilt script leaves no tap on a dead node', async function (assert) {
+      await render(<template><AppShell /></template>);
+      await seen(4);
+      meters.step(0.02);
+      assert.strictEqual(meters.tapCount, 10);
+      await setScript(KICK, (text) =>
+        text.replace(
+          "  .lowpass({ id: 'filter', frequency: 2000, q: 2 })\n",
+          '',
+        ),
+      );
+      await seen(4);
+      meters.step(0.02);
+      meters.step(2);
+      meters.step(0.02);
+      assert.strictEqual(meters.tapCount, 9, 'one node fewer');
+    });
+
+    test('with reduced motion nothing flows', async function (assert) {
+      meters.reducedMotion = true;
+      await render(<template><AppShell /></template>);
+      await seen(4);
+      meters.step(0.3);
+      assert.dom('[data-live="true"]').doesNotExist();
+    });
   });
 
   test('the default kick track is drawn: sampler, filter, level, ending at channel', async function (assert) {
@@ -165,7 +247,6 @@ module('Integration | Component | signal chain', function (hooks) {
 
   test('tapping the sampler chooses its track and shows its waveform in the footer, with the chain still in view', async function (assert) {
     await render(<template><AppShell /></template>);
-    await click('[data-test-track="2"] [data-test-track-view-option="signal"]');
     await click('[data-test-track="2"] [data-test-chain-node="sampler"]');
     assert.dom('[data-test-track="2"]').hasAria('current', 'true');
     assert.strictEqual(view.footerPane, 'source');

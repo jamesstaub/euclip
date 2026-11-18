@@ -1,9 +1,15 @@
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { on } from '@ember/modifier';
+import { service } from '@ember/service';
 import onOutside from 'client-v2/modifiers/on-outside';
 import Icon from 'client-v2/components/icon';
 import Transport from 'client-v2/components/transport';
+import type ViewService from 'client-v2/services/view';
+
+function is(a: string, b: string): boolean {
+  return a === b;
+}
 
 export interface AppHeaderSignature {
   Element: HTMLElement;
@@ -24,7 +30,12 @@ export interface AppHeaderSignature {
  * and snapshots are inert. New Track adds a sampler track; the arrow beside it offers the other kinds.
  */
 export default class AppHeader extends Component<AppHeaderSignature> {
+  @service declare view: ViewService;
+
   @tracked kindsOpen = false;
+
+  showSteps = (): void => this.view.setRowsView('steps');
+  showChains = (): void => this.view.setRowsView('chain');
 
   toggleKinds = (): void => {
     this.kindsOpen = !this.kindsOpen;
@@ -72,24 +83,49 @@ export default class AppHeader extends Component<AppHeaderSignature> {
       </nav>
 
       <div class="project-bar">
-        <button
-          type="button"
-          class="btn project-bar__toggle"
-          aria-label="Sounds"
-          aria-expanded={{if @sidebarOpen "true" "false"}}
-          aria-controls={{@sidebarId}}
-          aria-pressed={{if @sidebarOpen "true" "false"}}
-          data-test-sidebar-toggle
-          {{on "click" @onToggleSidebar}}
-        >
-          <Icon @name="sound" />
-          <span class="project-bar__toggle-label">Sounds</span>
-        </button>
+        <div class="project-bar__left">
+          <button
+            type="button"
+            class="btn project-bar__toggle"
+            aria-label="Sounds"
+            aria-expanded={{if @sidebarOpen "true" "false"}}
+            aria-controls={{@sidebarId}}
+            aria-pressed={{if @sidebarOpen "true" "false"}}
+            data-test-sidebar-toggle
+            {{on "click" @onToggleSidebar}}
+          >
+            <Icon @name="sound" />
+            <span class="project-bar__toggle-label">Sounds</span>
+          </button>
 
-        <h1
-          class="project-bar__title truncate"
-          data-test-project-title
-        >{{@projectName}}</h1>
+          {{! one choice for every track row: its steps, or its signal chain }}
+          <div
+            class="project-bar__view"
+            role="group"
+            aria-label="What the track rows show"
+            data-test-rows-view
+          >
+            <button
+              type="button"
+              class="project-bar__view-option"
+              aria-label="Show steps"
+              aria-pressed={{if (is this.view.rowsView "steps") "true" "false"}}
+              data-test-rows-view-option="seq"
+              {{on "click" this.showSteps}}
+            >Seq</button>
+            <button
+              type="button"
+              class="project-bar__view-option"
+              aria-label="Show signal chains"
+              aria-pressed={{if (is this.view.rowsView "chain") "true" "false"}}
+              data-test-rows-view-option="signal"
+              {{on "click" this.showChains}}
+            >Signal</button>
+          </div>
+        </div>
+
+        {{! the project's name is not drawn in the bar; it stays the page's heading for assistive tech }}
+        <h1 class="sr-only" data-test-project-title>{{@projectName}}</h1>
 
         <Transport class="project-bar__transport" />
 

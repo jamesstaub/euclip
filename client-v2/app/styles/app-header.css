@@ -81,8 +81,8 @@
 
 .project-bar {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
-  grid-template-areas: "toggle title transport actions";
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas: "left transport actions";
   align-items: center;
   gap: var(--space-1) var(--space-3);
   padding: var(--space-2) var(--space-3);
@@ -94,16 +94,47 @@
   grid-area: toggle;
 }
 
-.project-bar__title {
-  grid-area: title;
+.project-bar__left {
+  grid-area: left;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   min-inline-size: 0;
-  font-size: var(--font-size-4);
-  font-weight: var(--font-weight-normal);
-  line-height: var(--line-height-title);
+}
+
+/* Seq | Signal: one choice for every track row; the chosen one is filled */
+.project-bar__view {
+  display: flex;
+}
+
+.project-bar__view-option {
+  min-inline-size: 3.5rem;
+  min-block-size: var(--target-min);
+  padding: 0 var(--space-2);
+  border: var(--border-width-2) solid var(--dark-gray);
+  background: transparent;
+  color: var(--dark-gray);
+  font-size: var(--font-size-6);
+  font-weight: var(--font-weight-bold);
+
+  & + & {
+    margin-inline-start: calc(-1 * var(--border-width-2));
+  }
+
+  &[aria-pressed="true"] {
+    background: var(--dark-gray);
+    color: var(--yellow);
+  }
+
+  &:not([aria-pressed="true"]):hover,
+  &:not([aria-pressed="true"]):active {
+    background: var(--black-10);
+  }
 }
 
 .project-bar__transport {
   grid-area: transport;
+  justify-self: center;
 }
 
 .project-bar__actions {
@@ -139,26 +170,34 @@
     inline-size: 120px;
   }
 
+  /* two rows: the transport, centred on its own; then the Sounds button and the view toggle, and the buttons */
   .project-bar {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr);
     grid-template-areas:
-      "toggle title transport"
-      "actions actions actions";
+      "transport transport"
+      "left actions";
     gap: var(--space-2);
     padding: var(--space-2);
   }
 
   /* the buttons share the full-width second row rather than fighting the title for space */
+  .project-bar__actions {
+    justify-self: stretch;
+    min-inline-size: 0;
+  }
+
+  .project-bar__view-option {
+    min-inline-size: 3rem;
+  }
+
   .project-bar__new {
     flex: 1 1 auto;
 
     & .btn:first-child {
       flex: 1 1 auto;
+      min-inline-size: 0;
+      padding-inline: var(--space-2);
     }
-  }
-
-  .project-bar__title {
-    font-size: var(--font-size-5);
   }
 }
 

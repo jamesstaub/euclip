@@ -54,7 +54,7 @@ module('Unit | Service | view', function (hooks) {
         waveforms: {},
         snaps: {},
         lanes: {},
-        rows: {},
+        rowsView: 'steps',
       },
     );
   });

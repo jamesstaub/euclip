@@ -123,6 +123,68 @@
   }
 }
 
+/*
+ * Signal. A link carries the level of the node before it (the inspector's meter, as a line): it gets
+ * brighter, thicker and, while there is signal, a moving dash. `--level` (0 to 1) is written by
+ * services/chain-meters.ts straight onto the element, never through a render.
+ */
+.chain-wire::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: calc(-3px * var(--level, 0));
+  block-size: calc(2px + 6px * var(--level, 0));
+  background: var(--light-blue);
+  opacity: var(--level, 0);
+}
+
+.chain-link[data-live="true"] > .chain-wire::before,
+.chain-link--end[data-live="true"] .chain-wire::before {
+  background: repeating-linear-gradient(
+    to right,
+    var(--light-blue) 0 0.5rem,
+    var(--blue) 0.5rem 0.75rem
+  );
+  background-size: 0.75rem 100%;
+  animation: chain-flow 0.6s linear infinite;
+}
+
+@keyframes chain-flow {
+  to {
+    background-position-x: 0.75rem;
+  }
+}
+
+/* a modulator's activity is movement, not loudness: a dotted line, told from audio's solid one */
+.chain-row[data-kind="modulator"] .chain-wire::before {
+  background: repeating-linear-gradient(
+    to right,
+    var(--light-blue) 0 0.125rem,
+    transparent 0.125rem 0.375rem
+  );
+  background-size: auto;
+  animation: none;
+}
+
+/* the level arriving where the row ends */
+.chain-dest::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-end: 0;
+  inline-size: calc(100% * var(--level, 0));
+  block-size: 0.1875rem;
+  background: var(--light-blue);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chain-link[data-live="true"] > .chain-wire::before,
+  .chain-link--end[data-live="true"] .chain-wire::before {
+    animation: none;
+    background: var(--light-blue);
+  }
+}
+
 /* a modulator's line: dashed, and it says what it does */
 .chain-wire--modulates {
   inline-size: 4.5rem;
@@ -139,6 +201,7 @@
 }
 
 .chain-dest {
+  position: relative;
   display: flex;
   align-items: center;
   min-block-size: max(2.5rem, var(--target-min));

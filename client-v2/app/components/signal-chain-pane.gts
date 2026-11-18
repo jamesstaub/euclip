@@ -40,6 +40,7 @@ import type { Analysis, Cannot } from 'client-v2/script-edit/analyze';
 import type AudioService from 'client-v2/services/audio';
 import type ProjectService from 'client-v2/services/project';
 import type ViewService from 'client-v2/services/view';
+import type ChainMetersService from 'client-v2/services/chain-meters';
 
 export interface SignalChainPaneSignature {
   Element: HTMLElement;
@@ -158,6 +159,7 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
   @service declare audio: AudioService;
   @service declare project: ProjectService;
   @service declare view: ViewService;
+  @service('chain-meters') declare meters: ChainMetersService;
 
   @tracked chosen: Chosen | null = null;
   /** the picker is open: where the new node goes */
@@ -857,6 +859,21 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
 
   label = (node: ChainNode): string => nameOf(node);
 
+  /** What the drawing is made of: when it changes, the meters look for their elements again. */
+  get signature(): string {
+    return this.rows
+      .map((row) => `${row.kind}:${row.nodes.map((node) => node.id).join(',')}`)
+      .join('|');
+  }
+
+  /** Levels are shown on this picture while it is on screen (services/chain-meters.ts). */
+  meter = modifier(
+    (element: HTMLElement, [scopeId, signature]: [string, string]) => {
+      void signature; // (read, so that a change of drawing runs this again)
+      return this.meters.register(element, scopeId);
+    },
+  );
+
   <template>
     {{! template-lint-disable no-invalid-interactive }}
     {{! (keys and taps on empty space clear the choice; every control inside is a button) }}
@@ -867,6 +884,7 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
       ...attributes
       {{on "keydown" this.onKeydown}}
       {{on "click" this.onBackground}}
+      {{this.meter @scopeId this.signature}}
     >
 
       {{#if this.hasError}}
@@ -888,7 +906,11 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
           {{/if}}
           <ol class="chain-row__line" {{scrollFade}}>
             {{#each row.nodes key="id" as |node|}}
-              <li class="chain-link">
+              <li
+                class="chain-link"
+                data-meter={{node.id}}
+                data-control={{if (is row.kind "modulator") "true"}}
+              >
                 <button
                   type="button"
                   class="chain-node"
@@ -905,7 +927,7 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
                 <span class="chain-wire" aria-hidden="true"></span>
               </li>
             {{/each}}
-            <li class="chain-link chain-link--end">
+            <li class="chain-link chain-link--end" data-meter-in={{lastId row}}>
               {{#if (isParam row)}}
                 <span class="chain-wire chain-wire--modulates">
                   <i>modulates</i>
@@ -1300,6 +1322,10 @@ function is(
   b: string | null | undefined,
 ): boolean {
   return a === b;
+}
+
+function lastId(row: ChainRow): string | undefined {
+  return row.nodes[row.nodes.length - 1]?.id;
 }
 
 function isParam(row: ChainRow): boolean {

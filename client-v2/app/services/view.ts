@@ -29,7 +29,7 @@ interface Stored {
   collapsed?: unknown;
   snaps?: unknown;
   lanes?: unknown;
-  rows?: unknown;
+  rowsView?: unknown;
 }
 
 function readStored(): Stored {
@@ -144,29 +144,16 @@ export default class ViewService extends Service {
       : {};
 
   /**
-   * What a track's row shows where its step grid is: 'steps' (the default) or its 'chain', the signal
-   * chain drawn from the running script. By track; remembered; nothing to undo.
+   * What every track's row shows where its step grid is: 'steps' (the default) or the signal 'chain'
+   * drawn from the running script. One choice for all the rows, from the project bar; remembered; nothing
+   * to undo.
    */
-  @tracked private rows: Readonly<Record<string, string>> =
-    this.#stored.rows &&
-    typeof this.#stored.rows === 'object' &&
-    !Array.isArray(this.#stored.rows)
-      ? Object.fromEntries(
-          Object.entries(this.#stored.rows).filter(
-            (entry): entry is [string, string] => entry[1] === 'chain',
-          ),
-        )
-      : {};
+  @tracked rowsView: 'steps' | 'chain' =
+    this.#stored.rowsView === 'chain' ? 'chain' : 'steps';
 
-  rowView(scopeId: string): 'steps' | 'chain' {
-    return this.rows[scopeId] === 'chain' ? 'chain' : 'steps';
-  }
-
-  setRowView(scopeId: string, view: 'steps' | 'chain'): void {
-    if (this.rowView(scopeId) === view) return;
-    const { [scopeId]: _gone, ...rest } = this.rows;
-    void _gone;
-    this.rows = view === 'chain' ? { ...rest, [scopeId]: 'chain' } : rest;
+  setRowsView(view: 'steps' | 'chain'): void {
+    if (this.rowsView === view) return;
+    this.rowsView = view;
     this.#save();
   }
 
@@ -327,7 +314,7 @@ export default class ViewService extends Service {
           waveforms: this.waveforms,
           snaps: this.snaps,
           lanes: this.lanes,
-          rows: this.rows,
+          rowsView: this.rowsView,
         }),
       );
     } catch {

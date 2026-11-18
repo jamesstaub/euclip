@@ -31,6 +31,7 @@ import { setLiveCatalog } from 'client-v2/editor/live-catalog';
 import type { DeclarationWarning } from 'client-v2/controls/declarations';
 import type { SampleSource, StoredValue } from 'client-v2/project/schema';
 import type ProjectService from 'client-v2/services/project';
+import type ChainMetersService from 'client-v2/services/chain-meters';
 import type { ProjectChange } from 'client-v2/services/project';
 
 /**
@@ -56,6 +57,7 @@ const text = (value: unknown, otherwise: string): string =>
  */
 export default class AudioService extends Service {
   @service declare project: ProjectService;
+  @service('chain-meters') declare meters: ChainMetersService;
 
   /**
    * Makes the audio context. Tests replace this (before `boot`) or get the default below: an
@@ -144,7 +146,11 @@ export default class AudioService extends Service {
       // For poking at the running project from the browser's console, and for the scripts that drive
       // the real app: `euclip.engine.transport.position`, `euclip.project()`.
       Object.assign(window, {
-        euclip: { engine, project: () => this.project.doc },
+        euclip: {
+          engine,
+          project: () => this.project.doc,
+          meters: this.meters,
+        },
       });
     }
     this.ready = true;
@@ -184,6 +190,7 @@ export default class AudioService extends Service {
     if (engine.transport.state !== 'started') engine.transport.start();
     this.playing = true;
     this.silenceArmed = false;
+    this.meters.poke();
   }
 
   /**
@@ -250,6 +257,11 @@ export default class AudioService extends Service {
   ): number | undefined {
     void this.revision;
     return this.runner?.paramValue(scopeId, nodeId, param);
+  }
+
+  /** A node of a scope's running script, by id. Not tracked: for the meters, which look again every frame. */
+  nodeById(scopeId: string, nodeId: string): Node | undefined {
+    return this.runner?.nodeById(scopeId, nodeId);
   }
 
   /** The node types the library offers. */
@@ -857,6 +869,7 @@ export default class AudioService extends Service {
   #changed(): void {
     if (isDestroying(this)) return;
     this.revision++;
+    this.meters.poke();
     if (this.runner) setLiveCatalog(this.runner.catalog());
   }
 }

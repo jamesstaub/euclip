@@ -773,6 +773,12 @@ export class ProjectRunner {
     return typeof value === 'number' ? value : undefined;
   }
 
+  /** A node of a scope's running script, by id (for tapping its output); undefined if there is none. */
+  nodeById(scopeId: string, nodeId: string): Node | undefined {
+    const runtime = this.#scopes.get(scopeId);
+    return runtime ? this.#select(runtime, `#${nodeId}`)[0] : undefined;
+  }
+
   /** The node types the library offers, for the picker that adds one to a chain. */
   nodeTypes(): readonly NodeTypeInfo[] {
     return this.engine.registry.list();

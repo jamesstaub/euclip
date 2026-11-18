@@ -62,13 +62,10 @@ export default class TrackRow extends Component<TrackRowSignature> {
 
   @tracked menuOpen = false;
 
-  /** Whether the row shows the signal chain where the step grid is (per track, remembered). */
+  /** Whether the row shows the signal chain where the step grid is (one choice for every row: the project bar's). */
   get showChain(): boolean {
-    return this.view.rowView(this.args.track.id) === 'chain';
+    return this.view.rowsView === 'chain';
   }
-
-  showSteps = (): void => this.view.setRowView(this.args.track.id, 'steps');
-  showSignal = (): void => this.view.setRowView(this.args.track.id, 'chain');
 
   get stepGrids(): StepGridView[] {
     return this.audio.stepGrids(this.args.track.id);
@@ -203,29 +200,6 @@ export default class TrackRow extends Component<TrackRowSignature> {
           >
             <span class="truncate">{{@track.name}}</span>
           </button>
-          <div
-            class="track__view"
-            role="group"
-            aria-label="What the row shows"
-            data-test-track-view
-          >
-            <button
-              type="button"
-              class="track__view-option"
-              aria-label="Show steps"
-              aria-pressed={{if this.showChain "false" "true"}}
-              data-test-track-view-option="seq"
-              {{on "click" this.showSteps}}
-            >seq</button>
-            <button
-              type="button"
-              class="track__view-option"
-              aria-label="Show signal chain"
-              aria-pressed={{if this.showChain "true" "false"}}
-              data-test-track-view-option="signal"
-              {{on "click" this.showSignal}}
-            >signal</button>
-          </div>
           {{#if this.error}}
             <span
               class="track__alert"
