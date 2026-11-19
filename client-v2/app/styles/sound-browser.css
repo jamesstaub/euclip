@@ -490,6 +490,7 @@
 .target-card__select {
   flex: 0 1 auto;
   min-inline-size: 0;
+  color: var(--text-on-accent);
   font-size: var(--font-size-6);
 }
 
