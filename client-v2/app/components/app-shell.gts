@@ -10,6 +10,7 @@ import onEscape from 'client-v2/modifiers/on-escape';
 import shortcuts from 'client-v2/modifiers/shortcuts';
 import {
   newSlicedLoopTrack,
+  newSynthTrack,
   newTrack,
 } from 'client-v2/project/default-project';
 import { PROJECT_SCOPE, type TrackDocument } from 'client-v2/project/schema';
@@ -135,6 +136,13 @@ export default class AppShell extends Component<AppShellSignature> {
     this.chosenId = track.id;
   };
 
+  /** New Track's third kind: an oscillator played by a sequence, with the synth editor in the source pane. */
+  addSynth = (): void => {
+    const track = newSynthTrack('synth');
+    this.project.apply({ type: 'addTrack', track });
+    this.chosenId = track.id;
+  };
+
   removeTrack = (track: TrackDocument): void => {
     const index = this.project.tracks.findIndex(
       (candidate) => candidate.id === track.id,
@@ -181,6 +189,7 @@ export default class AppShell extends Component<AppShellSignature> {
         @onToggleSidebar={{this.toggleSidebar}}
         @onNewTrack={{this.addTrack}}
         @onNewSlicedLoop={{this.addSlicedLoop}}
+        @onNewSynth={{this.addSynth}}
       />
 
       {{#if this.sidebarOpen}}

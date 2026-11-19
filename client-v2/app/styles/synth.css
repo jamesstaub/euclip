@@ -1,0 +1,208 @@
+/*
+ * The synth source editor (components/synth-editor.gts): an oscilloscope, a keyboard, and the source's
+ * controls. Everything has a fixed size: nothing moves when a value changes or a key is pressed.
+ */
+
+.synth {
+  --scope-bg: var(--dark-gray);
+  --scope-trace: var(--light-blue);
+  --scope-grid: var(--mid-gray);
+  --key-white: var(--near-white);
+  --key-black: var(--near-black);
+  --key-current: var(--light-blue);
+  --key-down: var(--blue);
+
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.synth__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: max(2.25rem, var(--target-min));
+}
+
+.synth__title {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  font-size: var(--font-size-6);
+}
+
+.synth__type {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-7);
+  color: var(--dark-gray);
+}
+
+.synth__tools {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* ---- the scope ---- */
+
+.synth__scope {
+  flex: none;
+  block-size: 6.5rem;
+  border: var(--border-dark);
+  background: var(--scope-bg);
+}
+
+.synth__canvas {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+/* ---- the keyboard ---- */
+
+.synth__keys {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.synth__keybar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: max(2.25rem, var(--target-min));
+
+  & .btn {
+    flex: none;
+    inline-size: 2.75rem;
+    min-block-size: 2.25rem;
+  }
+}
+
+.synth__range {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-7);
+  text-align: center;
+  min-inline-size: 6.5rem;
+}
+
+/* the note and how far off it is: a fixed width, so a longer reading moves nothing */
+.synth__readout {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-6);
+  font-weight: var(--font-weight-bold);
+  text-align: end;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* one line, always there: empty or not, the keyboard stays where it is */
+.synth__status {
+  min-block-size: 1.25rem;
+  margin: 0;
+  font-size: var(--font-size-7);
+}
+
+.piano {
+  display: flex;
+  block-size: 6.5rem;
+  border: var(--border-dark);
+  background: var(--dark-gray);
+  touch-action: none;
+  user-select: none;
+
+  &:focus-visible {
+    outline: var(--border-width-3) solid var(--focus-ring-on-light);
+    outline-offset: 2px;
+  }
+}
+
+.piano__octave {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  min-inline-size: 0;
+}
+
+.piano__key {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.piano__key--white {
+  flex: 1 1 0;
+  min-inline-size: 0;
+  border-inline-end: var(--border-width-1) solid var(--dark-gray);
+  background: var(--key-white);
+  color: var(--dark-gray);
+}
+
+.piano__key--black {
+  position: absolute;
+  inset-block-start: 0;
+  z-index: 1;
+  inline-size: calc(100% / 7 * 0.6);
+  block-size: 62%;
+  background: var(--key-black);
+  transform: translateX(-50%);
+}
+
+/* the black keys sit on the line after the white key they follow */
+.piano__key--after-1 {
+  inset-inline-start: calc(100% / 7 * 1);
+}
+
+.piano__key--after-2 {
+  inset-inline-start: calc(100% / 7 * 2);
+}
+
+.piano__key--after-4 {
+  inset-inline-start: calc(100% / 7 * 4);
+}
+
+.piano__key--after-5 {
+  inset-inline-start: calc(100% / 7 * 5);
+}
+
+.piano__key--after-6 {
+  inset-inline-start: calc(100% / 7 * 6);
+}
+
+.piano__label {
+  padding-block-end: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-7);
+  pointer-events: none;
+}
+
+/* the key for the pitch now; the nearest one when the pitch is between notes */
+.piano__key[data-current="true"] {
+  background: var(--key-current);
+  color: var(--near-black);
+}
+
+.piano__key[data-down="true"] {
+  background: var(--key-down);
+}
+
+.piano__key--black[data-current="true"],
+.piano__key--black[data-down="true"] {
+  outline: var(--border-width-2) solid var(--near-black);
+  outline-offset: calc(-1 * var(--border-width-2));
+}
+
+.synth .source-controls {
+  flex: none;
+}

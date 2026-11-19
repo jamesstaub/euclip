@@ -3,6 +3,7 @@ import {
   click,
   fillIn,
   find,
+  waitUntil,
   findAll,
   focus,
   render,
@@ -1122,8 +1123,8 @@ stepGrid('ones');
         findAll('[data-test-control-group]').map((group) =>
           group.getAttribute('data-test-control-group'),
         ),
-        ['sampler', 'filter', 'level'],
-        'in the order of the chain the script wrote, not of the declarations',
+        ['filter', 'level'],
+        'in the order of the chain the script wrote, not of the declarations; the sampler is a source: its controls are in the source tab',
       );
       assert
         .dom('[data-test-control-group="filter"] .control-group__title')
@@ -1135,12 +1136,8 @@ stepGrid('ones');
         findAll('[data-test-control]').map((el) =>
           el.getAttribute('data-test-control'),
         ),
-        [
-          '#sampler › speed',
-          '#filter › frequency',
-          '#filter › q',
-          '#level › gain',
-        ],
+        ['#filter › frequency', '#filter › q', '#level › gain'],
+        'the sampler’s speed is not listed here: it is in the source tab',
       );
       assert
         .dom('[data-test-control-group="filter"] [data-test-group-type]')
@@ -1322,8 +1319,8 @@ stepGrid('ones');
         );
       assert.deepEqual(
         sections(),
-        ['own', 'sampler', 'filter', 'level'],
-        'the Track section first, then a section per node',
+        ['own', 'filter', 'level'],
+        'the Track section first, then a section per node that is not a source',
       );
       assert
         .dom('[data-test-control-group="own"] .control-group__title')
@@ -1338,26 +1335,10 @@ stepGrid('ones');
         .dom('[data-test-control-more]')
         .doesNotExist('no "more": everything is in its section');
 
-      const sampler = '[data-test-control-group="sampler"]';
-      assert.deepEqual(
-        findAll(`${sampler} [data-test-control]`).map((el) =>
-          el.getAttribute('data-test-control'),
-        ),
-        [
-          '#sampler › speed',
-          '#sampler › start',
-          '#sampler › end',
-          '#sampler › loop',
-          '#sampler › loopStart',
-          '#sampler › loopEnd',
-          '#sampler › reverse',
-          '#sampler › gain',
-        ],
-        'the explicit speed slider is used, not repeated; the rest of the node’s parameters follow',
-      );
       assert
-        .dom(`${row('#sampler › loop')} [data-test-toggle]`)
-        .exists('a true-or-false parameter gets a toggle');
+        .dom('[data-test-control-group="sampler"]')
+        .doesNotExist('a source has no section among the processors');
+      const sampler = '[data-test-control-group="filter"]';
       assert
         .dom(`${row('#level › gain')} [data-test-knob]`)
         .exists('the explicit knob wins over the slider controls() would give');
@@ -1370,13 +1351,13 @@ stepGrid('ones');
       assert.dom(sampler).hasAttribute('open', '', 'open by default');
       await click(`${sampler} summary`);
       assert.dom(sampler).doesNotHaveAttribute('open');
-      assert.false(view.isSectionOpen('t-kick', 'sampler'));
+      assert.false(view.isSectionOpen('t-kick', 'filter'));
       await click('[data-test-track="2"] [data-test-track-select]');
       await click('[data-test-track="1"] [data-test-track-select]');
       assert
         .dom(sampler)
         .doesNotHaveAttribute('open', 'still closed after looking elsewhere');
-      assert.dom('[data-test-control-group="filter"]').hasAttribute('open', '');
+      assert.dom('[data-test-control-group="level"]').hasAttribute('open', '');
 
       await click(`${row('fills')} [data-test-toggle]`);
       assert.false(project.doc.tracks[0]?.values.controls['fills']?.value);
@@ -1697,14 +1678,9 @@ slider(__.bus('drums'), 'gain');
         { title: 'drums bus', sections: ['level', 'compressor squash'] },
         {
           title: 'chain 1',
-          sections: [
-            'sampler no id',
-            'lowpass 1 no id',
-            'highpass thin',
-            'lowpass 2 no id',
-          ],
+          sections: ['lowpass 1 no id', 'highpass thin', 'lowpass 2 no id'],
         },
-        { title: 'chain 2', sections: ['sine no id', 'gain no id'] },
+        { title: 'chain 2', sections: ['gain no id'] },
       ]);
       assert.false(
         find('[data-test-pane="controls"]')!.textContent.includes('lowpass-'),
@@ -1731,7 +1707,7 @@ slider(__.bus('drums'), 'gain');
         .hasAria('valuenow', '1');
     });
 
-    test('a speed’s menu has a sequence sync item for each named sequence; choosing one is one step to undo', async function (assert) {
+    test('a speed’s menu (in the source tab, with the waveform) has a sequence sync item for each named sequence; choosing one is one step to undo', async function (assert) {
       await render(<template><AppShell /></template>);
       await click('[data-test-script-toggle]');
       await typeScript(
@@ -1739,12 +1715,15 @@ slider(__.bus('drums'), 'gain');
           `${text}\n__.transport.sequence('fills', { steps: 8, step: '1/16' }, () => {});\n`,
       );
       await click('[data-test-script-toggle]');
-      const speed = row('#sampler › speed');
+      view.footerPane = 'source';
+      await waitUntil(() =>
+        find('[data-test-speed-menu] [data-test-menu-button]'),
+      );
       const speedOf = (): number =>
         [
           ...audio.engine!.scope('t-kick').scope('script').select('#sampler'),
         ][0]!.param('speed').value as number;
-      await click(`${speed} [data-test-menu-button]`);
+      await click('[data-test-speed-menu] [data-test-menu-button]');
       assert.deepEqual(
         findAll('[data-test-menu-item]')
           .map((item) => item.textContent?.trim())
@@ -1771,8 +1750,6 @@ slider(__.bus('drums'), 'gain');
         Math.abs(speedOf() - length * multiplier) < 1e-6,
         `the speed is the multiplier (${multiplier}) of length / sequence (${speedOf()})`,
       );
-      assert.dom(speed).hasAttribute('data-mode', 'sequence-sync');
-      assert.dom(`${speed} [data-test-number-entry]`).includesText('× seq');
 
       project.undo();
       await settled();
@@ -1781,7 +1758,6 @@ slider(__.bus('drums'), 'gain');
         undefined,
         'one undo: the unit and the number together',
       );
-      assert.dom(speed).hasAttribute('data-mode', 'ratio');
       assert.strictEqual(speedOf(), 1, 'and the speed it had');
     });
 
@@ -1853,9 +1829,11 @@ slider(__.bus('drums'), 'gain');
 
       // a toggle has no such entry
       await click('[data-test-script-toggle]');
-      await typeScript((text) => `${text}\ntoggle('#sampler', 'loop');\n`);
+      await typeScript(
+        (text) => `${text}\ntoggle('fills', { default: true });\n`,
+      );
       await click('[data-test-script-toggle]');
-      await click(`${row('#sampler › loop')} [data-test-menu-button]`);
+      await click(`${row('fills')} [data-test-menu-button]`);
       assert.false(
         findAll('[data-test-menu-item]').some((item) =>
           /glide/i.test(item.textContent ?? ''),
@@ -1867,9 +1845,6 @@ slider(__.bus('drums'), 'gain');
     test('a control’s menu offers the units its parameter can be shown in; the value stays in the parameter’s own', async function (assert) {
       await render(<template><AppShell /></template>);
       await click('[data-test-script-toggle]');
-      await typeScript(
-        (text) => `${text}\ncontrols('#sampler', ['start', 'end']);\n`,
-      );
       await click('[data-test-script-toggle]');
 
       const units = async (key: string): Promise<(string | undefined)[]> => {
@@ -1888,64 +1863,11 @@ slider(__.bus('drums'), 'gain');
         return items;
       };
       assert.deepEqual(await units('#level › gain'), ['Linear', 'Decibels']);
-      assert.deepEqual(await units('#sampler › speed'), [
-        'Ratio',
-        'Semitones',
-        'Cents',
-        'Sequence sync',
-      ]);
-      assert.deepEqual(await units('#sampler › start'), [
-        'Seconds',
-        'Milliseconds',
-        'Steps (tempo)',
-        'Percent of the sample',
-      ]);
       assert.deepEqual(await units('#filter › q'), [
         'Linear',
         'Exponential',
         'Stepped',
       ]);
-
-      const end = row('#sampler › end');
-      const length = audio.engine!.buffers.get('kick')!.duration!;
-      assert
-        .dom(`${end} [data-test-slider]`)
-        .hasAria('valuemax', String(length), 'the length of the sample');
-      assert
-        .dom(`${end} [data-test-slider]`)
-        .hasAria('valuenow', String(length));
-      await click(`${end} [data-test-menu-button]`);
-      await click('[data-test-menu-item="Percent of the sample"]');
-      assert.dom(`${end} [data-test-number-entry]`).hasText('100%');
-      await click(`${end} [data-test-number-entry]`);
-      await fillIn(`${end} [data-test-number-input]`, '50');
-      await triggerKeyEvent(
-        `${end} [data-test-number-input]`,
-        'keydown',
-        'Enter',
-      );
-      assert.strictEqual(
-        project.doc.tracks[0]?.values.controls['#sampler › end']?.value,
-        length / 2,
-        'stored in seconds',
-      );
-      assert.dom(`${end} [data-test-number-entry]`).hasText('50%');
-
-      const speed = row('#sampler › speed');
-      await click(`${speed} [data-test-menu-button]`);
-      await click('[data-test-menu-item="Semitones"]');
-      await focus(`${speed} [data-test-slider]`);
-      await triggerKeyEvent(
-        `${speed} [data-test-slider]`,
-        'keydown',
-        'ArrowUp',
-      );
-      assert.dom(`${speed} [data-test-number-entry]`).hasText('+1 st');
-      assert.strictEqual(
-        project.doc.tracks[0]?.values.controls['#sampler › speed']?.value,
-        Number((2 ** (1 / 12)).toPrecision(12)),
-        'a semitone up, stored as a ratio',
-      );
     });
 
     test('the main output shows the project script’s controls, and its script is the project script', async function (assert) {
@@ -2140,8 +2062,8 @@ slider(__.bus('drums'), 'gain');
         findAll('[data-test-control]').map((el) =>
           el.getAttribute('data-test-control'),
         ),
-        ['#sampler › speed', '#level › gain'],
-        'playable without typing',
+        ['#level › gain'],
+        'playable without typing (the sampler’s controls are in the source tab)',
       );
       const id = project.doc.tracks[3]!.id;
       assert.strictEqual(audio.error(id), null, 'and it runs');

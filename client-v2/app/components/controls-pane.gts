@@ -40,7 +40,8 @@ export interface ControlsPaneSignature {
 }
 
 /**
- * The controls a script declares, a section per node.
+ * The controls a script declares for everything but its sources, a section per node. (A sampler's, an
+ * oscillator's or a synth macro's are in the source tab, with that source's editor: see `controls()` in the runner.)
  *
  * A section is headed by what the node is (its type: LOWPASS), then the id the script gave it if it gave
  * one. An automatic id is never shown: two nodes of a type with no ids are told apart by number, in the
@@ -131,8 +132,13 @@ export default class ControlsPane extends Component<ControlsPaneSignature> {
             <code>controls()</code>. Or one at a time, for a parameter of a
             node:
             <code>slider('#filter', 'frequency')</code>,
-            <code>knob('#level', 'gain')</code>,
-            <code>toggle('#sampler', 'loop')</code>. Press Script to write them.</p>
+            <code>knob('#level', 'gain')</code>, and
+            <code>toggle()</code>
+            and
+            <code>select()</code>
+            for switches and menus. Press Script to write them.</p>
+          <p>The controls of a source (a sampler, an oscillator, a synth) are in
+            the source tab, with its editor.</p>
           <p>The number in the script is the default; what you set here is kept
             in the project. A control’s menu (⋮) changes its unit, resets it,
             and shows its line in the script.</p>

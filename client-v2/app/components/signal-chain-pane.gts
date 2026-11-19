@@ -643,11 +643,12 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
   };
 
   open = (node: ChainNode): void => {
-    if (node.type === 'sampler') {
-      const waveform = this.audio
-        .waveforms(this.args.scopeId)
-        .find((candidate) => candidate.nodeId === node.id);
-      this.view.showSourceOf(this.args.scopeId, waveform?.key ?? null);
+    // a source that has an editor (a sampler's waveform, an oscillator's or synth macro's synth) opens it
+    const source = this.audio
+      .sources(this.args.scopeId)
+      .find((candidate) => candidate.nodeId === node.id);
+    if (source || node.type === 'sampler') {
+      this.view.showSourceOf(this.args.scopeId, source?.key ?? null);
     } else {
       this.view.showControlsOf(this.args.scopeId, node.id);
     }

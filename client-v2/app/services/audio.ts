@@ -13,6 +13,7 @@ import {
   type ScriptError,
   type StepGridView,
   type WaveformView,
+  type SourceView,
 } from 'client-v2/audio/runner';
 import config from 'client-v2/config/environment';
 import { LibraryClient } from 'client-v2/library/client';
@@ -32,6 +33,7 @@ import type { DeclarationWarning } from 'client-v2/controls/declarations';
 import type { SampleSource, StoredValue } from 'client-v2/project/schema';
 import type ProjectService from 'client-v2/services/project';
 import type ChainMetersService from 'client-v2/services/chain-meters';
+import type SourceScopeService from 'client-v2/services/source-scope';
 import type { ProjectChange } from 'client-v2/services/project';
 
 /**
@@ -58,6 +60,7 @@ const text = (value: unknown, otherwise: string): string =>
 export default class AudioService extends Service {
   @service declare project: ProjectService;
   @service('chain-meters') declare meters: ChainMetersService;
+  @service('source-scope') declare scopes: SourceScopeService;
 
   /**
    * Makes the audio context. Tests replace this (before `boot`) or get the default below: an
@@ -191,6 +194,7 @@ export default class AudioService extends Service {
     this.playing = true;
     this.silenceArmed = false;
     this.meters.poke();
+    this.scopes.poke();
   }
 
   /**
@@ -273,6 +277,45 @@ export default class AudioService extends Service {
   waveforms(scopeId: string): WaveformView[] {
     void this.revision;
     return this.runner?.waveforms(scopeId) ?? [];
+  }
+
+  /** Every source editor the scope's script declares (waveforms and synths), in declaration order. */
+  sources(scopeId: string): SourceView[] {
+    void this.revision;
+    return this.runner?.sources(scopeId) ?? [];
+  }
+
+  /** The controls of one source node, for the source tab. */
+  sourceControls(scopeId: string, nodeId: string): ControlView[] {
+    void this.revision;
+    return this.runner?.sourceControls(scopeId, nodeId) ?? [];
+  }
+
+  /**
+   * Starts a note on a source for the ear and holds it until `releaseNote`. Call it from the user's
+   * gesture, where a context that has not started is allowed to. Resolves whether anything was triggered.
+   */
+  async playNote(
+    scopeId: string,
+    nodeId: string,
+    note: { midi: number; hz: number; param: string | null },
+  ): Promise<boolean> {
+    const engine = this.engine;
+    if (!engine || !this.runner) return false;
+    if (!engine.offline && engine.context.state !== 'running') {
+      try {
+        await engine.resume();
+      } catch {
+        return false;
+      }
+    }
+    const played = this.runner.playNote(scopeId, nodeId, note);
+    this.scopes.poke();
+    return played;
+  }
+
+  releaseNote(scopeId: string, nodeId: string): void {
+    this.runner?.releaseNote(scopeId, nodeId);
   }
 
   /** A sampler of a scope's script: for drawing its sound and its play position. */
@@ -870,6 +913,7 @@ export default class AudioService extends Service {
     if (isDestroying(this)) return;
     this.revision++;
     this.meters.poke();
+    this.scopes.poke();
     if (this.runner) setLiveCatalog(this.runner.catalog());
   }
 }

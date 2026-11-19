@@ -117,7 +117,7 @@ module('Integration | Component | waveform', function (hooks) {
     assert.dom('[data-test-waveform]').doesNotExist();
     assert
       .dom('[data-test-pane="source"] [data-test-pane-empty] span')
-      .hasText('This script declares no waveform.');
+      .hasText('This script declares no source.');
     await click('[data-test-source-hint] [data-test-hint-button]');
     assert
       .dom('[data-test-source-hint] [data-test-hint]')
@@ -513,7 +513,7 @@ module('Integration | Component | waveform', function (hooks) {
       .doesNotHaveClass('waveform__value--faint');
   });
 
-  test('the speed has its unit menu here: the same choice as its control in the controls pane', async function (assert) {
+  test('the speed has its unit menu here, and is not repeated in the processors', async function (assert) {
     await open();
     const stored = (): unknown =>
       project.doc.tracks.at(-1)!.values.controls['#sampler › speed']?.options;
@@ -539,17 +539,20 @@ module('Integration | Component | waveform', function (hooks) {
       .dom(value('speed'))
       .hasText('0 st', 'the cell shows it in the unit chosen');
 
-    // the controls pane shows the same control in the same unit, and a choice there shows here
+    // the speed is a source's control: the controls pane does not list it again
     view.footerPane = 'controls';
     await settled();
-    const row = '[data-test-control="#sampler › speed"]';
-    assert.dom(row).hasAttribute('data-mode', 'semitones');
-    await click(`${row} [data-test-menu-button]`);
-    assert.dom('[data-test-menu-item="Semitones"]').hasAria('checked', 'true');
-    await click('[data-test-menu-item="Cents"]');
+    assert
+      .dom('[data-test-control="#sampler › speed"]')
+      .doesNotExist(
+        'a sampler’s controls are in the source tab, not the processors',
+      );
     view.footerPane = 'source';
     await settled();
     await waitFor(`${STAGE}[data-ready]`);
+    await click('[data-test-speed-menu] [data-test-menu-button]');
+    assert.dom('[data-test-menu-item="Semitones"]').hasAria('checked', 'true');
+    await click('[data-test-menu-item="Cents"]');
     assert.dom(value('speed')).hasText('0 ct');
     project.undo();
     await settled();

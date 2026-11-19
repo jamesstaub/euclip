@@ -113,7 +113,7 @@ module('Unit | Audio | waveform', function () {
         ],
       );
       assert.deepEqual(
-        h.runner.controls(ONE),
+        h.runner.allControls(ONE),
         [],
         'its parts are not rows of the controls pane',
       );
@@ -158,7 +158,7 @@ module('Unit | Audio | waveform', function () {
         ),
       );
       assert.deepEqual(
-        h.runner.controls(ONE).map((c) => `${c.key} ${c.label}`),
+        h.runner.allControls(ONE).map((c) => `${c.key} ${c.label}`),
         ['#s › start Begin', '#s › end end', '#s › gain gain'],
         'the script’s own controls take over from the waveform’s parts, wherever they are in the script',
       );
@@ -168,7 +168,7 @@ module('Unit | Audio | waveform', function () {
         'and the waveform uses them',
       );
       set(h, 'start', 0.1);
-      assert.strictEqual(h.runner.controls(ONE)[0]!.value, 0.1);
+      assert.strictEqual(h.runner.allControls(ONE)[0]!.value, 0.1);
       assert.strictEqual(h.runner.sampler(ONE, 's')!.param('start').value, 0.1);
       assert.deepEqual(
         h.doc.tracks[0]!.values.controls,
@@ -251,7 +251,7 @@ waveform();`),
         assert.deepEqual(h.runner.warnings(id), []);
       }
       assert.deepEqual(
-        h.runner.controls('t-kick').map((c) => c.key),
+        h.runner.allControls('t-kick').map((c) => c.key),
         [
           '#sampler › speed',
           '#filter › frequency',

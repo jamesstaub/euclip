@@ -146,6 +146,7 @@ export const CONTROL_DECLARATIONS: ReadonlySet<string> = new Set([
   'select',
   'controls',
   'waveform',
+  'synth',
 ]);
 
 const TAILS = new Set(['to', 'connect', 'modulate']);

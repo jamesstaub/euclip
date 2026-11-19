@@ -22,6 +22,7 @@ import {
   CONTROL_FUNCTIONS,
   WAVEFORM_PARAMS,
   WAVEFORM_PART,
+  SYNTH_PART,
   HOST_TAG,
   KIND_FOR_PARAM,
   type Binding,
@@ -66,6 +67,14 @@ export interface ControlHost {
   perStep(key: string): { value: number } | null;
   /** a step grid's length and step length as set on the grid (the project's), where they have been */
   gridShape(key: string): { length?: number; step?: string };
+  /**
+   * What the library says of a node type, for telling sources from the rest: whether it is a source of
+   * sound (category 'source', or a synth macro), whether it is a macro, and whether notes are given to
+   * it as the `pitch` of `trigger()` (a synth macro) rather than set on a parameter. Null if unknown.
+   */
+  typeInfo(
+    type: string,
+  ): { source: boolean; macro: boolean; pitchTrigger: boolean } | null;
 }
 
 /** What a declaration returns to the script. */
@@ -110,6 +119,31 @@ function isBus(value: unknown): value is Bus {
 function isSampler(node: Node): boolean {
   return (
     'start' in node.params && 'end' in node.params && 'loop' in node.params
+  );
+}
+
+/**
+ * The parameter a synth editor's keyboard sets: the one the script names (`pitch`), else `frequency`,
+ * else the first in Hz. Null for a synth macro (it is played by the pitch it is triggered with) and for
+ * a source with no pitch.
+ */
+export function pitchParamOf(
+  node: Node,
+  options: ControlOptions,
+  pitchTrigger: boolean,
+): string | null {
+  const names = Object.keys(node.params);
+  const wanted = options.pitch;
+  if (typeof wanted === 'string' && names.includes(wanted)) return wanted;
+  if (names.includes('frequency')) return 'frequency';
+  if (pitchTrigger) return null;
+  return (
+    names.find((name) => {
+      const meta = node.param(name).meta;
+      return (
+        meta.kind === 'number' && meta.unit === 'hz' && meta.rate !== 'init'
+      );
+    }) ?? null
   );
 }
 
@@ -425,7 +459,14 @@ export function createControlApi(
   const functions: ControlApi = {};
   for (const fn of CONTROL_FUNCTIONS) {
     const kind = fn.kind;
-    if (kind === null || kind === 'stepGrid' || kind === 'waveform') continue;
+    if (
+      kind === null ||
+      kind === 'stepGrid' ||
+      kind === 'waveform' ||
+      kind === 'synth'
+    ) {
+      continue;
+    }
     functions[fn.name] = (
       first: unknown,
       second?: unknown,
@@ -754,6 +795,106 @@ export function createControlApi(
     });
   }
 
+  /** Whether a node is a source that is not a sampler: what a synth editor is for. */
+  function isSynthSource(node: Node): boolean {
+    return !isSampler(node) && host.typeInfo(node.type)?.source === true;
+  }
+
+  /**
+   * `synth('#osc')`: a synth editor for each oscillator or synth macro found. A view over ordinary
+   * controls (every other parameter the script declares for the node) and over the pitch: the parameter
+   * the keyboard sets. If the script declares no control for it, one is made here, with the key a
+   * `slider` for it would have, so what the keyboard sets is stored and applied like a slider's value.
+   */
+  functions['synth'] = (first: unknown, second?: unknown): void => {
+    const line = lineOfCaller();
+    let target: Target | null = null;
+    try {
+      target = isBus(first) ? null : resolve(first);
+    } catch (error) {
+      host.warn({
+        message: `synth(${typeof first === 'string' ? `'${first}'` : '…'}): ${error instanceof Error ? error.message : String(error)}`,
+        line,
+      });
+      return;
+    }
+    if (!target) {
+      host.warn({
+        message:
+          "synth() needs an oscillator or a synth macro: a selector ('#osc'), or a chain, a selection or a node.",
+        line,
+      });
+      return;
+    }
+    const call = `synth(${target.said})`;
+    const sources = target.nodes.filter(isSynthSource);
+    if (sources.length === 0) {
+      const found = [...new Set(target.nodes.map((node) => node.type))];
+      host.warn({
+        message:
+          target.nodes.length === 0
+            ? target.selector === null
+              ? `${call}: there are no nodes there, so there is no synth editor.`
+              : `${call}: the selector matches no node, so there is no synth editor.`
+            : target.nodes.some(isSampler)
+              ? `${call}: a sampler has waveform('${target.selector ?? '#sampler'}') for its editor, not synth(). (found: ${found.join(', ')})`
+              : `${call}: there is no oscillator or synth macro there (found: ${found.join(', ')}), so there is no synth editor. Point it at a source.`,
+        line,
+      });
+      return;
+    }
+    const options = isOptions(second) ? second : {};
+    for (const node of sources) synthOf(node, options, false, call, line);
+  };
+
+  /** Declares the synth editor of one source: its pitch control (made here if there is none), and the editor. */
+  function synthOf(
+    node: Node,
+    options: ControlOptions,
+    implicit: boolean,
+    call: string,
+    line: number | undefined,
+  ): void {
+    const selector = idSelector(node);
+    const info = host.typeInfo(node.type);
+    if (typeof options.pitch === 'string' && !(options.pitch in node.params)) {
+      host.warn({
+        message: `${call}: ${node.type} "${node.id}" has no parameter "${options.pitch}" for the keyboard to set. It has: ${Object.keys(node.params).join(', ')}.`,
+        line,
+      });
+    }
+    const pitch = pitchParamOf(node, options, info?.pitchTrigger ?? false);
+    const bindings: Binding[] = [];
+    if (pitch !== null) {
+      bindings.push({ type: 'param', selector, param: pitch });
+      const meta = node.param(pitch).meta;
+      if (meta.kind === 'number' && meta.rate !== 'init') {
+        bound(
+          call,
+          'synth',
+          KIND_FOR_PARAM[meta.kind],
+          [meta.kind],
+          [node],
+          null,
+          pitch,
+          {},
+          true,
+          line,
+          true,
+        );
+      }
+    }
+    host.declare({
+      key: controlKey(selector, SYNTH_PART),
+      kind: 'synth',
+      bindings,
+      nodes: [node.id],
+      options,
+      implicit,
+      line,
+    });
+  }
+
   /** The line of a `controls()` with no arguments, if the script has called it: see `finish`. */
   let everything: { line: number | undefined } | null = null;
 
@@ -874,6 +1015,8 @@ export function createControlApi(
       everything = { line };
       for (const node of target.nodes) {
         if (isSampler(node)) waveformOf(node, {}, true, 'controls()', line);
+        else if (isSynthSource(node))
+          synthOf(node, {}, true, 'controls()', line);
       }
     }
     return handles;

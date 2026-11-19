@@ -133,6 +133,12 @@ export interface ControlView {
   implicit: boolean;
   line?: number;
   group: ControlGroup;
+  /**
+   * The id of the source node (a sampler, an oscillator, a synth macro) this control is for, when it is
+   * for exactly one: the source tab shows it with that source's editor, and the processors tab does not.
+   * Null for the rest.
+   */
+  source: string | null;
   meta: ControlMeta;
   /** where the control is: the value the project holds, else what the script itself gives */
   value: number | boolean | string;
@@ -310,6 +316,41 @@ export interface WaveformView {
   /** the controls it is a view over, by parameter name: the same ones a slider for each would be */
   params: Partial<Record<string, ControlView>>;
 }
+
+/** A synth editor a script declares (an oscillator or a synth macro): see `ProjectRunner#synths`. */
+export interface SynthView {
+  /** the declaration's key: the node's id and `synth` */
+  key: string;
+  nodeId: string;
+  /** the node's type: sine, saw, monosynth */
+  type: string;
+  label: string;
+  line?: number;
+  byPosition: boolean;
+  /** the parameter the keyboard sets, or null (a synth macro is played by note; some sources have no pitch) */
+  pitchParam: string | null;
+  /** the control the keyboard sets: the script's own for that parameter, else the one synth() made */
+  pitch: ControlView | null;
+  /** notes are given to it as the pitch of its trigger (a synth macro): the keyboard plays, and stores nothing */
+  playsNote: boolean;
+}
+
+/** One source editor of a script, as the source tab lists them. */
+export type SourceView =
+  | {
+      kind: 'waveform';
+      key: string;
+      nodeId: string;
+      label: string;
+      waveform: WaveformView;
+    }
+  | {
+      kind: 'synth';
+      key: string;
+      nodeId: string;
+      label: string;
+      synth: SynthView;
+    };
 
 export interface RunnerHost {
   /** The current document. */
@@ -515,29 +556,33 @@ export class ProjectRunner {
     const claims = new Map<string, string>();
     const claimsOf = (declaration: Declaration): string[] =>
       // (a compound widget lists what it is a view over; the parts are declared, and claimed, themselves)
-      (declaration.kind === 'waveform' ? [] : declaration.bindings).flatMap(
-        (binding) =>
-          binding.type === 'param'
-            ? declaration.nodes.map((node) => `${node}/${binding.param}`)
-            : binding.type === 'bus'
-              ? [`bus:${binding.name}/gain`]
-              : [],
+      (declaration.kind === 'waveform' || declaration.kind === 'synth'
+        ? []
+        : declaration.bindings
+      ).flatMap((binding) =>
+        binding.type === 'param'
+          ? declaration.nodes.map((node) => `${node}/${binding.param}`)
+          : binding.type === 'bus'
+            ? [`bus:${binding.name}/gain`]
+            : [],
       );
     const host: ControlHost = {
       stored: (key) =>
         valuesOf(this.#host.getDoc(), scopeId)?.controls[key]?.value,
       declare: (declaration) => {
-        // A sampler has one waveform editor and a sequence one grid. One the script wrote
+        // A source has one editor (waveform or synth) and a sequence one grid. One the script wrote
         // (waveform('#kick'), stepGrid('steps')) is used instead of the one controls() would give,
         // whichever comes first; of two it wrote, the first waveform line stands (a later
         // waveform('sampler') that also finds the sampler adds nothing, and does not undo its label).
         const same = declared.get(declaration.key);
         if (
           same &&
-          (declaration.kind === 'waveform' || declaration.kind === 'stepGrid')
+          (declaration.kind === 'waveform' ||
+            declaration.kind === 'synth' ||
+            declaration.kind === 'stepGrid')
         ) {
           if (declaration.implicit) return false;
-          if (declaration.kind === 'waveform' && !same.implicit) return false;
+          if (declaration.kind !== 'stepGrid' && !same.implicit) return false;
         }
         const wanted = [...new Set(claimsOf(declaration))];
         // Who has the better claim to a parameter, wherever each is in the script: an explicit
@@ -557,6 +602,7 @@ export class ProjectRunner {
         return true;
       },
       warn: (warning) => warnings.push(warning),
+      typeInfo: (type) => this.#typeInfo(type),
       moved: (key, value, glide) =>
         this.#movedByScript(runtime, key, value, glide ?? 0),
       gridShape: (key) => {
@@ -795,7 +841,48 @@ export class ProjectRunner {
    * node the order they were declared in.
    */
   controls(scopeId: string): ControlView[] {
+    return this.#controlViews(scopeId, false).filter(
+      (view) => view.source === null,
+    );
+  }
+
+  /** Every declared control, sources' included: what `controls` and `sourceControls` split between the two tabs. */
+  allControls(scopeId: string): ControlView[] {
     return this.#controlViews(scopeId, false);
+  }
+
+  /** The controls of one source node, as the source tab shows them with its editor. */
+  sourceControls(scopeId: string, nodeId: string): ControlView[] {
+    return this.#controlViews(scopeId, false).filter(
+      (view) => view.source === nodeId,
+    );
+  }
+
+  /**
+   * Whether a node is a source of sound, by what the library says its type is: category 'source'
+   * (sampler, the oscillators, noise), or a synth macro (category 'synth': a macro that makes sound
+   * from triggers and takes none in). The library does not say whether a macro of another category has
+   * an audio input, so one of those is not told apart from an effect: it stays under processors.
+   */
+  isSource(node: Node): boolean {
+    return this.#typeInfo(node.type)?.source === true;
+  }
+
+  #typeInfo(
+    type: string,
+  ): { source: boolean; macro: boolean; pitchTrigger: boolean } | null {
+    try {
+      const info = this.engine.registry.describe(type);
+      return {
+        source:
+          info.category === 'source' ||
+          (info.isMacro && info.category === 'synth'),
+        macro: info.isMacro,
+        pitchTrigger: info.isMacro && 'pitch' in info.triggerOptions,
+      };
+    } catch {
+      return null;
+    }
   }
 
   /** Every declared control as the UI draws it; `all` includes the parts of compound widgets. */
@@ -813,6 +900,7 @@ export class ProjectRunner {
         binding.type === 'sequence' ||
         binding.type === 'option' ||
         declaration.kind === 'waveform' ||
+        declaration.kind === 'synth' ||
         (declaration.hidden && !all)
       ) {
         continue;
@@ -827,6 +915,7 @@ export class ProjectRunner {
       let fallback: StoredValue | undefined;
       let name: string;
       let order = -1;
+      let source: string | null = null;
       let waiting: string | undefined;
       let shown = (value: StoredValue): StoredValue => value;
       /** the library can sweep the parameter (an audio-rate number) */
@@ -888,6 +977,7 @@ export class ProjectRunner {
           };
           order = (place?.index ?? 0) + 0.5;
         } else {
+          if (this.isSource(node)) source = node.id;
           const ordinal = node.autoId ? (place?.ordinal ?? null) : null;
           group = {
             id: node.id,
@@ -1037,6 +1127,7 @@ export class ProjectRunner {
           implicit: declaration.implicit,
           ...(declaration.line === undefined ? {} : { line: declaration.line }),
           group,
+          source,
           meta,
           value,
           effective: this.#perStepOf(runtime, declaration)?.found
@@ -1253,6 +1344,171 @@ export class ProjectRunner {
       });
     }
     return views;
+  }
+
+  /** The synth editors a script declares, in the order it declared them. */
+  synths(scopeId: string): SynthView[] {
+    const runtime = this.#scopes.get(scopeId);
+    if (!runtime) return [];
+    const declarations = runtime.declarations.filter(
+      (declaration) => declaration.kind === 'synth',
+    );
+    if (declarations.length === 0) return [];
+    const controls = new Map(
+      this.#controlViews(scopeId, true).map((view) => [view.key, view]),
+    );
+    const layout = this.#layout(runtime);
+    const views: SynthView[] = [];
+    for (const declaration of declarations) {
+      const nodeId = declaration.nodes[0];
+      const node =
+        nodeId === undefined ? undefined : this.sampler(scopeId, nodeId);
+      if (!node || nodeId === undefined) continue;
+      const binding = declaration.bindings[0];
+      const param = binding?.type === 'param' ? binding.param : null;
+      const key =
+        param === null ? undefined : runtime.claims.get(`${nodeId}/${param}`);
+      const info = this.#typeInfo(node.type);
+      views.push({
+        key: declaration.key,
+        nodeId,
+        type: node.type,
+        label:
+          declaration.options.label ??
+          (node.autoId
+            ? `${node.type}${layout.nodes.get(nodeId)?.ordinal ? ` ${layout.nodes.get(nodeId)!.ordinal}` : ''}`
+            : `#${nodeId}`),
+        ...(declaration.line === undefined ? {} : { line: declaration.line }),
+        byPosition: node.autoId,
+        pitchParam: param,
+        pitch: key === undefined ? null : (controls.get(key) ?? null),
+        playsNote: info?.pitchTrigger ?? false,
+      });
+    }
+    return views;
+  }
+
+  /**
+   * Every source editor the script declares (waveforms and synths) in the order it declared them: what
+   * the source tab lists.
+   */
+  sources(scopeId: string): SourceView[] {
+    const runtime = this.#scopes.get(scopeId);
+    if (!runtime) return [];
+    const order = new Map(
+      runtime.declarations.map((declaration, at) => [declaration.key, at]),
+    );
+    const all: SourceView[] = [
+      ...this.waveforms(scopeId).map((view): SourceView => ({
+        kind: 'waveform',
+        key: view.key,
+        nodeId: view.nodeId,
+        label: view.label,
+        waveform: view,
+      })),
+      ...this.synths(scopeId).map((view): SourceView => ({
+        kind: 'synth',
+        key: view.key,
+        nodeId: view.nodeId,
+        label: view.label,
+        synth: view,
+      })),
+    ];
+    return all.sort(
+      (a, b) => (order.get(a.key) ?? 0) - (order.get(b.key) ?? 0),
+    );
+  }
+
+  // --- Playing a source for the ear -------------------------------------------------------------------
+
+  /** What a held note started: the nodes to release, by `scope/node`. */
+  readonly #held = new Map<string, Node[]>();
+
+  /**
+   * Starts a note on a source and holds it until `releaseNote`.
+   *
+   * A synth macro is triggered with the note's MIDI number as its `pitch`. An oscillator has its pitch
+   * parameter set to `hz` and every triggerable node from it on is triggered: the oscillator itself (a
+   * closed gate opens) and what follows it (an envelope). On release the same are released, except an
+   * oscillator whose gate is open (the default) or that has an envelope after it: releasing it would
+   * close a gate the script left open, silencing it for good (the envelope's release is the note's end).
+   * So an oscillator with an open gate and nothing to shape it is sounding already and the key only
+   * sets its pitch. The audio must be running (see AudioService#playNote).
+   */
+  playNote(
+    scopeId: string,
+    nodeId: string,
+    note: { midi: number; hz: number; param: string | null },
+  ): boolean {
+    const runtime = this.#scopes.get(scopeId);
+    const node = this.sampler(scopeId, nodeId);
+    if (!runtime || !node) return false;
+    this.releaseNote(scopeId, nodeId);
+    const info = this.#typeInfo(node.type);
+    const held: Node[] = [];
+    if (info?.pitchTrigger) {
+      node.trigger({ pitch: note.midi });
+      held.push(node);
+    } else {
+      if (note.param !== null && note.param in node.params) {
+        node.param(note.param).set(note.hz, FOLLOW);
+      }
+      const chain = this.#triggerChain(node);
+      for (const next of chain) next.trigger({});
+      const shaped = chain.length > 1;
+      const closed =
+        runtime.scope.describe().nodes.find((data) => data.id === nodeId)
+          ?.init?.['gate'] === 'closed';
+      for (const next of chain) {
+        if (next === node && (shaped || !closed)) continue;
+        held.push(next);
+      }
+    }
+    this.#held.set(`${scopeId}/${nodeId}`, held);
+    return true;
+  }
+
+  /** Ends the note `playNote` started. */
+  releaseNote(scopeId: string, nodeId: string): void {
+    const key = `${scopeId}/${nodeId}`;
+    for (const node of this.#held.get(key) ?? []) {
+      if (node.disposed) continue;
+      try {
+        node.release({});
+      } catch {
+        // (nothing sounding)
+      }
+    }
+    this.#held.delete(key);
+  }
+
+  /** The node and the triggerable nodes after it, following its connections (an envelope, a gate). */
+  #triggerChain(start: Node): Node[] {
+    const found: Node[] = [];
+    const seen = new Set<Node>();
+    const visit = (node: Node, depth: number): void => {
+      if (seen.has(node) || depth > 12) return;
+      seen.add(node);
+      const info = this.#triggerable(node.type);
+      if (info) found.push(node);
+      for (const edge of node.outputs) {
+        const to = edge.to as Partial<Node>;
+        if (typeof to.type === 'string' && typeof to.trigger === 'function') {
+          visit(to as Node, depth + 1);
+        }
+      }
+    };
+    visit(start, 0);
+    return found;
+  }
+
+  #triggerable(type: string): boolean {
+    try {
+      const info = this.engine.registry.describe(type);
+      return info.triggerable && info.category !== 'io';
+    } catch {
+      return false;
+    }
   }
 
   #soundDefault(

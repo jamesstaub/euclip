@@ -22,6 +22,7 @@ export interface AppHeaderSignature {
     onNewTrack: () => void;
     /** the other kind of track in the New Track menu: a loop played slice by slice */
     onNewSlicedLoop?: () => void;
+    onNewSynth?: () => void;
   };
 }
 
@@ -53,6 +54,11 @@ export default class AppHeader extends Component<AppHeaderSignature> {
   addSlicedLoop = (): void => {
     this.kindsOpen = false;
     this.args.onNewSlicedLoop?.();
+  };
+
+  addSynth = (): void => {
+    this.kindsOpen = false;
+    this.args.onNewSynth?.();
   };
 
   onKindsKey = (event: KeyboardEvent): void => {
@@ -184,6 +190,15 @@ export default class AppHeader extends Component<AppHeaderSignature> {
                     data-test-new-sliced-loop
                     {{on "click" this.addSlicedLoop}}
                   >Sliced loop</button>
+                </li>
+                <li role="none">
+                  <button
+                    type="button"
+                    class="menu__item"
+                    role="menuitem"
+                    data-test-new-synth
+                    {{on "click" this.addSynth}}
+                  >Synth</button>
                 </li>
               </ul>
             {{/if}}

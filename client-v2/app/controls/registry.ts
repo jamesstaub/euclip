@@ -23,7 +23,7 @@ import SliderWidget, {
   type ControlWidgetSignature,
 } from 'client-v2/components/widgets/slider-widget';
 import ToggleWidget from 'client-v2/components/widgets/toggle-widget';
-import type { WaveformView } from 'client-v2/audio/runner';
+import type { SynthView, WaveformView } from 'client-v2/audio/runner';
 import type { Binding } from 'client-v2/controls/declarations';
 
 interface Entry<S> {
@@ -125,6 +125,34 @@ export interface WaveformWidgetSignature {
   };
 }
 
+/** What the synth widget is given. */
+export interface SynthWidgetSignature {
+  Element: HTMLElement;
+  Args: {
+    scopeId: string;
+    synth: SynthView;
+    /** every source editor of the script, when there are several to choose between */
+    others?: readonly { key: string; label: string }[];
+    onChoose?: (key: string) => void;
+  };
+}
+
+const SYNTH: CompoundEntry<SynthWidgetSignature> = {
+  kind: 'synth',
+  binds: ['param'],
+  layout: 'block',
+  pane: 'source',
+  load: () =>
+    import('client-v2/components/synth-editor').then(
+      (module) => module.default,
+    ),
+};
+
+/** The entry that draws a synth editor: an oscillator's or a synth macro's source tab. */
+export function synthWidget(): CompoundEntry<SynthWidgetSignature> {
+  return SYNTH;
+}
+
 /** The entry that draws a waveform editor. */
 export function waveformWidget(): CompoundEntry<WaveformWidgetSignature> {
   return COMPOUNDS[0]!;
@@ -145,4 +173,5 @@ export const WIDGET_KINDS: readonly string[] = [
   ...CONTROLS,
   ...STEP_GRIDS,
   ...COMPOUNDS,
+  SYNTH,
 ].map((entry) => entry.kind);

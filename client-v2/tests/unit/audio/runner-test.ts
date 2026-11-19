@@ -55,7 +55,7 @@ function paramOf(h: Harness, scope: string, node: string, name: string) {
 
 function control(h: Harness, scope: string, key: string) {
   const found = h.runner
-    .controls(scope)
+    .allControls(scope)
     .find((candidate) => candidate.key === key);
   if (!found) throw new Error(`No control ${key} in ${scope}`);
   return found;
@@ -177,7 +177,7 @@ module('Unit | Audio | runner', function () {
 
       assert.deepEqual(
         h.runner
-          .controls(KICK)
+          .allControls(KICK)
           .map(
             (c) => `${c.kind} ${c.group.id}.${c.label} = ${String(c.value)}`,
           ),
@@ -229,7 +229,7 @@ module('Unit | Audio | runner', function () {
 
       assert.deepEqual(
         h.runner
-          .controls(PROJECT_SCOPE)
+          .allControls(PROJECT_SCOPE)
           .map((c) => `${c.group.id}.${c.label} = ${String(c.value)}`),
         ['bus:main.master = 0.8', 'glue.threshold = -18', 'glue.ratio = 3'],
       );
@@ -314,7 +314,7 @@ module('Unit | Audio | runner', function () {
       assert.deepEqual(idsOf(h, track.id), [HOST_PAN_ID, 'level', 'sampler']);
       assert.strictEqual(grid(h, track.id).steps.length, 16);
       assert.deepEqual(
-        h.runner.controls(track.id).map((c) => c.label),
+        h.runner.allControls(track.id).map((c) => c.label),
         ['speed', 'level'],
       );
       assert.deepEqual(h.runner.warnings(track.id), []);
@@ -330,7 +330,7 @@ module('Unit | Audio | runner', function () {
     test('a control exists only where the script declares one', async function (assert) {
       const h = await startProject(oneTrack(CHAIN));
       assert.deepEqual(
-        h.runner.controls(ONE),
+        h.runner.allControls(ONE),
         [],
         'no declarations, no controls',
       );
@@ -341,7 +341,7 @@ module('Unit | Audio | runner', function () {
       );
       assert.deepEqual(
         h.runner
-          .controls(ONE)
+          .allControls(ONE)
           .map((c) => [c.kind, c.key, c.label, c.meta.kind, c.value]),
         [
           ['toggle', '#s › loop', 'loop', 'boolean', false],
@@ -482,7 +482,7 @@ module('Unit | Audio | runner', function () {
         original.replace("slider('#filter', 'frequency');\n", ''),
       );
       assert.deepEqual(
-        h.runner.controls(KICK).map((c) => c.label),
+        h.runner.allControls(KICK).map((c) => c.label),
         ['speed', 'q', 'level'],
       );
       assert.strictEqual(
@@ -519,7 +519,7 @@ __().saw({ class: 'voice', frequency: 220 }).gain(0.1).to('channel');
 slider('.voice', 'detune');`),
       );
       const key = controlKey('.voice', 'detune');
-      assert.strictEqual(h.runner.controls(ONE).length, 1);
+      assert.strictEqual(h.runner.allControls(ONE).length, 1);
       assert.strictEqual(control(h, ONE, key).group.label, '.voice (2 nodes)');
       assert.strictEqual(
         control(h, ONE, key).group.id,
@@ -562,7 +562,7 @@ __.transport.sequence('steps', { steps: 4 }, () => {});`),
       );
       assert.true(h.runner.isBuilt(ONE));
       assert.deepEqual(
-        h.runner.controls(ONE).map((c) => c.key),
+        h.runner.allControls(ONE).map((c) => c.key),
         ['#f › q'],
         'the good declaration still works',
       );
@@ -609,7 +609,7 @@ __.transport.sequence('steps', { steps: 4 }, () => {});`),
     test('controls(selector) declares every parameter of the node; with a list, those named', async function (assert) {
       const h = await startProject(oneTrack(`${CHAIN}controls('#s');`));
       assert.deepEqual(
-        h.runner.controls(ONE).map((c) => `${c.key}:${c.kind}`),
+        h.runner.allControls(ONE).map((c) => `${c.key}:${c.kind}`),
         [
           '#s › speed:slider',
           '#s › start:slider',
@@ -625,13 +625,13 @@ __.transport.sequence('steps', { steps: 4 }, () => {});`),
 
       await h.setScript(ONE, `${CHAIN}controls('#s', ['speed', 'loop']);`);
       assert.deepEqual(
-        h.runner.controls(ONE).map((c) => c.label),
+        h.runner.allControls(ONE).map((c) => c.label),
         ['speed', 'loop'],
       );
 
       await h.setScript(ONE, `${CHAIN}controls('#s', ['speed', 'tempo']);`);
       assert.deepEqual(
-        h.runner.controls(ONE).map((c) => c.label),
+        h.runner.allControls(ONE).map((c) => c.label),
         ['speed'],
       );
       assert.true(
@@ -653,7 +653,7 @@ __.transport.sequence('steps', { steps: 4 }, () => {});`),
       const h = await startProject(oneTrack(`${CHAIN}controls();`));
 
       const sections = new Map<string, string[]>();
-      for (const c of h.runner.controls(ONE)) {
+      for (const c of h.runner.allControls(ONE)) {
         sections.set(c.group.id, [
           ...(sections.get(c.group.id) ?? []),
           c.label,
@@ -686,7 +686,7 @@ __.transport.sequence('steps', { steps: 4 }, () => {});`),
         'lowpass',
       );
       assert.false(
-        h.runner.controls(ONE).some((c) => c.label === 'pan'),
+        h.runner.allControls(ONE).some((c) => c.label === 'pan'),
         'the host’s own pan is not among them',
       );
 
@@ -701,7 +701,7 @@ __.transport.sequence('steps', { steps: 4 }, () => {});`),
       // the same nodes however they are found: the stored value follows the node, not the selector
       await h.setScript(ONE, `${CHAIN}controls('*');`);
       assert.strictEqual(paramOf(h, ONE, 'f', 'frequency').value, 500);
-      assert.strictEqual(h.runner.controls(ONE).length, 11);
+      assert.strictEqual(h.runner.allControls(ONE).length, 11);
       await h.setScript(ONE, `${CHAIN}slider('#f', 'frequency');`);
       assert.strictEqual(control(h, ONE, '#f › frequency').value, 500);
 
@@ -723,7 +723,7 @@ __.transport.sequence('steps', { steps: 4 }, () => {});`),
       );
       assert.deepEqual(
         h.runner
-          .controls(ONE)
+          .allControls(ONE)
           .map((c) => [c.key, c.group.id, c.group.byPosition, c.value]),
         [
           ['#lowpass-0 › frequency', 'lowpass-0', true, 800],
@@ -756,7 +756,9 @@ slider(other.nodes, 'detune');`),
       );
       assert.deepEqual(h.runner.warnings(ONE), []);
       assert.deepEqual(
-        h.runner.controls(ONE).map((c) => `${c.kind} ${c.key} [${c.group.id}]`),
+        h.runner
+          .allControls(ONE)
+          .map((c) => `${c.kind} ${c.key} [${c.group.id}]`),
         [
           'slider #sampler-0 › gain [sampler-0]',
           'slider #lowpass-0 › frequency [lowpass-0]',
@@ -805,7 +807,7 @@ controls();`),
       assert.strictEqual(detune.group.label, 'several (2 nodes)');
       assert.deepEqual(
         h.runner
-          .controls(ONE)
+          .allControls(ONE)
           .filter((c) => c.label === 'detune')
           .map((c) => c.key),
         [key],
@@ -847,7 +849,7 @@ __('*').set({ pan: 1 });`),
         'so the script’s own set() cannot move it',
       );
       assert.false(
-        h.runner.controls(ONE).some((c) => c.label === 'pan'),
+        h.runner.allControls(ONE).some((c) => c.label === 'pan'),
         'and nothing declares a control for it',
       );
       assert.strictEqual(
@@ -866,7 +868,11 @@ __('*').set({ pan: 1 });`),
       });
       const h = await startProject(doc);
       assert.deepEqual(
-        [...new Set(h.runner.controls(PROJECT_SCOPE).map((c) => c.group.id))],
+        [
+          ...new Set(
+            h.runner.allControls(PROJECT_SCOPE).map((c) => c.group.id),
+          ),
+        ],
         ['glue'],
       );
       assert.true(
@@ -888,7 +894,7 @@ __('*').set({ pan: 1 });`),
         assert.strictEqual(q.label, 'Res');
         assert.false(q.implicit);
         assert.true(control(h, ONE, '#f › frequency').implicit);
-        assert.strictEqual(h.runner.controls(ONE).length, 2);
+        assert.strictEqual(h.runner.allControls(ONE).length, 2);
       }
     });
 
@@ -912,7 +918,7 @@ __('*').set({ pan: 1 });`),
       });
       assert.strictEqual(shape.value, 'soft');
       assert.deepEqual(
-        h.runner.controls(ONE).map((c) => `${c.label}:${c.kind}`),
+        h.runner.allControls(ONE).map((c) => `${c.label}:${c.kind}`),
         ['shape:select', 'amount:slider'],
       );
       assert.true(
@@ -991,7 +997,7 @@ __.transport.sequence('s', { steps: 2, step: '1/2' }, () => {
       );
       assert.deepEqual(
         h.runner
-          .controls(ONE)
+          .allControls(ONE)
           .map((c) => [c.key, c.kind, c.group.id, c.group.label, c.value]),
         [
           ['density', 'slider', OWN_GROUP, 'Track', 0.5],
@@ -1109,7 +1115,7 @@ __.transport.sequence('s', { steps: [0, 1], step: '1/4' }, (ev) => {
   module('sections, buses and the channel', function () {
     const heading = (h: Harness, scope: string): string[] => {
       const seen = new Map<string, string>();
-      for (const c of h.runner.controls(scope)) {
+      for (const c of h.runner.allControls(scope)) {
         const g = c.group;
         seen.set(
           g.id,
@@ -1143,7 +1149,7 @@ slider('sine', 'frequency');`),
       );
       assert.deepEqual(
         h.runner
-          .controls(ONE)
+          .allControls(ONE)
           .filter((c) => c.group.id === 'filter')
           .map((c) => c.label),
         ['frequency', 'q'],
@@ -1152,7 +1158,7 @@ slider('sine', 'frequency');`),
       assert.false(
         JSON.stringify(
           h.runner
-            .controls(ONE)
+            .allControls(ONE)
             .map((c) => [c.group.type, c.group.name, c.group.ordinal]),
         ).includes('lowpass-'),
         'an automatic id is never part of a heading',
@@ -1182,7 +1188,7 @@ controls('#s', ['speed']);`),
       assert.deepEqual(h.runner.warnings(ONE), []);
       assert.deepEqual(
         h.runner
-          .controls(ONE)
+          .allControls(ONE)
           .map((c) => `${c.kind} ${c.key} = ${String(c.value)}`),
         [
           `knob ${key} = 0.5`,
@@ -1287,7 +1293,7 @@ slider('*', 'pan');`),
       );
       assert.true(said[3]!.includes('Use slider() or knob()'), said[3]);
       assert.deepEqual(
-        h.runner.controls(ONE),
+        h.runner.allControls(ONE),
         [],
         'and none of them is a control',
       );
@@ -1304,7 +1310,7 @@ slider('*', 'pan');`),
       assert.deepEqual(h.runner.warnings(PROJECT_SCOPE), []);
       assert.deepEqual(
         h.runner
-          .controls(PROJECT_SCOPE)
+          .allControls(PROJECT_SCOPE)
           .map(
             (c) =>
               `${c.group.bus} ${c.group.type}: ${c.label} = ${String(c.value)}`,
@@ -1621,7 +1627,7 @@ __.transport.sequence({ steps: 4 }, () => {});`),
         'a waveform for the sampler',
       );
       assert.deepEqual(
-        [...new Set(h.runner.controls(ONE).map((c) => c.group.id))],
+        [...new Set(h.runner.allControls(ONE).map((c) => c.group.id))],
         ['s', 'g'],
         'and the nodes’ parameters, as before',
       );
@@ -1697,7 +1703,7 @@ controls('#s');`),
       );
       assert.deepEqual(h.runner.stepGrids(ONE), []);
       assert.deepEqual(h.runner.waveforms(ONE), []);
-      assert.strictEqual(h.runner.controls(ONE).length, 8);
+      assert.strictEqual(h.runner.allControls(ONE).length, 8);
     });
 
     test('a script of only sequences: controls() still gives them grids', async function (assert) {
@@ -2894,7 +2900,7 @@ grid.set([1, 1, 1, 1]);`),
       assert.deepEqual(idsOf(h, KICK), before, 'the old nodes');
       assert.strictEqual(grid(h, KICK).steps.length, 16, 'the old grid');
       assert.strictEqual(
-        h.runner.controls(KICK).length,
+        h.runner.allControls(KICK).length,
         4,
         'and the old controls',
       );
@@ -2922,7 +2928,7 @@ grid.set([1, 1, 1, 1]);`),
       );
       assert.deepEqual(idsOf(h, KICK), before);
       assert.deepEqual(
-        h.runner.controls(KICK).map((c) => c.label),
+        h.runner.allControls(KICK).map((c) => c.label),
         ['speed', 'frequency', 'q', 'level'],
         'the failed run’s declarations are not used',
       );
@@ -2949,7 +2955,7 @@ grid.set([1, 1, 1, 1]);`),
       assert.true(h.runner.error('t-snare')?.message.startsWith('SyntaxError'));
       assert.false(h.runner.isBuilt('t-snare'));
       assert.deepEqual(h.runner.stepGrids('t-snare'), []);
-      assert.deepEqual(h.runner.controls('t-snare'), []);
+      assert.deepEqual(h.runner.allControls('t-snare'), []);
       assert.deepEqual(
         idsOf(h, 't-snare'),
         [HOST_PAN_ID],

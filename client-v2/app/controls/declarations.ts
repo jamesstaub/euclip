@@ -54,6 +54,8 @@ export interface ControlOptions {
   step?: number;
   /** stepped mode: the only values allowed */
   values?: number[];
+  /** a synth editor: the parameter its keyboard sets (default: `frequency`, else the first in Hz) */
+  pitch?: string;
   /** a step grid: how its steps are drawn. Only 'toggles' (the default) exists so far. */
   view?: string;
   /** a control with no parameter: its unit, and the value it starts at */
@@ -119,6 +121,8 @@ export const WAVEFORM_PARAMS = [
 
 /** The key part that names a waveform editor, and the sound its sampler plays, among a node's controls. */
 export const WAVEFORM_PART = 'waveform';
+/** The key part that names a synth source editor among a node's controls. */
+export const SYNTH_PART = 'synth';
 export const BUFFER_OPTION = 'buffer';
 
 /**
@@ -436,15 +440,15 @@ export const CONTROL_FUNCTIONS: readonly ControlFunction[] = [
     signature: 'controls() | controls(target, names?)',
     description:
       'With nothing, declares all the UI of what the script makes, in one line: a control for every parameter of every node it has made so far (the inserts of its buses too), a section per node; ' +
-      'a waveform editor for every sampler among them; and a step grid for every named sequence of the script, wherever in the script the sequence is (one made with a count, { steps: 16 }, starts empty: the grid owns its pattern). Put controls() after the chain. ' +
-      'A slider(), knob(), toggle(), select(), stepGrid() or waveform() of your own for the same thing, before or after, is used instead of the one from controls(). ' +
-      "With a target, only the parameters of those nodes (no grids, no waveform): controls('#kick'), controls(kick) for every node of a chain, controls(__.bus('drums').compressor(…)) for the inserts that adds to a bus, controls(__.bus('drums')) for the bus's level. " +
+      'a waveform editor for every sampler among them, a synth editor for every other source (an oscillator, a synth macro); and a step grid for every named sequence of the script, wherever in the script the sequence is (one made with a count, { steps: 16 }, starts empty: the grid owns its pattern). Put controls() after the chain. ' +
+      'A slider(), knob(), toggle(), select(), stepGrid(), waveform() or synth() of your own for the same thing, before or after, is used instead of the one from controls(). ' +
+      "With a target, only the parameters of those nodes (no grids, no waveform, no synth): controls('#kick'), controls(kick) for every node of a chain, controls(__.bus('drums').compressor(…)) for the inserts that adds to a bus, controls(__.bus('drums')) for the bus's level. " +
       "With a list, only the parameters named: controls('#kick', ['speed', 'start']). " +
       'Each parameter gets the kind that suits it.',
     signatures: [
       {
         description:
-          'All the UI of what the script makes: controls for every node made so far, a waveform for every sampler, a step grid for every named sequence.',
+          'All the UI of what the script makes: controls for every node made so far, a waveform for every sampler, a synth editor for every other source, a step grid for every named sequence.',
         args: [],
         returns: 'controls',
       },
@@ -487,6 +491,43 @@ export const CONTROL_FUNCTIONS: readonly ControlFunction[] = [
             kind: 'options',
             optional: true,
             options: [LABEL],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    name: 'synth',
+    kind: 'synth',
+    accepts: [],
+    signature: 'synth(target, options?)',
+    description:
+      "Declares a synth editor for an oscillator or a synth macro, shown in the track's source pane: synth('#osc'). " +
+      'It has an oscilloscope of what the source sounds like, a keyboard that sets its pitch and plays it, and the source’s other controls (the ones the script declares with slider(), knob(), select() or controls()). ' +
+      "The keyboard sets the same stored value a slider('#osc', 'frequency', { mode: 'note' }) would. A pitch parameter nobody declares a control for gets one made for the keyboard. " +
+      'A synth macro (monosynth, polysynth) is pitched by the note it is triggered with, not by a parameter: its keyboard plays it and keeps no pitch. ' +
+      'The target can be a selector, a chain, a selection or a node; several sources get an editor each. A sampler has waveform() instead.',
+    signatures: [
+      {
+        args: [
+          {
+            ...TARGET_ARG,
+            description:
+              "The source: a selector ('#osc'), or a chain, a selection or a node.",
+          },
+          {
+            name: 'options',
+            kind: 'options',
+            optional: true,
+            options: [
+              LABEL,
+              {
+                name: 'pitch',
+                type: 'string',
+                description:
+                  "The parameter the keyboard sets. Default: 'frequency', else the first parameter in Hz.",
+              },
+            ],
           },
         ],
       },

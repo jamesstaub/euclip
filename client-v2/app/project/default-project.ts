@@ -219,6 +219,61 @@ export function newSlicedLoopTrack(name: string): TrackDocument {
   );
 }
 
+/**
+ * A synth track: a saw through an envelope, a lowpass and a level, played by a 16-step sequence whose
+ * callback opens the envelope. The oscillator is always running and the envelope decides what is heard,
+ * so the scope in the source tab shows the wave whatever the transport does. The note is the oscillator's
+ * pitch, which the source tab's keyboard sets (the stored value of its `frequency`); the pattern is the
+ * grid's, stored in the project like the other templates'.
+ */
+export const SYNTH_SCRIPT = `// Chain
+__()
+  .saw({ id: 'osc', frequency: 110 })
+  .adsr({ id: 'env', attack: 0.01, decay: 0.18, sustain: 0.35, release: 0.2 })
+  .lowpass({ id: 'filter', frequency: 1400, q: 2 })
+  .gain({ id: 'level', gain: 0.25 })
+  .to('channel');
+
+// Sequences
+__.transport.sequence(
+  'steps',
+  { steps: 16, step: '1/16' },
+  (ev) => {
+    if (ev.value) __('#env').trigger({ duration: 0.12 });
+  },
+);
+
+// Controls
+stepGrid('steps');
+synth('#osc');
+slider('#osc', 'detune');
+slider('#env', 'attack');
+slider('#env', 'release');
+slider('#filter', 'frequency');
+knob('#level', 'gain', { label: 'level' });
+`;
+
+/** The synth's starting pattern: a bass figure. */
+export const SYNTH_STEPS: readonly number[] = [
+  1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0,
+];
+
+/** What "Synth" in the New Track menu adds. */
+export function newSynthTrack(name: string): TrackDocument {
+  return withPattern(
+    {
+      id: newTrackId(),
+      name,
+      script: SYNTH_SCRIPT,
+      level: 1,
+      pan: 0,
+      values: emptyValues(),
+    },
+    'steps',
+    SYNTH_STEPS,
+  );
+}
+
 function track(
   id: string,
   name: string,

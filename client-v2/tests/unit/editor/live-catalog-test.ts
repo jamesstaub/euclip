@@ -62,6 +62,7 @@ module('Unit | Editor | catalog', function (hooks) {
         'stepGrid',
         'controls',
         'waveform',
+        'synth',
       ],
       'Euclip’s own functions are described to the editor, from the declarations the script API is made of',
     );
@@ -126,7 +127,7 @@ module('Unit | Editor | catalog', function (hooks) {
     assert.true(named(catalog.get().sequences).includes('four'));
     assert.strictEqual(
       catalog.get().functions?.length,
-      7,
+      8,
       'and the functions are still there',
     );
   });

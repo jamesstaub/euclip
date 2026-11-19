@@ -1008,3 +1008,20 @@
 .waveform__tabpanel .select {
   color: var(--dark-gray);
 }
+
+/* a sampler's own editor, with the controls the script declares for it below its values */
+.source-pane__editor {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.source-pane__editor > .waveform {
+  flex: 1 1 auto;
+}
+
+.source-pane__editor > .source-controls {
+  flex: none;
+}
