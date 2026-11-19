@@ -5,6 +5,7 @@ import { service } from '@ember/service';
 import AppHeader from 'client-v2/components/app-header';
 import SoundBrowser from 'client-v2/components/sound-browser';
 import TrackFooter from 'client-v2/components/track-footer';
+import TrackRail from 'client-v2/components/track-rail';
 import TrackList from 'client-v2/components/track-list';
 import onEscape from 'client-v2/modifiers/on-escape';
 import shortcuts from 'client-v2/modifiers/shortcuts';
@@ -81,6 +82,11 @@ export default class AppShell extends Component<AppShellSignature> {
     return (
       tracks.find((track) => track.id === this.chosenId) ?? tracks[0] ?? null
     );
+  }
+
+  /** The phone's sheet: closed to its bar, half, or full (see track-footer.css). */
+  get sheet(): 'closed' | 'half' | 'full' {
+    return this.view.footerOpen ? this.view.sheetSize : 'closed';
   }
 
   get selectedId(): string {
@@ -177,6 +183,8 @@ export default class AppShell extends Component<AppShellSignature> {
       class="app-shell"
       data-sidebar={{if this.sidebarOpen "open" "closed"}}
       data-ready={{if this.audio.ready "true" "false"}}
+      data-phone={{if this.view.phone "true" "false"}}
+      data-sheet={{this.sheet}}
       data-test-app-shell
       ...attributes
       {{shortcuts onSpace=this.togglePlay onUndo=this.undo onRedo=this.redo}}
@@ -210,6 +218,16 @@ export default class AppShell extends Component<AppShellSignature> {
           @scopeId={{this.selectedId}}
           @targetName={{this.selectedName}}
           {{onEscape this.closeSidebar}}
+        />
+      {{/if}}
+
+      {{#if this.view.phone}}
+        <TrackRail
+          class="app-shell__rail"
+          @tracks={{this.project.tracks}}
+          @selectedId={{this.selectedId}}
+          @onSelect={{this.select}}
+          @onNewTrack={{this.addTrack}}
         />
       {{/if}}
 

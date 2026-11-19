@@ -1,12 +1,13 @@
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { isDestroyed, isDestroying } from '@ember/destroyable';
-import { concat, fn } from '@ember/helper';
+import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import { modifier } from 'ember-modifier';
 import Icon from 'client-v2/components/icon';
 import SourceControls from 'client-v2/components/source-controls';
+import StepGridWidget from 'client-v2/components/widgets/step-grid-widget';
 import Hint from 'client-v2/components/ui/hint';
 import type { StepGridView, SynthView } from 'client-v2/audio/runner';
 import { hzToNote, noteName, noteToHz } from 'client-v2/controls/modes';
@@ -58,15 +59,6 @@ interface Key {
   name: string;
   /** a C: its key says its octave */
   label: string | null;
-}
-
-interface Cell {
-  index: number;
-  value: number;
-  number: number;
-  text: string;
-  selected: boolean;
-  playing: boolean;
 }
 
 interface Octave {
@@ -459,23 +451,9 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
     return this.selected !== null;
   }
 
-  get cells(): Cell[] {
-    const grid = this.grid;
-    if (!grid) return [];
-    return grid.steps.map((value, index) => ({
-      index,
-      value,
-      number: index + 1,
-      text:
-        value <= 0 ? '' : value <= HIGHEST ? noteName(value) : String(value),
-      selected: index === this.selected,
-      playing: index === grid.playhead,
-    }));
-  }
-
-  /** Tapping a step chooses it; tapping it again lets go. */
-  selectStep = (index: number): void => {
-    this.chosen = this.chosen === index ? null : index;
+  /** Tapping a step chooses it; tapping it again lets go. `on`: the double click that opens its value box chooses it. */
+  pick = (index: number, on?: boolean): void => {
+    this.chosen = on === true || this.chosen !== index ? index : null;
   };
 
   /** Clears the chosen step to a rest and moves on. One undo step. */
@@ -521,7 +499,7 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
     if (this.stepKey(event)) {
       const cell = (
         event.currentTarget as HTMLElement
-      ).querySelectorAll<HTMLElement>('[data-step]')[this.chosen ?? -1];
+      ).querySelectorAll<HTMLElement>('[data-test-step]')[this.chosen ?? -1];
       cell?.focus({ preventScroll: true });
     }
   };
@@ -565,243 +543,233 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
   };
 
   <template>
-    <section
-      class="synth"
-      aria-label="{{@synth.label}} synth"
-      data-test-synth={{@synth.nodeId}}
-      ...attributes
-    >
-      <header class="synth__head">
-        <h4 class="synth__title">
-          <b>{{@synth.label}}</b>
-          <span class="synth__type">{{@synth.type}}</span>
-          {{#if @synth.byPosition}}
-            <span
-              class="control-group__hint"
-              title="This source has no id in the script, so what is stored for it follows its position in the script."
-            >no id</span>
+    <div class="synth-box">
+      <section
+        class="synth"
+        aria-label="{{@synth.label}} synth"
+        data-test-synth={{@synth.nodeId}}
+        ...attributes
+      >
+        <header class="synth__head">
+          <h4 class="synth__title">
+            <b>{{@synth.label}}</b>
+            <span class="synth__type">{{@synth.type}}</span>
+            {{#if @synth.byPosition}}
+              <span
+                class="control-group__hint"
+                title="This source has no id in the script, so what is stored for it follows its position in the script."
+              >no id</span>
+            {{/if}}
+          </h4>
+          {{#if this.several}}
+            <label class="waveform__field waveform__switch">
+              <span class="sr-only">Source</span>
+              <select
+                class="select waveform__select"
+                data-test-source-picker
+                {{on "change" this.chooseOther}}
+                {{selectOptions this.otherChoices @synth.key}}
+              ></select>
+            </label>
           {{/if}}
-        </h4>
-        {{#if this.several}}
-          <label class="waveform__field waveform__switch">
-            <span class="sr-only">Source</span>
-            <select
-              class="select waveform__select"
-              data-test-source-picker
-              {{on "change" this.chooseOther}}
-              {{selectOptions this.otherChoices @synth.key}}
-            ></select>
-          </label>
-        {{/if}}
-        <span class="synth__tools">
-          <Hint @label="About the synth editor" data-test-synth-hint>
-            <p>The trace is the source’s own output, steadied on a rising zero
-              crossing. The keyboard sets the pitch (the same value a note-mode
-              slider holds) and plays the note while you hold it: drag across
-              keys to glide, or use the arrow keys, and Enter or Space to play.
-              The octave changes only with the − and + buttons, or PageDown and
-              PageUp on the keyboard.</p>
-            <p>The controls below are the ones the script declares for this
-              source:
-              <code>slider('#osc', 'detune')</code>, or
-              <code>controls()</code>
-              for all of them.</p>
-          </Hint>
-          {{#if @synth.line}}
-            <button
-              type="button"
-              class="btn btn--s btn--ghost btn--on-yellow"
-              aria-label="Show this synth in the script"
-              title="Show in script"
-              data-test-show-in-script
-              {{on "click" this.showInScript}}
-            ><Icon @name="code" /></button>
-          {{/if}}
-        </span>
-      </header>
-
-      {{#if @synth.noise}}
-        {{! a noise source has a picture, not an editor: nothing here is drawn per frame }}
-        <div class="synth__noise" data-test-synth-noise>
-          <svg
-            class="synth__noise-bars"
-            viewBox="0 0 96 24"
-            preserveAspectRatio="none"
-            aria-hidden="true"
-          >
-            {{#each NOISE_BARS as |bar|}}
-              <rect x={{bar.x}} y={{bar.y}} width="1.5" height={{bar.h}} />
-            {{/each}}
-          </svg>
-          <span class="synth__noise-word">noise</span>
-        </div>
-      {{else}}
-        <div class="synth__scope" data-test-synth-scope>
-          <canvas
-            class="synth__canvas"
-            role="img"
-            aria-label="{{@synth.label}} waveform, live"
-            {{showScope this.scope @scopeId @synth.nodeId}}
-          ></canvas>
-        </div>
-
-        {{#if this.grid}}
-          <div class="synth__steps" data-test-synth-steps>
-            <div class="synth__stepbar">
-              <span class="synth__steplabel">Steps</span>
-              {{#if this.severalGrids}}
-                <label class="waveform__field synth__stepchoice">
-                  <span class="sr-only">Sequence</span>
-                  <select
-                    class="select waveform__select"
-                    data-test-step-sequence
-                    {{on "change" this.chooseGrid}}
-                    {{selectOptions this.gridChoices this.grid.name}}
-                  ></select>
-                </label>
-              {{else}}
-                <span
-                  class="synth__stepname truncate"
-                >{{this.grid.label}}</span>
-              {{/if}}
-              <Hint @label="About the steps" data-test-steps-hint>
-                <p>A step’s value is passed to the script as
+          <span class="synth__tools">
+            <Hint @label="About the synth editor" data-test-synth-hint>
+              <p>The trace is the source’s own output, steadied on a rising zero
+                crossing. The keyboard sets the pitch (the same value a
+                note-mode slider holds) and plays the note while you hold it:
+                drag across keys to glide, or use the arrow keys, and Enter or
+                Space to play. The octave changes only with the − and + buttons,
+                or PageDown and PageUp on the keyboard.</p>
+              {{#if this.grid}}
+                <p data-test-steps-hint>Steps: a step’s value is passed to the
+                  script as
                   <code>ev.value</code>; in the Synth template it is played as a
                   MIDI note, and 0 is a rest. Tap a step, then a key: the key’s
                   note goes to the step, it plays, and the next step is chosen,
                   so a line is entered by tapping keys in a row. Tap the step
                   again, or press Escape, to choose none. Arrow left and right
                   move the choice; Backspace or Delete (or Rest) clears it.</p>
-              </Hint>
+              {{/if}}
+              <p>The controls are the ones the script declares for this source:
+                <code>slider('#osc', 'detune')</code>, or
+                <code>controls()</code>
+                for all of them.</p>
+            </Hint>
+            {{#if @synth.line}}
               <button
                 type="button"
-                class="btn btn--s btn--on-yellow"
-                disabled={{if this.hasSelected false true}}
-                data-test-step-rest
-                {{on "click" this.rest}}
-              >Rest</button>
-            </div>
-            {{! template-lint-disable no-invalid-interactive }}
-            <div
-              class="synth__stepgrid"
-              role="group"
-              aria-label="Steps of {{this.grid.label}}"
-              {{on "keydown" this.onStripKey}}
-            >
-              {{#each this.cells key="index" as |cell|}}
-                <button
-                  type="button"
-                  class="synth__step"
-                  aria-pressed={{if cell.selected "true" "false"}}
-                  aria-label="Step {{cell.number}}{{if
-                    cell.text
-                    (concat ': ' cell.text)
-                    ': rest'
-                  }}"
-                  data-step={{cell.index}}
-                  data-note={{cell.text}}
-                  data-selected={{if cell.selected "true"}}
-                  data-playing={{if cell.playing "true"}}
-                  data-test-step-cell={{cell.number}}
-                  {{on "click" (fn this.selectStep cell.index)}}
-                >{{cell.text}}</button>
-              {{/each}}
-            </div>
-          </div>
-        {{/if}}
+                class="btn btn--s btn--ghost btn--on-yellow"
+                aria-label="Show this synth in the script"
+                title="Show in script"
+                data-test-show-in-script
+                {{on "click" this.showInScript}}
+              ><Icon @name="code" /></button>
+            {{/if}}
+          </span>
+        </header>
 
-        {{#if this.hasKeyboard}}
-          <div class="synth__keys" data-test-synth-keyboard>
-            <div class="synth__keybar">
-              <button
-                type="button"
-                class="btn btn--s btn--on-yellow"
-                aria-label="Octave down"
-                disabled={{if this.canDown false true}}
-                data-test-octave-down
-                {{on "click" (fn this.shift -1)}}
-              >−</button>
-              <span
-                class="synth__range"
-                data-test-key-range
-              >{{this.range}}</span>
-              <button
-                type="button"
-                class="btn btn--s btn--on-yellow"
-                aria-label="Octave up"
-                disabled={{if this.canUp false true}}
-                data-test-octave-up
-                {{on "click" (fn this.shift 1)}}
-              >+</button>
-              <output
-                class="synth__readout"
-                aria-live="off"
-                data-test-pitch-readout
-              >{{this.readout}}</output>
-            </div>
-            {{! template-lint-disable no-pointer-down-event-binding no-invalid-interactive }}
-            {{! a note starts when the pointer goes down, and follows it across the keys until it comes up }}
-            <div
-              class="piano"
-              role="slider"
-              tabindex="0"
-              aria-label="{{@synth.label}} pitch"
-              aria-orientation="horizontal"
-              aria-valuemin="{{LOWEST}}"
-              aria-valuemax="{{HIGHEST}}"
-              aria-valuenow={{this.nearest}}
-              aria-valuetext={{this.readout}}
-              data-test-piano
-              {{measure this.setOctaves}}
-              {{on "pointerdown" this.onPointerDown}}
-              {{on "pointermove" this.onPointerMove}}
-              {{on "pointerup" this.onPointerUp}}
-              {{on "pointercancel" this.onPointerUp}}
-              {{on "keydown" this.onKeyDown}}
-              {{on "keyup" this.onKeyUp}}
-              {{on "blur" this.onBlur}}
-            >
-              {{#each this.octavesShown key="base" as |octave|}}
-                <div class="piano__octave">
-                  {{#each octave.white key="midi" as |white|}}
+        {{#unless @synth.noise}}
+          <div class="synth__main">
+            {{#if this.grid}}
+              <div class="synth__steps" data-test-synth-steps>
+                <div class="synth__stepbar">
+                  <span class="synth__steplabel">Steps</span>
+                  {{#if this.severalGrids}}
+                    <label class="waveform__field synth__stepchoice">
+                      <span class="sr-only">Sequence</span>
+                      <select
+                        class="select waveform__select"
+                        data-test-step-sequence
+                        {{on "change" this.chooseGrid}}
+                        {{selectOptions this.gridChoices this.grid.name}}
+                      ></select>
+                    </label>
+                  {{else}}
                     <span
-                      class="piano__key piano__key--white"
-                      data-midi={{white.midi}}
-                      data-note={{white.name}}
-                      data-current={{if (this.isCurrent white.midi) "true"}}
-                      data-down={{if (this.isDown white.midi) "true"}}
-                      data-test-key={{white.name}}
-                    >{{#if white.label}}<span
-                          class="piano__label"
-                        >{{white.label}}</span>{{/if}}</span>
-                  {{/each}}
-                  {{#each octave.black key="midi" as |black|}}
-                    <span
-                      class="piano__key piano__key--black piano__key--after-{{black.at}}"
-                      data-midi={{black.midi}}
-                      data-note={{black.name}}
-                      data-current={{if (this.isCurrent black.midi) "true"}}
-                      data-down={{if (this.isDown black.midi) "true"}}
-                      data-test-key={{black.name}}
-                    ></span>
+                      class="synth__stepname truncate"
+                    >{{this.grid.label}}</span>
+                  {{/if}}
+                  <button
+                    type="button"
+                    class="btn btn--s btn--on-yellow"
+                    disabled={{if this.hasSelected false true}}
+                    data-test-step-rest
+                    {{on "click" this.rest}}
+                  >Rest</button>
+                </div>
+                <StepGridWidget
+                  class="synth__stepgrid"
+                  @scopeId={{@scopeId}}
+                  @control={{this.grid}}
+                  @notes={{true}}
+                  @selected={{this.selected}}
+                  @onSelect={{this.pick}}
+                  {{on "keydown" this.onStripKey}}
+                />
+              </div>
+            {{/if}}
+
+            {{#if this.hasKeyboard}}
+              <div class="synth__keys" data-test-synth-keyboard>
+                <div class="synth__keybar">
+                  <button
+                    type="button"
+                    class="btn btn--s btn--on-yellow"
+                    aria-label="Octave down"
+                    disabled={{if this.canDown false true}}
+                    data-test-octave-down
+                    {{on "click" (fn this.shift -1)}}
+                  >−</button>
+                  <span
+                    class="synth__range"
+                    data-test-key-range
+                  >{{this.range}}</span>
+                  <button
+                    type="button"
+                    class="btn btn--s btn--on-yellow"
+                    aria-label="Octave up"
+                    disabled={{if this.canUp false true}}
+                    data-test-octave-up
+                    {{on "click" (fn this.shift 1)}}
+                  >+</button>
+                  <output
+                    class="synth__readout"
+                    aria-live="off"
+                    data-test-pitch-readout
+                  >{{this.readout}}</output>
+                </div>
+                {{! template-lint-disable no-pointer-down-event-binding no-invalid-interactive }}
+                {{! a note starts when the pointer goes down, and follows it across the keys until it comes up }}
+                <div
+                  class="piano"
+                  role="slider"
+                  tabindex="0"
+                  aria-label="{{@synth.label}} pitch"
+                  aria-orientation="horizontal"
+                  aria-valuemin="{{LOWEST}}"
+                  aria-valuemax="{{HIGHEST}}"
+                  aria-valuenow={{this.nearest}}
+                  aria-valuetext={{this.readout}}
+                  data-test-piano
+                  {{measure this.setOctaves}}
+                  {{on "pointerdown" this.onPointerDown}}
+                  {{on "pointermove" this.onPointerMove}}
+                  {{on "pointerup" this.onPointerUp}}
+                  {{on "pointercancel" this.onPointerUp}}
+                  {{on "keydown" this.onKeyDown}}
+                  {{on "keyup" this.onKeyUp}}
+                  {{on "blur" this.onBlur}}
+                >
+                  {{#each this.octavesShown key="base" as |octave|}}
+                    <div class="piano__octave">
+                      {{#each octave.white key="midi" as |white|}}
+                        <span
+                          class="piano__key piano__key--white"
+                          data-midi={{white.midi}}
+                          data-note={{white.name}}
+                          data-current={{if (this.isCurrent white.midi) "true"}}
+                          data-down={{if (this.isDown white.midi) "true"}}
+                          data-test-key={{white.name}}
+                        >{{#if white.label}}<span
+                              class="piano__label"
+                            >{{white.label}}</span>{{/if}}</span>
+                      {{/each}}
+                      {{#each octave.black key="midi" as |black|}}
+                        <span
+                          class="piano__key piano__key--black piano__key--after-{{black.at}}"
+                          data-midi={{black.midi}}
+                          data-note={{black.name}}
+                          data-current={{if (this.isCurrent black.midi) "true"}}
+                          data-down={{if (this.isDown black.midi) "true"}}
+                          data-test-key={{black.name}}
+                        ></span>
+                      {{/each}}
+                    </div>
                   {{/each}}
                 </div>
-              {{/each}}
-            </div>
-            <p
-              class="synth__status"
-              role="status"
-              data-test-pitch-status
-            >{{this.perStepText}}</p>
+                <p
+                  class="synth__status"
+                  role="status"
+                  data-test-pitch-status
+                >{{this.perStepText}}</p>
+              </div>
+            {{else}}
+              <p class="synth__status" role="status" data-test-no-pitch>This
+                source has no pitch to set.</p>
+            {{/if}}
           </div>
-        {{else}}
-          <p class="synth__status" role="status" data-test-no-pitch>This source
-            has no pitch to set.</p>
-        {{/if}}
-      {{/if}}
+        {{/unless}}
 
-      <SourceControls @scopeId={{@scopeId}} @nodeId={{@synth.nodeId}} />
-    </section>
+        <div class="synth__side">
+          {{#if @synth.noise}}
+            {{! a noise source has a picture, not an editor: nothing here is drawn per frame }}
+            <div class="synth__noise" data-test-synth-noise>
+              <svg
+                class="synth__noise-bars"
+                viewBox="0 0 96 24"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                {{#each NOISE_BARS as |bar|}}
+                  <rect x={{bar.x}} y={{bar.y}} width="1.5" height={{bar.h}} />
+                {{/each}}
+              </svg>
+              <span class="synth__noise-word">noise</span>
+            </div>
+          {{else}}
+            <div class="synth__scope" data-test-synth-scope>
+              <canvas
+                class="synth__canvas"
+                role="img"
+                aria-label="{{@synth.label}} waveform, live"
+                {{showScope this.scope @scopeId @synth.nodeId}}
+              ></canvas>
+            </div>
+          {{/if}}
+          <SourceControls @scopeId={{@scopeId}} @nodeId={{@synth.nodeId}} />
+        </div>
+      </section>
+    </div>
   </template>
 }
 

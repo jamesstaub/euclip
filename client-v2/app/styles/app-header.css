@@ -217,3 +217,27 @@
     white-space: nowrap;
   }
 }
+
+/*
+ * The phone layout (see app-shell.css): the rail's + adds the default kind of track, so the project bar's
+ * New Track button gives way to the menu of kinds, labelled "New" with its arrow.
+ */
+.project-bar__kinds-label {
+  display: none;
+}
+
+[data-phone="true"] .project-bar {
+  & .project-bar__new-default {
+    display: none;
+  }
+
+  & .project-bar__kinds-label {
+    display: inline;
+  }
+
+  & .project-bar__new .btn + .btn {
+    flex: 1 1 auto;
+    gap: var(--space-1);
+    border-inline-start: var(--border-width-2) solid var(--dark-gray);
+  }
+}

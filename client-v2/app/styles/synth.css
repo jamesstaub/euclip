@@ -20,6 +20,7 @@
 }
 
 .synth__head {
+  order: 0;
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -205,11 +206,13 @@
 
 .synth .source-controls {
   flex: none;
+  order: 4;
 }
 
 /* ---- the steps ---- */
 
 .synth__steps {
+  order: 2;
   display: flex;
   flex: none;
   flex-direction: column;
@@ -252,42 +255,26 @@
   margin-inline-start: auto;
 }
 
-/* sixteen to a row, as in the grids; a row's height is fixed whatever the notes say */
+/*
+ * The strip is the step grid itself (widgets/step-grid-widget.gts, `.step-grid` and `.step` in
+ * step-grid.css): the same cells at the same size, so it lines up with the grids in the rows and the
+ * sequence pane. Only what is the synth's own is added here: the chosen step, and a note's name fitting.
+ */
 .synth__stepgrid {
-  display: grid;
-  grid-template-columns: repeat(16, minmax(0, 1fr));
-  gap: var(--border-width-1);
-}
+  /* the sequence pane's grid size (footer-panes.css: .sequence-card > .step-grid) */
+  --step-w: 2.5rem;
+  --step-h: 2.25rem;
 
-.synth__step {
-  box-sizing: border-box;
-  min-inline-size: 0;
-  block-size: 2.5rem;
+  justify-content: start;
   padding: 0;
-  overflow: hidden;
-  border: var(--border-width-1) solid var(--dark-gray);
-  background: var(--step-off);
-  color: var(--near-black);
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  line-height: var(--line-height-solid);
 
-  &:not([data-note=""]) {
-    background: var(--step-on);
+  & .step {
+    font-size: 0.6875rem;
+    font-weight: var(--font-weight-bold);
   }
 
-  &[data-playing="true"] {
-    outline: var(--border-width-2) solid var(--step-current);
-    outline-offset: calc(-1 * var(--border-width-2));
-  }
-
-  &[data-selected="true"] {
+  & .step[data-selected="true"] {
     border: var(--border-width-3) solid var(--near-black);
-  }
-
-  &:focus-visible {
-    outline: var(--border-width-3) solid var(--focus-ring-on-light);
-    outline-offset: 1px;
   }
 }
 
@@ -316,4 +303,182 @@
   font-size: var(--font-size-6);
   color: var(--light-blue);
   text-transform: uppercase;
+}
+
+/* ---- the arrangement ---- */
+
+.synth-box {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  container: synth / inline-size;
+}
+
+/* narrow: one column in the order scope, steps, keys, controls (the wrappers do not exist) */
+.synth__main,
+.synth__side {
+  display: contents;
+}
+
+.synth__scope,
+.synth__noise {
+  order: 1;
+}
+
+.synth__keys,
+.synth__main > .synth__status {
+  order: 3;
+}
+
+/*
+ * Wider than a phone (the strip needs sixteen of the grid's own steps, 32rem, and cannot shrink): a
+ * grid with fixed tracks, so nothing moves when a value changes or a step is chosen. The scope is small,
+ * at the side; the keyboard is short; the control rows are compact. The wrappers stay out of the way
+ * (`display: contents`) so each part is placed on the grid.
+ */
+@container synth (min-width: 37rem) {
+  .synth__steps,
+  .synth__keys {
+    display: contents;
+  }
+
+  .synth {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(4rem, 9rem);
+    align-items: start;
+    gap: var(--space-1) var(--space-2);
+  }
+
+  .synth__head {
+    grid-area: 1 / 1;
+    min-block-size: 2rem;
+  }
+
+  .synth__scope,
+  .synth__noise {
+    grid-area: 1 / 2 / span 2;
+    align-self: stretch;
+    block-size: auto;
+    min-block-size: 4.5rem;
+  }
+
+  .synth__keybar {
+    grid-area: 2 / 1;
+    justify-self: start;
+  }
+
+  /* Rest shares the octave row, at its right end */
+  .synth__stepbar {
+    grid-area: 2 / 1;
+    justify-self: end;
+  }
+
+  .synth__steplabel,
+  .synth__stepname {
+    display: none;
+  }
+
+  .synth__stepgrid {
+    grid-area: 3 / 1 / auto / -1;
+  }
+
+  .piano {
+    grid-area: 4 / 1 / auto / -1;
+    block-size: 3rem;
+  }
+
+  .synth__status {
+    grid-area: 5 / 1 / auto / -1;
+    min-block-size: 0;
+
+    &:empty {
+      display: none;
+    }
+  }
+
+  .synth .source-controls {
+    grid-area: 6 / 1 / auto / -1;
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    gap: var(--space-1);
+  }
+
+  .synth__keybar,
+  .synth__stepbar {
+    min-block-size: 2.25rem;
+  }
+
+  .synth .control-row {
+    min-block-size: 2rem;
+  }
+
+  .synth .control-row__label {
+    inline-size: 4.5rem;
+  }
+}
+
+/* room for a column beside the strip: main (steps, keyboard) and side (scope, control rows) */
+@container synth (min-width: 57rem) {
+  .synth {
+    grid-template-columns: calc(16 * 2.5rem) minmax(16rem, 1fr);
+    grid-template-rows: auto 1fr;
+    column-gap: var(--space-3);
+  }
+
+  .synth__head {
+    grid-area: 1 / 1 / auto / -1;
+  }
+
+  .synth__main,
+  .synth__side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-inline-size: 0;
+  }
+
+  .synth__main {
+    grid-area: 2 / 1;
+  }
+
+  .synth__side {
+    grid-area: 2 / 2;
+  }
+
+  .synth__steps {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .synth__keys {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .synth__scope,
+  .synth__noise {
+    grid-area: auto;
+    align-self: auto;
+    block-size: 3rem;
+    min-block-size: 0;
+    max-inline-size: 18rem;
+  }
+
+  .synth__keybar,
+  .synth__stepbar,
+  .synth__stepgrid,
+  .piano,
+  .synth__status,
+  .synth .source-controls {
+    grid-area: auto;
+  }
+
+  .piano {
+    block-size: 4.5rem;
+  }
+
+  .synth__steplabel,
+  .synth__stepname {
+    display: initial;
+  }
 }

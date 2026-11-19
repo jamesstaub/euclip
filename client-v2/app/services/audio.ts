@@ -107,6 +107,16 @@ export default class AudioService extends Service {
   #booting: Promise<void> | undefined;
   #context: BaseAudioContext | undefined;
   #off: (() => void)[] = [];
+  readonly #stepListeners = new Set<(scopeId: string) => void>();
+
+  /**
+   * Hears every step that sounds, with the scope it is in, as it is heard. For things that show it by
+   * hand (the track rail's blink): nothing tracked changes, so nothing is drawn again per step.
+   */
+  onStepTriggered(listener: (scopeId: string) => void): () => void {
+    this.#stepListeners.add(listener);
+    return () => this.#stepListeners.delete(listener);
+  }
   #pending = new Map<
     string,
     { timer: ReturnType<typeof setTimeout>; token: unknown }
@@ -131,6 +141,9 @@ export default class AudioService extends Service {
       changed: () => this.#changed(),
       playheadMoved: () => {
         if (!isDestroying(this)) this.playheadRevision++;
+      },
+      stepTriggered: (scopeId) => {
+        for (const listener of this.#stepListeners) listener(scopeId);
       },
       readFile: async (id) => (await this.project.files.get(id))?.bytes ?? null,
       libraryUrl: (path) => this.library.audioUrl(path),

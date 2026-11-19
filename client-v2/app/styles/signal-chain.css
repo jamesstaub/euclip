@@ -14,6 +14,14 @@
   cursor: default;
 }
 
+/* the chain itself (its rows and status), apart from the toolbar */
+.signal-chain__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
 .signal-chain__status {
   margin: 0;
   padding: var(--space-1) var(--space-2);
@@ -441,5 +449,97 @@
 
   .track--active &:not([aria-pressed="true"]):hover {
     background: var(--black-10);
+  }
+}
+
+/*
+ * The phone layout (see app-shell.css): the selected track's toolbar is a column of icons down the right
+ * edge of the track area, beside the chain, and scrolls inside itself when the screen is short (its
+ * height is set from the script of showAboveFooter, so that it ends above the sheet). No words under
+ * the icons: pressing and holding one shows its name (.chain-tip), and the "?" lists them all. The name
+ * of what is chosen is one short line above the chain.
+ */
+[data-phone="true"] .signal-chain {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: var(--space-1);
+}
+
+[data-phone="true"] .chain-chosen {
+  margin: 0;
+  padding-inline: var(--space-2);
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-7);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-phone="true"] .chain-actions {
+  position: sticky;
+  inset-block-start: var(--space-1);
+  grid-column: 2;
+  grid-row: 1;
+  flex-flow: column nowrap;
+  max-block-size: var(--chain-bar-max, 60dvh);
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  margin-inline-end: var(--space-1);
+  padding: var(--space-1);
+  scrollbar-width: thin;
+}
+
+/* stylelint-disable-next-line no-descending-specificity -- the phone layout overrides what is above */
+[data-phone="true"] .chain-tool {
+  flex: none;
+  min-inline-size: var(--target-min);
+  min-block-size: var(--target-min);
+  user-select: none;
+  -webkit-touch-callout: none;
+
+  &::after {
+    content: none !important;
+  }
+
+  & .chain-tool__label {
+    display: none;
+  }
+}
+
+/* the "?" is a button in the column: the same size as the icons */
+[data-phone="true"] .chain-actions .hint {
+  flex: none;
+}
+
+/* the label shown while an icon is held: laid over the page, to the left of the icon */
+.chain-tip {
+  position: fixed;
+  z-index: var(--layer-drawer);
+  padding: var(--space-1) var(--space-2);
+  background: var(--near-black);
+  color: var(--text-on-dark);
+  font-size: var(--font-size-6);
+  pointer-events: none;
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
+.chain-legend {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-2);
+  padding: 0;
+  list-style: none;
+
+  & li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-2);
+  }
+
+  & b {
+    margin-inline-end: var(--space-1);
   }
 }

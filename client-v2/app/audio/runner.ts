@@ -363,6 +363,8 @@ export interface RunnerHost {
   changed(): void;
   /** A playhead moved. Separate, because it happens on every step. */
   playheadMoved(): void;
+  /** A step that sounds (not a rest) is being heard in a scope. Nothing is tracked: it is for things drawn by hand. */
+  stepTriggered?(scopeId: string): void;
   /** The bytes of a sound the person added (project/storage.ts), or null if they are gone. */
   readFile?(id: string): Promise<ArrayBuffer | null>;
   /** Where the audio of a file of the sound library is fetched from (library/client.ts). */
@@ -2570,6 +2572,7 @@ export class ProjectRunner {
       if (runtime.scope.transport.get(name) === event.sequence) {
         runtime.playheads.set(name, event.index);
         this.#host.playheadMoved();
+        if (event.value) this.#host.stepTriggered?.(runtime.id);
         return;
       }
     }

@@ -1,6 +1,7 @@
 import { module, test } from 'qunit';
 import {
   click,
+  fillIn,
   find,
   findAll,
   focus,
@@ -110,21 +111,26 @@ synth('#osc');
     await triggerEvent(piano, 'pointerdown', onKey(name));
     await triggerEvent(piano, 'pointerup', onKey(name));
   };
-  const cell = (n: number): string => `[data-test-step-cell="${n}"]`;
+  const cell = (n: number): string =>
+    `[data-test-synth-steps] [data-test-step="${n - 1}"]`;
 
   test('New Track has a Synth: its source tab has a step strip, a scope, a keyboard and the source’s controls; nothing is left for processors', async function (assert) {
     await open();
     assert.dom('[data-test-synth="synth"]').exists();
     assert.dom('[data-test-synth-scope] canvas').exists();
     assert.dom(`${piano} [data-test-key]`).exists({ count: 24 });
-    assert.dom('[data-test-step-cell]').exists({ count: 16 });
+    assert
+      .dom('[data-test-synth-steps] [data-test-step]')
+      .exists({ count: 16 });
     assert.dom(cell(1)).hasText('C2', 'a step shows its note');
     assert.dom(cell(2)).hasText('', 'a rest is empty');
     assert
       .dom('[data-test-source-controls="synth"] [data-test-control]')
       .exists({ count: 5 });
     assert.dom('[data-test-synth-hint]').exists('its hints are behind a ?');
-    assert.dom('[data-test-steps-hint]').exists();
+    await click('[data-test-synth-hint] [data-test-hint-button]');
+    assert.dom('[data-test-steps-hint]').includesText('ev.value');
+    await click('[data-test-synth-hint] [data-test-hint-button]');
     assert.strictEqual(range(), 'C2 to B3', 'starts where the notes are');
 
     view.footerPane = 'controls';
@@ -199,6 +205,47 @@ synth('#osc');
     project.undo();
     await settled();
     assert.deepEqual(steps(), start, 'and four undo the line');
+  });
+
+  test('a double click on a strip cell opens the grid’s own value box: type 48, Enter; the cell, the grid and the undo agree', async function (assert) {
+    await open();
+    const row = (n: number): string =>
+      `[data-test-track="4"] [data-test-step="${n}"]`;
+    await click(cell(3));
+    await click(cell(3));
+    await triggerEvent(cell(3), 'dblclick');
+    assert.dom('[data-test-synth-steps] .step-entry').exists('the box opens');
+    assert
+      .dom(cell(3))
+      .hasAttribute('data-selected', 'true', 'and the cell is chosen');
+    await fillIn('[data-test-synth-steps] .step-entry input', '48');
+    await triggerKeyEvent(
+      '[data-test-synth-steps] .step-entry input',
+      'keydown',
+      'Enter',
+    );
+    assert.strictEqual(steps()[2], 48);
+    assert.dom(cell(3)).hasText('C3');
+    assert
+      .dom(cell(3))
+      .hasAttribute('data-selected', 'true', 'it stays chosen');
+    assert.dom(row(2)).hasAttribute('aria-pressed', 'true');
+    assert.dom(row(2)).hasText('48', 'the row’s grid shows the raw number');
+    project.undo();
+    await settled();
+    assert.strictEqual(steps()[2], 0, 'one undo restores it');
+    assert.dom(cell(3)).hasText('');
+  });
+
+  test('the strip’s cells are the sequence pane grid’s steps: the same width', async function (assert) {
+    await open();
+    const width = (selector: string): number =>
+      (find(selector) as HTMLElement).getBoundingClientRect().width;
+    const strip = width('[data-test-synth-steps] [data-test-step="0"]');
+    view.footerPane = 'sequence';
+    await settled();
+    const grid = width('[data-test-pane="sequence"] [data-test-step="0"]');
+    assert.true(Math.abs(strip - grid) <= 1, `${strip} and ${grid}`);
   });
 
   test('rest, arrows, Escape, tapping again: choosing and clearing steps', async function (assert) {

@@ -30,7 +30,12 @@ interface Stored {
   snaps?: unknown;
   lanes?: unknown;
   rowsView?: unknown;
+  sheetOpen?: unknown;
+  sheetSize?: unknown;
 }
+
+/** How tall the phone's track sheet is when it is open: half the screen, or up to the project bar. */
+export type SheetSize = 'half' | 'full';
 
 function readStored(): Stored {
   try {
@@ -54,6 +59,26 @@ export type SoundsTab = 'library' | 'mine' | 'project';
 
 export default class ViewService extends Service {
   #stored = readStored();
+
+  /**
+   * Whether this is the phone layout (below 48rem wide): one track at a time, with a rail to choose it,
+   * and the footer as a sheet. Follows the window; tests may set it.
+   */
+  @tracked phone = window.matchMedia(PHONE).matches;
+
+  #phoneQuery = window.matchMedia(PHONE);
+  #onPhone = (event: MediaQueryListEvent): void => {
+    this.phone = event.matches;
+  };
+
+  constructor(owner?: ConstructorParameters<typeof Service>[0]) {
+    super(owner);
+    this.#phoneQuery.addEventListener('change', this.#onPhone);
+  }
+
+  /** How tall the sheet is when open (phone only). Remembered; nothing to undo. */
+  @tracked sheetSize: SheetSize =
+    this.#stored.sheetSize === 'full' ? 'full' : 'half';
 
   /** Whether the footer shows the selected track's script instead of its UI. Change it with `toggleScript`. */
   @tracked scriptOpen = this.#stored.scriptOpen === true;
@@ -199,8 +224,48 @@ export default class ViewService extends Service {
     this.openSounds?.();
   }
 
-  /** Collapsed to its bar on phones (a bottom sheet) to start with; otherwise open. */
-  @tracked footerOpen = !window.matchMedia(PHONE).matches;
+  /**
+   * Whether the footer is open: on a phone (a bottom sheet) as it was left (closed to start with); on
+   * larger screens open to start with, and not remembered.
+   */
+  @tracked private opened = this.phone ? this.#stored.sheetOpen === true : true;
+
+  get footerOpen(): boolean {
+    return this.opened;
+  }
+
+  set footerOpen(open: boolean) {
+    if (this.opened === open) return;
+    this.opened = open;
+    this.#save();
+  }
+
+  /** What the sheet's handle does: closed opens to half, half goes to full, full back to half. */
+  cycleSheet(): void {
+    if (!this.footerOpen) {
+      this.sheetSize = 'half';
+      this.footerOpen = true;
+    } else {
+      this.sheetSize = this.sheetSize === 'half' ? 'full' : 'half';
+    }
+    this.#save();
+  }
+
+  /**
+   * A tab of the phone's sheet: closed (or on the script), it opens to half on that tab; the tab already
+   * showing closes the sheet; another tab is shown.
+   */
+  tapTab(pane: FooterPane): void {
+    if (this.footerOpen && !this.scriptOpen && this.footerPane === pane) {
+      this.footerOpen = false;
+    } else {
+      if (!this.footerOpen) this.sheetSize = 'half';
+      this.scriptOpen = false;
+      this.footerPane = pane;
+      this.footerOpen = true;
+    }
+    this.#save();
+  }
 
   // --- code and controls, linked -----------------------------------------------------------------
 
@@ -224,6 +289,7 @@ export default class ViewService extends Service {
   /** Turns the footer to the script and shows a line of it. */
   showInScript(scopeId: string, line: number): void {
     this.reveal = { scopeId, line, token: ++this.#token };
+    if (this.phone && !this.footerOpen) this.sheetSize = 'full';
     this.scriptOpen = true;
     this.footerOpen = true;
     this.#cursor = { scopeId, line };
@@ -237,6 +303,7 @@ export default class ViewService extends Service {
 
   willDestroy(): void {
     super.willDestroy();
+    this.#phoneQuery.removeEventListener('change', this.#onPhone);
     clearTimeout(this.#linkTimer);
     clearTimeout(this.#locateTimer);
   }
@@ -255,6 +322,8 @@ export default class ViewService extends Service {
         this.#linkTimer = setTimeout(() => (this.linked = null), LINK_MS);
       }
     } else {
+      // (on a phone the script gets the room of the full sheet: it is code)
+      if (this.phone) this.sheetSize = 'full';
       this.scriptOpen = true;
       this.footerOpen = true;
     }
@@ -311,6 +380,7 @@ export default class ViewService extends Service {
   }
 
   toggleFooter(): void {
+    if (this.phone && !this.footerOpen) this.sheetSize = 'half';
     this.footerOpen = !this.footerOpen;
   }
 
@@ -326,6 +396,9 @@ export default class ViewService extends Service {
           snaps: this.snaps,
           lanes: this.lanes,
           rowsView: this.rowsView,
+          sheetSize: this.sheetSize,
+          // (only a phone remembers whether the footer was open: elsewhere it starts open)
+          sheetOpen: this.phone ? this.opened : this.#stored.sheetOpen,
         }),
       );
     } catch {

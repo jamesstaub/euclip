@@ -152,7 +152,7 @@ export default class AppHeader extends Component<AppHeaderSignature> {
           >
             <button
               type="button"
-              class="btn"
+              class="btn project-bar__new-default"
               data-test-new-track
               {{on "click" @onNewTrack}}
             >New Track</button>
@@ -165,6 +165,7 @@ export default class AppHeader extends Component<AppHeaderSignature> {
               data-test-new-track-kinds
               {{on "click" this.toggleKinds}}
             >
+              <span class="project-bar__kinds-label">New</span>
               <Icon @name="play" class="icon--s icon--down" />
             </button>
             {{#if this.kindsOpen}}

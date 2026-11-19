@@ -6,10 +6,11 @@
  *   the script  the code editor, filling the whole body
  *
  *   >= 48rem wide   a region of fixed height under the track list (v1's clamp), collapsible to its bar
- *   <  48rem        a bottom sheet: collapsed to its bar by default, expanded to 60% of the screen
+ *   <  48rem        the phone's sheet (the end of this file): an overlay over the bottom of the track area,
+ *                   closed to its bar, half the screen, or full (up to the project bar)
  *
- * It is a row of the shell's grid, not an overlay, so it can never cover the header (where the transport is);
- * the track list above it gives up the height and scrolls.
+ * Wide, it is a row of the shell's grid, not an overlay, so it can never cover the header (where the
+ * transport is); the track list above it gives up the height and scrolls.
  *
  * The UI lays itself out by the footer's own width (a container query), so it responds to the sidebar too:
  *   narrow (< 36rem)   the menu as a row, the channel strip as a row, then the chosen pane
@@ -29,17 +30,6 @@
   &[data-open="true"] {
     block-size: clamp(var(--footer-min), 42dvh, var(--footer-max));
     max-block-size: 70dvh;
-  }
-}
-
-@media (width < 48rem) {
-  .track-footer {
-    box-shadow: var(--shadow-drawer);
-
-    &[data-open="true"] {
-      block-size: 60dvh;
-      max-block-size: none;
-    }
   }
 }
 
@@ -272,4 +262,92 @@
 .track-footer[data-error] .cm-content,
 .track-footer[data-warnings] .cm-content {
   padding-block-end: 3rem;
+}
+
+/*
+ * The phone's sheet (the shell says it is the phone layout with data-phone; see app-shell.css). The
+ * footer is laid over the bottom of the tracks' area, never over the header, in one of three states
+ * (data-sheet on the shell):
+ *   closed   only its bar: the track's name, the handle, Script and Hide, and the three tabs
+ *   half     the pane takes half the screen, so the track's steps or chain stay in view above it
+ *   full     up to the project bar
+ * The tabs are in the bar on the phone, so a tap on one both chooses and opens. The pane scrolls inside
+ * the sheet; the channel strip is above it, as it is wide.
+ */
+[data-phone="true"] .track-footer {
+  box-shadow: var(--shadow-drawer);
+  overflow: hidden;
+
+  &[data-open="true"] {
+    block-size: 50dvh;
+    max-block-size: 100%;
+  }
+}
+
+[data-phone="true"][data-sheet="full"] .track-footer[data-open="true"] {
+  block-size: 100%;
+}
+
+[data-phone="true"] .track-footer__bar {
+  flex-wrap: wrap;
+  gap: 0 var(--space-1);
+  padding-inline: var(--space-2) var(--space-1);
+  border-block-end: 0;
+
+  & > * {
+    min-block-size: max(2.25rem, var(--target-min));
+  }
+
+  & .footer-tabs {
+    flex: 1 0 100%;
+    margin-inline: calc(-1 * var(--space-1));
+  }
+
+  & .footer-tab {
+    flex-direction: row;
+    gap: var(--space-1);
+    padding-inline: var(--space-1);
+
+    & .icon--l {
+      inline-size: 1.75rem;
+      block-size: 1.75rem;
+    }
+  }
+}
+
+/* the handle: a wide grip between the name and the buttons, which cycles half and full */
+.track-footer__handle {
+  display: flex;
+  flex: 0 0 4rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--black);
+
+  &::before {
+    content: "";
+    inline-size: 2rem;
+    block-size: var(--border-width-3);
+    background: var(--black-50);
+  }
+}
+
+[data-phone="true"] .track-footer__title {
+  line-height: max(2.25rem, var(--target-min));
+}
+
+[data-phone="true"] .track-footer__body {
+  grid-template:
+    "strip" auto
+    "pane" minmax(0, 1fr)
+    / minmax(0, 1fr);
+}
+
+[data-phone="true"] .track-footer__body--script,
+[data-phone="true"] .track-footer__body--master {
+  grid-template: "pane" minmax(0, 1fr) / minmax(0, 1fr);
 }

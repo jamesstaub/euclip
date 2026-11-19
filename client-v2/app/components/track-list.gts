@@ -43,7 +43,7 @@ const TrackList: TOC<TrackListSignature> = <template>
     <h2 class="sr-only">Tracks</h2>
     <ol class="track-list__items">
       {{#each @tracks key="id" as |track index|}}
-        <li>
+        <li data-chosen={{if (is track.id @selectedId) "true"}}>
           <TrackRow
             @track={{track}}
             @order={{plusOne index}}
@@ -53,7 +53,7 @@ const TrackList: TOC<TrackListSignature> = <template>
           />
         </li>
       {{/each}}
-      <li>
+      <li data-chosen={{if (is @selectedId PROJECT_SCOPE) "true"}}>
         <article
           class="track track--output
             {{if (is @selectedId PROJECT_SCOPE) 'track--active'}}"

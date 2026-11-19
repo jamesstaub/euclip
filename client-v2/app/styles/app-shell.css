@@ -124,3 +124,47 @@
     animation: none;
   }
 }
+
+/*
+ * The phone layout (below 48rem; the shell says so with data-phone, which the view service sets from the
+ * same query): the track rail beside one track at a time, and the footer an overlay sheet at the bottom
+ * of the tracks' area (see track-footer.css). Keyed on the attribute, not the media query, so that tests
+ * can render it at any width.
+ *
+ * --sheet-room is what the tracks keep clear at the bottom for the sheet: its bar when closed (or full),
+ * half the screen when half, so that whatever is in the tracks' area can be scrolled up into view.
+ */
+.app-shell[data-phone="true"] {
+  --sheet-bar: calc(
+    2 * var(--target-min) + var(--border-width-2) + var(--safe-bottom)
+  );
+  --sheet-room: var(--sheet-bar);
+
+  grid-template:
+    "header header" auto
+    "rail tracks" minmax(0, 1fr)
+    / var(--target-min) minmax(0, 1fr);
+
+  &[data-sheet="half"] {
+    --sheet-room: 50dvh;
+  }
+
+  & .app-shell__rail {
+    grid-area: rail;
+  }
+
+  & .app-shell__footer {
+    grid-area: 2 / 1 / 3 / 3;
+    align-self: end;
+    z-index: var(--layer-menu);
+  }
+
+  & .app-shell__sidebar,
+  & .app-shell__scrim {
+    grid-area: 2 / 1 / 3 / 3;
+  }
+
+  & .app-shell__notice {
+    margin-block-end: calc(var(--sheet-bar) + var(--space-2));
+  }
+}

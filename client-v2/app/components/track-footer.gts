@@ -1,3 +1,4 @@
+import type { TOC } from '@ember/component/template-only';
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { fn } from '@ember/helper';
@@ -7,6 +8,7 @@ import ChannelStrip from 'client-v2/components/channel-strip';
 import CodeEditor from 'client-v2/components/code-editor';
 import ControlsPane from 'client-v2/components/controls-pane';
 import Icon, { type IconName } from 'client-v2/components/icon';
+import onEscape from 'client-v2/modifiers/on-escape';
 import SequencePane from 'client-v2/components/sequence-pane';
 import SourcePane from 'client-v2/components/source-pane';
 import type { ScriptError } from 'client-v2/audio/runner';
@@ -34,6 +36,31 @@ function labelOf(pane: FooterPane): string {
 function is(a: string, b: string): boolean {
   return a === b;
 }
+
+interface TabsSignature {
+  Args: {
+    isChosen: (pane: FooterPane) => 'true' | 'false';
+    onChoose: (pane: FooterPane) => void;
+  };
+}
+
+/** The menu of the footer's three views: in the body of the footer, or in the phone sheet's bar. */
+const Tabs: TOC<TabsSignature> = <template>
+  <div class="footer-tabs" role="group" aria-label="Show">
+    {{#each TABS as |tab|}}
+      <button
+        type="button"
+        class="footer-tab"
+        aria-pressed={{@isChosen tab.pane}}
+        data-test-footer-tab={{tab.pane}}
+        {{on "click" (fn @onChoose tab.pane)}}
+      >
+        <Icon @name={{tab.icon}} class={{if tab.large "icon--l"}} />
+        <span>{{labelOf tab.pane}}</span>
+      </button>
+    {{/each}}
+  </div>
+</template>;
 
 export interface TrackFooterSignature {
   Element: HTMLElement;
@@ -128,12 +155,32 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
     this.statusOpen = !this.statusOpen;
   };
 
+  /** On the phone a tab is pressed only while the sheet is open on it (and not on the script). */
   isChosen = (pane: FooterPane): 'true' | 'false' =>
-    this.view.footerPane === pane ? 'true' : 'false';
+    this.view.footerPane === pane &&
+    (!this.view.phone || (this.view.footerOpen && !this.view.scriptOpen))
+      ? 'true'
+      : 'false';
 
-  choosePane = (pane: FooterPane): void => this.view.setFooterPane(pane);
+  /** A tab: on the phone it also opens and closes the sheet (see ViewService.tapTab). */
+  choosePane = (pane: FooterPane): void => {
+    if (this.view.phone) this.view.tapTab(pane);
+    else this.view.setFooterPane(pane);
+  };
   toggleScript = (): void => this.view.toggleScript();
   toggle = (): void => this.view.toggleFooter();
+  cycle = (): void => this.view.cycleSheet();
+
+  get handleLabel(): string {
+    return this.view.footerOpen && this.view.sheetSize === 'full'
+      ? 'Shrink the track panel'
+      : 'Expand the track panel';
+  }
+
+  /** Escape closes the phone's sheet. */
+  closeSheet = (): void => {
+    if (this.view.phone && this.view.footerOpen) this.view.footerOpen = false;
+  };
 
   <template>
     <footer
@@ -144,6 +191,7 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
       data-error={{if this.error "true"}}
       data-warnings={{if this.warnings.length "true"}}
       data-test-track-footer
+      {{onEscape this.closeSheet}}
       ...attributes
     >
       <div class="track-footer__bar">
@@ -151,6 +199,33 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
           <b>{{this.name}}</b>
           <span>{{if @track @track.name "Project"}}</span>
         </h2>
+
+        {{#if this.view.phone}}
+          {{! the sheet's handle: its top edge, between the name and the buttons }}
+          <button
+            type="button"
+            class="track-footer__handle"
+            aria-label={{this.handleLabel}}
+            aria-expanded={{if
+              this.view.footerOpen
+              (if (is this.view.sheetSize "full") "true" "false")
+              "false"
+            }}
+            aria-controls={{BODY_ID}}
+            data-test-sheet-handle
+            {{on "click" this.cycle}}
+          >
+            <Icon
+              @name="play"
+              class="icon--s
+                {{if
+                  (if this.view.footerOpen (is this.view.sheetSize 'full'))
+                  'icon--down'
+                  'icon--up'
+                }}"
+            />
+          </button>
+        {{/if}}
 
         <button
           type="button"
@@ -191,6 +266,12 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
             class="icon--s {{if this.view.footerOpen 'icon--down' 'icon--up'}}"
           />
         </button>
+
+        {{#if this.view.phone}}
+          {{#if @track}}
+            <Tabs @isChosen={{this.isChosen}} @onChoose={{this.choosePane}} />
+          {{/if}}
+        {{/if}}
       </div>
 
       {{#if this.view.footerOpen}}
@@ -221,20 +302,9 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
           >
             <ChannelStrip class="track-footer__strip" @track={{@track}} />
 
-            <div class="footer-tabs" role="group" aria-label="Show">
-              {{#each TABS as |tab|}}
-                <button
-                  type="button"
-                  class="footer-tab"
-                  aria-pressed={{this.isChosen tab.pane}}
-                  data-test-footer-tab={{tab.pane}}
-                  {{on "click" (fn this.choosePane tab.pane)}}
-                >
-                  <Icon @name={{tab.icon}} class={{if tab.large "icon--l"}} />
-                  <span>{{labelOf tab.pane}}</span>
-                </button>
-              {{/each}}
-            </div>
+            {{#unless this.view.phone}}
+              <Tabs @isChosen={{this.isChosen}} @onChoose={{this.choosePane}} />
+            {{/unless}}
 
             <div class="track-footer__pane scroll-y scroll--on-yellow">
               {{#if (is this.view.footerPane "sequence")}}

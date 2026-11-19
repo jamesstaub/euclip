@@ -1,0 +1,63 @@
+/*
+ * The phone's track rail: a thin column down the left edge, one touch target wide, listing the tracks by
+ * number, then M (the main output), then + (a new track). It exists only in the phone layout (the shell
+ * renders it only there). It scrolls by itself when there are many tracks.
+ *
+ * Each number flashes briefly when its track sounds a step (the `is-hit` class, set by hand from
+ * track-rail.gts: no render per step). Reduced motion: no flash.
+ */
+
+.track-rail {
+  min-block-size: 0;
+  padding-block-end: var(--sheet-room, 0);
+  scroll-padding-block-end: var(--sheet-room, 0);
+  border-inline-end: var(--border-row);
+  background: var(--dark-gray);
+}
+
+.track-rail__items {
+  display: flex;
+  flex-direction: column;
+}
+
+.track-rail__btn {
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  min-block-size: var(--target-min);
+  padding: 0;
+  border: 0;
+  border-block-end: var(--border-row);
+  background: transparent;
+  color: var(--yellow);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-5);
+  line-height: var(--line-height-solid);
+
+  &[aria-current="true"] {
+    background: var(--surface-selected);
+    color: var(--dark-gray);
+    font-weight: var(--font-weight-heavy);
+  }
+
+  &.is-hit {
+    animation: rail-hit 0.18s ease-out;
+  }
+}
+
+.track-rail__btn--new {
+  color: var(--white);
+}
+
+@keyframes rail-hit {
+  from {
+    background: var(--step-current);
+    color: var(--white);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track-rail__btn.is-hit {
+    animation: none;
+  }
+}

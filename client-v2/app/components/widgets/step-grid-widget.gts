@@ -24,7 +24,7 @@ import {
   type GeneratorState,
   type Tool,
 } from 'client-v2/controls/generators';
-import { mapping, type Mapping } from 'client-v2/controls/modes';
+import { mapping, noteName, type Mapping } from 'client-v2/controls/modes';
 import selectOptions from 'client-v2/modifiers/select-options';
 import type AudioService from 'client-v2/services/audio';
 
@@ -32,7 +32,7 @@ function pressed(value: number): 'true' | 'false' {
   return value !== 0 ? 'true' : 'false';
 }
 
-function is(a: number, b: number | null): boolean {
+function is(a: number, b: number | null | undefined): boolean {
   return a === b;
 }
 
@@ -68,6 +68,15 @@ export interface StepGridWidgetSignature {
      * Only this lane (a control's key) is shown; '' shows none. Absent: all of them (the sequence pane).
      */
     laneKey?: string;
+    /**
+     * The synth editor's strip of the same steps: a step shows its note name (its value is a MIDI note),
+     * and a tap chooses it (`onSelect`, at once: the value box and its keys are this grid's own) instead
+     * of toggling it. `selected` is the chosen step.
+     */
+    notes?: boolean;
+    selected?: number | null;
+    /** a tap on a step (toggling the choice); `on` true: the double click that opens the box chooses it */
+    onSelect?: (index: number, on?: boolean) => void;
   };
 }
 
@@ -126,6 +135,21 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
     this.laneGesture.release();
   }
 
+  /** What a step shows: what it holds, or in the synth's strip its note's name. */
+  cellText = (value: number): string =>
+    this.args.notes
+      ? value <= 0
+        ? ''
+        : value <= 127
+          ? noteName(value)
+          : String(value)
+      : shown(value);
+
+  cellLabel = (index: number, value: number): string =>
+    this.args.notes
+      ? `Step ${index + 1}, ${value <= 0 ? 'rest' : this.cellText(value)}`
+      : stepLabel(index, value);
+
   get editingValue(): string {
     return this.editing === null
       ? ''
@@ -164,6 +188,10 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
       return;
     }
     this.#clicked = [this.#clicked[1], index];
+    if (this.args.onSelect) {
+      this.args.onSelect(index);
+      return;
+    }
     this.audio.toggleStep(
       this.args.scopeId,
       this.args.control.name,
@@ -181,6 +209,12 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
     // call them a double click on the second. They are two taps: each has toggled its own step.
     if (this.#clicked[0] !== index) return;
     const group = this.#groupFor(index);
+    if (this.args.onSelect) {
+      // the two taps chose and unchose it: it is chosen, and the box opens on it
+      this.args.onSelect(index, true);
+      this.#open(index, undefined, group);
+      return;
+    }
     if ((this.args.control.steps[index] ?? 0) === 0) {
       this.audio.toggleStep(
         this.args.scopeId,
@@ -872,7 +906,8 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
             {{if (is index @control.playhead) 'step--current'}}
             {{if (shown value) 'step--valued'}}"
           aria-pressed={{pressed value}}
-          aria-label={{stepLabel index value}}
+          aria-label={{this.cellLabel index value}}
+          data-selected={{if (is index @selected) "true"}}
           title="Double-click (or hold) to set its value"
           data-test-step={{index}}
           {{on "click" (fn this.toggle index)}}
@@ -885,7 +920,7 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
           {{on "mousedown" this.keepBox}}
           {{on "contextmenu" this.noMenu}}
           {{on "keydown" (fn this.onKeydown index)}}
-        >{{shown value}}</button>
+        >{{this.cellText value}}</button>
       {{/each}}
       {{#each this.lanes key="key" as |lane|}}
         {{! a lane: its head across the grid, then a bar under every step (items of the same grid) }}

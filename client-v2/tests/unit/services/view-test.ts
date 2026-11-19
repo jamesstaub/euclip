@@ -55,6 +55,7 @@ module('Unit | Service | view', function (hooks) {
         snaps: {},
         lanes: {},
         rowsView: 'steps',
+        sheetSize: 'half',
       },
     );
   });

@@ -143,11 +143,32 @@ const scrollFade = modifier((line: HTMLElement) => {
   };
 });
 
-/** When the action bar appears, its row is scrolled so the bar is whole and clear of the footer. */
+/**
+ * When the action bar appears, its row is scrolled so the bar is whole and clear of the footer.
+ * On the phone the bar is a column down the right edge (see signal-chain.css) that scrolls inside
+ * itself: it is given the height there is between where it starts and the sheet over the bottom.
+ */
 const showAboveFooter = modifier((bar: HTMLElement, [chosen]: [string]) => {
   void chosen; // (read, so that it runs again when the choice changes)
+  const list = bar.closest<HTMLElement>('.track-list');
+  if (bar.closest('[data-phone="true"]')) {
+    if (!list || !bar.parentElement) return;
+    const fit = (): void => {
+      const start =
+        bar.parentElement!.getBoundingClientRect().top -
+        list.getBoundingClientRect().top +
+        list.scrollTop;
+      const room = parseFloat(getComputedStyle(list).paddingBlockEnd) || 0;
+      const height = Math.floor(list.clientHeight - room - start - 4);
+      bar.style.setProperty('--chain-bar-max', `${Math.max(height, 0)}px`);
+    };
+    fit();
+    const watch =
+      typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit);
+    watch?.observe(list);
+    return () => watch?.disconnect();
+  }
   const footer = document.querySelector('.track-footer');
-  const list = bar.closest('.track-list');
   if (!footer || !list) return;
   const over =
     bar.getBoundingClientRect().bottom - footer.getBoundingClientRect().top;
@@ -155,6 +176,73 @@ const showAboveFooter = modifier((bar: HTMLElement, [chosen]: [string]) => {
   const under =
     list.getBoundingClientRect().top - bar.getBoundingClientRect().top;
   if (under > 0) list.scrollBy({ top: -under - 8 });
+});
+
+/** How long a finger must stay on an icon of the phone's toolbar for its name to show. */
+const HOLD_MS = 400;
+
+/**
+ * Touch has no hover: pressing and holding an icon of the phone's toolbar shows its name in a small
+ * label beside it (laid over the page, since the toolbar scrolls and would clip it), until the finger
+ * lifts. The press that showed the name does nothing else: the action is not done.
+ */
+const holdForLabel = modifier((button: HTMLElement, [label]: [string]) => {
+  if (!button.closest('[data-phone="true"]')) return;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let tip: HTMLElement | null = null;
+  let shown = false;
+  const hide = (): void => {
+    clearTimeout(timer);
+    tip?.remove();
+    tip = null;
+  };
+  const show = (): void => {
+    shown = true;
+    tip = document.createElement('div');
+    tip.className = 'chain-tip';
+    tip.setAttribute('role', 'presentation');
+    tip.textContent = label;
+    document.body.append(tip);
+    const at = button.getBoundingClientRect();
+    tip.style.insetBlockStart = `${Math.round(at.top + at.height / 2)}px`;
+    tip.style.insetInlineEnd = `${Math.round(window.innerWidth - at.left + 6)}px`;
+  };
+  const down = (): void => {
+    shown = false;
+    clearTimeout(timer);
+    timer = setTimeout(show, HOLD_MS);
+  };
+  const up = (): void => {
+    clearTimeout(timer);
+    // (the label stays a moment after the finger lifts, long enough to read)
+    if (tip) {
+      const gone = tip;
+      tip = null;
+      setTimeout(() => gone.remove(), 900);
+    }
+  };
+  const click = (event: Event): void => {
+    if (!shown) return;
+    shown = false;
+    event.stopImmediatePropagation();
+    event.preventDefault();
+  };
+  const menu = (event: Event): void => event.preventDefault();
+  button.addEventListener('pointerdown', down);
+  button.addEventListener('pointerup', up);
+  button.addEventListener('pointercancel', up);
+  button.addEventListener('pointerleave', up);
+  button.addEventListener('click', click, true);
+  button.addEventListener('contextmenu', menu);
+  return () => {
+    hide();
+    button.removeEventListener('pointerdown', down);
+    button.removeEventListener('pointerup', up);
+    button.removeEventListener('pointercancel', up);
+    button.removeEventListener('pointerleave', up);
+    button.removeEventListener('click', click, true);
+    button.removeEventListener('contextmenu', menu);
+  };
 });
 
 interface ToolSignature {
@@ -172,7 +260,8 @@ interface ToolSignature {
 /**
  * One action of the toolbar: an icon, named for assistive tech always (`aria-label`), named in a small
  * tooltip on hover and on keyboard focus (`data-label`, drawn by the style), and named in words under
- * the icon on touch screens, which have no hover.
+ * the icon on touch screens, which have no hover. On the phone (a column of icons only) the name shows
+ * while the icon is pressed and held (`holdForLabel`).
  */
 const Tool: TOC<ToolSignature> = <template>
   <button
@@ -182,6 +271,7 @@ const Tool: TOC<ToolSignature> = <template>
     aria-label={{@label}}
     data-label={{@label}}
     data-test-chain-action={{@action}}
+    {{holdForLabel @label}}
     {{on "click" @onClick}}
   >
     <Icon @name={{@icon}} />
@@ -552,6 +642,22 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
 
   get removeAction(): string {
     return this.modulatorRow ? 'remove-modulator' : 'remove';
+  }
+
+  /** Every icon of the toolbar with its name and, if it is off, why: the phone's "?" lists them. */
+  get legend(): { icon: IconName; label: string; reason: string | null }[] {
+    const reasons = this.reasons;
+    return [
+      { icon: 'addBefore', label: 'Add before', reason: reasons.before },
+      { icon: 'addAfter', label: 'Add after', reason: reasons.after },
+      { icon: 'insertHere', label: 'Insert node here', reason: reasons.insert },
+      { icon: 'moveLeft', label: 'Move left', reason: reasons.left },
+      { icon: 'moveRight', label: 'Move right', reason: reasons.right },
+      { icon: 'removeNode', label: this.removeLabel, reason: reasons.remove },
+      { icon: 'modulate', label: 'Add modulator', reason: reasons.modulate },
+      { icon: 'addChain', label: 'Add chain', reason: reasons.chain },
+      { icon: this.routeIcon, label: this.routeLabel, reason: reasons.route },
+    ];
   }
 
   get removeLabel(): string {
@@ -1166,102 +1272,121 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
       {{this.meter @scopeId this.signature}}
     >
 
-      {{#if this.hasError}}
-        <p class="signal-chain__status" role="status" data-test-chain-error>The
-          script has an error. This is the version still running.</p>
-      {{/if}}
-
-      {{#each this.rows key="key" as |row|}}
-        <div
-          class="chain-row"
-          data-kind={{row.kind}}
-          data-branch={{if row.branch "true"}}
-          data-test-chain-row={{row.kind}}
-        >
-          {{#if row.title}}
-            <h4 class="chain-row__title" data-test-row-title>{{row.title}}</h4>
-          {{else if row.branch}}
-            <h4 class="chain-row__title">branch</h4>
+      <div class="signal-chain__body">
+        {{#if this.barShown}}
+          {{#if this.view.phone}}
+            <p
+              class="chain-chosen"
+              data-test-chain-chosen
+            >{{this.chosenName}}</p>
           {{/if}}
-          <ol class="chain-row__line" {{scrollFade}}>
-            {{#each row.nodes key="id" as |node index|}}
-              <li
-                class="chain-link"
-                data-meter={{node.id}}
-                data-control={{if (is row.kind "modulator") "true"}}
-              >
-                <button
-                  type="button"
-                  class="chain-node"
-                  aria-pressed={{if (this.isSelected node) "true" "false"}}
-                  data-readonly={{if (this.isReadOnly node) "true"}}
-                  data-test-chain-node={{node.id}}
-                  data-type={{node.type}}
-                  {{on "click" (fn this.choose node)}}
+        {{/if}}
+        {{#if this.hasError}}
+          <p
+            class="signal-chain__status"
+            role="status"
+            data-test-chain-error
+          >The script has an error. This is the version still running.</p>
+        {{/if}}
+
+        {{#each this.rows key="key" as |row|}}
+          <div
+            class="chain-row"
+            data-kind={{row.kind}}
+            data-branch={{if row.branch "true"}}
+            data-test-chain-row={{row.kind}}
+          >
+            {{#if row.title}}
+              <h4
+                class="chain-row__title"
+                data-test-row-title
+              >{{row.title}}</h4>
+            {{else if row.branch}}
+              <h4 class="chain-row__title">branch</h4>
+            {{/if}}
+            <ol class="chain-row__line" {{scrollFade}}>
+              {{#each row.nodes key="id" as |node index|}}
+                <li
+                  class="chain-link"
+                  data-meter={{node.id}}
+                  data-control={{if (is row.kind "modulator") "true"}}
                 >
-                  <b>{{node.type}}</b>
-                  {{#unless node.autoId}}<span>{{node.id}}</span>{{/unless}}
-                  {{#if (this.isReadOnly node)}}<i>edit in script</i>{{/if}}
-                </button>
-                <span class="chain-wire">
                   <button
                     type="button"
-                    class="chain-hit"
-                    aria-label={{this.linkName row index}}
-                    aria-pressed={{if
-                      (this.isLinkSelected row index)
-                      "true"
-                      "false"
-                    }}
-                    data-test-chain-link="{{row.key}}:{{index}}"
-                    {{on "click" (fn this.chooseLink row index)}}
-                  ></button>
-                </span>
+                    class="chain-node"
+                    aria-pressed={{if (this.isSelected node) "true" "false"}}
+                    data-readonly={{if (this.isReadOnly node) "true"}}
+                    data-test-chain-node={{node.id}}
+                    data-type={{node.type}}
+                    {{on "click" (fn this.choose node)}}
+                  >
+                    <b>{{node.type}}</b>
+                    {{#unless node.autoId}}<span>{{node.id}}</span>{{/unless}}
+                    {{#if (this.isReadOnly node)}}<i>edit in script</i>{{/if}}
+                  </button>
+                  <span class="chain-wire">
+                    <button
+                      type="button"
+                      class="chain-hit"
+                      aria-label={{this.linkName row index}}
+                      aria-pressed={{if
+                        (this.isLinkSelected row index)
+                        "true"
+                        "false"
+                      }}
+                      data-test-chain-link="{{row.key}}:{{index}}"
+                      {{on "click" (fn this.chooseLink row index)}}
+                    ></button>
+                  </span>
+                </li>
+              {{/each}}
+              <li
+                class="chain-link chain-link--end"
+                data-meter-in={{lastId row}}
+              >
+                {{#if (isParam row)}}
+                  <span class="chain-wire chain-wire--modulates">
+                    <i>modulates</i>
+                    <button
+                      type="button"
+                      class="chain-hit"
+                      aria-label={{this.linkName row row.nodes.length}}
+                      aria-pressed={{if
+                        (this.isLinkSelected row row.nodes.length)
+                        "true"
+                        "false"
+                      }}
+                      data-test-chain-link="{{row.key}}:{{row.nodes.length}}"
+                      {{on "click" (fn this.chooseLink row row.nodes.length)}}
+                    ></button>
+                  </span>
+                {{/if}}
+                {{#if (isParam row)}}
+                  <button
+                    type="button"
+                    class="chain-dest"
+                    data-kind={{row.destination.kind}}
+                    data-test-chain-dest={{row.destination.name}}
+                    {{on "click" (fn this.chooseTarget row)}}
+                  >{{row.destination.name}}</button>
+                {{else}}
+                  <button
+                    type="button"
+                    class="chain-dest"
+                    aria-pressed={{if (this.isDestSelected row) "true" "false"}}
+                    data-kind={{row.destination.kind}}
+                    data-test-chain-dest={{row.destination.name}}
+                    {{on "click" (fn this.chooseDest row)}}
+                  >{{row.destination.name}}</button>
+                {{/if}}
               </li>
-            {{/each}}
-            <li class="chain-link chain-link--end" data-meter-in={{lastId row}}>
-              {{#if (isParam row)}}
-                <span class="chain-wire chain-wire--modulates">
-                  <i>modulates</i>
-                  <button
-                    type="button"
-                    class="chain-hit"
-                    aria-label={{this.linkName row row.nodes.length}}
-                    aria-pressed={{if
-                      (this.isLinkSelected row row.nodes.length)
-                      "true"
-                      "false"
-                    }}
-                    data-test-chain-link="{{row.key}}:{{row.nodes.length}}"
-                    {{on "click" (fn this.chooseLink row row.nodes.length)}}
-                  ></button>
-                </span>
-              {{/if}}
-              {{#if (isParam row)}}
-                <button
-                  type="button"
-                  class="chain-dest"
-                  data-kind={{row.destination.kind}}
-                  data-test-chain-dest={{row.destination.name}}
-                  {{on "click" (fn this.chooseTarget row)}}
-                >{{row.destination.name}}</button>
-              {{else}}
-                <button
-                  type="button"
-                  class="chain-dest"
-                  aria-pressed={{if (this.isDestSelected row) "true" "false"}}
-                  data-kind={{row.destination.kind}}
-                  data-test-chain-dest={{row.destination.name}}
-                  {{on "click" (fn this.chooseDest row)}}
-                >{{row.destination.name}}</button>
-              {{/if}}
-            </li>
-          </ol>
-        </div>
-      {{else}}
-        <p class="pane-empty" data-test-pane-empty>This script has made nothing
-          to draw yet.</p>
-      {{/each}}
+            </ol>
+          </div>
+        {{else}}
+          <p class="pane-empty" data-test-pane-empty>This script has made
+            nothing to draw yet.</p>
+        {{/each}}
+      </div>
 
       {{#if this.barShown}}
         <div
@@ -1271,10 +1396,12 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
           aria-label="What to do with the chain"
           data-test-chain-actions
         >
-          <p
-            class="chain-actions__what"
-            data-test-chain-chosen
-          >{{this.chosenName}}</p>
+          {{#unless this.view.phone}}
+            <p
+              class="chain-actions__what"
+              data-test-chain-chosen
+            >{{this.chosenName}}</p>
+          {{/unless}}
           <Tool
             @icon="addBefore"
             @label="Add before"
@@ -1339,6 +1466,17 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
             @onClick={{this.route}}
           />
           <Hint @label="About the signal chain" data-test-chain-why>
+            {{#if this.view.phone}}
+              <ul class="chain-legend" data-test-chain-legend>
+                {{#each this.legend as |tool|}}
+                  <li>
+                    <Icon @name={{tool.icon}} />
+                    <span><b>{{tool.label}}</b>{{#if tool.reason}}
+                        {{tool.reason}}{{/if}}</span>
+                  </li>
+                {{/each}}
+              </ul>
+            {{/if}}
             <p>This is the running script, drawn. Sound flows left to right,
               from a node nothing feeds to the bus it is sent to. A dashed line
               is a modulator moving a parameter.</p>

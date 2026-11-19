@@ -9,3 +9,20 @@
   display: flex;
   flex-direction: column;
 }
+
+/*
+ * The phone layout: one track's row at a time (the rail chooses it), filling the width. The other rows
+ * are not drawn (display: none), so they cost nothing to lay out and their chain pictures are off
+ * screen for the meters. The sheet over the bottom is kept clear with padding.
+ */
+.app-shell[data-phone="true"] .track-list {
+  padding-block-end: var(--sheet-room);
+
+  & .track-list__items > li:not([data-chosen]) {
+    display: none;
+  }
+
+  & .track__order {
+    display: none;
+  }
+}
