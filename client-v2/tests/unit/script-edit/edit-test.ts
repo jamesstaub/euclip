@@ -1,5 +1,7 @@
 import { module, test } from 'qunit';
 import {
+  addChain,
+  branchFrom,
   addBus,
   addModulator,
   planModulator,
@@ -831,6 +833,74 @@ controls('#f');
       assert.strictEqual(
         suggestDepth({ min: -1, max: 1, default: 0, curve: 'linear' }),
         0.5,
+      );
+    });
+  });
+
+  module('chains and branches', function () {
+    test('a new chain goes after the last chain statement, with its controls', function (assert) {
+      const result = addChain(KICK, { type: 'sampler', to: 'channel' }, ctx);
+      assert.strictEqual(
+        script(result),
+        KICK.replace(
+          "  .to('channel');\n",
+          "  .to('channel');\n__()\n  .sampler({ id: 'sampler_2' })\n  .to('channel');\n",
+        ).replace(
+          "waveform('#sampler');\n",
+          "waveform('#sampler');\ncontrols('#sampler_2');\n",
+        ),
+      );
+      assert.strictEqual((result as { id: string }).id, 'sampler_2');
+      assert.strictEqual(
+        script(addChain('', { type: 'sampler', to: 'main' }, ctx)),
+        "__()\n  .sampler({ id: 'sampler' })\n  .to('main');\ncontrols('#sampler');\n",
+      );
+    });
+
+    test('a branch is one more statement that leaves the chain as it is', function (assert) {
+      const next = script(
+        branchFrom(KICK, { node: ref('filter', 'lowpass'), to: 'drums' }, ctx),
+      );
+      assert.strictEqual(
+        next,
+        KICK.replace(
+          ".to('channel');\n",
+          ".to('channel');\n__('#filter').to('drums');\n",
+        ),
+      );
+      const plain = "__().sampler({ id: 'a' }).lowpass().to('channel');\n";
+      assert.strictEqual(
+        script(
+          branchFrom(
+            plain,
+            {
+              node: {
+                id: 'lowpass-1',
+                type: 'lowpass',
+                ordinal: 1,
+                siblings: 1,
+              },
+              to: 'x',
+            },
+            ctx,
+          ),
+        ),
+        "__().sampler({ id: 'a' }).lowpass({ id: 'lowpass' }).to('channel');\n__('#lowpass').to('x');\n",
+      );
+    });
+
+    test('inserting between two nodes is adding after the first', function (assert) {
+      const next = script(
+        addNode(
+          KICK,
+          { at: ref('filter', 'lowpass'), side: 'after', type: 'delay' },
+          ctx,
+        ),
+      );
+      assert.true(
+        next.includes(
+          "  .lowpass({ id: 'filter', frequency: 2000, q: 2 })\n  .delay({ id: 'delay' })\n  .gain({ id: 'level'",
+        ),
       );
     });
   });

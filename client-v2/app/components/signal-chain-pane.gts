@@ -4,7 +4,9 @@ import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import { modifier } from 'ember-modifier';
+import Icon, { type IconName } from 'client-v2/components/icon';
 import Hint from 'client-v2/components/ui/hint';
+import type { TOC } from '@ember/component/template-only';
 import {
   nameOf,
   type ChainGraph,
@@ -15,6 +17,9 @@ import { PROJECT_SCOPE } from 'client-v2/project/schema';
 import type { NodeTypeInfo } from 'cracked-up';
 import {
   addBus,
+  addChain,
+  branchFrom,
+  planBranch,
   addModulator,
   addNode,
   analyze,
@@ -51,6 +56,8 @@ export interface SignalChainPaneSignature {
     label: string;
     /** a node was chosen: the track it is in is chosen too (so the footer shows it) */
     onSelectTrack?: (scopeId: string) => void;
+    /** this row's track is the selected one: its toolbar is shown */
+    selected?: boolean;
   };
 }
 
@@ -73,9 +80,22 @@ interface PickerGroup {
 
 /** What is chosen on the drawing: a node (by its id), or the chip a row ends at (by the row's key). */
 interface Chosen {
-  kind: 'node' | 'dest';
+  kind: 'node' | 'dest' | 'link';
   id: string;
 }
+
+type Reasons = Record<
+  | 'before'
+  | 'after'
+  | 'insert'
+  | 'left'
+  | 'right'
+  | 'remove'
+  | 'modulate'
+  | 'chain'
+  | 'route',
+  string | null
+>;
 
 /** A number parameter the library can modulate: audio-rate ones (its `rate`), which it documents as targets. */
 type NumberParam = Extract<NodeTypeInfo['params'][number], { kind: 'number' }>;
@@ -124,7 +144,8 @@ const scrollFade = modifier((line: HTMLElement) => {
 });
 
 /** When the action bar appears, its row is scrolled so the bar is whole and clear of the footer. */
-const showAboveFooter = modifier((bar: HTMLElement) => {
+const showAboveFooter = modifier((bar: HTMLElement, [chosen]: [string]) => {
+  void chosen; // (read, so that it runs again when the choice changes)
   const footer = document.querySelector('.track-footer');
   const list = bar.closest('.track-list');
   if (!footer || !list) return;
@@ -135,6 +156,38 @@ const showAboveFooter = modifier((bar: HTMLElement) => {
     list.getBoundingClientRect().top - bar.getBoundingClientRect().top;
   if (under > 0) list.scrollBy({ top: -under - 8 });
 });
+
+interface ToolSignature {
+  Args: {
+    icon: IconName;
+    label: string;
+    /** why it cannot be done now; null when it can */
+    reason: string | null;
+    /** the test hook and kind of action */
+    action: string;
+    onClick: () => void;
+  };
+}
+
+/**
+ * One action of the toolbar: an icon, named for assistive tech always (`aria-label`), named in a small
+ * tooltip on hover and on keyboard focus (`data-label`, drawn by the style), and named in words under
+ * the icon on touch screens, which have no hover.
+ */
+const Tool: TOC<ToolSignature> = <template>
+  <button
+    type="button"
+    class="chain-tool"
+    disabled={{@reason}}
+    aria-label={{@label}}
+    data-label={{@label}}
+    data-test-chain-action={{@action}}
+    {{on "click" @onClick}}
+  >
+    <Icon @name={{@icon}} />
+    <span class="chain-tool__label" aria-hidden="true">{{@label}}</span>
+  </button>
+</template>;
 
 const showModal = modifier((dialog: HTMLDialogElement) => {
   if (!dialog.open) dialog.showModal();
@@ -162,8 +215,14 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
   @service('chain-meters') declare meters: ChainMetersService;
 
   @tracked chosen: Chosen | null = null;
+
+  /** What is chosen, while this row's track is the selected one. */
+  get current(): Chosen | null {
+    return this.args.selected ? this.chosen : null;
+  }
   /** the picker is open: where the new node goes */
-  @tracked picking: { side: 'before' | 'after'; id: string } | null = null;
+  @tracked picking:
+    { side: 'before' | 'after'; id: string } | { chain: true } | null = null;
   @tracked query = '';
   /** removing needs a word first: what it would take with it */
   @tracked confirming: { id: string; plan: RemovePlan } | null = null;
@@ -265,15 +324,15 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
   // --- the chosen node and its actions ----------------------------------------------------------------
 
   get selected(): ChainNode | null {
-    return this.chosen?.kind === 'node'
-      ? (this.nodes.get(this.chosen.id) ?? null)
+    return this.current?.kind === 'node'
+      ? (this.nodes.get(this.current.id) ?? null)
       : null;
   }
 
   /** The row whose end chip is chosen, if one is. */
   get selectedDest(): ChainRow | null {
-    return this.chosen?.kind === 'dest'
-      ? (this.rows.find((row) => row.key === this.chosen?.id) ?? null)
+    return this.current?.kind === 'dest'
+      ? (this.rows.find((row) => row.key === this.current?.id) ?? null)
       : null;
   }
 
@@ -287,10 +346,10 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
   }
 
   isSelected = (node: ChainNode): boolean =>
-    this.chosen?.kind === 'node' && this.chosen.id === node.id;
+    this.current?.kind === 'node' && this.current.id === node.id;
 
   isDestSelected = (row: ChainRow): boolean =>
-    this.chosen?.kind === 'dest' && this.chosen.id === row.key;
+    this.current?.kind === 'dest' && this.current.id === row.key;
 
   /** The number parameters of a node's type that the library can modulate: the audio-rate ones. */
   modulatable = (node: ChainNode): NumberParam[] => {
@@ -306,88 +365,202 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
     return [...(this.context.modulatorTypes ?? [])].sort();
   }
 
-  /** What each action would say if it cannot be done, for the one chosen (null: it can). */
-  get reasons(): Record<
-    | 'before'
-    | 'after'
-    | 'left'
-    | 'right'
-    | 'remove'
-    | 'modulate'
-    | 'retarget'
-    | 'send',
-    string | null
-  > {
-    const none = {
-      before: null,
-      after: null,
-      left: null,
-      right: null,
-      remove: null,
-      modulate: null,
-      retarget: null,
-      send: null,
+  /** The connection chosen, if one is: the link after a node of a row (the last one leads to the row's end). */
+  get selectedLink(): {
+    row: ChainRow;
+    from: ChainNode;
+    to: ChainNode | null;
+  } | null {
+    const current = this.current;
+    if (current?.kind !== 'link') return null;
+    const at = current.id.lastIndexOf(':');
+    const row = this.rows.find(
+      (candidate) => candidate.key === current.id.slice(0, at),
+    );
+    const from = row?.nodes[Number(current.id.slice(at + 1))];
+    if (!row || !from) return null;
+    return {
+      row,
+      from,
+      to: row.nodes[Number(current.id.slice(at + 1)) + 1] ?? null,
     };
+  }
+
+  linkKey = (row: ChainRow, index: number): string => `${row.key}:${index}`;
+
+  isLinkSelected = (row: ChainRow, index: number): boolean =>
+    this.current?.kind === 'link' &&
+    this.current.id === this.linkKey(row, index);
+
+  linkName = (row: ChainRow, index: number): string => {
+    const from = row.nodes[index];
+    const to = row.nodes[index + 1];
+    return `Connection from ${from ? nameOf(from) : ''} to ${to ? nameOf(to) : row.destination.name}`;
+  };
+
+  /** The modulator row the choice is in (a node of one, or a link of one), if any. */
+  get modulatorRow(): ChainRow | null {
+    const link = this.selectedLink;
+    if (link) return link.row.kind === 'modulator' ? link.row : null;
+    return this.selectedKind === 'modulator'
+      ? (this.rows.find((row) =>
+          row.nodes.some((n) => n.id === this.selected?.id),
+        ) ?? null)
+      : null;
+  }
+
+  /** The node an action works from: the chosen node, or the one before the chosen connection. */
+  get anchor(): ChainNode | null {
+    return this.selected ?? this.selectedLink?.from ?? null;
+  }
+
+  /** The short name of what is chosen, for the toolbar's fixed cell. */
+  get chosenName(): string {
+    const link = this.selectedLink;
+    if (link)
+      return `${nameOf(link.from)} → ${link.to ? nameOf(link.to) : link.row.destination.name}`;
+    const node = this.selected;
+    if (node) return node.autoId ? node.type : `${node.type} ${node.id}`;
+    const dest = this.selectedDest;
+    if (dest) return `to ${dest.destination.name}`;
+    return 'nothing chosen';
+  }
+
+  /** What the "route" slot does for what is chosen. */
+  get routeKind(): 'send' | 'branch' | 'retarget' | null {
+    if (this.selectedDest) return 'send';
+    if (this.modulatorRow) return 'retarget';
+    const link = this.selectedLink;
+    if (link) return link.to ? 'branch' : 'send';
+    return this.selected ? 'branch' : null;
+  }
+
+  /** What each action would say if it cannot be done, for what is chosen (null: it can). */
+  get reasons(): Reasons {
     const check = (result: EditResult | Cannot | null): string | null =>
       result && 'cannot' in result ? result.cannot : null;
     const context = this.context;
     const text = this.script;
+    const nothing = 'Choose a node or a connection first.';
+    const all = (why: string | null): Reasons => ({
+      before: why,
+      after: why,
+      insert: why,
+      left: why,
+      right: why,
+      remove: why,
+      modulate: why,
+      chain: null,
+      route: why,
+    });
+    const errored = this.hasError
+      ? 'The script has an error. Fix it, or undo, before editing here.'
+      : null;
+    const analysis = this.analysis;
+    const chainWhy = errored ?? (isAnalysis(analysis) ? null : analysis.cannot);
+    const none = { ...all(nothing), chain: chainWhy };
     const dest = this.selectedDest;
-    if (dest) return { ...none, send: this.sendWhy(dest) };
-    const node = this.selected;
-    if (!node) return none;
-    const why = this.whyNot(node);
-    if (why !== null) {
+    if (dest)
       return {
-        before: why,
-        after: why,
-        left: why,
-        right: why,
-        remove: why,
-        modulate: why,
-        retarget: why,
-        send: why,
+        ...all('This is where the chain goes: tap it to send it elsewhere.'),
+        chain: chainWhy,
+        route: this.sendWhy(dest),
+      };
+    const anchor = this.anchor;
+    if (!anchor) return none;
+    const why = this.whyNot(anchor);
+    if (why !== null) return { ...all(why), chain: chainWhy, route: why };
+    const ref = this.refOf(anchor);
+    const modulator = this.modulatorRow;
+    if (modulator) {
+      const plan = check(
+        planModulator(text, this.refOf(modulator.nodes[0]!), context),
+      );
+      return {
+        ...all('A modulator is moved or removed, not chained.'),
+        chain: chainWhy,
+        remove: plan,
+        route: plan,
       };
     }
-    const ref = this.refOf(node);
-    if (this.selectedKind === 'modulator') {
-      const plan = check(planModulator(text, ref, context));
-      return { ...none, retarget: plan, remove: plan };
-    }
+    const link = this.selectedLink;
     const type = [...context.nodeTypes][0] ?? 'gain';
+    const modulatable =
+      this.modulatable(anchor).length === 0
+        ? anchor.macro
+          ? 'This is a macro: the library lets only some of a macro’s parameters be modulated, so do it in the script.'
+          : 'This node has no parameter the library can modulate (audio-rate numbers only).'
+        : this.modulatorTypes.length === 0
+          ? 'The library has no modulator to add.'
+          : null;
+    const branch = check(planBranch(text, ref, context));
+    if (link) {
+      return {
+        ...all('Choose a node to do this.'),
+        chain: chainWhy,
+        insert: check(addNode(text, { at: ref, side: 'after', type }, context)),
+        route: link.to ? branch : this.sendWhy(link.row),
+      };
+    }
     return {
-      ...none,
+      ...all(null),
+      chain: chainWhy,
       before: check(addNode(text, { at: ref, side: 'before', type }, context)),
+      insert: 'Choose a connection to insert a node into it.',
       left: check(moveNode(text, { node: ref, direction: 'left' }, context)),
       right: check(moveNode(text, { node: ref, direction: 'right' }, context)),
-      modulate:
-        this.modulatable(node).length === 0
-          ? node.macro
-            ? 'This is a macro: the library lets only some of a macro’s parameters be modulated, so do it in the script.'
-            : 'This node has no parameter the library can modulate (audio-rate numbers only).'
-          : this.modulatorTypes.length === 0
-            ? 'The library has no modulator to add.'
-            : null,
+      modulate: modulatable,
+      route: branch,
     };
   }
 
-  /** One sentence for the chosen item: what an action cannot do, or what the last one could not (behind the "?"). */
+  /** One sentence for the chosen item: what the last action could not do, or why an action is off (behind the "?"). */
   get reason(): string | null {
     if (this.problem) return this.problem;
-    return (
-      Object.values(this.reasons).find(
-        (reason): reason is string => reason !== null,
-      ) ?? null
-    );
+    const reasons = this.reasons;
+    // what is chosen decides which comes first: where it goes, then what it is
+    const order = [
+      'route',
+      'remove',
+      'modulate',
+      'before',
+      'left',
+      'right',
+      'after',
+      'insert',
+      'chain',
+    ] as const;
+    const given = order
+      .map((key) => reasons[key])
+      .filter((why): why is string => why !== null);
+    return given.find((why) => !/^Choose a /.test(why)) ?? given[0] ?? null;
   }
 
-  /** The bar is there only while something in this row is chosen. */
+  get routeLabel(): string {
+    return this.routeKind === 'send'
+      ? 'Send to…'
+      : this.routeKind === 'branch'
+        ? 'Branch to…'
+        : this.routeKind === 'retarget'
+          ? 'Retarget'
+          : 'Reroute';
+  }
+
+  get routeIcon(): IconName {
+    return this.routeKind === 'retarget' ? 'retarget' : 'reroute';
+  }
+
+  get removeAction(): string {
+    return this.modulatorRow ? 'remove-modulator' : 'remove';
+  }
+
+  get removeLabel(): string {
+    return this.modulatorRow ? 'Remove modulator' : 'Remove';
+  }
+
+  /** The toolbar is part of the selected track's row in Signal view, whatever is or is not chosen. */
   get barShown(): boolean {
-    return (
-      this.confirming !== null ||
-      this.selected !== null ||
-      this.selectedDest !== null
-    );
+    return this.args.selected === true;
   }
 
   /** A tap on a node chooses it, chooses its track, and shows it in the footer at once. */
@@ -397,6 +570,14 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
     this.problem = null;
     this.args.onSelectTrack?.(this.args.scopeId);
     this.open(node);
+  };
+
+  /** A tap on a connection chooses it: insert a node into it, or route from it. */
+  chooseLink = (row: ChainRow, index: number): void => {
+    this.chosen = { kind: 'link', id: this.linkKey(row, index) };
+    this.confirming = null;
+    this.problem = null;
+    this.args.onSelectTrack?.(this.args.scopeId);
   };
 
   /** Escape, or a tap on empty space in the chain: nothing is chosen. */
@@ -533,14 +714,50 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
   }
 
   get pickingNode(): ChainNode | null {
-    return this.picking ? (this.nodes.get(this.picking.id) ?? null) : null;
+    return this.picking && 'id' in this.picking
+      ? (this.nodes.get(this.picking.id) ?? null)
+      : null;
   }
+
+  /** Where the picker adds: next to a node, or (a new chain) its source. */
+  get pickingTitle(): string {
+    const picking = this.picking;
+    if (!picking) return '';
+    if ('chain' in picking) return 'Add a chain: choose its source';
+    return `Add ${picking.side} ${this.pickingNode?.type ?? ''}`;
+  }
+
+  openChainPicker = (): void => {
+    this.query = '';
+    this.picking = { chain: true };
+  };
+
+  /** Between two nodes: after the first of them. */
+  insertHere = (): void => {
+    const from = this.selectedLink?.from;
+    if (!from) return;
+    this.query = '';
+    this.picking = { side: 'after', id: from.id };
+  };
 
   add = async (type: string): Promise<void> => {
     const picking = this.picking;
     const node = this.pickingNode;
     this.picking = null;
-    if (!picking || !node) return;
+    if (picking && 'chain' in picking) {
+      await this.apply(
+        addChain(
+          this.script,
+          {
+            type,
+            to: this.args.scopeId === PROJECT_SCOPE ? 'main' : 'channel',
+          },
+          this.context,
+        ),
+      );
+      return;
+    }
+    if (!picking || !node || !('side' in picking)) return;
     await this.apply(
       addNode(
         this.script,
@@ -663,12 +880,42 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
       : (this.rows.find((row) => row.key === this.sending) ?? null);
   }
 
-  openSend = (): void => {
-    const row = this.selectedDest;
-    if (!row) return;
+  /** What the list of buses is for: sending a chain's end somewhere, or branching from a node. */
+  @tracked sendMode: 'send' | 'branch' = 'send';
+  #branchFrom: string | null = null;
+
+  /** The route slot: send the chain's end, branch from a node, or retarget a modulator, by what is chosen. */
+  route = (): void => {
     this.newBus = '';
     this.newBusOpen = false;
-    this.sending = row.key;
+    this.problem = null;
+    const kind = this.routeKind;
+    if (kind === 'retarget') {
+      const modulator = this.modulatorRow?.nodes[0];
+      if (modulator) this.retargeting = modulator.id;
+    } else if (kind === 'send') {
+      const row = this.selectedDest ?? this.selectedLink?.row;
+      if (!row) return;
+      this.sendMode = 'send';
+      this.sending = row.key;
+    } else if (kind === 'branch') {
+      const anchor = this.anchor;
+      const row = anchor
+        ? this.rows.find((candidate) =>
+            candidate.nodes.some((n) => n.id === anchor.id),
+          )
+        : null;
+      if (!anchor || !row) return;
+      this.sendMode = 'branch';
+      this.#branchFrom = anchor.id;
+      this.sending = row.key;
+    }
+  };
+
+  /** Remove, for what is chosen: a node, or a whole modulator. */
+  removeChosen = async (): Promise<void> => {
+    if (this.modulatorRow) await this.removeModulator();
+    else await this.remove();
   };
 
   closeSend = (): void => {
@@ -697,10 +944,39 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
   send = async (to: string, create = false): Promise<void> => {
     const row = this.sendingRow;
     this.sending = null;
-    const from = row ? this.#sendFrom(row) : null;
-    if (!row || !from) return;
     const group = `chain-${++actions}`;
     const scope = this.args.scopeId;
+    if (this.sendMode === 'branch') {
+      const node = this.#branchFrom
+        ? this.nodes.get(this.#branchFrom)
+        : undefined;
+      if (!node) return;
+      let script = this.script;
+      if (create) {
+        const made = addBus(
+          scope === PROJECT_SCOPE ? script : this.project.doc.script,
+          to,
+          this.context,
+        );
+        if ('cannot' in made) {
+          this.problem = made.cannot;
+          return;
+        }
+        if (scope === PROJECT_SCOPE) script = made.script;
+        else if (!(await this.apply(made, { scope: PROJECT_SCOPE, group })))
+          return;
+      }
+      await this.apply(
+        branchFrom(script, { node: this.refOf(node), to }, this.context),
+        {
+          group,
+          choose: node.id,
+        },
+      );
+      return;
+    }
+    const from = row ? this.#sendFrom(row) : null;
+    if (!row || !from) return;
     if (create && scope !== PROJECT_SCOPE) {
       // a bus other tracks can see is the project's: make it there, then send this chain to it
       const project = this.project.doc.script;
@@ -831,7 +1107,7 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
   };
 
   removeModulator = async (): Promise<void> => {
-    const node = this.selected;
+    const node = this.modulatorRow?.nodes[0];
     if (!node) return;
     await this.apply(
       removeModulator(this.script, this.refOf(node), this.context),
@@ -841,6 +1117,8 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
 
   /** Types the picker offers for the node it is adding next to: a bus's own names are left out. */
   get pickerTypes(): Set<string> | null {
+    if (this.picking && 'chain' in this.picking)
+      return this.context.sourceTypes as Set<string>;
     const node = this.pickingNode;
     const row = node
       ? this.rows.find((candidate) =>
@@ -905,7 +1183,7 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
             <h4 class="chain-row__title">branch</h4>
           {{/if}}
           <ol class="chain-row__line" {{scrollFade}}>
-            {{#each row.nodes key="id" as |node|}}
+            {{#each row.nodes key="id" as |node index|}}
               <li
                 class="chain-link"
                 data-meter={{node.id}}
@@ -924,13 +1202,38 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
                   {{#unless node.autoId}}<span>{{node.id}}</span>{{/unless}}
                   {{#if (this.isReadOnly node)}}<i>edit in script</i>{{/if}}
                 </button>
-                <span class="chain-wire" aria-hidden="true"></span>
+                <span class="chain-wire">
+                  <button
+                    type="button"
+                    class="chain-hit"
+                    aria-label={{this.linkName row index}}
+                    aria-pressed={{if
+                      (this.isLinkSelected row index)
+                      "true"
+                      "false"
+                    }}
+                    data-test-chain-link="{{row.key}}:{{index}}"
+                    {{on "click" (fn this.chooseLink row index)}}
+                  ></button>
+                </span>
               </li>
             {{/each}}
             <li class="chain-link chain-link--end" data-meter-in={{lastId row}}>
               {{#if (isParam row)}}
                 <span class="chain-wire chain-wire--modulates">
                   <i>modulates</i>
+                  <button
+                    type="button"
+                    class="chain-hit"
+                    aria-label={{this.linkName row row.nodes.length}}
+                    aria-pressed={{if
+                      (this.isLinkSelected row row.nodes.length)
+                      "true"
+                      "false"
+                    }}
+                    data-test-chain-link="{{row.key}}:{{row.nodes.length}}"
+                    {{on "click" (fn this.chooseLink row row.nodes.length)}}
+                  ></button>
                 </span>
               {{/if}}
               {{#if (isParam row)}}
@@ -963,113 +1266,77 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
         <div
           class="chain-actions"
           role="toolbar"
-          {{showAboveFooter}}
-          aria-label="What to do with the chosen node"
+          {{showAboveFooter this.chosenName}}
+          aria-label="What to do with the chain"
           data-test-chain-actions
         >
-          {{#if this.confirming}}
-            <p
-              class="chain-actions__what"
-              role="alertdialog"
-              data-test-chain-confirm
-            >{{this.confirmText}}</p>
-            <div class="chain-actions__buttons">
-              <button
-                type="button"
-                class="btn btn--s btn--solid"
-                data-test-chain-confirm-remove
-                {{on "click" this.confirmRemove}}
-              >Remove</button>
-              <button
-                type="button"
-                class="btn btn--s btn--on-yellow"
-                data-test-chain-confirm-cancel
-                {{on "click" this.cancelRemove}}
-              >Cancel</button>
-            </div>
-          {{else if this.selected}}
-            <p class="chain-actions__what" data-test-chain-chosen>
-              <b>{{this.selected.type}}</b>
-              {{#unless this.selected.autoId}}<span
-                >{{this.selected.id}}</span>{{/unless}}
-            </p>
-            <div class="chain-actions__buttons">
-              {{#if (is this.selectedKind "modulator")}}
-                <button
-                  type="button"
-                  class="btn btn--s btn--on-yellow"
-                  disabled={{this.reasons.remove}}
-                  title={{this.reasons.remove}}
-                  data-test-chain-action="remove-modulator"
-                  {{on "click" this.removeModulator}}
-                >Remove</button>
-              {{else}}
-                <button
-                  type="button"
-                  class="btn btn--s btn--on-yellow"
-                  disabled={{this.reasons.before}}
-                  title={{this.reasons.before}}
-                  data-test-chain-action="add-before"
-                  {{on "click" (fn this.openPicker "before")}}
-                >Add before</button>
-                <button
-                  type="button"
-                  class="btn btn--s btn--on-yellow"
-                  disabled={{this.reasons.after}}
-                  title={{this.reasons.after}}
-                  data-test-chain-action="add-after"
-                  {{on "click" (fn this.openPicker "after")}}
-                >Add after</button>
-                <button
-                  type="button"
-                  class="btn btn--s btn--on-yellow"
-                  disabled={{this.reasons.left}}
-                  title={{this.reasons.left}}
-                  data-test-chain-action="move-left"
-                  {{on "click" (fn this.move "left")}}
-                >Move left</button>
-                <button
-                  type="button"
-                  class="btn btn--s btn--on-yellow"
-                  disabled={{this.reasons.right}}
-                  title={{this.reasons.right}}
-                  data-test-chain-action="move-right"
-                  {{on "click" (fn this.move "right")}}
-                >Move right</button>
-                <button
-                  type="button"
-                  class="btn btn--s btn--on-yellow"
-                  disabled={{this.reasons.remove}}
-                  title={{this.reasons.remove}}
-                  data-test-chain-action="remove"
-                  {{on "click" this.remove}}
-                >Remove</button>
-                <button
-                  type="button"
-                  class="btn btn--s btn--on-yellow"
-                  disabled={{this.reasons.modulate}}
-                  title={{this.reasons.modulate}}
-                  data-test-chain-action="modulate"
-                  {{on "click" this.openModulate}}
-                >Add modulator</button>
-              {{/if}}
-            </div>
-          {{else if this.selectedDest}}
-            <p class="chain-actions__what" data-test-chain-chosen>
-              <b>Sent to</b>
-              <span>{{this.selectedDest.destination.name}}</span>
-            </p>
-            <div class="chain-actions__buttons">
-              <button
-                type="button"
-                class="btn btn--s btn--on-yellow"
-                disabled={{this.reasons.send}}
-                title={{this.reasons.send}}
-                data-test-chain-action="send"
-                {{on "click" this.openSend}}
-              >Send to…</button>
-            </div>
-          {{/if}}
+          <p
+            class="chain-actions__what"
+            data-test-chain-chosen
+          >{{this.chosenName}}</p>
+          <Tool
+            @icon="addBefore"
+            @label="Add before"
+            @reason={{this.reasons.before}}
+            @action="add-before"
+            @onClick={{fn this.openPicker "before"}}
+          />
+          <Tool
+            @icon="addAfter"
+            @label="Add after"
+            @reason={{this.reasons.after}}
+            @action="add-after"
+            @onClick={{fn this.openPicker "after"}}
+          />
+          <Tool
+            @icon="insertHere"
+            @label="Insert node here"
+            @reason={{this.reasons.insert}}
+            @action="insert"
+            @onClick={{this.insertHere}}
+          />
+          <Tool
+            @icon="moveLeft"
+            @label="Move left"
+            @reason={{this.reasons.left}}
+            @action="move-left"
+            @onClick={{fn this.move "left"}}
+          />
+          <Tool
+            @icon="moveRight"
+            @label="Move right"
+            @reason={{this.reasons.right}}
+            @action="move-right"
+            @onClick={{fn this.move "right"}}
+          />
+          <Tool
+            @icon="removeNode"
+            @label={{this.removeLabel}}
+            @reason={{this.reasons.remove}}
+            @action={{this.removeAction}}
+            @onClick={{this.removeChosen}}
+          />
+          <Tool
+            @icon="modulate"
+            @label="Add modulator"
+            @reason={{this.reasons.modulate}}
+            @action="modulate"
+            @onClick={{this.openModulate}}
+          />
+          <Tool
+            @icon="addChain"
+            @label="Add chain"
+            @reason={{this.reasons.chain}}
+            @action="add-chain"
+            @onClick={{this.openChainPicker}}
+          />
+          <Tool
+            @icon={{this.routeIcon}}
+            @label={{this.routeLabel}}
+            @reason={{this.reasons.route}}
+            @action="route"
+            @onClick={{this.route}}
+          />
           <Hint @label="About the signal chain" data-test-chain-why>
             <p>This is the running script, drawn. Sound flows left to right,
               from a node nothing feeds to the bus it is sent to. A dashed line
@@ -1091,17 +1358,45 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
         </div>
       {{/if}}
 
+      {{#if this.confirming}}
+        {{! template-lint-disable no-invalid-interactive }}
+        <dialog
+          class="chain-picker"
+          role="alertdialog"
+          aria-label="Remove"
+          data-test-chain-confirm
+          {{showModal}}
+          {{on "close" this.cancelRemove}}
+        >
+          <p>{{this.confirmText}}</p>
+          <div class="chain-picker__bar">
+            <button
+              type="button"
+              class="btn btn--s btn--solid"
+              data-test-chain-confirm-remove
+              {{on "click" this.confirmRemove}}
+            >Remove</button>
+            <button
+              type="button"
+              class="btn btn--s btn--quiet"
+              data-test-chain-confirm-cancel
+              {{on "click" this.cancelRemove}}
+            >Cancel</button>
+          </div>
+        </dialog>
+      {{/if}}
+
       {{#if this.picking}}
         {{! template-lint-disable no-invalid-interactive }}
         <dialog
           class="chain-picker"
-          aria-label="Add a node {{this.picking.side}} {{this.pickingNode.type}}"
+          aria-label={{this.pickingTitle}}
           data-test-chain-picker
           {{showModal}}
           {{on "close" this.closePicker}}
         >
           <div class="chain-picker__bar">
-            <b>Add {{this.picking.side}} {{this.pickingNode.type}}</b>
+            <b>{{this.pickingTitle}}</b>
             <button
               type="button"
               class="btn btn--s btn--quiet"
@@ -1152,7 +1447,7 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
           {{on "close" this.closeSend}}
         >
           <div class="chain-picker__bar">
-            <b>Send to…</b>
+            <b>{{if (is this.sendMode "branch") "Branch to…" "Send to…"}}</b>
             <button
               type="button"
               class="btn btn--s btn--quiet"

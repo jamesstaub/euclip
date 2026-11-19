@@ -125,7 +125,7 @@ export default class ControlsPane extends Component<ControlsPaneSignature> {
     >
       <h3 class="pane-heading">
         <span>{{@heading}}</span>
-        <Hint @label="About controls" data-test-controls-hint>
+        <Hint @label="About processors" data-test-controls-hint>
           <p>A control is here because the script declares it. One line gives
             every node its controls, placed after the chain:
             <code>controls()</code>. Or one at a time, for a parameter of a

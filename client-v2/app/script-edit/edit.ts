@@ -811,3 +811,76 @@ export function removeModulator(
     ]),
   };
 }
+
+// --- a new chain, and a branch -------------------------------------------------------------------------
+
+/**
+ * A new chain statement after the last chain statement of the script (or at its start):
+ * `__()\n  .sampler({ id: 'sampler' })\n  .to('channel');`, and its `controls('#id');`.
+ */
+export function addChain(
+  script: string,
+  action: { type: string; to: string },
+  ctx: EditContext,
+): EditResult {
+  const analysis = open(script, ctx);
+  if (!isAnalysis(analysis)) return analysis;
+  if (!ctx.nodeTypes.has(action.type)) {
+    return { cannot: `'${action.type}' is not a node type the library has.` };
+  }
+  const id = uniqueId(analysis, action.type);
+  const text = `__()\n${INDENT}.${action.type}({ id: ${quote(id)} })\n${INDENT}.to(${quote(action.to)});`;
+  const last = analysis.chains.filter((chain) => chain.root === 'chain').pop();
+  const edits: Edit[] = [appendControls(analysis, controlsLine(id))];
+  edits.push(
+    last
+      ? { start: last.end, end: last.end, text: `\n${text}` }
+      : { start: 0, end: 0, text: `${text}\n` },
+  );
+  return { script: applyEdits(script, edits), id };
+}
+
+/** Why a node cannot have a branch taken from it, or null. */
+export function planBranch(
+  script: string,
+  node: NodeRef,
+  ctx: EditContext,
+): Cannot | null {
+  const analysis = open(script, ctx);
+  if (!isAnalysis(analysis)) return analysis;
+  const place = find(analysis, node);
+  return isCannot(place) ? place : null;
+}
+
+/**
+ * Also sends a node to a bus, without touching what it is already connected to: a statement
+ * `__('#id').to('bus');` after the chain statements (the library's selection `.to` adds a connection
+ * and takes none away, so nothing after the node is lost). A node with no id is given one.
+ */
+export function branchFrom(
+  script: string,
+  action: { node: NodeRef; to: string },
+  ctx: EditContext,
+): EditResult {
+  const analysis = open(script, ctx);
+  if (!isAnalysis(analysis)) return analysis;
+  const place = find(analysis, action.node);
+  if (isCannot(place)) return place;
+  const call = place.chain.nodes[place.index]!;
+  const edits: Edit[] = [];
+  let id = call.id;
+  if (id === null) {
+    id = uniqueId(analysis, action.node.type);
+    const written = writeId(analysis, call, id);
+    if (isCannot(written)) return written;
+    edits.push(written);
+  }
+  const lastChain = analysis.chains[analysis.chains.length - 1]!;
+  const after = Math.max(lastChain.end, place.chain.end);
+  edits.push({
+    start: after,
+    end: after,
+    text: `\n__(${quote(`#${id}`)}).to(${quote(action.to)});`,
+  });
+  return { script: applyEdits(script, edits), id };
+}

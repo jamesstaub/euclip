@@ -26,6 +26,11 @@ const TABS: readonly { pane: FooterPane; icon: IconName; large?: boolean }[] = [
   { pane: 'sequence', icon: 'squares' },
 ];
 
+/** What a tab is called on screen (the controls pane is the processors tab: source has controls too). */
+function labelOf(pane: FooterPane): string {
+  return pane === 'controls' ? 'processors' : pane;
+}
+
 function is(a: string, b: string): boolean {
   return a === b;
 }
@@ -226,7 +231,7 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
                   {{on "click" (fn this.choosePane tab.pane)}}
                 >
                   <Icon @name={{tab.icon}} class={{if tab.large "icon--l"}} />
-                  <span>{{tab.pane}}</span>
+                  <span>{{labelOf tab.pane}}</span>
                 </button>
               {{/each}}
             </div>
@@ -237,7 +242,7 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
               {{else if (is this.view.footerPane "source")}}
                 <SourcePane @scopeId={{this.scopeId}} @label={{this.name}} />
               {{else}}
-                <ControlsPane @scopeId={{this.scopeId}} @heading="Controls" />
+                <ControlsPane @scopeId={{this.scopeId}} @heading="Processors" />
               {{/if}}
             </div>
           </div>

@@ -217,6 +217,7 @@ export default class TrackRow extends Component<TrackRowSignature> {
               @scopeId={{@track.id}}
               @label="Track {{@order}}"
               @onSelectTrack={{@onSelect}}
+              @selected={{@selected}}
             />
           {{else}}
             {{#each this.stepGrids key="key" as |grid|}}

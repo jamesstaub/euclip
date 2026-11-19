@@ -94,6 +94,7 @@ const TrackList: TOC<TrackListSignature> = <template>
                 @scopeId={{PROJECT_SCOPE}}
                 @label="Main output"
                 @onSelectTrack={{@onSelect}}
+                @selected={{is @selectedId PROJECT_SCOPE}}
               />
             </div>
           </div>

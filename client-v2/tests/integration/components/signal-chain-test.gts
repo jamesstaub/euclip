@@ -275,20 +275,181 @@ module('Integration | Component | signal chain', function (hooks) {
       .hasAria('pressed', 'true');
   });
 
-  test('Escape, or a tap on empty space, chooses nothing and hides the bar', async function (assert) {
+  test('the selected track’s toolbar is always there, in the same place; others have none', async function (assert) {
     await render(<template><AppShell /></template>);
-    assert.dom(`${pane} [data-test-chain-actions]`).doesNotExist();
+    const bar = `${pane} [data-test-chain-actions]`;
+    assert.dom(bar).exists('the selected row, nothing chosen');
+    assert.dom(bar).includesText('nothing chosen');
+    assert
+      .dom('[data-test-track="2"] [data-test-chain-actions]')
+      .doesNotExist();
+    assert
+      .dom('[data-test-track="output"] [data-test-chain-actions]')
+      .doesNotExist();
+    const row = document.querySelector('[data-test-track="1"]')!;
+    const height = row.getBoundingClientRect().height;
+    const top =
+      document.querySelector(`${bar}`)!.getBoundingClientRect().top -
+      row.getBoundingClientRect().top;
     await click(`${pane} [data-test-chain-node="filter"]`);
-    assert.dom(`${pane} [data-test-chain-actions]`).exists();
+    assert.dom(bar).includesText('lowpass filter');
+    assert.strictEqual(
+      row.getBoundingClientRect().height,
+      height,
+      'the row is as tall with a choice',
+    );
+    assert.strictEqual(
+      document.querySelector(bar)!.getBoundingClientRect().top -
+        row.getBoundingClientRect().top,
+      top,
+      'and the toolbar has not moved',
+    );
     await triggerKeyEvent(
       `${pane} [data-test-chain-node="filter"]`,
       'keydown',
       'Escape',
     );
-    assert.dom(`${pane} [data-test-chain-actions]`).doesNotExist();
+    assert.dom(bar).exists('Escape clears the choice, not the toolbar');
+    assert.dom(bar).includesText('nothing chosen');
     await click(`${pane} [data-test-chain-node="filter"]`);
     await click(pane);
-    assert.dom(`${pane} [data-test-chain-actions]`).doesNotExist();
+    assert.dom(bar).includesText('nothing chosen');
+    assert.strictEqual(row.getBoundingClientRect().height, height);
+    await click('[data-test-track="2"] [data-test-chain-node="sampler"]');
+    assert.dom(bar).doesNotExist('another track is selected now');
+    assert.dom('[data-test-track="2"] [data-test-chain-actions]').exists();
+  });
+
+  test('the tab is called processors', async function (assert) {
+    await render(<template><AppShell /></template>);
+    assert.dom('[data-test-footer-tab="controls"]').includesText('processors');
+    assert
+      .dom('[data-test-pane="controls"] .pane-heading')
+      .includesText('Processors');
+  });
+
+  test('every action is an icon with a name, a tooltip on focus, and a label under it on touch', async function (assert) {
+    await render(<template><AppShell /></template>);
+    const tools = [
+      ...document.querySelectorAll<HTMLButtonElement>(`${pane} .chain-tool`),
+    ];
+    assert.true(tools.length >= 9);
+    assert.true(
+      tools.every(
+        (tool) =>
+          (tool.getAttribute('aria-label') ?? '') !== '' &&
+          tool.querySelector('svg'),
+      ),
+      'icon and name',
+    );
+    const first = tools.find((tool) => !tool.disabled)!;
+    first.focus();
+    await settled();
+    assert.strictEqual(
+      getComputedStyle(first, '::after').content,
+      `"${first.getAttribute('data-label')}"`,
+      'the tooltip shows on focus',
+    );
+    assert.true(
+      tools.every((tool) => tool.querySelector('.chain-tool__label')),
+      'the words are there for touch screens, shown where there is no hover',
+    );
+    assert
+      .dom(`${pane} .chain-tool[data-test-chain-action="add-chain"]`)
+      .isNotDisabled('chain-level action with nothing chosen');
+    assert
+      .dom(`${pane} .chain-tool[data-test-chain-action="modulate"]`)
+      .isDisabled('needs a node');
+  });
+
+  test('a connection can be chosen, and Insert node here adds between the right two', async function (assert) {
+    await render(<template><AppShell /></template>);
+    const link = `${pane} [data-test-chain-link="row-0:1"]`;
+    assert.dom(link).hasAria('label', 'Connection from filter to level');
+    await click(link);
+    assert.dom(link).hasAria('pressed', 'true');
+    assert
+      .dom(`${pane} [data-test-chain-actions]`)
+      .includesText('filter → level');
+    await click('[data-test-chain-action="insert"]');
+    await click('[data-test-chain-type="delay"]');
+
+    assert.true(
+      project.doc.tracks[0]!.script.includes(
+        "  .lowpass({ id: 'filter', frequency: 2000, q: 2 })\n  .delay({ id: 'delay' })\n  .gain({ id: 'level'",
+      ),
+    );
+    assert.deepEqual(
+      findAll(
+        `${pane} [data-test-chain-row="chain"] [data-test-chain-node]`,
+      ).map((n) => n.getAttribute('data-test-chain-node')),
+      ['sampler', 'filter', 'delay', 'level'],
+    );
+  });
+
+  test('the link into the destination reroutes by Send to…; a link between nodes branches without losing anything', async function (assert) {
+    await render(<template><AppShell /></template>);
+    await click(`${pane} [data-test-chain-link="row-0:2"]`);
+    await click('[data-test-chain-action="route"]');
+    assert.dom('[data-test-chain-send-to="main"]').exists();
+    await click('[data-test-chain-send-close]');
+
+    const before = project.doc.tracks[0]!.script;
+    await click(`${pane} [data-test-chain-link="row-0:1"]`);
+    await click('[data-test-chain-action="route"]');
+    assert.dom('[data-test-chain-send]').includesText('Branch to');
+    await click('[data-test-chain-send-to="main"]');
+
+    const after = project.doc.tracks[0]!.script;
+    assert.true(after.includes("__('#filter').to('main');"));
+    assert.true(
+      after.includes(".gain({ id: 'level', gain: 0.9 })\n  .to('channel');"),
+      'the chain is as it was',
+    );
+    assert.dom('[data-test-script-error]').doesNotExist();
+    assert.strictEqual(
+      findAll(`${pane} [data-test-chain-row="chain"]`).length,
+      2,
+      'the library draws the split: a second row from the filter',
+    );
+    project.undo();
+    await settled();
+    assert.strictEqual(project.doc.tracks[0]!.script, before);
+  });
+
+  test('a modulation link offers Retarget and Remove modulator', async function (assert) {
+    await render(<template><AppShell /></template>);
+    await click(`${pane} [data-test-chain-node="filter"]`);
+    await click('[data-test-chain-action="modulate"]');
+    await click('[data-test-chain-modulator="lfo"]');
+
+    await click(
+      `${pane} [data-test-chain-row="modulator"] [data-test-chain-link]`,
+    );
+    assert.dom('[data-test-chain-action="route"]').hasAria('label', 'Retarget');
+    assert.dom('[data-test-chain-action="remove-modulator"]').isNotDisabled();
+    await click('[data-test-chain-action="route"]');
+    assert.dom('[data-test-chain-retarget]').exists();
+    await click('[data-test-chain-retarget-close]');
+    await click('[data-test-chain-action="remove-modulator"]');
+
+    assert.dom(`${pane} [data-test-chain-row="modulator"]`).doesNotExist();
+  });
+
+  test('Add chain appends a conventional chain from a source picked from the sources', async function (assert) {
+    await render(<template><AppShell /></template>);
+    await click('[data-test-chain-action="add-chain"]');
+    assert
+      .dom('[data-test-chain-group="Filters"]')
+      .doesNotExist('only sources are offered');
+    await click('[data-test-chain-type="noise"]');
+
+    assert.true(
+      project.doc.tracks[0]!.script.includes(
+        "__()\n  .noise({ id: 'noise' })\n  .to('channel');",
+      ),
+    );
+    assert.dom(`${pane} [data-test-chain-node="noise"]`).exists();
   });
 
   test('a script error shows a strip only in the script view, and a mark on the Script button otherwise', async function (assert) {
@@ -586,7 +747,7 @@ module('Integration | Component | signal chain', function (hooks) {
         .dom('[data-test-chain-chosen]')
         .includesText('lfo', 'the new modulator is chosen');
       assert.dom('[data-test-chain-action="retarget"]').doesNotExist();
-      assert.dom('[data-test-chain-action="add-after"]').doesNotExist();
+      assert.dom('[data-test-chain-action="add-after"]').isDisabled();
       await click(
         `${pane} [data-test-chain-row="modulator"] [data-test-chain-dest="filter.frequency"]`,
       );

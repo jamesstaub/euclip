@@ -1,6 +1,16 @@
 import type { TOC } from '@ember/component/template-only';
 import { htmlSafe } from '@ember/template';
 import type { SafeString } from '@ember/template';
+import addBefore from 'client-v2/assets/icons/add-before.svg?raw';
+import addAfter from 'client-v2/assets/icons/add-after.svg?raw';
+import insertHere from 'client-v2/assets/icons/insert-here.svg?raw';
+import moveLeft from 'client-v2/assets/icons/move-left.svg?raw';
+import moveRight from 'client-v2/assets/icons/move-right.svg?raw';
+import removeNode from 'client-v2/assets/icons/remove-node.svg?raw';
+import modulate from 'client-v2/assets/icons/modulate.svg?raw';
+import addChain from 'client-v2/assets/icons/add-chain.svg?raw';
+import reroute from 'client-v2/assets/icons/reroute.svg?raw';
+import retarget from 'client-v2/assets/icons/retarget.svg?raw';
 import arrow from 'client-v2/assets/icons/arrow.svg?raw';
 import automation from 'client-v2/assets/icons/automation.svg?raw';
 import cancel from 'client-v2/assets/icons/fi-cancel.svg?raw';
@@ -38,6 +48,16 @@ function inline(svg: string): SafeString {
 }
 
 const ICONS = {
+  addBefore: inline(addBefore),
+  addAfter: inline(addAfter),
+  insertHere: inline(insertHere),
+  moveLeft: inline(moveLeft),
+  moveRight: inline(moveRight),
+  removeNode: inline(removeNode),
+  modulate: inline(modulate),
+  addChain: inline(addChain),
+  reroute: inline(reroute),
+  retarget: inline(retarget),
   arrow: inline(arrow),
   automation: inline(automation),
   cancel: inline(cancel),
