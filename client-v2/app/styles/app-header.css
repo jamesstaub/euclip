@@ -140,6 +140,7 @@
 .project-bar__actions {
   grid-area: actions;
   display: flex;
+  justify-content: flex-end;
   align-items: stretch;
   gap: var(--space-2);
 }
