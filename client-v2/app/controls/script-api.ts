@@ -994,6 +994,8 @@ export function createControlApi(
       const own: Record<string, ControlHandle> = {};
       for (const name of Object.keys(node.params)) {
         if (named && !named.includes(name)) continue;
+        // a noise source is a graphic, not controls: only a control the script asks for by name is made
+        if (first === undefined && node.type === 'noise') continue;
         const meta = node.param(name).meta;
         if (meta.rate === 'init') continue;
         own[name] = bound(

@@ -5,6 +5,7 @@ import { applyOperation } from 'client-v2/project/operations';
 import {
   controlKey,
   emptyValues,
+  stepGridKey,
   type ProjectDocument,
 } from 'client-v2/project/schema';
 import {
@@ -64,8 +65,15 @@ module('Unit | Audio | synth sources', function () {
       assert.true(groups(h).includes('filter'));
       for (const id of ['s', 'osc', 'hiss', 'mono']) {
         assert.false(groups(h).includes(id), `${id} is not among processors`);
+      }
+      for (const id of ['s', 'osc', 'mono']) {
         assert.true(sourceKeys(h, id).length > 0, `${id} has source controls`);
       }
+      assert.deepEqual(
+        sourceKeys(h, 'hiss'),
+        [],
+        'controls() declares no controls for a noise source',
+      );
       const all = h.runner.allControls(ONE).map((control) => control.key);
       const split = [
         ...h.runner.controls(ONE).map((control) => control.key),
@@ -306,7 +314,62 @@ module('Unit | Audio | synth sources', function () {
     });
   });
 
+  module('noise', function () {
+    test('a noise source has a graphic, no pitch and no controls of controls(); a control asked for by name still shows', async function (assert) {
+      const h = await startProject(
+        oneTrack(
+          `__().noise({ id: 'hiss' }).gain({ id: 'level', gain: 0.1 }).to('channel');\ncontrols();`,
+        ),
+        1,
+      );
+      assert.deepEqual(h.runner.warnings(ONE), []);
+      const [view] = h.runner.synths(ONE);
+      assert.true(view!.noise);
+      assert.strictEqual(view!.pitch, null);
+      assert.deepEqual(sourceKeys(h, 'hiss'), []);
+      const explicit = await startProject(
+        oneTrack(
+          `__().noise({ id: 'hiss' }).to('channel');\nsynth('#hiss');\nslider('#hiss', 'gain');`,
+        ),
+        1,
+      );
+      assert.deepEqual(explicit.runner.warnings(ONE), [], 'no warning');
+      assert.true(explicit.runner.synths(ONE)[0]!.noise);
+      assert.deepEqual(sourceKeys(explicit, 'hiss'), ['#hiss › gain']);
+    });
+  });
+
   module('the Synth template', function () {
+    /** One step on at the start of a 3 s render: what is left is one note, then silence. */
+    async function oneNote(note: number) {
+      const base = newSynthTrack('s');
+      const doc = applyOperation(
+        { ...arrayDefaultProject(), script: '', tracks: [base] },
+        {
+          type: 'setControlValue',
+          scope: base.id,
+          key: stepGridKey('steps'),
+          value: [note, ...new Array<number>(15).fill(0)],
+        },
+      );
+      const h = await startProject(doc, 3);
+      return h.render();
+    }
+
+    /** Upward zero crossings in a stretch of channel 0: more of them is a higher pitch. */
+    function crossings(buffer: AudioBuffer, from: number, to: number): number {
+      const data = buffer.getChannelData(0);
+      let count = 0;
+      for (
+        let i = Math.round(from * buffer.sampleRate) + 1;
+        i < Math.round(to * buffer.sampleRate);
+        i++
+      ) {
+        if (data[i - 1]! < 0 && data[i]! >= 0) count++;
+      }
+      return count;
+    }
+
     test('it builds clean, declares its editor and grid, and makes sound that is not too loud', async function (assert) {
       const track = newSynthTrack('synth');
       const h = await startProject(
@@ -318,31 +381,50 @@ module('Unit | Audio | synth sources', function () {
       assert.deepEqual(h.runner.warnings(id), []);
       assert.deepEqual(
         h.runner.sources(id).map((source) => `${source.kind} ${source.nodeId}`),
-        ['synth osc'],
+        ['synth synth'],
       );
       assert.deepEqual(
-        h.runner.sourceControls(id, 'osc').map((control) => control.key),
-        ['#osc › detune'],
-      );
-      assert.deepEqual(
-        h.runner.controls(id).map((control) => control.key),
+        h.runner.sourceControls(id, 'synth').map((control) => control.key),
         [
-          '#env › attack',
-          '#env › release',
-          '#filter › frequency',
-          '#level › gain',
+          '#synth › cutoff',
+          '#synth › resonance',
+          '#synth › attack',
+          '#synth › release',
+          '#synth › gain',
         ],
-        'the processors keep the rest',
       );
       assert.deepEqual(
-        h.runner.stepGrids(id).map((grid) => grid.steps.join('')),
-        ['1001001010010100'],
+        h.runner.controls(id),
+        [],
+        'nothing is left for processors',
+      );
+      assert.deepEqual(
+        h.runner.stepGrids(id).map((grid) => grid.steps.join(',')),
+        ['36,0,0,36,0,0,43,0,36,0,0,39,0,41,0,0'],
+        'a step holds a MIDI note',
       );
       const rendered = await h.render();
       assert.true(rms(rendered, 0, 2) > 0.005, 'it sounds');
       const top = Math.max(peak(rendered, 0, 2, 0), peak(rendered, 0, 2, 1));
       assert.true(top < 1, `peak ${top.toFixed(3)} is below 1`);
       assert.true(top > 0.05, 'and is not faint');
+    });
+
+    test('a step’s value is the pitch: a higher note has a higher frequency; between notes it is silent', async function (assert) {
+      const low = await oneNote(36);
+      const high = await oneNote(48);
+      const lowCount = crossings(low, 0.02, 0.12);
+      const highCount = crossings(high, 0.02, 0.12);
+      const ratio = highCount / lowCount;
+      assert.true(ratio > 1.7, `an octave up: ${lowCount} to ${highCount}`);
+      assert.true(ratio < 2.3, 'about twice the crossings');
+      assert.true(rms(low, 0, 0.12) > 0.01, 'the note sounds');
+      for (const channel of [0, 1]) {
+        assert.true(
+          peak(low, 0.7, 1.9, channel) < 1e-4,
+          `nothing sounds between notes, once the release is done (channel ${channel})`,
+        );
+      }
     });
   });
 });

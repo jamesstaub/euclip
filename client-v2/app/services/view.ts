@@ -167,6 +167,17 @@ export default class ViewService extends Service {
     this.#save();
   }
 
+  /** Which sequence the synth editor's step strip shows, by track, where the person has chosen. Not remembered. */
+  @tracked private stepSequences: Readonly<Record<string, string>> = {};
+
+  chosenStepSequence(scopeId: string): string | undefined {
+    return this.stepSequences[scopeId];
+  }
+
+  chooseStepSequence(scopeId: string, name: string): void {
+    this.stepSequences = { ...this.stepSequences, [scopeId]: name };
+  }
+
   // --- the sound browser --------------------------------------------------------------------------
 
   /** Which of the browser's three lists is showing. */

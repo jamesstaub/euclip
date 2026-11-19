@@ -206,3 +206,114 @@
 .synth .source-controls {
   flex: none;
 }
+
+/* ---- the steps ---- */
+
+.synth__steps {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.synth__stepbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: max(2.25rem, var(--target-min));
+
+  & .btn {
+    flex: none;
+    min-block-size: 2.25rem;
+  }
+}
+
+.synth__steplabel {
+  flex: none;
+  font-size: var(--font-size-7);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+}
+
+.synth__stepname {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-7);
+}
+
+.synth__stepchoice {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+.synth__stepbar .synth__stepchoice + .hint,
+.synth__stepbar .synth__stepname + .hint {
+  margin-inline-start: auto;
+}
+
+/* sixteen to a row, as in the grids; a row's height is fixed whatever the notes say */
+.synth__stepgrid {
+  display: grid;
+  grid-template-columns: repeat(16, minmax(0, 1fr));
+  gap: var(--border-width-1);
+}
+
+.synth__step {
+  box-sizing: border-box;
+  min-inline-size: 0;
+  block-size: 2.5rem;
+  padding: 0;
+  overflow: hidden;
+  border: var(--border-width-1) solid var(--dark-gray);
+  background: var(--step-off);
+  color: var(--near-black);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  line-height: var(--line-height-solid);
+
+  &:not([data-note=""]) {
+    background: var(--step-on);
+  }
+
+  &[data-playing="true"] {
+    outline: var(--border-width-2) solid var(--step-current);
+    outline-offset: calc(-1 * var(--border-width-2));
+  }
+
+  &[data-selected="true"] {
+    border: var(--border-width-3) solid var(--near-black);
+  }
+
+  &:focus-visible {
+    outline: var(--border-width-3) solid var(--focus-ring-on-light);
+    outline-offset: 1px;
+  }
+}
+
+/* ---- a noise source ---- */
+
+.synth__noise {
+  position: relative;
+  flex: none;
+  block-size: 6.5rem;
+  border: var(--border-dark);
+  background: var(--dark-gray);
+}
+
+.synth__noise-bars {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  fill: var(--mid-gray);
+}
+
+.synth__noise-word {
+  position: absolute;
+  inset-block-end: var(--space-1);
+  inset-inline-start: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-6);
+  color: var(--light-blue);
+  text-transform: uppercase;
+}

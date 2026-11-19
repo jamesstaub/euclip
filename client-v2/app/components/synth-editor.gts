@@ -1,14 +1,14 @@
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { isDestroyed, isDestroying } from '@ember/destroyable';
-import { fn } from '@ember/helper';
+import { concat, fn } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import { modifier } from 'ember-modifier';
 import Icon from 'client-v2/components/icon';
 import SourceControls from 'client-v2/components/source-controls';
 import Hint from 'client-v2/components/ui/hint';
-import type { SynthView } from 'client-v2/audio/runner';
+import type { StepGridView, SynthView } from 'client-v2/audio/runner';
 import { hzToNote, noteName, noteToHz } from 'client-v2/controls/modes';
 import selectOptions from 'client-v2/modifiers/select-options';
 import type AudioService from 'client-v2/services/audio';
@@ -41,11 +41,32 @@ const BLACK: readonly { at: number; semitone: number }[] = [
 /** Narrower than this (rem) the keyboard shows one octave, not two. */
 const TWO_OCTAVES_AT = 34;
 
+/** Bars for the noise picture, made once: a fixed pseudo-random run, so it never changes. */
+const NOISE_BARS: readonly { x: number; y: number; h: number }[] = (() => {
+  let seed = 7;
+  const bars: { x: number; y: number; h: number }[] = [];
+  for (let i = 0; i < 48; i++) {
+    seed = (seed * 1103515245 + 12345) % 2147483648;
+    const h = 3 + (seed % 19);
+    bars.push({ x: i * 2, y: (24 - h) / 2, h });
+  }
+  return bars;
+})();
+
 interface Key {
   midi: number;
   name: string;
   /** a C: its key says its octave */
   label: string | null;
+}
+
+interface Cell {
+  index: number;
+  value: number;
+  number: number;
+  text: string;
+  selected: boolean;
+  playing: boolean;
 }
 
 interface Octave {
@@ -103,18 +124,33 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
   @service declare view: ViewService;
   @service('source-scope') declare scope: SourceScopeService;
 
-  /** the lowest C showing; undefined until the person shifts it: it follows the pitch */
-  @tracked private shifted: number | undefined;
+  /**
+   * The lowest C showing. Set once, when the editor first shows, so the pitch (or the first note of the
+   * steps) is in view; after that only the octave buttons (and PageUp / PageDown on the keyboard)
+   * change it. Setting a pitch never moves the view.
+   */
+  @tracked private shifted = 0;
+  /** the step chosen to be given notes: view state, not the project's */
+  @tracked private chosen: number | null = null;
   @tracked octaves = 2;
   /** the key a finger or key is holding down */
   @tracked down: number | null = null;
   /** a synth macro keeps no pitch: the note it was last played at */
   @tracked private lastPlayed: number | null = null;
 
+  /** the step a press on a key is giving its note to (fixed when the press began) */
+  #target: number | null = null;
   #held = false;
   #group = 0;
   #gesture: string | undefined;
   #pointer: number | null = null;
+
+  constructor(owner: unknown, args: SynthEditorSignature['Args']) {
+    super(owner as never, args);
+    const first = this.grid?.steps.find((value) => value > 0);
+    const around = this.pitchNote ?? first ?? 60;
+    this.shifted = clampBase(Math.floor(around / 12) * 12, this.octaves);
+  }
 
   setOctaves = (octaves: number): void => {
     // (told while the keyboard is being drawn: the change waits until it has been)
@@ -131,11 +167,21 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
     return typeof value === 'number' && value > 0 ? value : null;
   }
 
-  /** The pitch as a note number, with the fraction: null when there is none to show. */
-  get exact(): number | null {
+  /** The pitch as a note number, with the fraction: null when there is none. */
+  get pitchNote(): number | null {
     if (this.args.synth.playsNote) return this.lastPlayed;
     const hz = this.hz;
     return hz === null ? null : hzToNote(hz);
+  }
+
+  /** What the keyboard marks: the chosen step's note, else the pitch. */
+  get exact(): number | null {
+    const at = this.selected;
+    if (at !== null) {
+      const value = this.grid?.steps[at] ?? 0;
+      return value > 0 ? value : null;
+    }
+    return this.pitchNote;
   }
 
   get nearest(): number | null {
@@ -151,16 +197,21 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
   /** `A4`, `A4 +13 ct`; for a pitch out of the audible range of notes, its Hz only. */
   get readout(): string {
     const nearest = this.nearest;
+    const at = this.selected;
+    if (at !== null) {
+      return `Step ${at + 1}: ${nearest === null ? 'rest' : noteName(nearest)}`;
+    }
     if (nearest === null) return this.args.synth.playsNote ? 'No note yet' : '';
     const cents = this.cents;
     const text = `${noteName(nearest)}${cents === 0 ? '' : ` ${cents > 0 ? '+' : '−'}${Math.abs(cents)} ct`}`;
     const hz = this.hz;
-    return hz === null || this.args.synth.playsNote
+    return hz === null || this.args.synth.playsNote || at !== null
       ? text
       : `${text} · ${hz < 100 ? hz.toFixed(2) : hz.toFixed(1)} Hz`;
   }
 
   get hasKeyboard(): boolean {
+    if (this.args.synth.noise) return false;
     return this.args.synth.pitch !== null || this.args.synth.playsNote;
   }
 
@@ -180,9 +231,7 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
   // --- the keys ------------------------------------------------------------------------------------------------
 
   get base(): number {
-    if (this.shifted !== undefined) return this.shifted;
-    const around = this.nearest ?? 60;
-    return clampBase(Math.floor(around / 12) * 12, this.octaves);
+    return clampBase(this.shifted, this.octaves);
   }
 
   get span(): number {
@@ -242,7 +291,17 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
     this.down = midi;
     this.lastPlayed = midi;
     const hz = this.#hzOf(midi);
-    if (synth.pitch && !synth.playsNote) {
+    const grid = this.grid;
+    if (this.#target !== null && grid) {
+      // a step is chosen: the note goes to the step (the pattern the grids show), not to the pitch
+      this.audio.setStep(
+        this.args.scopeId,
+        grid.name,
+        this.#target,
+        midi,
+        this.#gesture,
+      );
+    } else if (synth.pitch && !synth.playsNote && this.selected === null) {
       this.audio.setControl(
         this.args.scopeId,
         synth.pitch.key,
@@ -268,7 +327,17 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
     this.#held = false;
     this.down = null;
     this.#gesture = undefined;
+    this.#next();
     this.audio.releaseNote(this.args.scopeId, this.args.synth.nodeId);
+  }
+
+  /** After a note was given to a step: on to the next, wrapping. */
+  #next(): void {
+    const grid = this.grid;
+    if (this.#target !== null && grid && grid.steps.length > 0) {
+      this.chosen = (this.#target + 1) % grid.steps.length;
+    }
+    this.#target = null;
   }
 
   #midiAt(event: PointerEvent): number | null {
@@ -292,6 +361,7 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
     }
     (event.currentTarget as HTMLElement).focus({ preventScroll: true });
     this.#gesture = `note-${++this.#group}`;
+    this.#target = this.selected;
     this.#play(midi);
   };
 
@@ -309,6 +379,18 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
 
   /** Arrows move the pitch a semitone (a step to undo each); Enter and Space play the note held down. */
   onKeyDown = (event: KeyboardEvent): void => {
+    if (event.key === 'PageUp' || event.key === 'PageDown') {
+      event.preventDefault();
+      this.shift(event.key === 'PageUp' ? 1 : -1);
+      return;
+    }
+    if (this.selected !== null) {
+      if (this.stepKey(event)) return;
+      if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+        event.preventDefault();
+        return;
+      }
+    }
     const step =
       event.key === 'ArrowRight' || event.key === 'ArrowUp'
         ? 1
@@ -324,10 +406,6 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
           (this.nearest ?? 60) + step * (event.shiftKey ? 12 : 1),
         ),
       );
-      const outside = next < this.base || next >= this.base + this.span;
-      if (outside) {
-        this.shifted = clampBase(Math.floor(next / 12) * 12, this.octaves);
-      }
       this.#gesture = `note-${++this.#group}`;
       this.#play(next);
       // a tap of the arrow is a short note
@@ -336,8 +414,115 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
     }
     if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) {
       event.preventDefault();
+      if (this.selected !== null && this.nearest === null) return; // a rest
       this.#gesture = `note-${++this.#group}`;
       this.#play(this.nearest ?? 60);
+    }
+  };
+
+  // --- the steps ------------------------------------------------------------------------------------------------
+
+  /** The sequence whose steps are shown: the one chosen for this track, else the first with a grid. */
+  get grids(): StepGridView[] {
+    return this.audio.stepGrids(this.args.scopeId);
+  }
+
+  get grid(): StepGridView | undefined {
+    const chosen = this.view.chosenStepSequence(this.args.scopeId);
+    return this.grids.find((grid) => grid.name === chosen) ?? this.grids[0];
+  }
+
+  get severalGrids(): boolean {
+    return this.grids.length > 1;
+  }
+
+  get gridChoices(): { value: string; label: string }[] {
+    return this.grids.map((grid) => ({ value: grid.name, label: grid.label }));
+  }
+
+  chooseGrid = (event: Event): void => {
+    this.chosen = null;
+    this.view.chooseStepSequence(
+      this.args.scopeId,
+      (event.target as HTMLSelectElement).value,
+    );
+  };
+
+  /** The chosen step, if it is still in the sequence. */
+  get selected(): number | null {
+    const at = this.chosen;
+    const length = this.grid?.steps.length ?? 0;
+    return at !== null && at < length ? at : null;
+  }
+
+  get hasSelected(): boolean {
+    return this.selected !== null;
+  }
+
+  get cells(): Cell[] {
+    const grid = this.grid;
+    if (!grid) return [];
+    return grid.steps.map((value, index) => ({
+      index,
+      value,
+      number: index + 1,
+      text:
+        value <= 0 ? '' : value <= HIGHEST ? noteName(value) : String(value),
+      selected: index === this.selected,
+      playing: index === grid.playhead,
+    }));
+  }
+
+  /** Tapping a step chooses it; tapping it again lets go. */
+  selectStep = (index: number): void => {
+    this.chosen = this.chosen === index ? null : index;
+  };
+
+  /** Clears the chosen step to a rest and moves on. One undo step. */
+  rest = (): void => {
+    const at = this.selected;
+    const grid = this.grid;
+    if (at === null || !grid) return;
+    this.audio.setStep(
+      this.args.scopeId,
+      grid.name,
+      at,
+      0,
+      `note-${++this.#group}`,
+    );
+    this.chosen = (at + 1) % grid.steps.length;
+  };
+
+  /** Keys that work on the chosen step, from the keyboard or the strip. True if the key was one. */
+  stepKey = (event: KeyboardEvent): boolean => {
+    const at = this.selected;
+    const length = this.grid?.steps.length ?? 0;
+    if (at === null || length === 0) return false;
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      event.preventDefault();
+      this.chosen =
+        (at + (event.key === 'ArrowRight' ? 1 : -1) + length) % length;
+      return true;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.chosen = null;
+      return true;
+    }
+    if (event.key === 'Backspace' || event.key === 'Delete') {
+      event.preventDefault();
+      this.rest();
+      return true;
+    }
+    return false;
+  };
+
+  onStripKey = (event: KeyboardEvent): void => {
+    if (this.stepKey(event)) {
+      const cell = (
+        event.currentTarget as HTMLElement
+      ).querySelectorAll<HTMLElement>('[data-step]')[this.chosen ?? -1];
+      cell?.focus({ preventScroll: true });
     }
   };
 
@@ -413,7 +598,9 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
             <p>The trace is the source’s own output, steadied on a rising zero
               crossing. The keyboard sets the pitch (the same value a note-mode
               slider holds) and plays the note while you hold it: drag across
-              keys to glide, or use the arrow keys, and Enter or Space to play.</p>
+              keys to glide, or use the arrow keys, and Enter or Space to play.
+              The octave changes only with the − and + buttons, or PageDown and
+              PageUp on the keyboard.</p>
             <p>The controls below are the ones the script declares for this
               source:
               <code>slider('#osc', 'detune')</code>, or
@@ -433,99 +620,184 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
         </span>
       </header>
 
-      <div class="synth__scope" data-test-synth-scope>
-        <canvas
-          class="synth__canvas"
-          role="img"
-          aria-label="{{@synth.label}} waveform, live"
-          {{showScope this.scope @scopeId @synth.nodeId}}
-        ></canvas>
-      </div>
-
-      {{#if this.hasKeyboard}}
-        <div class="synth__keys" data-test-synth-keyboard>
-          <div class="synth__keybar">
-            <button
-              type="button"
-              class="btn btn--s btn--on-yellow"
-              aria-label="Octave down"
-              disabled={{if this.canDown false true}}
-              data-test-octave-down
-              {{on "click" (fn this.shift -1)}}
-            >−</button>
-            <span class="synth__range" data-test-key-range>{{this.range}}</span>
-            <button
-              type="button"
-              class="btn btn--s btn--on-yellow"
-              aria-label="Octave up"
-              disabled={{if this.canUp false true}}
-              data-test-octave-up
-              {{on "click" (fn this.shift 1)}}
-            >+</button>
-            <output
-              class="synth__readout"
-              aria-live="off"
-              data-test-pitch-readout
-            >{{this.readout}}</output>
-          </div>
-          {{! template-lint-disable no-pointer-down-event-binding no-invalid-interactive }}
-          {{! a note starts when the pointer goes down, and follows it across the keys until it comes up }}
-          <div
-            class="piano"
-            role="slider"
-            tabindex="0"
-            aria-label="{{@synth.label}} pitch"
-            aria-orientation="horizontal"
-            aria-valuemin="{{LOWEST}}"
-            aria-valuemax="{{HIGHEST}}"
-            aria-valuenow={{this.nearest}}
-            aria-valuetext={{this.readout}}
-            data-test-piano
-            {{measure this.setOctaves}}
-            {{on "pointerdown" this.onPointerDown}}
-            {{on "pointermove" this.onPointerMove}}
-            {{on "pointerup" this.onPointerUp}}
-            {{on "pointercancel" this.onPointerUp}}
-            {{on "keydown" this.onKeyDown}}
-            {{on "keyup" this.onKeyUp}}
-            {{on "blur" this.onBlur}}
+      {{#if @synth.noise}}
+        {{! a noise source has a picture, not an editor: nothing here is drawn per frame }}
+        <div class="synth__noise" data-test-synth-noise>
+          <svg
+            class="synth__noise-bars"
+            viewBox="0 0 96 24"
+            preserveAspectRatio="none"
+            aria-hidden="true"
           >
-            {{#each this.octavesShown key="base" as |octave|}}
-              <div class="piano__octave">
-                {{#each octave.white key="midi" as |white|}}
-                  <span
-                    class="piano__key piano__key--white"
-                    data-midi={{white.midi}}
-                    data-note={{white.name}}
-                    data-current={{if (this.isCurrent white.midi) "true"}}
-                    data-down={{if (this.isDown white.midi) "true"}}
-                    data-test-key={{white.name}}
-                  >{{#if white.label}}<span
-                        class="piano__label"
-                      >{{white.label}}</span>{{/if}}</span>
-                {{/each}}
-                {{#each octave.black key="midi" as |black|}}
-                  <span
-                    class="piano__key piano__key--black piano__key--after-{{black.at}}"
-                    data-midi={{black.midi}}
-                    data-note={{black.name}}
-                    data-current={{if (this.isCurrent black.midi) "true"}}
-                    data-down={{if (this.isDown black.midi) "true"}}
-                    data-test-key={{black.name}}
-                  ></span>
-                {{/each}}
-              </div>
+            {{#each NOISE_BARS as |bar|}}
+              <rect x={{bar.x}} y={{bar.y}} width="1.5" height={{bar.h}} />
             {{/each}}
-          </div>
-          <p
-            class="synth__status"
-            role="status"
-            data-test-pitch-status
-          >{{this.perStepText}}</p>
+          </svg>
+          <span class="synth__noise-word">noise</span>
         </div>
       {{else}}
-        <p class="synth__status" role="status" data-test-no-pitch>This source
-          has no pitch to set.</p>
+        <div class="synth__scope" data-test-synth-scope>
+          <canvas
+            class="synth__canvas"
+            role="img"
+            aria-label="{{@synth.label}} waveform, live"
+            {{showScope this.scope @scopeId @synth.nodeId}}
+          ></canvas>
+        </div>
+
+        {{#if this.grid}}
+          <div class="synth__steps" data-test-synth-steps>
+            <div class="synth__stepbar">
+              <span class="synth__steplabel">Steps</span>
+              {{#if this.severalGrids}}
+                <label class="waveform__field synth__stepchoice">
+                  <span class="sr-only">Sequence</span>
+                  <select
+                    class="select waveform__select"
+                    data-test-step-sequence
+                    {{on "change" this.chooseGrid}}
+                    {{selectOptions this.gridChoices this.grid.name}}
+                  ></select>
+                </label>
+              {{else}}
+                <span
+                  class="synth__stepname truncate"
+                >{{this.grid.label}}</span>
+              {{/if}}
+              <Hint @label="About the steps" data-test-steps-hint>
+                <p>A step’s value is passed to the script as
+                  <code>ev.value</code>; in the Synth template it is played as a
+                  MIDI note, and 0 is a rest. Tap a step, then a key: the key’s
+                  note goes to the step, it plays, and the next step is chosen,
+                  so a line is entered by tapping keys in a row. Tap the step
+                  again, or press Escape, to choose none. Arrow left and right
+                  move the choice; Backspace or Delete (or Rest) clears it.</p>
+              </Hint>
+              <button
+                type="button"
+                class="btn btn--s btn--on-yellow"
+                disabled={{if this.hasSelected false true}}
+                data-test-step-rest
+                {{on "click" this.rest}}
+              >Rest</button>
+            </div>
+            {{! template-lint-disable no-invalid-interactive }}
+            <div
+              class="synth__stepgrid"
+              role="group"
+              aria-label="Steps of {{this.grid.label}}"
+              {{on "keydown" this.onStripKey}}
+            >
+              {{#each this.cells key="index" as |cell|}}
+                <button
+                  type="button"
+                  class="synth__step"
+                  aria-pressed={{if cell.selected "true" "false"}}
+                  aria-label="Step {{cell.number}}{{if
+                    cell.text
+                    (concat ': ' cell.text)
+                    ': rest'
+                  }}"
+                  data-step={{cell.index}}
+                  data-note={{cell.text}}
+                  data-selected={{if cell.selected "true"}}
+                  data-playing={{if cell.playing "true"}}
+                  data-test-step-cell={{cell.number}}
+                  {{on "click" (fn this.selectStep cell.index)}}
+                >{{cell.text}}</button>
+              {{/each}}
+            </div>
+          </div>
+        {{/if}}
+
+        {{#if this.hasKeyboard}}
+          <div class="synth__keys" data-test-synth-keyboard>
+            <div class="synth__keybar">
+              <button
+                type="button"
+                class="btn btn--s btn--on-yellow"
+                aria-label="Octave down"
+                disabled={{if this.canDown false true}}
+                data-test-octave-down
+                {{on "click" (fn this.shift -1)}}
+              >−</button>
+              <span
+                class="synth__range"
+                data-test-key-range
+              >{{this.range}}</span>
+              <button
+                type="button"
+                class="btn btn--s btn--on-yellow"
+                aria-label="Octave up"
+                disabled={{if this.canUp false true}}
+                data-test-octave-up
+                {{on "click" (fn this.shift 1)}}
+              >+</button>
+              <output
+                class="synth__readout"
+                aria-live="off"
+                data-test-pitch-readout
+              >{{this.readout}}</output>
+            </div>
+            {{! template-lint-disable no-pointer-down-event-binding no-invalid-interactive }}
+            {{! a note starts when the pointer goes down, and follows it across the keys until it comes up }}
+            <div
+              class="piano"
+              role="slider"
+              tabindex="0"
+              aria-label="{{@synth.label}} pitch"
+              aria-orientation="horizontal"
+              aria-valuemin="{{LOWEST}}"
+              aria-valuemax="{{HIGHEST}}"
+              aria-valuenow={{this.nearest}}
+              aria-valuetext={{this.readout}}
+              data-test-piano
+              {{measure this.setOctaves}}
+              {{on "pointerdown" this.onPointerDown}}
+              {{on "pointermove" this.onPointerMove}}
+              {{on "pointerup" this.onPointerUp}}
+              {{on "pointercancel" this.onPointerUp}}
+              {{on "keydown" this.onKeyDown}}
+              {{on "keyup" this.onKeyUp}}
+              {{on "blur" this.onBlur}}
+            >
+              {{#each this.octavesShown key="base" as |octave|}}
+                <div class="piano__octave">
+                  {{#each octave.white key="midi" as |white|}}
+                    <span
+                      class="piano__key piano__key--white"
+                      data-midi={{white.midi}}
+                      data-note={{white.name}}
+                      data-current={{if (this.isCurrent white.midi) "true"}}
+                      data-down={{if (this.isDown white.midi) "true"}}
+                      data-test-key={{white.name}}
+                    >{{#if white.label}}<span
+                          class="piano__label"
+                        >{{white.label}}</span>{{/if}}</span>
+                  {{/each}}
+                  {{#each octave.black key="midi" as |black|}}
+                    <span
+                      class="piano__key piano__key--black piano__key--after-{{black.at}}"
+                      data-midi={{black.midi}}
+                      data-note={{black.name}}
+                      data-current={{if (this.isCurrent black.midi) "true"}}
+                      data-down={{if (this.isDown black.midi) "true"}}
+                      data-test-key={{black.name}}
+                    ></span>
+                  {{/each}}
+                </div>
+              {{/each}}
+            </div>
+            <p
+              class="synth__status"
+              role="status"
+              data-test-pitch-status
+            >{{this.perStepText}}</p>
+          </div>
+        {{else}}
+          <p class="synth__status" role="status" data-test-no-pitch>This source
+            has no pitch to set.</p>
+        {{/if}}
       {{/if}}
 
       <SourceControls @scopeId={{@scopeId}} @nodeId={{@synth.nodeId}} />

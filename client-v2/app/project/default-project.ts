@@ -220,42 +220,41 @@ export function newSlicedLoopTrack(name: string): TrackDocument {
 }
 
 /**
- * A synth track: a saw through an envelope, a lowpass and a level, played by a 16-step sequence whose
- * callback opens the envelope. The oscillator is always running and the envelope decides what is heard,
- * so the scope in the source tab shows the wave whatever the transport does. The note is the oscillator's
- * pitch, which the source tab's keyboard sets (the stored value of its `frequency`); the pattern is the
- * grid's, stored in the project like the other templates'.
+ * A synth track: a `monosynth` (the library's one-voice synth: an oscillator through a lowpass and an
+ * envelope) played by a 16-step sequence. A step's value is a MIDI note number, passed to `trigger()` as
+ * its `pitch`; 0 is a rest. The macro is gated in the sense that matters: its envelope is closed until
+ * triggered, so its output (and the scope on it) is silent between notes. It was chosen over an
+ * oscillator, an envelope and a hand-made note conversion because the script is then one node and one
+ * line in the callback, and its exposed parameters (cutoff, resonance, envelope, level) are exactly the
+ * controls a synth needs, with no ids to wire. The pattern is the grid's, stored like the others'.
  */
 export const SYNTH_SCRIPT = `// Chain
 __()
-  .saw({ id: 'osc', frequency: 110 })
-  .adsr({ id: 'env', attack: 0.01, decay: 0.18, sustain: 0.35, release: 0.2 })
-  .lowpass({ id: 'filter', frequency: 1400, q: 2 })
-  .gain({ id: 'level', gain: 0.25 })
+  .monosynth({ id: 'synth', cutoff: 1400, gain: 0.3 })
   .to('channel');
 
-// Sequences
+// Sequences: a step's value is the MIDI note it plays (0 is a rest)
 __.transport.sequence(
   'steps',
   { steps: 16, step: '1/16' },
   (ev) => {
-    if (ev.value) __('#env').trigger({ duration: 0.12 });
+    if (ev.value) __('#synth').trigger({ pitch: ev.value, duration: 0.12 });
   },
 );
 
 // Controls
 stepGrid('steps');
-synth('#osc');
-slider('#osc', 'detune');
-slider('#env', 'attack');
-slider('#env', 'release');
-slider('#filter', 'frequency');
-knob('#level', 'gain', { label: 'level' });
+synth('#synth');
+slider('#synth', 'cutoff');
+slider('#synth', 'resonance');
+slider('#synth', 'attack');
+slider('#synth', 'release');
+slider('#synth', 'gain', { label: 'level' });
 `;
 
-/** The synth's starting pattern: a bass figure. */
+/** The synth's starting pattern: a bass figure in C minor, as MIDI notes (C2, G2, D#2, F2). */
 export const SYNTH_STEPS: readonly number[] = [
-  1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0,
+  36, 0, 0, 36, 0, 0, 43, 0, 36, 0, 0, 39, 0, 41, 0, 0,
 ];
 
 /** What "Synth" in the New Track menu adds. */

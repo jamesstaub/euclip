@@ -331,6 +331,8 @@ export interface SynthView {
   pitchParam: string | null;
   /** the control the keyboard sets: the script's own for that parameter, else the one synth() made */
   pitch: ControlView | null;
+  /** a noise source: it has no editor, only a graphic (and whatever controls the script declared for it) */
+  noise: boolean;
   /** notes are given to it as the pitch of its trigger (a synth macro): the keyboard plays, and stores nothing */
   playsNote: boolean;
 }
@@ -395,6 +397,8 @@ interface ScopeRuntime {
   errored: Set<string>;
   /** what a step held before it was switched off, so switching it on again brings that back */
   stepMemory: Map<string, number[]>;
+  /** the value last given to a step of each grid: what a new step takes */
+  stepLast: Map<string, number>;
   playheads: Map<string, number>;
   off: (() => void)[];
 }
@@ -1382,6 +1386,7 @@ export class ProjectRunner {
         byPosition: node.autoId,
         pitchParam: param,
         pitch: key === undefined ? null : (controls.get(key) ?? null),
+        noise: node.type === 'noise',
         playsNote: info?.pitchTrigger ?? false,
       });
     }
@@ -1709,9 +1714,17 @@ export class ProjectRunner {
     const current = steps[index] ?? 0;
     if (current !== 0) {
       memory[index] = current;
+      runtime.stepLast.set(name, current);
       steps[index] = 0;
     } else {
-      steps[index] = memory[index] || 1;
+      // what it held before; else the note (or slice) last used on this grid, so a tapped step on a
+      // track that plays its steps' values as notes is not note 1; else 1
+      steps[index] =
+        memory[index] ||
+        runtime.stepLast.get(name) ||
+        [...sequence.steps].reverse().find((value) => value > 0) ||
+        1;
+      runtime.stepLast.set(name, steps[index]);
     }
     runtime.stepMemory.set(name, memory);
     return { type: 'setControlValue', scope: scopeId, key, value: steps };
@@ -1746,6 +1759,7 @@ export class ProjectRunner {
       const memory = runtime.stepMemory.get(name) ?? [];
       memory[index] = value;
       runtime.stepMemory.set(name, memory);
+      runtime.stepLast.set(name, value);
     }
     return { type: 'setControlValue', scope: scopeId, key, value: steps };
   }
@@ -2594,6 +2608,7 @@ export class ProjectRunner {
       differing: new Map(),
       errored: new Set(),
       stepMemory: new Map(),
+      stepLast: new Map(),
       playheads: new Map(),
       off: [],
     };

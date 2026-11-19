@@ -2780,7 +2780,7 @@ stepGrid('a');`),
       );
     });
 
-    test('a step that holds a value comes back to it, not to 1', async function (assert) {
+    test('a step that holds a value comes back to it; a new step takes the last value used', async function (assert) {
       const h = await startProject(
         oneTrack(
           `${CHAIN}__.transport.sequence('notes', { steps: [3, 0, 0.5, 0, 1, 0] }, () => {});\nstepGrid('notes');`,
@@ -2791,7 +2791,11 @@ stepGrid('a');`),
       h.apply(h.runner.toggleStepOperation(ONE, 'notes', 0));
       assert.strictEqual(grid(h, ONE, 'notes').steps[0], 3);
       h.apply(h.runner.toggleStepOperation(ONE, 'notes', 1));
-      assert.strictEqual(grid(h, ONE, 'notes').steps[1], 1, 'never on: 1');
+      assert.strictEqual(
+        grid(h, ONE, 'notes').steps[1],
+        3,
+        'a new step takes the value last used on the grid (a note on a note track), not 1',
+      );
     });
 
     test('stepGrid() for a sequence that is not there is a warning on its line', async function (assert) {
