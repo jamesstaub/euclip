@@ -178,8 +178,19 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
   }
 
   /** Escape closes the phone's sheet. */
-  closeSheet = (): void => {
-    if (this.view.phone && this.view.footerOpen) this.view.footerOpen = false;
+  closeSheet = (event: KeyboardEvent): void => {
+    if (!this.view.phone || !this.view.footerOpen) return;
+    // what has an Escape of its own keeps it: the editors, text boxes, menus (native and popup)
+    const target = event.target;
+    if (
+      target instanceof Element &&
+      target.closest(
+        'input, textarea, select, .app-shell__sidebar, [contenteditable="true"], .cm-editor, [role="menu"], [role="dialog"], dialog, button[aria-expanded="true"]:not(.track-footer__handle)',
+      )
+    ) {
+      return;
+    }
+    this.view.footerOpen = false;
   };
 
   <template>

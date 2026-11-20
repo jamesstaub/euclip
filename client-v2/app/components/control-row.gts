@@ -7,6 +7,7 @@ import PopupMenu, { type MenuItem } from 'client-v2/components/ui/popup-menu';
 import type { ControlView } from 'client-v2/audio/runner';
 import { controlWidget, type ControlEntry } from 'client-v2/controls/registry';
 import { GLIDE_MAPPING } from 'client-v2/controls/modes';
+import { rowLanes, sequenceLanes } from 'client-v2/components/row-lanes';
 import { stepMenuItems, unitMenuItems } from 'client-v2/controls/unit-menu';
 import { mappingOf, numberOf } from 'client-v2/controls/view';
 import intoView from 'client-v2/modifiers/into-view';
@@ -143,9 +144,11 @@ export default class ControlRow extends Component<ControlRowSignature> {
                 this.audio.setControlGlide(scopeId, control.key, undefined),
             },
           ];
-    const steps = stepMenuItems(control, (choice) =>
-      this.audio.chooseStepMode(scopeId, control.key, choice),
-    );
+    const steps = stepMenuItems(control, (choice) => {
+      this.audio.chooseStepMode(scopeId, control.key, choice);
+      // (a control just made per step has a lane: it is shown in the track's row)
+      if (choice.startsWith('per-step:')) this.checkLane();
+    });
     return [
       ...modes,
       ...steps,
@@ -180,9 +183,15 @@ export default class ControlRow extends Component<ControlRowSignature> {
     return per?.missing ? per.sequence : undefined;
   }
 
-  /** Shows the lane in the track's row (its lane menu's choice), bringing the row into view. */
+  /** Checks this control's lane in the track's row (the others stay as they are). */
+  checkLane = (): void => {
+    const row = rowLanes(sequenceLanes(this.audio, this.args.scopeId));
+    this.view.revealLane(this.args.scopeId, row, this.args.control.key);
+  };
+
+  /** Shows the lane in the track's row (checked in its Lanes menu), bringing the row into view. */
   showLane = (): void => {
-    this.view.chooseLane(this.args.scopeId, this.args.control.key);
+    this.checkLane();
     const id = this.args.scopeId;
     // (the row is redrawn with the lane first)
     void Promise.resolve().then(() => {

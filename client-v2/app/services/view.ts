@@ -30,8 +30,15 @@ interface Stored {
   snaps?: unknown;
   lanes?: unknown;
   rowsView?: unknown;
+  laneSets?: unknown;
   sheetOpen?: unknown;
   sheetSize?: unknown;
+}
+
+/** What a track's row can show as lanes, by key: its step grids and its per-step controls, in the script's order. */
+export interface RowLanes {
+  grids: string[];
+  lanes: string[];
 }
 
 /** How tall the phone's track sheet is when it is open: half the screen, or up to the project bar. */
@@ -182,13 +189,89 @@ export default class ViewService extends Service {
     this.#save();
   }
 
-  chosenLane(scopeId: string): string | undefined {
-    return this.lanes[scopeId];
+  /**
+   * The lanes a track's row shows, by track: everything the row can show per sequence is a lane, the
+   * step grids (by their keys) and the per-step controls (by theirs). A track not listed has made no
+   * choice: all its grids and its first per-step lane. `known` is what existed when the choice was last
+   * made, so that something new (a lane just switched to Per step, a new sequence's grid) is shown
+   * without being asked. Remembered; nothing to undo. (`lanes`, above, is the single choice of an
+   * earlier version: the grids and that lane.)
+   */
+  @tracked private laneSets: Readonly<
+    Record<string, { keys: string[]; known: string[] }>
+  > =
+    this.#stored.laneSets &&
+    typeof this.#stored.laneSets === 'object' &&
+    !Array.isArray(this.#stored.laneSets)
+      ? Object.fromEntries(
+          Object.entries(this.#stored.laneSets).flatMap(([scope, value]) => {
+            const entry = value as { keys?: unknown; known?: unknown } | null;
+            const strings = (list: unknown): string[] =>
+              Array.isArray(list)
+                ? list.filter((key): key is string => typeof key === 'string')
+                : [];
+            return entry && typeof entry === 'object'
+              ? [
+                  [
+                    scope,
+                    { keys: strings(entry.keys), known: strings(entry.known) },
+                  ],
+                ]
+              : [];
+          }),
+        )
+      : {};
+
+  /** The keys of the lanes shown now: the choice, less what is gone, plus what is new. */
+  shownLanes(scopeId: string, row: RowLanes): Set<string> {
+    const all = [...row.grids, ...row.lanes];
+    const chosen = this.laneSets[scopeId];
+    if (chosen) {
+      return new Set(
+        all.filter(
+          (key) => chosen.keys.includes(key) || !chosen.known.includes(key),
+        ),
+      );
+    }
+    const legacy = this.lanes[scopeId];
+    return new Set(
+      legacy === undefined
+        ? [...row.grids, ...row.lanes.slice(0, 1)]
+        : [...row.grids, ...row.lanes.filter((key) => key === legacy)],
+    );
   }
 
-  chooseLane(scopeId: string, key: string | null): void {
-    if (this.lanes[scopeId] === (key ?? '')) return;
-    this.lanes = { ...this.lanes, [scopeId]: key ?? '' };
+  /** One lane checked or unchecked in a track's row. */
+  setLane(scopeId: string, row: RowLanes, key: string, on: boolean): void {
+    const now = this.shownLanes(scopeId, row);
+    if (on) now.add(key);
+    else now.delete(key);
+    this.laneSets = {
+      ...this.laneSets,
+      [scopeId]: {
+        keys: [...row.grids, ...row.lanes].filter((k) => now.has(k)),
+        known: [...row.grids, ...row.lanes],
+      },
+    };
+    this.#save();
+  }
+
+  /** A lane is to be seen (Show lane, or a control just made per step): checked, and nothing else changes. */
+  revealLane(scopeId: string, row: RowLanes, key: string): void {
+    // (always written down, so that the default's "first lane" cannot move away from it later)
+    const now = this.shownLanes(scopeId, row);
+    now.add(key);
+    const all = [...row.grids, ...row.lanes];
+    this.laneSets = {
+      ...this.laneSets,
+      [scopeId]: {
+        keys: [
+          ...all.filter((k) => now.has(k)),
+          ...(all.includes(key) ? [] : [key]),
+        ],
+        known: all,
+      },
+    };
     this.#save();
   }
 
@@ -346,7 +429,8 @@ export default class ViewService extends Service {
   /** A node of the signal chain was opened: its controls, scrolled to and outlined. */
   showControlsOf(scopeId: string, nodeId: string): void {
     this.footerPane = 'controls';
-    this.footerOpen = true;
+    // (on the phone the sheet stays as it is: what it will show is ready when it is opened)
+    if (!this.phone) this.footerOpen = true;
     this.scriptOpen = false;
     // (a closed section would hide what is being pointed at)
     this.setSectionOpen(scopeId, nodeId, true);
@@ -360,7 +444,7 @@ export default class ViewService extends Service {
   showSourceOf(scopeId: string, waveformKey: string | null): void {
     if (waveformKey !== null) this.chooseWaveform(scopeId, waveformKey);
     this.footerPane = 'source';
-    this.footerOpen = true;
+    if (!this.phone) this.footerOpen = true;
     this.scriptOpen = false;
     this.#save();
   }
@@ -395,6 +479,7 @@ export default class ViewService extends Service {
           waveforms: this.waveforms,
           snaps: this.snaps,
           lanes: this.lanes,
+          laneSets: this.laneSets,
           rowsView: this.rowsView,
           sheetSize: this.sheetSize,
           // (only a phone remembers whether the footer was open: elsewhere it starts open)

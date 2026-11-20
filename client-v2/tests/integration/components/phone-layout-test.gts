@@ -270,4 +270,49 @@ module('Integration | Phone layout', function (hooks) {
       assert.dom('[data-test-chain-legend]').doesNotExist();
     });
   });
+
+  module('small fixes', function () {
+    test('Escape closes the sheet, but not from a text box, a select or the script editor', async function (assert) {
+      view.phone = true;
+      await render(<template><AppShell /></template>);
+
+      await click('[data-test-footer-tab="sequence"]');
+      await click('[data-test-grid-length] [data-test-number-entry]');
+      await triggerKeyEvent('[data-test-number-input]', 'keydown', 'Escape');
+      assert.dom('[data-test-app-shell]').hasAttribute('data-sheet', 'half');
+
+      await triggerKeyEvent('[data-test-grid-step]', 'keydown', 'Escape');
+      assert
+        .dom('[data-test-app-shell]')
+        .hasAttribute('data-sheet', 'half', 'a select keeps its Escape');
+
+      await triggerKeyEvent(document, 'keydown', 'Escape');
+      assert.dom('[data-test-app-shell]').hasAttribute('data-sheet', 'closed');
+    });
+
+    test('on the phone, tapping a chain node chooses what the sheet will show but does not open it', async function (assert) {
+      view.phone = true;
+      view.setRowsView('chain');
+      await render(<template><AppShell /></template>);
+
+      await click('[data-test-chain-node="filter"]');
+      assert.dom('[data-test-app-shell]').hasAttribute('data-sheet', 'closed');
+      assert.strictEqual(view.footerPane, 'controls', 'the tab is ready');
+      await click('[data-test-footer-tab="controls"]');
+      assert.dom('[data-test-app-shell]').hasAttribute('data-sheet', 'half');
+      view.setRowsView('steps');
+    });
+
+    test('a node whose id is its type is named once; otherwise “type · id”', async function (assert) {
+      view.phone = true;
+      view.setRowsView('chain');
+      await render(<template><AppShell /></template>);
+
+      await click('[data-test-chain-node="sampler"]');
+      assert.dom('.chain-chosen').hasText('sampler');
+      await click('[data-test-chain-node="filter"]');
+      assert.dom('.chain-chosen').hasText('lowpass · filter');
+      view.setRowsView('steps');
+    });
+  });
 });

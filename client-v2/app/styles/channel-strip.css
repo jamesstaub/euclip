@@ -93,59 +93,63 @@
   }
 }
 
+/*
+ * Beside the panes (the footer is wide enough, and this is not the phone layout, where the footer is a
+ * sheet as wide as the screen but laid out as narrow, at every width) the strip stands up.
+ */
 @container track-footer (min-width: 36rem) {
-  .channel-strip {
+  .channel-strip:not([data-phone="true"] *) {
     flex-direction: column;
     inline-size: 6.5rem;
     text-align: center;
-  }
 
-  .channel-strip__title {
-    inline-size: auto;
-    align-items: center;
-  }
-
-  .channel-strip[data-idle] {
-    flex-wrap: nowrap;
-  }
-
-  .channel-strip__idle {
-    order: 0;
-    flex: none;
-    border-block-start: 0;
-    border-block-end: var(--border-width-1) dashed var(--dark-gray);
-    text-align: start;
-  }
-
-  .channel-strip__controls {
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-2);
-    min-block-size: 0;
-    padding: var(--space-2);
-  }
-
-  .channel-strip__control {
-    flex: none;
-    flex-direction: column;
-    inline-size: 100%;
-
-    & output {
-      display: block;
-      min-inline-size: 0;
-      text-align: center;
+    & .channel-strip__title {
+      inline-size: auto;
+      align-items: center;
     }
 
-    & .slider:not(.slider--vertical) {
+    &[data-idle] {
+      flex-wrap: nowrap;
+    }
+
+    & .channel-strip__idle {
+      order: 0;
       flex: none;
-      inline-size: 100%;
+      border-block-start: 0;
+      border-block-end: var(--border-width-1) dashed var(--dark-gray);
+      text-align: start;
     }
-  }
 
-  /* the gain fader stands up and takes the height that is left */
-  .channel-strip__control--gain {
-    flex: 1 1 0;
-    min-block-size: 5.5rem;
+    & .channel-strip__controls {
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-2);
+      min-block-size: 0;
+      padding: var(--space-2);
+    }
+
+    & .channel-strip__control {
+      flex: none;
+      flex-direction: column;
+      inline-size: 100%;
+
+      & output {
+        display: block;
+        min-inline-size: 0;
+        text-align: center;
+      }
+
+      & .slider:not(.slider--vertical) {
+        flex: none;
+        inline-size: 100%;
+      }
+    }
+
+    /* the gain fader stands up and takes the height that is left */
+    & .channel-strip__control--gain {
+      flex: 1 1 0;
+      min-block-size: 5.5rem;
+    }
   }
 }

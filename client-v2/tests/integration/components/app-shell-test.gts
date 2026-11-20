@@ -464,6 +464,7 @@ stepGrid('ones');
       view.footerPane = 'sequence';
       await render(<template><AppShell /></template>);
       const gen = '[data-test-pane="sequence"] [data-test-generators="steps"]';
+      const seq = '[data-test-pane="sequence"] [data-test-sequence="steps"]';
       const pattern = (): string =>
         audio
           .stepGrids('t-kick')[0]!
@@ -491,12 +492,16 @@ stepGrid('ones');
         .dom('[data-test-pane="sequence"] [data-test-sequence="steps"] ')
         .doesNotIncludeText('steps on', 'no count in the header');
       assert.deepEqual(
-        findAll(`${gen} [data-test-gen-tab]`).map(
-          (tab) =>
-            `${tab.textContent.trim()}${tab.getAttribute('aria-selected') === 'true' ? '*' : ''}`,
+        findAll(`${seq} [data-test-gen-kind] option`).map((option) =>
+          option.textContent.trim(),
         ),
-        ['Euclidean*', 'Binary', 'On / off', 'Sieve'],
+        ['Euclidean', 'Binary', 'On / off', 'Sieve'],
       );
+      assert.dom(`${seq} [data-test-gen-kind]`).hasValue('euclid');
+      assert.dom(`${seq} [data-test-gen-kind]`).hasAria('label', 'Generator');
+      assert
+        .dom(`${seq} [data-test-gen-combine]`)
+        .hasAria('label', 'Combine with existing pattern');
       assert
         .dom(`${gen} [data-test-gen-dial="hits"] [data-test-number-entry]`)
         .hasText('4', 'the dials start from the pattern that is there');
@@ -581,7 +586,7 @@ stepGrid('ones');
       assert.strictEqual(pattern(), byHand);
 
       // another generator: its tab shows its dials, and writes when one moves
-      await click(`${gen} [data-test-gen-tab="onoff"]`);
+      await select(`${seq} [data-test-gen-kind]`, 'onoff');
       assert.strictEqual(pattern(), byHand, 'turning to a tab writes nothing');
       await triggerKeyEvent(
         `${gen} [data-test-gen-dial="off"] [data-test-slider]`,
@@ -599,9 +604,7 @@ stepGrid('ones');
       await settled();
       view.footerPane = 'sequence';
       await settled();
-      assert
-        .dom(`${gen} [data-test-gen-tab="onoff"]`)
-        .hasAria('selected', 'true');
+      assert.dom(`${seq} [data-test-gen-kind]`).hasValue('onoff');
       assert
         .dom(`${gen} [data-test-gen-dial="off"] [data-test-number-entry]`)
         .hasText('2');
@@ -611,6 +614,7 @@ stepGrid('ones');
       view.footerPane = 'sequence';
       await render(<template><AppShell /></template>);
       const gen = '[data-test-pane="sequence"] [data-test-generators="steps"]';
+      const seq = '[data-test-pane="sequence"] [data-test-sequence="steps"]';
       const steps = (): number[] => audio.stepGrids('t-kick')[0]!.steps;
       const pattern = (): string =>
         steps()
@@ -619,14 +623,14 @@ stepGrid('ones');
       audio.setStep('t-kick', 'steps', 4, 7);
       await settled();
 
-      await click(`${gen} [data-test-gen-tool="right"]`);
+      await click(`${seq} [data-test-gen-tool="right"]`);
       assert.strictEqual(pattern(), '.x...x...x...x..');
       assert.strictEqual(steps()[5], 7, 'the value went round with its step');
-      await click(`${gen} [data-test-gen-tool="left"]`);
+      await click(`${seq} [data-test-gen-tool="left"]`);
       assert.strictEqual(pattern(), 'x...x...x...x...');
-      await click(`${gen} [data-test-gen-tool="reverse"]`);
+      await click(`${seq} [data-test-gen-tool="reverse"]`);
       assert.strictEqual(pattern(), '...x...x...x...x');
-      await click(`${gen} [data-test-gen-tool="invert"]`);
+      await click(`${seq} [data-test-gen-tool="invert"]`);
       assert.strictEqual(pattern(), 'xxx.xxx.xxx.xxx.');
       project.undo();
       await settled();
@@ -640,13 +644,13 @@ stepGrid('ones');
       assert.strictEqual(steps()[4], 7);
 
       // Or: the generated rhythm is laid over what is there; the 7 stays on its step
-      await select(`${gen} [data-test-gen-combine]`, 'or');
+      await select(`${seq} [data-test-gen-combine]`, 'or');
       assert.strictEqual(
         pattern(),
         'x...x...x...x...',
         'four evenly, Or-ed with the same four',
       );
-      await click(`${gen} [data-test-gen-tab="binary"]`);
+      await select(`${seq} [data-test-gen-kind]`, 'binary');
       const number = `${gen} [data-test-gen-dial="number"]`;
       await click(`${number} [data-test-number-entry]`);
       await fillIn(`${number} [data-test-number-input]`, '2');
@@ -662,15 +666,15 @@ stepGrid('ones');
       );
       assert.strictEqual(steps()[4], 7, 'a step that stays on keeps its value');
       assert.strictEqual(steps()[2], 1, 'a new hit is 1');
-      await select(`${gen} [data-test-gen-combine]`, 'and');
+      await select(`${seq} [data-test-gen-combine]`, 'and');
       assert.strictEqual(
         pattern(),
         'x...x...x...x...',
         'And: only where both hit',
       );
-      await select(`${gen} [data-test-gen-combine]`, 'xor');
+      await select(`${seq} [data-test-gen-combine]`, 'xor');
       assert.strictEqual(pattern(), '..x...x...x...x.');
-      await select(`${gen} [data-test-gen-combine]`, 'replace');
+      await select(`${seq} [data-test-gen-combine]`, 'replace');
       assert.strictEqual(pattern(), 'x.x.x.x.x.x.x.x.');
     });
 
@@ -739,7 +743,11 @@ stepGrid('ones');
         'controls',
         'Show lane leaves the footer tab alone',
       );
-      assert.strictEqual(view.chosenLane('t-kick'), FREQUENCY);
+      assert.true(
+        view
+          .shownLanes('t-kick', { grids: [STEPS], lanes: [FREQUENCY] })
+          .has(FREQUENCY),
+      );
       view.footerPane = 'sequence';
       await settled();
 
@@ -839,12 +847,9 @@ stepGrid('ones');
       );
       assert
         .dom('[data-test-track="1"] .track__lanes')
-        .includesText('frequency');
-      await click('[data-test-track="1"] [data-test-menu-item="None"]');
+        .includesText('Lanes 2/2');
+      await click('[data-test-track="1"] [data-test-menu-item="frequency"]');
       assert.dom('[data-test-track="1"] [data-lane-step]').doesNotExist();
-      await click(
-        '[data-test-track="1"] .track__lanes [data-test-menu-button]',
-      );
       await click('[data-test-track="1"] [data-test-menu-item="frequency"]');
       assert
         .dom('[data-test-track="1"] [data-lane-step]')
@@ -862,42 +867,6 @@ stepGrid('ones');
       assert
         .dom('[data-test-track="1"] [data-lane-step]')
         .exists({ count: 16 }, 'undo: per step again, its values with it');
-    });
-
-    test('a track row shows one lane, chosen from its lane menu; Show lane chooses it without leaving the controls tab', async function (assert) {
-      view.footerPane = 'controls';
-      await render(<template><AppShell /></template>);
-      const Q = controlKey('#filter', 'q');
-      const track = '[data-test-track="1"]';
-      assert.dom(`${track} .track__lanes`).doesNotExist('no per-step control');
-      for (const key of [FREQUENCY, Q]) {
-        await click(`${row(key)} [data-test-menu-button]`);
-        await click('[data-test-menu-item="Per step"]');
-      }
-      assert
-        .dom(`${track} .track__lanes`)
-        .includesText('Lane: frequency', 'the first, to begin with');
-      assert
-        .dom(`${track} [data-lane-step]`)
-        .exists({ count: 16 }, 'one lane, not both');
-      assert.dom(`${track} [data-test-lane]`).exists({ count: 1 });
-
-      await click(`${track} .track__lanes [data-test-menu-button]`);
-      assert.deepEqual(
-        findAll(`${track} [data-test-menu-item]`).map((item) =>
-          item.textContent.trim(),
-        ),
-        ['frequency', 'q', 'None'],
-      );
-      await click(`${track} [data-test-menu-item="None"]`);
-      assert.dom(`${track} [data-lane-step]`).doesNotExist();
-      assert.dom(`${track} .track__lanes`).includesText('Lane: none');
-
-      await click(`${row(Q)} [data-test-show-lane]`);
-      assert.strictEqual(view.footerPane, 'controls', 'the tab is unchanged');
-      assert.dom(`${track} [data-test-lane="${Q}"]`).exists();
-      assert.dom(`${track} [data-test-lane]`).exists({ count: 1 });
-      assert.dom(`${track} .track__lanes`).includesText('Lane: q');
     });
 
     test('the sequence card header does not move when the length changes, and the generators stand above the grid', async function (assert) {

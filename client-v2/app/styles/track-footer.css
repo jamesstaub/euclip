@@ -226,22 +226,24 @@
   }
 }
 
+/* (not the phone's sheet, which is laid out as narrow at every width: see channel-strip.css) */
 @container track-footer (min-width: 36rem) {
   .track-footer__body:not(
     .track-footer__body--script,
-    .track-footer__body--master
+    .track-footer__body--master,
+    [data-phone="true"] *
   ) {
     grid-template:
       "strip tabs pane" minmax(0, 1fr)
       / auto auto minmax(0, 1fr);
   }
 
-  .footer-tabs {
+  .footer-tabs:not([data-phone="true"] *) {
     flex-direction: column;
     inline-size: 5.5rem;
   }
 
-  .footer-tab {
+  .footer-tab:not([data-phone="true"] *) {
     flex-direction: column;
     gap: var(--space-1);
 

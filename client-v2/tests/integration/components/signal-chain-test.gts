@@ -292,7 +292,7 @@ module('Integration | Component | signal chain', function (hooks) {
       document.querySelector(`${bar}`)!.getBoundingClientRect().top -
       row.getBoundingClientRect().top;
     await click(`${pane} [data-test-chain-node="filter"]`);
-    assert.dom(bar).includesText('lowpass filter');
+    assert.dom(bar).includesText('lowpass · filter');
     assert.strictEqual(
       row.getBoundingClientRect().height,
       height,

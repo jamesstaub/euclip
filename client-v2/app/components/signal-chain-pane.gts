@@ -510,7 +510,12 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
     if (link)
       return `${nameOf(link.from)} → ${link.to ? nameOf(link.to) : link.row.destination.name}`;
     const node = this.selected;
-    if (node) return node.autoId ? node.type : `${node.type} ${node.id}`;
+    if (node) {
+      // (the type once, unless the id says more than the type does)
+      return node.autoId || node.id === node.type
+        ? node.type
+        : `${node.type} · ${node.id}`;
+    }
     const dest = this.selectedDest;
     if (dest) return `to ${dest.destination.name}`;
     return 'nothing chosen';

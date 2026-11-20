@@ -87,117 +87,53 @@
 }
 
 /*
- * A grid's pattern generators and tools (the sequence pane's grids have them; a track row's compact
- * grid does not), always shown, above the grid. The dark toolbar look of the waveform editor's
- * tools. Every dial is a fixed cell: nothing moves when a value does.
+ * A grid's generator (the sequence pane's grids have one): ONE row of the chosen generator's sliders,
+ * on the card's own surface, under the card's header (where the Generate and Onto menus are). The row is
+ * the same height whichever generator shows, so turning to another moves nothing: one line where
+ * four sliders fit beside each other, two lines (reserved) where they do not. Its slider widths are
+ * capped, so on a wide screen it stays at its natural size, at the left.
  */
 .step-gen {
-  display: grid;
-  gap: 0;
   min-inline-size: 0;
-  overflow-x: clip;
-  margin-block-start: var(--space-1);
-  background: var(--dark-gray);
-  color: var(--light-gray);
-}
-
-.step-gen__bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1) var(--space-2);
-  padding: var(--space-1);
-}
-
-.step-gen__tools {
-  display: inline-flex;
-  gap: var(--space-1);
-}
-
-.step-gen .hint__button {
-  color: var(--light-gray);
-}
-
-.step-gen__panel {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas:
-    "tabs combine"
-    "dials dials";
-
-  & .waveform__tabs {
-    grid-area: tabs;
-  }
-}
-
-/* how what is generated meets what is there: beside the tabs, whichever is showing */
-.step-gen__combine {
-  display: inline-flex;
-  grid-area: combine;
-  align-items: center;
-  gap: var(--space-2);
-  padding-inline: var(--space-2);
-
-  & .select {
-    inline-size: 10.5rem;
-    min-block-size: var(--target-min);
-    color: var(--dark-gray);
-    font-size: var(--font-size-7);
-  }
-}
-
-@container sequence-pane (max-width: 36rem) {
-  .step-gen__panel {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "tabs"
-      "combine"
-      "dials";
-  }
+  padding: 0 var(--space-2);
 }
 
 .step-gen__dials {
-  grid-area: dials;
+  --dial-row: calc(var(--target-min) + var(--space-1));
+
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  align-content: start;
-  gap: var(--space-1) var(--space-2);
+  align-content: flex-start;
+  gap: 0 var(--space-3);
+  max-inline-size: 52rem;
+  min-block-size: calc(2 * var(--dial-row));
+}
 
-  /* (room for the tab with the most dials, so turning to another tab changes no one's place) */
-  min-block-size: calc(2 * var(--target-min) + 3 * var(--space-1));
-  padding: var(--space-1) var(--space-2);
+@container sequence-pane (min-width: 40rem) {
+  .step-gen__dials {
+    min-block-size: var(--dial-row);
+  }
 }
 
 /* a dial: its name, a slider, and its value in a box of one width (press it to type) */
 .step-gen__dial {
   display: inline-flex;
-  flex: 1 1 12rem;
-  min-inline-size: 0;
-  max-inline-size: 26rem;
+  flex: 1 1 9rem;
   align-items: center;
   gap: var(--space-2);
+  min-inline-size: 0;
+  max-inline-size: 15rem;
   min-block-size: var(--target-min);
 
   & .slider {
-    flex: 1 1 6rem;
-    min-inline-size: 3rem;
-  }
-
-  & .slider__track {
-    background: var(--near-black);
-    outline: 1px solid var(--mid-gray);
+    flex: 1 1 3rem;
+    min-inline-size: 2.5rem;
   }
 
   & .number-entry-box {
-    inline-size: 2.75rem;
-    color: var(--light-gray);
-  }
-
-  & .select {
-    inline-size: 11rem;
-    color: var(--dark-gray);
-    font-size: var(--font-size-6);
+    inline-size: 2.5rem;
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -208,12 +144,17 @@
   white-space: nowrap;
 }
 
-.step-gen__says {
-  flex: 0 1 auto;
-  min-inline-size: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* the tools, below the grid: small and quiet, at the left */
+.step-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+}
+
+.step-tools__buttons {
+  display: inline-flex;
+  gap: var(--space-1);
 }
 
 /*
@@ -251,7 +192,9 @@
 
 .lane__bar {
   position: relative;
-  block-size: 2.75rem;
+
+  /* (a finger's drag on a bar: 4rem, up from 2.75rem, where the row's multisliders were a little short) */
+  block-size: 4rem;
   overflow: hidden;
   border: var(--border-width-1) solid var(--step-line);
   background: var(--dark-gray);
@@ -286,14 +229,11 @@
   inline-size: 5.5rem;
 }
 
-/* A track's row shows one lane, chosen from its lane menu; the sequence pane shows them all. */
+/* A track's row shows the lanes checked in its Lanes menu; the sequence pane shows them all. */
 .track__lanes {
   grid-area: actions;
+  inline-size: 6.5rem; /* (a cell of one size: "Lanes 2/3" and "Lanes 10/12" move nothing) */
   max-inline-size: 11rem;
   justify-self: end;
   margin-inline-end: var(--target-min);
-}
-
-.step-gen__dial--combine {
-  flex: 0 0 auto;
 }

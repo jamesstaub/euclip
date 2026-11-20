@@ -14,10 +14,20 @@ export interface MenuItem {
   /** starts a new group: a line is drawn above it */
   separated?: boolean;
   onSelect?: () => void;
+  /** keeps its identity when the list is made again (default: its label, which must then be unique) */
+  id?: string;
+  /** one of several that can each be on: `checked` is its state, and choosing it leaves the menu open */
+  toggle?: boolean;
+  /** a title for the items after it, not a choice */
+  heading?: boolean;
 }
 
 function role(item: MenuItem): string {
-  return item.checked === undefined ? 'menuitem' : 'menuitemradio';
+  return item.checked === undefined
+    ? 'menuitem'
+    : item.toggle
+      ? 'menuitemcheckbox'
+      : 'menuitemradio';
 }
 
 function checked(item: MenuItem): string | undefined {
@@ -101,9 +111,17 @@ export default class PopupMenu extends Component<PopupMenuSignature> {
     if (this.args.open) this.args.onOpenChange(false);
   };
 
+  /** (keyed by identity, so a list made again while the transport runs keeps its buttons) */
+  get keyed(): (MenuItem & { key: string })[] {
+    return this.args.items.map((item) => ({
+      ...item,
+      key: item.id ?? item.label,
+    }));
+  }
+
   select = (item: MenuItem): void => {
     if (item.disabled) return;
-    this.args.onOpenChange(false);
+    if (!item.toggle) this.args.onOpenChange(false);
     item.onSelect?.();
   };
 
@@ -165,19 +183,26 @@ export default class PopupMenu extends Component<PopupMenuSignature> {
           {{focusFirst}}
         >
           {{! keyed: the owner's list is made again whenever the running project changes (every step while it plays), and items replaced under the pointer cannot be clicked }}
-          {{#each @items key="label" as |item|}}
-            <li role="none" class={{if item.separated "menu__separated"}}>
-              <button
-                type="button"
-                class="menu__item"
-                role={{role item}}
-                aria-checked={{checked item}}
-                aria-disabled={{if item.disabled "true"}}
-                tabindex="-1"
-                data-test-menu-item={{item.label}}
-                {{on "click" (fn this.select item)}}
-              >{{item.label}}</button>
-            </li>
+          {{#each this.keyed key="key" as |item|}}
+            {{#if item.heading}}
+              <li
+                role="presentation"
+                class="menu__heading {{if item.separated 'menu__separated'}}"
+              >{{item.label}}</li>
+            {{else}}
+              <li role="none" class={{if item.separated "menu__separated"}}>
+                <button
+                  type="button"
+                  class="menu__item"
+                  role={{role item}}
+                  aria-checked={{checked item}}
+                  aria-disabled={{if item.disabled "true"}}
+                  tabindex="-1"
+                  data-test-menu-item={{item.label}}
+                  {{on "click" (fn this.select item)}}
+                >{{item.label}}</button>
+              </li>
+            {{/if}}
           {{/each}}
         </ul>
       {{/if}}

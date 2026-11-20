@@ -347,6 +347,14 @@ button.number-entry:disabled {
   border-block-start: var(--border-width-1) solid var(--mid-gray);
 }
 
+.menu__heading {
+  padding: var(--space-1) var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--font-size-7);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+}
+
 .menu__item {
   display: flex;
   align-items: center;
@@ -362,7 +370,8 @@ button.number-entry:disabled {
   white-space: nowrap;
 
   /* one of a set of choices: a square that is filled when it is the chosen one */
-  &[role="menuitemradio"]::before {
+  &[role="menuitemradio"]::before,
+  &[role="menuitemcheckbox"]::before {
     content: "";
     flex: none;
     inline-size: 0.625rem;

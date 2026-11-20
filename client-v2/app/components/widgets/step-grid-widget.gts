@@ -25,7 +25,9 @@ import {
   type Tool,
 } from 'client-v2/controls/generators';
 import { mapping, noteName, type Mapping } from 'client-v2/controls/modes';
-import selectOptions from 'client-v2/modifiers/select-options';
+import selectOptions, {
+  type SelectOption,
+} from 'client-v2/modifiers/select-options';
 import type AudioService from 'client-v2/services/audio';
 
 function pressed(value: number): 'true' | 'false' {
@@ -65,9 +67,11 @@ export interface StepGridWidgetSignature {
      */
     lanes?: boolean;
     /**
-     * Only this lane (a control's key) is shown; '' shows none. Absent: all of them (the sequence pane).
+     * Only these lanes (controls' keys) are shown. Absent: all of them (the sequence pane).
      */
-    laneKey?: string;
+    laneKeys?: readonly string[];
+    /** Only its lanes: the steps are not drawn (the track row's lane menu has them unchecked). */
+    hideSteps?: boolean;
     /**
      * The synth editor's strip of the same steps: a step shows its note name (its value is a MIDI note),
      * and a tap chooses it (`onSelect`, at once: the value box and its keys are this grid's own) instead
@@ -77,6 +81,11 @@ export interface StepGridWidgetSignature {
     selected?: number | null;
     /** a tap on a step (toggling the choice); `on` true: the double click that opens the box chooses it */
     onSelect?: (index: number, on?: boolean) => void;
+  };
+  Blocks: {
+    /** With generators: the start and the end of the card's header, between which the generator's own cells go */
+    lead: [];
+    trail: [];
   };
 }
 
@@ -370,8 +379,10 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
   get lanes(): LaneView[] {
     if (!this.args.lanes) return [];
     const all = this.audio.lanes(this.args.scopeId, this.args.control.name);
-    const only = this.args.laneKey;
-    return only === undefined ? all : all.filter((lane) => lane.key === only);
+    const only = this.args.laneKeys;
+    return only === undefined
+      ? all
+      : all.filter((lane) => only.includes(lane.key));
   }
 
   /** the bar the pointer is on or dragging, to say its value in the lane's head */
@@ -630,29 +641,19 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
     return this.tab ?? this.generator.kind;
   }
 
-  isKind = (kind: GeneratorKind): boolean => this.kind === kind;
-
   setKind = (kind: GeneratorKind): void => {
     // (turning to a tab shows its dials; the pattern is written when one of them moves)
     this.tab = kind;
   };
 
-  onTabKey = (event: KeyboardEvent): void => {
-    const at = GENERATORS.findIndex((entry) => entry.id === this.kind);
-    const step =
-      event.key === 'ArrowRight' || event.key === 'ArrowDown'
-        ? 1
-        : event.key === 'ArrowLeft' || event.key === 'ArrowUp'
-          ? -1
-          : 0;
-    if (step === 0) return;
-    event.preventDefault();
-    const next =
-      GENERATORS[(at + step + GENERATORS.length) % GENERATORS.length]!;
-    this.tab = next.id;
-    (event.currentTarget as HTMLElement)
-      .querySelector<HTMLElement>(`[data-test-gen-tab="${next.id}"]`)
-      ?.focus();
+  generateOptions: readonly SelectOption[] = GENERATORS.map((entry) => ({
+    value: entry.id,
+    label: entry.label,
+  }));
+
+  /** The Generate select: its dials show; the pattern is written when one of them moves. */
+  setGenerator = (event: Event): void => {
+    this.setKind((event.target as HTMLSelectElement).value as GeneratorKind);
   };
 
   get dials(): Dial[] {
@@ -772,7 +773,11 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
     return true;
   };
 
-  combines = COMBINES;
+  /** (short in the control: what each does is said behind the "?") */
+  combines: readonly SelectOption[] = COMBINES.map((combine) => ({
+    value: combine.value,
+    label: COMBINE_SHORT[combine.value],
+  }));
 
   setCombine = (event: Event): void => {
     const combine = (event.target as HTMLSelectElement).value as Combine;
@@ -793,93 +798,64 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
 
   <template>
     {{#if @generators}}
+      {{! the card's header: the pane's cells, with the generator's two between them }}
+      <div class="sequence-card__head" data-test-seq-head>
+        {{yield to="lead"}}
+        <span class="sequence-card__shape sequence-card__gen">
+          <span class="sequence-card__label" aria-hidden="true">Generate</span>
+          <select
+            class="select"
+            aria-label="Generator"
+            data-test-gen-kind
+            {{on "change" this.setGenerator}}
+            {{selectOptions this.generateOptions this.kind}}
+          ></select>
+        </span>
+        {{! template-lint-disable no-invalid-interactive }}
+        <span class="sequence-card__shape sequence-card__onto">
+          <span class="sequence-card__label" aria-hidden="true">Onto</span>
+          <select
+            class="select"
+            aria-label="Combine with existing pattern"
+            data-test-gen-combine
+            {{on "change" this.setCombine}}
+            {{selectOptions this.combines this.generator.combine}}
+          ></select>
+        </span>
+        {{yield to="trail"}}
+      </div>
       <div class="step-gen" data-test-generators={{@control.name}}>
-        <div class="step-gen__bar">
-          <span
-            class="step-gen__tools"
-            role="group"
-            aria-label="Turn the {{@control.label}} pattern"
-          >
-            {{#each TOOLS as |tool|}}
-              <button
-                type="button"
-                class="btn btn--s"
-                aria-label={{tool.says}}
-                title={{tool.says}}
-                data-test-gen-tool={{tool.id}}
-                {{on "click" (fn this.useTool tool.id)}}
-              >{{tool.label}}</button>
-            {{/each}}
-          </span>
-          <Hint @label="About pattern generators" data-test-gen-hint>
-            <p>The dials write a rhythm into this grid as you turn them:
-              Euclidean (hits spread evenly), Binary (a number’s bits), On / off
-              (a group repeated) and Sieve (every N-th step, twice over).</p>
-            <p>The grid’s pattern is what plays and what is kept. The dials are
-              a tool: change steps by hand afterwards and they stay as you set
-              them, until a dial is moved again.</p>
-            <p>A step that is on keeps the value it had (a slice number, say); a
-              new hit is 1. The grid’s length is the script’s.</p>
-            <p>◀ ▶ turn the pattern one step, Reverse plays it backwards, Invert
-              swaps hits and rests.</p>
-          </Hint>
-        </div>
-        <div class="step-gen__panel" data-test-gen-panel>
-          {{! template-lint-disable no-invalid-interactive }}
-          <label class="step-gen__combine">
-            <span class="step-gen__label">Onto what is there</span>
-            <select
-              class="select"
-              data-test-gen-combine
-              {{on "change" this.setCombine}}
-              {{selectOptions this.combines this.generator.combine}}
-            ></select>
-          </label>
-          <div
-            class="waveform__tabs"
-            role="tablist"
-            aria-label="Which generator"
-            {{on "keydown" this.onTabKey}}
-          >
-            {{#each GENERATORS as |entry|}}
-              <button
-                type="button"
-                class="waveform__tab"
-                role="tab"
-                aria-selected={{if (this.isKind entry.id) "true" "false"}}
-                tabindex={{if (this.isKind entry.id) "0" "-1"}}
-                data-test-gen-tab={{entry.id}}
-                {{on "click" (fn this.setKind entry.id)}}
-              >{{entry.label}}</button>
-            {{/each}}
-          </div>
-          <div class="step-gen__dials" role="tabpanel" aria-label={{this.kind}}>
-            {{#each this.dials key="id" as |dial|}}
-              {{! template-lint-disable no-pointer-down-event-binding }}
-              {{! (a press or a key on a dial begins a gesture: all it then writes is one step to undo) }}
-              <span
-                class="step-gen__dial"
-                data-test-gen-dial={{dial.id}}
-                {{on "pointerdown" this.newDialGesture capture=true}}
-                {{on "keydown" this.newDialGesture capture=true}}
-              >
-                <span class="step-gen__label">{{dial.label}}</span>
-                <Slider
-                  @value={{dial.value}}
-                  @mapping={{dial.map}}
-                  @label={{dial.label}}
-                  @onChange={{fn this.turnDial dial.id}}
-                />
-                {{! its value, as a control's row shows one: press it to type an exact number }}
-                <NumberEntry
-                  @text={{dial.text}}
-                  @label={{dial.label}}
-                  @inputmode="numeric"
-                  @onCommit={{fn this.typeDial dial}}
-                />
-              </span>
-            {{/each}}
-          </div>
+        <div
+          class="step-gen__dials"
+          role="group"
+          aria-label="{{this.kind}} generator"
+          data-test-gen-panel
+        >
+          {{#each this.dials key="id" as |dial|}}
+            {{! template-lint-disable no-pointer-down-event-binding no-invalid-interactive }}
+            {{! (a press or a key on a dial begins a gesture: all it then writes is one step to undo) }}
+            <span
+              class="step-gen__dial"
+              data-test-gen-dial={{dial.id}}
+              {{on "pointerdown" this.newDialGesture capture=true}}
+              {{on "keydown" this.newDialGesture capture=true}}
+            >
+              <span class="step-gen__label">{{dial.label}}</span>
+              <Slider
+                @value={{dial.value}}
+                @mapping={{dial.map}}
+                @label={{dial.label}}
+                @onChange={{fn this.turnDial dial.id}}
+              />
+              {{! its value, as a control's row shows one: press it to type an exact number }}
+              <NumberEntry
+                @text={{dial.text}}
+                @label={{dial.label}}
+                @inputmode="numeric"
+                @onCommit={{fn this.typeDial dial}}
+              />
+            </span>
+          {{/each}}
         </div>
       </div>
     {{/if}}
@@ -897,31 +873,33 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
       {{on "pointermove" this.laneHover}}
       {{on "pointerleave" this.laneLeave}}
     >
-      {{#each @control.steps key="@index" as |value index|}}
-        {{! template-lint-disable no-pointer-down-event-binding }}
-        {{! a long press begins when the finger goes down }}
-        <button
-          type="button"
-          class="step
-            {{if (is index @control.playhead) 'step--current'}}
-            {{if (shown value) 'step--valued'}}"
-          aria-pressed={{pressed value}}
-          aria-label={{this.cellLabel index value}}
-          data-selected={{if (is index @selected) "true"}}
-          title="Double-click (or hold) to set its value"
-          data-test-step={{index}}
-          {{on "click" (fn this.toggle index)}}
-          {{on "dblclick" (fn this.doubleClick index)}}
-          {{on "pointerdown" (fn this.pressDown index)}}
-          {{on "pointermove" this.pressMove}}
-          {{on "pointerup" this.pressEnd}}
-          {{on "pointerleave" this.pressEnd}}
-          {{on "pointercancel" this.pressEnd}}
-          {{on "mousedown" this.keepBox}}
-          {{on "contextmenu" this.noMenu}}
-          {{on "keydown" (fn this.onKeydown index)}}
-        >{{this.cellText value}}</button>
-      {{/each}}
+      {{#unless @hideSteps}}
+        {{#each @control.steps key="@index" as |value index|}}
+          {{! template-lint-disable no-pointer-down-event-binding }}
+          {{! a long press begins when the finger goes down }}
+          <button
+            type="button"
+            class="step
+              {{if (is index @control.playhead) 'step--current'}}
+              {{if (shown value) 'step--valued'}}"
+            aria-pressed={{pressed value}}
+            aria-label={{this.cellLabel index value}}
+            data-selected={{if (is index @selected) "true"}}
+            title="Double-click (or hold) to set its value"
+            data-test-step={{index}}
+            {{on "click" (fn this.toggle index)}}
+            {{on "dblclick" (fn this.doubleClick index)}}
+            {{on "pointerdown" (fn this.pressDown index)}}
+            {{on "pointermove" this.pressMove}}
+            {{on "pointerup" this.pressEnd}}
+            {{on "pointerleave" this.pressEnd}}
+            {{on "pointercancel" this.pressEnd}}
+            {{on "mousedown" this.keepBox}}
+            {{on "contextmenu" this.noMenu}}
+            {{on "keydown" (fn this.onKeydown index)}}
+          >{{this.cellText value}}</button>
+        {{/each}}
+      {{/unless}}
       {{#each this.lanes key="key" as |lane|}}
         {{! a lane: its head across the grid, then a bar under every step (items of the same grid) }}
         <div class="lane__head" data-test-lane={{lane.key}}>
@@ -976,6 +954,47 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
         />
       {{/if}}
     </div>
+    {{#if @generators}}
+      <div class="step-tools" data-test-gen-tools>
+        <span
+          class="step-tools__buttons"
+          role="group"
+          aria-label="Turn the {{@control.label}} pattern"
+        >
+          {{#each TOOLS as |tool|}}
+            <button
+              type="button"
+              class="btn btn--s btn--quiet"
+              aria-label={{tool.says}}
+              title={{tool.says}}
+              data-test-gen-tool={{tool.id}}
+              {{on "click" (fn this.useTool tool.id)}}
+            >{{tool.label}}</button>
+          {{/each}}
+        </span>
+        <Hint @label="About pattern generators" data-test-gen-hint>
+          <p>The generator writes a rhythm into this grid as you move its
+            sliders: Euclidean (hits spread evenly), Binary (a number’s bits),
+            On / off (a group repeated) and Sieve (every N-th step, twice over).</p>
+          <p>Onto says how it meets what is there:
+            <b>Replace</b>
+            writes over it,
+            <b>Or</b>
+            adds to it,
+            <b>And</b>
+            keeps only where both have a hit,
+            <b>Xor</b>
+            flips where they differ.</p>
+          <p>The grid’s pattern is what plays and what is kept. The generator is
+            a tool: change steps by hand afterwards and they stay as you set
+            them, until a slider is moved again.</p>
+          <p>A step that is on keeps the value it had (a slice number, say); a
+            new hit is 1. The grid’s length is the script’s.</p>
+          <p>◀ ▶ turn the pattern one step, Reverse plays it backwards, Invert
+            swaps hits and rests.</p>
+        </Hint>
+      </div>
+    {{/if}}
   </template>
 }
 
@@ -996,6 +1015,13 @@ const TOOLS: readonly { id: Tool; label: string; says: string }[] = [
 ];
 
 let generatorGestures = 0;
+
+const COMBINE_SHORT: Record<Combine, string> = {
+  replace: 'Replace',
+  or: 'Or',
+  and: 'And',
+  xor: 'Xor',
+};
 
 function plusOne(index: number): number {
   return index + 1;

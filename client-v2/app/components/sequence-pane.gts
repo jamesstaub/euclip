@@ -192,75 +192,83 @@ export default class SequencePane extends Component<SequencePaneSignature> {
       </h3>
       {{#each this.stepGrids key="key" as |grid|}}
         <div class="sequence-card" data-test-sequence={{grid.name}}>
-          <div class="sequence-card__head">
-            <b class="truncate">{{grid.label}}</b>
-            {{#if grid.disabled}}
-              <span data-test-sequence-disabled>stopped by an error</span>
-            {{/if}}
-            {{! template-lint-disable no-pointer-down-event-binding no-invalid-interactive }}
-            {{! (a press or a key on the dial begins a gesture: one step to undo) }}
-            <span
-              class="sequence-card__shape"
-              data-test-grid-length
-              {{on "pointerdown" this.newLengthGesture capture=true}}
-              {{on "keydown" this.newLengthGesture capture=true}}
-            >
-              <span class="sequence-card__label">Length</span>
-              <Knob
-                @value={{grid.steps.length}}
-                @mapping={{this.lengthMapping}}
-                @label="{{grid.label}} length in steps"
-                @onChange={{fn this.setLength grid}}
-              />
-              <NumberEntry
-                @text={{this.lengthText grid}}
-                @label="{{grid.label}} length in steps"
-                @inputmode="numeric"
-                @maxlength={{2}}
-                @onCommit={{fn this.typeLength grid}}
-              />
-            </span>
-            <label class="sequence-card__shape">
-              <span class="sequence-card__label">Step</span>
-              <select
-                class="select"
-                disabled={{if grid.span true false}}
-                data-test-grid-step
-                {{on "change" (fn this.setStep grid)}}
-                {{selectOptions (this.stepChoices grid) (this.stepValue grid)}}
-              ></select>
-            </label>
-            <i
-              class="sequence-card__script"
-              data-test-grid-script
-            >{{this.scriptSays grid}}</i>
-            {{#if (this.canReset grid)}}
-              <button
-                type="button"
-                class="btn btn--s btn--on-yellow"
-                aria-label="Reset {{grid.label}} to the script's pattern, length and step"
-                data-test-steps-reset
-                {{on "click" (fn this.reset grid)}}
-              >Reset</button>
-            {{/if}}
-            {{#if grid.line}}
-              <button
-                type="button"
-                class="btn btn--s btn--ghost btn--on-yellow sequence-card__code"
-                aria-label="Show {{grid.label}} in the script"
-                title="Show in script"
-                data-test-show-in-script
-                {{on "click" (fn this.showInScript grid)}}
-              ><Icon @name="code" /></button>
-            {{/if}}
-          </div>
           <Grid
             @scopeId={{@scopeId}}
             @control={{grid}}
             @generators={{true}}
             @lanes={{true}}
             data-linked={{if (this.isLinked grid) "true"}}
-          />
+          >
+            <:lead>
+              <span class="sequence-card__name">
+                <b class="truncate">{{grid.label}}</b>
+                {{#if grid.disabled}}
+                  <span data-test-sequence-disabled>stopped by an error</span>
+                {{/if}}
+              </span>
+              {{! template-lint-disable no-pointer-down-event-binding no-invalid-interactive }}
+              {{! (a press or a key on the dial begins a gesture: one step to undo) }}
+              <span
+                class="sequence-card__shape sequence-card__length"
+                data-test-grid-length
+                {{on "pointerdown" this.newLengthGesture capture=true}}
+                {{on "keydown" this.newLengthGesture capture=true}}
+              >
+                <span class="sequence-card__label">Length</span>
+                <Knob
+                  @value={{grid.steps.length}}
+                  @mapping={{this.lengthMapping}}
+                  @label="{{grid.label}} length in steps"
+                  @onChange={{fn this.setLength grid}}
+                />
+                <NumberEntry
+                  @text={{this.lengthText grid}}
+                  @label="{{grid.label}} length in steps"
+                  @inputmode="numeric"
+                  @maxlength={{2}}
+                  @onCommit={{fn this.typeLength grid}}
+                />
+              </span>
+              <label class="sequence-card__shape sequence-card__step">
+                <span class="sequence-card__label">Step</span>
+                <select
+                  class="select"
+                  disabled={{if grid.span true false}}
+                  data-test-grid-step
+                  {{on "change" (fn this.setStep grid)}}
+                  {{selectOptions
+                    (this.stepChoices grid)
+                    (this.stepValue grid)
+                  }}
+                ></select>
+              </label>
+            </:lead>
+            <:trail>
+              <i
+                class="sequence-card__script"
+                data-test-grid-script
+              >{{this.scriptSays grid}}</i>
+              {{#if (this.canReset grid)}}
+                <button
+                  type="button"
+                  class="btn btn--s btn--on-yellow sequence-card__reset"
+                  aria-label="Reset {{grid.label}} to the script's pattern, length and step"
+                  data-test-steps-reset
+                  {{on "click" (fn this.reset grid)}}
+                >Reset</button>
+              {{/if}}
+              {{#if grid.line}}
+                <button
+                  type="button"
+                  class="btn btn--s btn--ghost btn--on-yellow sequence-card__code"
+                  aria-label="Show {{grid.label}} in the script"
+                  title="Show in script"
+                  data-test-show-in-script
+                  {{on "click" (fn this.showInScript grid)}}
+                ><Icon @name="code" /></button>
+              {{/if}}
+            </:trail>
+          </Grid>
         </div>
       {{else}}
         <p class="pane-empty" data-test-pane-empty>This script declares no step
