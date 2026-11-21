@@ -7,6 +7,7 @@ import { service } from '@ember/service';
 import { modifier } from 'ember-modifier';
 import Icon from 'client-v2/components/icon';
 import SourceControls from 'client-v2/components/source-controls';
+import SourceLane from 'client-v2/components/source-lane';
 import StepGridWidget from 'client-v2/components/widgets/step-grid-widget';
 import Hint from 'client-v2/components/ui/hint';
 import type { StepGridView, SynthView } from 'client-v2/audio/runner';
@@ -731,6 +732,8 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
                   role="status"
                   data-test-pitch-status
                 >{{this.perStepText}}</p>
+                {{! the one multislider open over the source: laid over the keyboard }}
+                <SourceLane @scopeId={{@scopeId}} @nodeId={{@synth.nodeId}} />
               </div>
             {{else}}
               <p class="synth__status" role="status" data-test-no-pitch>This
@@ -766,6 +769,14 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
             </div>
           {{/if}}
           <SourceControls @scopeId={{@scopeId}} @nodeId={{@synth.nodeId}} />
+          {{#unless this.hasKeyboard}}
+            {{! (no keyboard to lay it over: under the controls) }}
+            <SourceLane
+              class="source-lane--inline"
+              @scopeId={{@scopeId}}
+              @nodeId={{@synth.nodeId}}
+            />
+          {{/unless}}
         </div>
       </section>
     </div>

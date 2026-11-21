@@ -71,45 +71,34 @@ module('Unit | Service | view', function (hooks) {
     );
   });
 
-  const ROW = { grids: ['g1', 'g2'], lanes: ['q', 'f', 'n'], active: ['f'] };
-
-  test('with no choice a track shows its grids and the lanes in play', function (assert) {
+  test('a control’s lane is shown while it is in play, unless hidden; one opened stays open', function (assert) {
     const view = this.owner.lookup('service:view');
-    assert.deepEqual([...view.shownLanes('a', ROW)], ['g1', 'g2', 'f']);
-    assert.true(view.isLaneShown('a', 'f', true));
-    assert.false(view.isLaneShown('a', 'q', false));
-  });
-
-  test('lanes are opened and hidden per track, and remembered', function (assert) {
-    const view = this.owner.lookup('service:view');
+    assert.true(view.isLaneShown('a', 'f', true), 'in play: shown');
+    assert.false(view.isLaneShown('a', 'q', false), 'not in play: not shown');
     view.setLane('a', 'q', true);
     view.setLane('a', 'f', false);
-    view.setLane('a', 'g1', false);
-    assert.deepEqual([...view.shownLanes('a', ROW)], ['g2', 'q']);
-    assert.deepEqual(
-      [...view.shownLanes('b', ROW)],
-      ['g1', 'g2', 'f'],
-      'another track is as it was',
-    );
+    assert.true(view.isLaneShown('a', 'q', false), 'opened');
+    assert.false(view.isLaneShown('a', 'f', true), 'hidden');
+    assert.true(view.isLaneShown('b', 'f', true), 'another track is as it was');
     const stored = JSON.parse(
       window.localStorage.getItem(VIEW_STORAGE_KEY) ?? 'null',
     ) as { laneView: Record<string, { open: string[]; closed: string[] }> };
-    assert.deepEqual(stored.laneView['a'], {
-      open: ['q'],
-      closed: ['f', 'g1'],
-    });
+    assert.deepEqual(stored.laneView['a'], { open: ['q'], closed: ['f'] });
   });
 
-  test('a lane that comes into play is shown unless it was hidden; one opened stays open when cleared', function (assert) {
+  test('one lane at a time over a track’s source', function (assert) {
     const view = this.owner.lookup('service:view');
-    view.setLane('a', 'q', false);
-    view.setLane('a', 'f', true);
-    const later = { ...ROW, active: ['q', 'n'] };
-    assert.deepEqual(
-      [...view.shownLanes('a', later)],
-      ['g1', 'g2', 'f', 'n'],
-      'q was hidden; f was opened (and is no longer in play); n came into play',
+    assert.strictEqual(view.sourceLane('a'), null);
+    view.setSourceLane('a', 'speed');
+    view.setSourceLane('a', 'start');
+    assert.strictEqual(
+      view.sourceLane('a'),
+      'start',
+      'the other takes its place',
     );
+    assert.strictEqual(view.sourceLane('b'), null);
+    view.setSourceLane('a', null);
+    assert.strictEqual(view.sourceLane('a'), null);
   });
 
   test('a remembered choice is restored', function (assert) {

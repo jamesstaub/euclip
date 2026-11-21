@@ -97,8 +97,10 @@ export interface StepGridWidgetSignature {
      * Only these lanes (controls' keys) are shown. Absent: all of them (the sequence pane).
      */
     laneKeys?: readonly string[];
-    /** Only its lanes: the steps are not drawn (the track row's lane menu has them unchecked). */
+    /** Only its lanes: the steps are not drawn (a lane drawn with its control). */
     hideSteps?: boolean;
+    /** what a lane's Hide lane does, in place of hiding it for the track (the source's one lane closes) */
+    onHideLane?: (key: string) => void;
     /**
      * The synth editor's strip of the same steps: a step shows its note name (its value is a MIDI note),
      * and a tap chooses it (`onSelect`, at once: the value box and its keys are this grid's own) instead
@@ -420,7 +422,8 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
 
   /** Hides a lane, wherever the track draws it. */
   hideLane = (key: string): void => {
-    this.view.setLane(this.args.scopeId, key, false);
+    if (this.args.onHideLane) this.args.onHideLane(key);
+    else this.view.setLane(this.args.scopeId, key, false);
   };
 
   isLocked = (lane: LaneView, index: number): boolean =>

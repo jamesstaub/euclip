@@ -52,6 +52,7 @@ export default class SourceControls extends Component<SourceControlsSignature> {
             @scopeId={{@scopeId}}
             @control={{control}}
             @steps={{true}}
+            @sourceLane={{true}}
           />
         {{/each}}
       </ul>

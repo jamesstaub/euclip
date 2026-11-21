@@ -4,23 +4,12 @@ import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import SignalChainPane from 'client-v2/components/signal-chain-pane';
-import LanesMenu from 'client-v2/components/lanes-menu';
 import PopupMenu, { type MenuItem } from 'client-v2/components/ui/popup-menu';
 import type { StepGridView } from 'client-v2/audio/runner';
-import {
-  rowLanes,
-  sequenceLanes,
-  type SequenceLanes,
-} from 'client-v2/components/row-lanes';
 import { stepGridWidget } from 'client-v2/controls/registry';
 import type { TrackDocument } from 'client-v2/project/schema';
 import type AudioService from 'client-v2/services/audio';
 import type ViewService from 'client-v2/services/view';
-import type { RowLanes } from 'client-v2/services/view';
-
-function not(value: boolean): boolean {
-  return !value;
-}
 
 function more(grids: readonly StepGridView[]): boolean {
   return grids.length > 1;
@@ -85,45 +74,6 @@ export default class TrackRow extends Component<TrackRowSignature> {
 
   get error(): string | undefined {
     return this.audio.error(this.args.track.id)?.message;
-  }
-
-  /** Everything the row can show: each sequence's grid and its controls' lanes. */
-  get sequences(): SequenceLanes[] {
-    return sequenceLanes(this.audio, this.args.track.id);
-  }
-
-  get rowKeys(): RowLanes {
-    return rowLanes(this.sequences);
-  }
-
-  /** The keys of the grids and lanes the track shows (services/view.ts). */
-  get shown(): Set<string> {
-    return this.view.shownLanes(this.args.track.id, this.rowKeys);
-  }
-
-  /** What the row draws, in the script's order: a grid (if checked) with its checked lanes under it. */
-  get stacks(): {
-    grid: StepGridView;
-    showGrid: boolean;
-    laneKeys: string[];
-  }[] {
-    const shown = this.shown;
-    return this.sequences
-      .map(({ grid, lanes }) => ({
-        grid,
-        showGrid: shown.has(grid.key),
-        laneKeys: lanes.filter((lane) => shown.has(lane.key)).map((l) => l.key),
-      }))
-      .filter((stack) => stack.showGrid || stack.laneKeys.length > 0);
-  }
-
-  get total(): number {
-    return this.rowKeys.grids.length + this.rowKeys.lanes.length;
-  }
-
-  /** The Lanes button is there when the track has more than one thing it could show. */
-  get hasLanesMenu(): boolean {
-    return this.total > 1;
   }
 
   openGenerators = (): void => {
@@ -233,42 +183,21 @@ export default class TrackRow extends Component<TrackRowSignature> {
               @selected={{@selected}}
             />
           {{else}}
-            {{#each this.stacks key="grid.key" as |stack|}}
+            {{! (steps only: a control's lane is drawn with the control, in the footer) }}
+            {{#each this.stepGrids key="key" as |grid|}}
               <div class="track__grid">
                 {{#if (more this.stepGrids)}}
-                  <span
-                    class="track__grid-name truncate"
-                  >{{stack.grid.label}}</span>
+                  <span class="track__grid-name truncate">{{grid.label}}</span>
                 {{/if}}
-                <Grid
-                  @scopeId={{@track.id}}
-                  @control={{stack.grid}}
-                  @lanes={{true}}
-                  @laneKeys={{stack.laneKeys}}
-                  @hideSteps={{not stack.showGrid}}
-                />
+                <Grid @scopeId={{@track.id}} @control={{grid}} />
               </div>
             {{else}}
-              {{#if this.stepGrids.length}}
-                <p class="track__no-grid" data-test-no-lanes>No lanes shown</p>
-              {{else}}
-                <p class="track__no-grid" data-test-no-step-grid>No step grid
-                  declared</p>
-              {{/if}}
+              <p class="track__no-grid" data-test-no-step-grid>No step grid
+                declared</p>
             {{/each}}
           {{/if}}
         </div>
 
-        {{#if this.hasLanesMenu}}
-          {{#unless this.showChain}}
-            <LanesMenu
-              class="track__lanes"
-              @scopeId={{@track.id}}
-              @label="Track {{@order}} lanes"
-              @up={{true}}
-            />
-          {{/unless}}
-        {{/if}}
         <PopupMenu
           class="track__actions"
           @label="Track {{@order}} menu"

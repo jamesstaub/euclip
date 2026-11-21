@@ -564,24 +564,47 @@ module('Integration | Component | waveform', function (hooks) {
     );
   });
 
-  test('the speed’s lane is shown and hidden from its menu here; steps set say so in its cell, which keeps its size', async function (assert) {
+  test('every value has a lane button; its multislider is laid over the values, one at a time', async function (assert) {
     await open();
+    const SPEED = '#sampler › speed';
+    const START = '#sampler › start';
+    const button = (id: string): string =>
+      `[data-test-waveform-value="${id}"] [data-test-lane-button]`;
+    assert.dom('.waveform__value--number [data-test-lane-button]').exists({
+      count: 5,
+    });
     const cell = find('[data-test-waveform-value="speed"]') as HTMLElement;
     const before = cell.getBoundingClientRect();
-    await click('[data-test-speed-menu] [data-test-menu-button]');
-    await click('[data-test-menu-item="Semitones"]');
-    await click('[data-test-speed-menu] [data-test-menu-button]');
-    await click('[data-test-menu-item="Show steps"]');
+
+    await click(button('start'));
     assert
-      .dom(`[data-test-lane="#sampler › speed"]`)
-      .exists('its lane is under the grid, in the track’s row');
+      .dom(`.waveform__values [data-test-source-lane="${START}"]`)
+      .exists('laid over the values');
+    assert.dom(button('start')).hasAria('pressed', 'true');
+    assert
+      .dom(`[data-test-source-lane] [data-lane-step]`)
+      .exists({ count: 16 });
+
+    await click(button('speed'));
+    assert.dom('[data-test-source-lane]').exists({ count: 1 });
+    assert.dom(`[data-test-source-lane="${SPEED}"]`).exists('speed’s, now');
+    assert
+      .dom('[data-track-id] [data-lane-step]')
+      .doesNotExist('nothing in the track’s row');
+
     const scope = project.doc.tracks.at(-1)!.id;
-    audio.setLaneValue(scope, '#sampler › speed', 1, 2);
+    audio.setLaneValue(scope, SPEED, 1, 2);
     await settled();
-    assert.dom(value('speed')).hasText('0 st · 1 set');
+    assert.dom(`${button('speed')} [data-test-lane-count]`).hasText('1');
     const after = cell.getBoundingClientRect();
     assert.strictEqual(after.width, before.width, 'the cell does not change');
     assert.strictEqual(after.height, before.height);
+
+    await click('[data-test-source-lane] .source-lane__close');
+    assert
+      .dom('[data-test-source-lane]')
+      .doesNotExist('its own button closes it');
+
     await click('[data-test-speed-menu] [data-test-menu-button]');
     // the open menu and everything above it are opaque
     for (
@@ -597,8 +620,10 @@ module('Integration | Component | waveform', function (hooks) {
         `${el.className || el.tagName} is opaque`,
       );
     }
-    await click('[data-test-menu-item="Hide steps"]');
-    assert.dom(`[data-test-lane="#sampler › speed"]`).doesNotExist();
+    await click('[data-test-menu-item="Show steps"]');
+    assert
+      .dom(`[data-test-source-lane="${SPEED}"]`)
+      .exists('and its menu opens it');
   });
 
   test('Snap is a label and three choices; untouched it follows the sound, chosen it is kept', async function (assert) {

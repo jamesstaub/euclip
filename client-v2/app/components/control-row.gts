@@ -6,7 +6,7 @@ import NumberEntry from 'client-v2/components/ui/number-entry';
 import PopupMenu, { type MenuItem } from 'client-v2/components/ui/popup-menu';
 import type { ControlView, StepGridView } from 'client-v2/audio/runner';
 import { GLIDE_MAPPING } from 'client-v2/controls/modes';
-import Icon from 'client-v2/components/icon';
+import LaneButton from 'client-v2/components/lane-button';
 import {
   controlWidget,
   stepGridWidget,
@@ -29,6 +29,11 @@ export interface ControlRowSignature {
     control: ControlView;
     /** it is under a step picker: while a step is chosen there, it sets that step's own value */
     steps?: boolean;
+    /**
+     * It is one of the source's controls: its lane is shown over the source's editor, one at a time
+     * (`ViewService.sourceLane`), not under the row.
+     */
+    sourceLane?: boolean;
   };
 }
 
@@ -180,17 +185,22 @@ export default class ControlRow extends Component<ControlRowSignature> {
     return lane?.missing && lane.locked > 0 ? lane.sequence : undefined;
   }
 
-  /** The lane is open (here, under its grid in the track's row and in the sequence pane). */
+  /** The lane is open: over the source's editor (a source's control), or under the row and in the sequence pane. */
   get laneShown(): boolean {
     const lane = this.lane;
-    return (
-      lane !== undefined &&
-      this.view.isLaneShown(
-        this.args.scopeId,
-        this.args.control.key,
-        lane.locked > 0,
-      )
-    );
+    if (lane === undefined) return false;
+    return this.args.sourceLane
+      ? this.view.sourceLane(this.args.scopeId) === this.args.control.key
+      : this.view.isLaneShown(
+          this.args.scopeId,
+          this.args.control.key,
+          lane.locked > 0,
+        );
+  }
+
+  /** It is drawn under the row (a source's control has its lane over the editor instead). */
+  get laneInline(): boolean {
+    return !this.args.sourceLane && this.laneShown;
   }
 
   /** The grid of the sequence the lane follows: the lane is drawn in its step columns. */
@@ -205,14 +215,6 @@ export default class ControlRow extends Component<ControlRowSignature> {
 
   get laneKeys(): string[] {
     return [this.args.control.key];
-  }
-
-  get laneLabel(): string {
-    const lane = this.lane;
-    if (!lane) return '';
-    return `${this.laneShown ? 'Hide' : 'Show'} ${this.args.control.label} steps${
-      lane.locked > 0 ? ` (${lane.locked} of ${lane.steps} set)` : ''
-    }`;
   }
 
   /**
@@ -286,6 +288,13 @@ export default class ControlRow extends Component<ControlRowSignature> {
   };
 
   toggleLane = (): void => {
+    if (this.args.sourceLane) {
+      this.view.setSourceLane(
+        this.args.scopeId,
+        this.laneShown ? null : this.args.control.key,
+      );
+      return;
+    }
     this.view.setLane(
       this.args.scopeId,
       this.args.control.key,
@@ -325,24 +334,11 @@ export default class ControlRow extends Component<ControlRowSignature> {
       {{intoView this.linked}}
     >
       {{#if this.laneGrid}}
-        <button
-          type="button"
-          class="control-row__lane-button"
-          aria-pressed={{if this.laneShown "true" "false"}}
-          aria-label={{this.laneLabel}}
-          title={{this.laneLabel}}
-          data-active={{if this.lane.locked "true"}}
-          data-test-lane-button
-          {{on "click" this.toggleLane}}
-        >
-          <Icon @name="multislider" />
-          {{#if this.lane.locked}}
-            <span
-              class="control-row__lane-count"
-              data-test-lane-count
-            >{{this.lane.locked}}</span>
-          {{/if}}
-        </button>
+        <LaneButton
+          @control={{@control}}
+          @pressed={{this.laneShown}}
+          @onToggle={{this.toggleLane}}
+        />
       {{/if}}
       <span
         class="control-row__label truncate"
@@ -435,7 +431,7 @@ export default class ControlRow extends Component<ControlRowSignature> {
         @onOpenChange={{this.setMenuOpen}}
       />
 
-      {{#if this.laneShown}}
+      {{#if this.laneInline}}
         {{#if this.laneGrid}}
           <Grid
             class="control-row__steps"

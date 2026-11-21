@@ -34,16 +34,6 @@ interface Stored {
   selectedTrack?: unknown;
 }
 
-/**
- * What a track can show as lanes, by key: its step grids and its controls' lanes, in the script's
- * order, and which of those lanes are in play (some step holds a value of its own).
- */
-export interface RowLanes {
-  grids: string[];
-  lanes: string[];
-  active: string[];
-}
-
 /** How tall the phone's track sheet is when it is open: half the screen, or up to the project bar. */
 export type SheetSize = 'half' | 'full';
 
@@ -191,10 +181,10 @@ export default class ViewService extends Service {
   }
 
   /**
-   * Which lanes a track shows, by track, where the person has said: `open` (its lane button pressed,
-   * checked in a Lanes menu) and `closed` (Hide lane, unchecked). Everything else follows the data: a
-   * grid is shown, and a control's lane is shown while some step holds a value of its own. One choice
-   * for the track's row, its sequence pane and its control rows. Remembered; nothing to undo.
+   * Which lanes a track shows, by track, where the person has said: `open` (its lane button pressed)
+   * and `closed` (Hide lane). Otherwise a control's lane is shown while some step holds a value of its
+   * own. One choice for the processors' control rows and the sequence pane. (The source's controls show
+   * theirs one at a time, over the source's editor: `sourceLane`.) Remembered; nothing to undo.
    */
   @tracked private laneView: Readonly<
     Record<string, { open: string[]; closed: string[] }>
@@ -224,20 +214,6 @@ export default class ViewService extends Service {
         )
       : {};
 
-  /** The keys of what a track shows now, in the script's order: grids, then lanes. */
-  shownLanes(scopeId: string, row: RowLanes): Set<string> {
-    const said = this.laneView[scopeId];
-    const open = new Set(said?.open);
-    const closed = new Set(said?.closed);
-    const active = new Set(row.active);
-    return new Set([
-      ...row.grids.filter((key) => !closed.has(key)),
-      ...row.lanes.filter(
-        (key) => !closed.has(key) && (open.has(key) || active.has(key)),
-      ),
-    ]);
-  }
-
   /** Whether one lane of a track is shown (`active`: some step of it holds a value of its own). */
   isLaneShown(scopeId: string, key: string, active: boolean): boolean {
     const said = this.laneView[scopeId];
@@ -257,6 +233,24 @@ export default class ViewService extends Service {
         : { open, closed: [...closed, key] },
     };
     this.#save();
+  }
+
+  /**
+   * The one lane shown over the source's editor, by track: a control's key (a sampler's speed, start,
+   * end or loop point, or any other control of the source). Opened from the control's lane button, which
+   * takes the place of another. Not remembered; nothing to undo.
+   */
+  @tracked private sourceLanes: Readonly<Record<string, string>> = {};
+
+  sourceLane(scopeId: string): string | null {
+    return this.sourceLanes[scopeId] ?? null;
+  }
+
+  /** Shows a control's lane over the source's editor (null: none). */
+  setSourceLane(scopeId: string, key: string | null): void {
+    const { [scopeId]: _gone, ...rest } = this.sourceLanes;
+    void _gone;
+    this.sourceLanes = key === null ? rest : { ...rest, [scopeId]: key };
   }
 
   /**

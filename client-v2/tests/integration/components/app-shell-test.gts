@@ -715,7 +715,7 @@ stepGrid('ones');
         .hasText('4', 'the other grid is as it was');
     });
 
-    test('a lane has its own menu, the control’s menu plus Clear all steps and Hide lane; the bars stay in their steps’ columns', async function (assert) {
+    test('a lane has its own menu, the control’s menu plus Clear all steps and Hide lane; the track’s row draws no lanes', async function (assert) {
       view.footerPane = 'sound';
       await render(<template><AppShell /></template>);
       const labels = (): (string | null)[] =>
@@ -727,7 +727,7 @@ stepGrid('ones');
       await triggerKeyEvent(document.body, 'keydown', 'Escape');
       await click(`${row(FREQUENCY)} [data-test-lane-button]`);
 
-      const inRow = `[data-track-id="t-kick"] [data-test-lane-menu="${FREQUENCY}"]`;
+      const inRow = `${row(FREQUENCY)} [data-test-lane-menu="${FREQUENCY}"]`;
       await click(`${inRow} [data-test-menu-button]`);
       assert.deepEqual(
         labels(),
@@ -754,26 +754,12 @@ stepGrid('ones');
       );
       assert
         .dom(
-          `[data-track-id="t-kick"] [data-test-lane="${FREQUENCY}"] [data-test-lane-caption]`,
+          `${row(FREQUENCY)} [data-test-lane="${FREQUENCY}"] [data-test-lane-caption]`,
         )
         .includesText('note');
-
-      // bars and steps keep their columns with the button there
-      const centre = (el: Element): number => {
-        const rect = el.getBoundingClientRect();
-        return rect.left + rect.width / 2;
-      };
-      const rowEl = '[data-track-id="t-kick"]';
-      const bars = findAll(`${rowEl} [data-lane-step]`);
-      const stepsIn = findAll(`${rowEl} [data-test-step]`);
-      assert.true(bars.length > 0, 'the row shows the lane');
-      assert.true(stepsIn.length >= bars.length, 'and the steps');
-      const off = Math.max(
-        ...bars.map((bar, index) =>
-          Math.abs(centre(bar) - centre(stepsIn[index]!)),
-        ),
-      );
-      assert.true(off < 1, `centres within 1 px (${off.toFixed(2)})`);
+      assert
+        .dom('[data-track-id="t-kick"] [data-lane-step]')
+        .doesNotExist('the track’s row draws steps only');
 
       // Clear all steps: every step follows the control again, one step to undo
       audio.setLaneValue('t-kick', FREQUENCY, 3, 500);
@@ -790,7 +776,7 @@ stepGrid('ones');
       await settled();
       assert.strictEqual((values() as number[])[3], 500, 'one undo step');
 
-      // Hide lane hides it in the row (and under the control)
+      // Hide lane hides it under the control
       await click(`${inRow} [data-test-menu-button]`);
       await click('[data-test-menu-item="Hide lane"]');
       assert.dom(inRow).doesNotExist();
@@ -914,20 +900,8 @@ stepGrid('ones');
       assert.strictEqual(options()?.['stepValues'], undefined);
       await triggerKeyEvent(bars[4]!, 'keydown', 'ArrowUp');
 
-      // the track’s row has the lane too, and a way to hide it
-      assert
-        .dom('[data-test-track="1"] [data-lane-step]')
-        .exists({ count: 16 });
-      assert.dom('[data-test-track="2"] [data-lane-step]').doesNotExist();
-      await click(
-        '[data-test-track="1"] .track__lanes [data-test-menu-button]',
-      );
-      await click('[data-test-track="1"] [data-test-menu-item="frequency"]');
+      // the track’s row draws steps only
       assert.dom('[data-test-track="1"] [data-lane-step]').doesNotExist();
-      await click('[data-test-track="1"] [data-test-menu-item="frequency"]');
-      assert
-        .dom('[data-test-track="1"] [data-lane-step]')
-        .exists({ count: 16 });
       view.footerPane = 'sound';
       await settled();
       assert

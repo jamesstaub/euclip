@@ -32,6 +32,8 @@ import {
 } from 'client-v2/controls/modes';
 import { REGION_GAP } from 'client-v2/controls/live-range';
 import { glideBlockedItems, unitMenuItems } from 'client-v2/controls/unit-menu';
+import LaneButton from 'client-v2/components/lane-button';
+import SourceLane from 'client-v2/components/source-lane';
 import { mappingOf, numberOf } from 'client-v2/controls/view';
 import cssVars from 'client-v2/modifiers/css-vars';
 import selectOptions, {
@@ -88,6 +90,12 @@ type ValueCell =
       map: Mapping;
       position: number;
       faint: boolean;
+      /** its control: for its lane button */
+      control: ControlView;
+      /** its lane is the one over the editor */
+      laneShown: boolean;
+      /** it has a lane (a sequence with a grid to follow) */
+      hasLane: boolean;
     }
   | {
       id: 'loop' | 'reverse';
@@ -472,9 +480,6 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
         : null;
       if (!control || !map) return [];
       const value = numberOf(control.value);
-      // (a speed whose steps hold values of their own: its number is still the value of the others)
-      const lane = id === 'speed' ? control.lane : undefined;
-      const stepsSet = lane && !lane.missing ? lane.locked : 0;
       return [
         {
           id,
@@ -482,15 +487,16 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
           name,
           short,
           mid,
-          text:
-            stepsSet > 0
-              ? `${map.format(value)} · ${stepsSet} set`
-              : map.format(value),
+          // (with steps of its own it is still the value of the others: its lane button counts them)
+          text: map.format(value),
           value,
           map,
           position: map.toPosition(value),
           // (the loop's points keep their place while the loop is off: there, but not in play)
           faint: (id === 'loopStart' || id === 'loopEnd') && !this.looping,
+          control,
+          laneShown: this.view.sourceLane(this.args.scopeId) === control.key,
+          hasLane: this.#hasLane(control),
         },
       ];
     };
@@ -529,6 +535,27 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
     return groups.filter((group) => group.cells.length > 0);
   }
 
+  /** A control has a lane to show: a sequence with a step grid that it follows. */
+  #hasLane(control: ControlView): boolean {
+    const lane = control.lane;
+    return (
+      lane !== undefined &&
+      !lane.missing &&
+      this.audio
+        .stepGrids(this.args.scopeId)
+        .some((grid) => grid.name === lane.sequence)
+    );
+  }
+
+  /** A value's lane button: its lane over the editor's values, in place of another's; again, none. */
+  toggleLane = (key: string): void => {
+    const scopeId = this.args.scopeId;
+    this.view.setSourceLane(
+      scopeId,
+      this.view.sourceLane(scopeId) === key ? null : key,
+    );
+  };
+
   /** The speed's menu: the units its control has in the controls pane (one control, two views of it). */
   @tracked speedMenu = false;
 
@@ -543,11 +570,9 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
     const units = unitMenuItems(control, (choice) =>
       this.audio.chooseControlMode(scopeId, control.key, choice),
     );
-    // its lane, shown or hidden: the same choice as the lane button of a control's row
-    const lane = control.lane && !control.lane.missing ? control.lane : null;
-    const shown =
-      lane !== null &&
-      this.view.isLaneShown(scopeId, control.key, lane.locked > 0);
+    // its lane over the editor's values: the same as the cell's lane button
+    const lane = this.#hasLane(control) ? control.lane : undefined;
+    const shown = this.view.sourceLane(scopeId) === control.key;
     const steps: MenuItem[] = lane
       ? [
           {
@@ -557,7 +582,7 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
               ? { hint: `${lane.locked} of ${lane.steps} set` }
               : {}),
             separated: units.length > 0,
-            onSelect: () => this.view.setLane(scopeId, control.key, !shown),
+            onSelect: () => this.toggleLane(control.key),
           },
         ]
       : [];
@@ -2219,6 +2244,14 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
                     {{if cell.faint 'waveform__value--faint'}}"
                   data-test-waveform-value={{cell.id}}
                 >
+                  {{#if cell.hasLane}}
+                    <LaneButton
+                      class="waveform__lane-button"
+                      @control={{cell.control}}
+                      @pressed={{cell.laneShown}}
+                      @onToggle={{fn this.toggleLane cell.control.key}}
+                    />
+                  {{/if}}
                   <span class="waveform__label" title={{cell.name}}>
                     <span class="waveform__label-full">{{cell.name}}</span>
                     <span
@@ -2291,6 +2324,8 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
             {{/each}}
           </div>
         {{/each}}
+        {{! the one multislider open over the source: laid over these values }}
+        <SourceLane @scopeId={{@scopeId}} @nodeId={{@waveform.nodeId}} />
       </div>
     </section>
   </template>

@@ -602,14 +602,13 @@ button.number-entry:disabled {
  * Its lane button (the multislider, from v1): pressed while the lane is open under the row; blue with
  * a count while steps hold values of their own, so a control whose steps override it says so.
  */
-.control-row__lane-button {
+.lane-button {
   display: inline-flex;
   flex: none;
   align-items: center;
   gap: 0.125rem;
   min-inline-size: var(--target-min);
   min-block-size: var(--target-min);
-  margin-inline-start: calc(-1 * var(--space-1));
   padding: 0 var(--space-1);
   border: 0;
   background: transparent;
@@ -632,7 +631,11 @@ button.number-entry:disabled {
   }
 }
 
-.control-row__lane-count {
+.control-row > .lane-button {
+  margin-inline-start: calc(-1 * var(--space-1));
+}
+
+.lane-button__count {
   font-size: var(--font-size-7);
   font-weight: var(--font-weight-heavy);
   line-height: var(--line-height-solid);

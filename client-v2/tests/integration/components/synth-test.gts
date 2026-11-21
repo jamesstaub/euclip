@@ -413,6 +413,25 @@ slider('#synth', 'resonance');
     assert.dom(`${piano} [data-down="true"]`).doesNotExist('and lets go');
   });
 
+  test('a control’s lane button lays its multislider over the keyboard, one at a time', async function (assert) {
+    await open();
+    const buttons = findAll(
+      '[data-test-source-controls="synth"] [data-test-lane-button]',
+    );
+    assert.true(buttons.length >= 2, 'the synth’s controls have lane buttons');
+    await click(buttons[0]!);
+    assert.dom('.synth__keys [data-test-source-lane]').exists();
+    assert
+      .dom('[data-test-source-controls] [data-test-control-steps]')
+      .doesNotExist('not under the row');
+    await click(buttons[1]!);
+    assert.dom('[data-test-source-lane]').exists({ count: 1 });
+    assert.dom(buttons[1]).hasAria('pressed', 'true');
+    assert.dom(buttons[0]).hasAria('pressed', 'false');
+    await click(buttons[1]!);
+    assert.dom('[data-test-source-lane]').doesNotExist();
+  });
+
   test('steps of the pitch set: the keyboard sets the others and says so', async function (assert) {
     await open();
     await useOscillator();
