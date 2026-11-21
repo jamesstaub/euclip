@@ -47,12 +47,6 @@ export default class ControlRow extends Component<ControlRowSignature> {
     return GLIDE_MAPPING.format(this.args.control.glide?.seconds ?? 0);
   }
 
-  /** Shown on the row, quietly, when the control glides: so it can be seen without opening the menu. */
-  get glideMark(): string | undefined {
-    const glide = this.args.control.glide;
-    return glide && glide.seconds > 0 ? `glide ${this.glideText}` : undefined;
-  }
-
   openGlide = (): void => {
     this.glideOpen = true;
   };
@@ -286,14 +280,6 @@ export default class ControlRow extends Component<ControlRowSignature> {
           title="Where the script has moved the parameter"
           data-test-effective-text
         >now {{this.effectiveText}}</span>
-      {{/if}}
-
-      {{#if this.glideMark}}
-        <span
-          class="control-row__glide-mark"
-          title="The parameter takes this long to get to where the control is put. Change it from the menu."
-          data-test-glide-mark
-        >{{this.glideMark}}</span>
       {{/if}}
 
       {{#if this.glideOpen}}

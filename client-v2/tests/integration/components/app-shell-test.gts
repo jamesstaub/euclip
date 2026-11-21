@@ -1735,7 +1735,6 @@ slider(__.bus('drums'), 'gain');
       const frequency = row(FREQUENCY);
       const stored = (): unknown =>
         project.doc.tracks[0]!.values.controls[FREQUENCY]?.options;
-      assert.dom(`${frequency} [data-test-glide-mark]`).doesNotExist();
       await click(`${frequency} [data-test-menu-button]`);
       assert.dom('[data-test-menu-item="Glide: off…"]').exists();
       assert
@@ -1759,12 +1758,8 @@ slider(__.bus('drums'), 'gain');
       assert
         .dom(`${frequency} [data-test-glide-box] [data-test-number-entry]`)
         .hasText('1 s');
-      assert.dom(`${frequency} [data-test-glide-mark]`).hasText('glide 1 s');
       await click(`${frequency} [data-test-glide-done]`);
       assert.dom(`${frequency} [data-test-glide-box]`).doesNotExist();
-      assert
-        .dom(`${frequency} [data-test-glide-mark]`)
-        .exists('the mark stays');
 
       // the arrow keys step it, as on the other value boxes
       await click(`${frequency} [data-test-menu-button]`);
@@ -1788,7 +1783,6 @@ slider(__.bus('drums'), 'gain');
       project.undo();
       await settled();
       assert.strictEqual(stored(), undefined, 'and again: no glide');
-      assert.dom(`${frequency} [data-test-glide-mark]`).doesNotExist();
       project.redo();
       await settled();
 

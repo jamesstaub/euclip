@@ -570,18 +570,6 @@ button.number-entry:disabled {
   pointer-events: none;
 }
 
-/* the control glides: said quietly along the top edge, laid over so that nothing moves */
-.control-row__glide-mark {
-  position: absolute;
-  inset-block-start: 0;
-  inset-inline-start: calc(5.5rem + var(--space-3));
-  color: var(--near-black);
-  font-size: 0.625rem;
-  font-style: italic;
-  line-height: var(--line-height-solid);
-  pointer-events: none;
-}
-
 /* the box that sets it, opened from the menu: over the row's right-hand end, taking no room of its own */
 .control-row__glide {
   position: absolute;
