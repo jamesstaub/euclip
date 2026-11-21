@@ -10,23 +10,17 @@ export interface LaneButtonSignature {
     /** the lane is showing */
     pressed: boolean;
     onToggle: () => void;
-    /** false: no count of the steps set beside the icon (a small cell has no room; its colour says so) */
-    count?: boolean;
   };
 }
 
 /**
  * A control's lane button (v1's multislider): shows and hides the control's lane, its value on every
- * step. Blue with a count while steps hold values of their own, so a control whose steps override it
- * says so wherever it is drawn (a control row, a value cell of the waveform editor).
+ * step. Blue while steps hold values of their own (its label says how many), so a control whose steps
+ * override it says so wherever it is drawn (a control row, a value cell of the waveform editor).
  */
 export default class LaneButton extends Component<LaneButtonSignature> {
   get locked(): number {
     return this.args.control.lane?.locked ?? 0;
-  }
-
-  get showCount(): boolean {
-    return this.args.count !== false && this.locked > 0;
   }
 
   get label(): string {
@@ -49,12 +43,6 @@ export default class LaneButton extends Component<LaneButtonSignature> {
       {{on "click" @onToggle}}
     >
       <Icon @name="multislider" />
-      {{#if this.showCount}}
-        <span
-          class="lane-button__count"
-          data-test-lane-count
-        >{{this.locked}}</span>
-      {{/if}}
     </button>
   </template>
 }

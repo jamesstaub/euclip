@@ -173,6 +173,8 @@
  * A bar is a slider with no handle: dark, filled in the sliders' blue from its foot to its value.
  */
 .lane__head {
+  /* (what it says changes as a bar is pointed at: it never sizes the grid's columns) */
+  contain: inline-size;
   display: flex;
   grid-column: 1 / -1;
   align-items: baseline;

@@ -73,7 +73,9 @@ module(
       );
       assert.dom(`${row} [data-test-number-entry]`).hasText('440 Hz');
       assert.dom('[data-test-step-pick="2"]').hasAttribute('data-set', 'true');
-      assert.dom(`${row} [data-test-lane-count]`).hasText('1');
+      assert
+        .dom(`${row} [data-test-lane-button]`)
+        .hasAttribute('data-active', 'true');
 
       await click(`${row} [data-test-step-chip]`);
       assert.strictEqual(

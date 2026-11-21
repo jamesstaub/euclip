@@ -803,8 +803,12 @@ stepGrid('ones');
         .dom(`${row(FREQUENCY)} [data-test-lane-button]`)
         .hasAttribute('aria-pressed', 'false');
       assert
-        .dom(`${row(FREQUENCY)} [data-test-lane-count]`)
-        .hasText('1', 'the button still says a step is set');
+        .dom(`${row(FREQUENCY)} [data-test-lane-button]`)
+        .hasAttribute(
+          'data-active',
+          'true',
+          'the button still says a step is set',
+        );
     });
 
     test('a slider’s lane: the control stays, painted steps hold their own value, the others follow it, one step to undo', async function (assert) {
@@ -813,7 +817,9 @@ stepGrid('ones');
       const options = (): Record<string, unknown> | undefined =>
         project.doc.tracks[0]!.values.controls[FREQUENCY]?.options as
           Record<string, unknown> | undefined;
-      assert.dom(`${row(FREQUENCY)} [data-test-lane-count]`).doesNotExist();
+      assert
+        .dom(`${row(FREQUENCY)} [data-test-lane-button]`)
+        .doesNotHaveAttribute('data-active');
       await click(`${row(FREQUENCY)} [data-test-lane-button]`);
       assert.strictEqual(
         options(),
@@ -924,8 +930,12 @@ stepGrid('ones');
       view.footerPane = 'sound';
       await settled();
       assert
-        .dom(`${row(FREQUENCY)} [data-test-lane-count]`)
-        .hasText('1', 'the control says one step holds its own value');
+        .dom(`${row(FREQUENCY)} [data-test-lane-button]`)
+        .hasAttribute(
+          'data-active',
+          'true',
+          'the control says a step holds its own value',
+        );
     });
 
     test('the sequence card header does not move when the length changes, and the generators stand above the grid', async function (assert) {

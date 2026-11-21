@@ -603,8 +603,8 @@ button.number-entry:disabled {
  * a count while steps hold values of their own, so a control whose steps override it says so.
  */
 .lane-button {
-  /* its side (`--lane-button-size`, set by what it stands in): a finger's in a control row */
-  --size: var(--lane-button-size, var(--target-min));
+  /* its side (`--lane-button-size`, set by what it stands in): 1.75rem in a control row, a finger's on touch */
+  --size: var(--lane-button-size, 1.75rem);
 
   display: inline-flex;
   flex: none;
@@ -619,10 +619,10 @@ button.number-entry:disabled {
   color: var(--near-black);
   cursor: pointer;
 
-  /* (its bars take most of the button: the artwork's box is cropped to them) */
+  /* (its bars are about as tall as the label beside it: the artwork's box is cropped to them) */
   & .icon {
-    inline-size: calc(var(--size) * 0.6);
-    block-size: calc(var(--size) * 0.6);
+    inline-size: 0.75rem;
+    block-size: 0.75rem;
   }
 
   &[data-active] {
@@ -640,10 +640,10 @@ button.number-entry:disabled {
   margin-inline-start: calc(-1 * var(--space-1));
 }
 
-.lane-button__count {
-  font-size: var(--font-size-7);
-  font-weight: var(--font-weight-heavy);
-  line-height: var(--line-height-solid);
+@media (pointer: coarse) {
+  .lane-button {
+    --size: var(--lane-button-size, var(--target-min));
+  }
 }
 
 /* the open lane: under the row's controls, the whole width of the list, in its sequence's step columns */

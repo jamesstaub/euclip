@@ -598,9 +598,6 @@ module('Integration | Component | waveform', function (hooks) {
     assert
       .dom(button('speed'))
       .hasAttribute('data-active', 'true', 'blue: a step is set');
-    assert
-      .dom(`${button('speed')} [data-test-lane-count]`)
-      .doesNotExist('no count in a small cell');
     const after = cell.getBoundingClientRect();
     assert.strictEqual(after.width, before.width, 'the cell does not change');
     assert.strictEqual(after.height, before.height);

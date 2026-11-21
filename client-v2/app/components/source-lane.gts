@@ -82,7 +82,6 @@ export default class SourceLane extends Component<SourceLaneSignature> {
             class="source-lane__close"
             @control={{this.control}}
             @pressed={{true}}
-            @count={{false}}
             @onToggle={{this.close}}
           />
           <Grid
