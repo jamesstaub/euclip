@@ -48,7 +48,11 @@ export default class SourceControls extends Component<SourceControlsSignature> {
         ...attributes
       >
         {{#each this.controls key="key" as |control|}}
-          <ControlRow @scopeId={{@scopeId}} @control={{control}} />
+          <ControlRow
+            @scopeId={{@scopeId}}
+            @control={{control}}
+            @steps={{true}}
+          />
         {{/each}}
       </ul>
     {{/if}}

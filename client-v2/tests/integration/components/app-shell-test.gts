@@ -63,7 +63,7 @@ module('Integration | Component | app-shell', function (hooks) {
     project = this.owner.lookup('service:project');
     audio = this.owner.lookup('service:audio');
     view.footerOpen = true;
-    view.footerPane = 'controls';
+    view.footerPane = 'sound';
   });
 
   const frequencyOf = (track: string): unknown =>
@@ -600,7 +600,7 @@ stepGrid('ones');
       );
 
       // the dials are remembered with the grid: the pane redrawn shows the same tab and numbers
-      view.footerPane = 'controls';
+      view.footerPane = 'sound';
       await settled();
       view.footerPane = 'sequence';
       await settled();
@@ -679,7 +679,7 @@ stepGrid('ones');
     });
 
     test('each grid of a track has its own generators; a track’s menu leads to them', async function (assert) {
-      view.footerPane = 'controls';
+      view.footerPane = 'sound';
       await render(<template><AppShell /></template>);
       await click('[data-test-script-toggle]');
       await typeScript(
@@ -716,7 +716,7 @@ stepGrid('ones');
     });
 
     test('a lane has its own menu, the control’s menu plus Clear all steps and Hide lane; the bars stay in their steps’ columns', async function (assert) {
-      view.footerPane = 'controls';
+      view.footerPane = 'sound';
       await render(<template><AppShell /></template>);
       const labels = (): (string | null)[] =>
         findAll('[data-test-menu-item]').map((item) =>
@@ -803,7 +803,7 @@ stepGrid('ones');
     });
 
     test('a slider’s lane: the control stays, painted steps hold their own value, the others follow it, one step to undo', async function (assert) {
-      view.footerPane = 'controls';
+      view.footerPane = 'sound';
       await render(<template><AppShell /></template>);
       const options = (): Record<string, unknown> | undefined =>
         project.doc.tracks[0]!.values.controls[FREQUENCY]?.options as
@@ -928,7 +928,7 @@ stepGrid('ones');
       assert
         .dom('[data-test-track="1"] [data-lane-step]')
         .exists({ count: 16 });
-      view.footerPane = 'controls';
+      view.footerPane = 'sound';
       await settled();
       assert
         .dom(`${row(FREQUENCY)} [data-test-lane-count]`)
@@ -1706,7 +1706,7 @@ slider(__.bus('drums'), 'gain');
           `${text}\n__.transport.sequence('fills', { steps: 8, step: '1/16' }, () => {});\n`,
       );
       await click('[data-test-script-toggle]');
-      view.footerPane = 'source';
+      view.footerPane = 'sound';
       await waitUntil(() =>
         find('[data-test-speed-menu] [data-test-menu-button]'),
       );
@@ -2132,7 +2132,7 @@ slider(__.bus('drums'), 'gain');
     });
 
     test('removing the selected track from its menu moves the selection to a neighbour; Undo brings it back with its values; Pattern generators selects the track and shows the sequence pane', async function (assert) {
-      view.footerPane = 'controls';
+      view.footerPane = 'sound';
       await render(<template><AppShell /></template>);
       await click('[data-test-track="2"] [data-test-track-select]');
       assert.dom('[data-test-track="2"]').hasAttribute('aria-current', 'true');

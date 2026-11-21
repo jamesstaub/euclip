@@ -249,3 +249,100 @@
     font-family: var(--font-mono);
   }
 }
+
+/*
+ * The sound pane: the step picker, the source's editor and the processors.
+ *
+ * Narrow (the phone's sheet, a narrow footer) they stand one under the other: the editor first, as tall as
+ * the pane (as the source pane always was alone), then the picker and the processors, which the footer's
+ * pane scrolls to. (The pane is the pane's height and they overflow it: that is what lets the editor be
+ * exactly as tall as what is in view.)
+ *
+ * Wide, the picker runs across the top, and under it the editor and the processors stand side by side
+ * as tall as the footer, each column scrolling by itself.
+ *
+ * The source column is itself the `track-footer` container the waveform editor asks about, so the editor
+ * lays itself out for the room its column has, not the footer's.
+ */
+.sound-pane {
+  container: sound-pane / inline-size;
+  block-size: 100%;
+}
+
+.sound-pane__layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  block-size: 100%;
+}
+
+.sound-pane__columns {
+  display: contents;
+}
+
+.sound-pane__layout > *,
+.sound-pane__columns > * {
+  flex: none;
+  min-inline-size: 0;
+}
+
+.sound-pane__source {
+  container: track-footer / inline-size;
+  display: flex;
+  flex-direction: column;
+  min-block-size: 100%;
+}
+
+.sound-pane__source > .source-pane {
+  flex: 1 0 auto;
+}
+
+.sound-pane__picker {
+  order: 1;
+  padding-block-start: var(--space-2);
+}
+
+.sound-pane__processors {
+  order: 2;
+  padding-block-end: var(--space-3);
+
+  /* (stacked, the footer's pane scrolls: this one does not) */
+  overflow: visible;
+}
+
+/* with no source editor the picker leads */
+.sound-pane:not(.sound-pane--source) .sound-pane__picker {
+  order: 0;
+}
+
+@container sound-pane (min-width: 44rem) {
+  .sound-pane__layout:not([data-phone="true"] *) {
+    display: grid;
+    grid-template:
+      "picker picker" auto
+      "source processors" minmax(0, 1fr)
+      / minmax(0, 1.4fr) minmax(20rem, 1fr);
+    column-gap: var(--space-3);
+
+    & .sound-pane__picker {
+      grid-area: picker;
+    }
+
+    & .sound-pane__source {
+      grid-area: source;
+      min-block-size: 0;
+      overflow: hidden auto;
+    }
+
+    & .sound-pane__processors {
+      grid-area: processors;
+      min-block-size: 0;
+      overflow: hidden auto;
+    }
+
+    /* the processors alone (no source editor): the whole width */
+    .sound-pane:not(.sound-pane--source) & .sound-pane__processors {
+      grid-area: source / source / processors / processors;
+    }
+  }
+}

@@ -10,7 +10,7 @@ import ControlsPane from 'client-v2/components/controls-pane';
 import Icon, { type IconName } from 'client-v2/components/icon';
 import onEscape from 'client-v2/modifiers/on-escape';
 import SequencePane from 'client-v2/components/sequence-pane';
-import SourcePane from 'client-v2/components/source-pane';
+import SoundPane from 'client-v2/components/sound-pane';
 import type { ScriptError } from 'client-v2/audio/runner';
 import type { LineProblem } from 'client-v2/modifiers/mount-editor';
 import type { DeclarationWarning } from 'client-v2/controls/declarations';
@@ -22,16 +22,15 @@ import type { FooterPane } from 'client-v2/services/view';
 
 const BODY_ID = 'track-footer-body';
 
-// v1's three views of a track.
+// The two views of a track: how it sounds (source and processors together) and its steps.
 const TABS: readonly { pane: FooterPane; icon: IconName; large?: boolean }[] = [
-  { pane: 'source', icon: 'sound' },
-  { pane: 'controls', icon: 'automation', large: true },
+  { pane: 'sound', icon: 'sound' },
   { pane: 'sequence', icon: 'squares' },
 ];
 
-/** What a tab is called on screen (the controls pane is the processors tab: source has controls too). */
+/** What a tab is called on screen. */
 function labelOf(pane: FooterPane): string {
-  return pane === 'controls' ? 'processors' : pane;
+  return pane === 'sequence' ? 'steps' : pane;
 }
 
 function is(a: string, b: string): boolean {
@@ -370,10 +369,8 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
             <div class="track-footer__pane scroll-y scroll--on-yellow">
               {{#if (is this.view.footerPane "sequence")}}
                 <SequencePane @scopeId={{this.scopeId}} @label={{this.name}} />
-              {{else if (is this.view.footerPane "source")}}
-                <SourcePane @scopeId={{this.scopeId}} @label={{this.name}} />
               {{else}}
-                <ControlsPane @scopeId={{this.scopeId}} @heading="Processors" />
+                <SoundPane @scopeId={{this.scopeId}} @label={{this.name}} />
               {{/if}}
             </div>
           </div>

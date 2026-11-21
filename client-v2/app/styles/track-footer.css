@@ -282,8 +282,10 @@
 }
 
 /* room under the last thing in a pane, so the strip does not sit on it for good */
-.track-footer[data-error] .track-footer__pane,
-.track-footer[data-warnings] .track-footer__pane {
+.track-footer[data-error] .track-footer__pane:not(:has(> .sound-pane)),
+.track-footer[data-warnings] .track-footer__pane:not(:has(> .sound-pane)),
+.track-footer[data-error] .sound-pane__processors,
+.track-footer[data-warnings] .sound-pane__processors {
   padding-block-end: var(--space-5);
 }
 

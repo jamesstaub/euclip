@@ -130,7 +130,7 @@ module('Integration | Sequence pane layout', function (hooks) {
           </template>,
         );
         sized(width);
-        for (const tab of ['source', 'controls', 'sequence'] as const) {
+        for (const tab of ['sound', 'sequence'] as const) {
           view.footerOpen = true;
           view.footerPane = tab;
           await settled();

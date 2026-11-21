@@ -543,7 +543,9 @@ button.number-entry:disabled {
 }
 
 .control-row__label {
-  flex: none;
+  /* (its width, unless the row is short of room: then it gives way before the widget and the menu do) */
+  flex: 0 1 5.5rem;
+  min-inline-size: 2.5rem;
   inline-size: 5.5rem;
   font-size: var(--font-size-7);
   font-weight: var(--font-weight-bold);

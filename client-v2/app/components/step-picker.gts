@@ -145,6 +145,18 @@ export default class StepPicker extends Component<StepPickerSignature> {
             {{/each}}
           </select>
         {{/if}}
+        <Hint @label="About editing a step" data-test-step-picker-hint>
+          <p>With
+            <b>All steps</b>, a control sets its own value: what every step
+            plays unless the step has one of its own.</p>
+          <p>Choose a step and the controls set that step’s value instead: turn
+            a knob with step 5 chosen and only step 5 changes. A dot marks a
+            step some control holds a value for. A control’s
+            <b>step</b>
+            button makes its step follow the control again.</p>
+          <p>Each control’s lane (its multislider button) shows every step at
+            once, to paint across.</p>
+        </Hint>
         <span class="step-picker__steps">
           {{#each this.cells key="index" as |cell|}}
             <button
@@ -159,18 +171,6 @@ export default class StepPicker extends Component<StepPickerSignature> {
             >{{cell.number}}</button>
           {{/each}}
         </span>
-        <Hint @label="About editing a step" data-test-step-picker-hint>
-          <p>With
-            <b>All steps</b>, a control sets its own value: what every step
-            plays unless the step has one of its own.</p>
-          <p>Choose a step and the controls set that step’s value instead: turn
-            a knob with step 5 chosen and only step 5 changes. A dot marks a
-            step some control holds a value for. A control’s
-            <b>step</b>
-            button makes its step follow the control again.</p>
-          <p>Each control’s lane (its multislider button) shows every step at
-            once, to paint across.</p>
-        </Hint>
       </div>
     {{/if}}
   </template>

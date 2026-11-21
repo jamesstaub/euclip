@@ -34,7 +34,7 @@ module('Integration | Component | signal chain', function (hooks) {
     project = this.owner.lookup('service:project');
     audio = this.owner.lookup('service:audio');
     view.footerOpen = true;
-    view.footerPane = 'controls';
+    view.footerPane = 'sound';
     view.setRowsView('chain');
   });
 
@@ -59,14 +59,15 @@ module('Integration | Component | signal chain', function (hooks) {
     await settled();
   }
 
-  test('the footer’s tabs are source, controls, sequence', async function (assert) {
+  test('the footer’s tabs are sound and steps', async function (assert) {
     await render(<template><AppShell /></template>);
     assert.deepEqual(
       findAll('[data-test-footer-tab]').map((tab) =>
         tab.getAttribute('data-test-footer-tab'),
       ),
-      ['source', 'controls', 'sequence'],
+      ['sound', 'sequence'],
     );
+    assert.dom('[data-test-footer-tab="sequence"]').includesText('steps');
   });
 
   test('the project bar has one Seq / Signal toggle for every row, and no title', async function (assert) {
@@ -286,7 +287,7 @@ module('Integration | Component | signal chain', function (hooks) {
     await render(<template><AppShell /></template>);
     await click('[data-test-track="2"] [data-test-chain-node="sampler"]');
     assert.dom('[data-test-track="2"]').hasAria('current', 'true');
-    assert.strictEqual(view.footerPane, 'source');
+    assert.strictEqual(view.footerPane, 'sound');
     assert.dom('[data-test-pane="source"]').exists();
     assert
       .dom('[data-test-track="2"] [data-test-chain-node="sampler"]')
@@ -300,7 +301,7 @@ module('Integration | Component | signal chain', function (hooks) {
     view.footerPane = 'sequence';
     await render(<template><AppShell /></template>);
     await click(`${pane} [data-test-chain-node="filter"]`);
-    assert.strictEqual(view.footerPane, 'controls');
+    assert.strictEqual(view.footerPane, 'sound');
     assert
       .dom('[data-test-control-group="filter"]')
       .hasAttribute('data-located', 'true');
@@ -357,9 +358,10 @@ module('Integration | Component | signal chain', function (hooks) {
     assert.dom('[data-test-track="2"] [data-test-chain-actions]').exists();
   });
 
-  test('the tab is called processors', async function (assert) {
+  test('the sound tab holds the source and the processors', async function (assert) {
     await render(<template><AppShell /></template>);
-    assert.dom('[data-test-footer-tab="controls"]').includesText('processors');
+    assert.dom('[data-test-footer-tab="sound"]').includesText('sound');
+    assert.dom('[data-test-pane="sound"] [data-test-pane="source"]').exists();
     assert
       .dom('[data-test-pane="controls"] .pane-heading')
       .includesText('Processors');

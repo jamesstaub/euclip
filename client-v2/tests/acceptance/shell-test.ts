@@ -57,8 +57,8 @@ module('Acceptance | project', function (hooks) {
     await click('[data-test-track="2"] [data-test-track-select]');
     if (!find('[data-test-footer-body]'))
       await click('[data-test-footer-toggle]');
-    if (view.footerPane !== 'controls')
-      await click('[data-test-footer-tab="controls"]');
+    if (view.footerPane !== 'sound')
+      await click('[data-test-footer-tab="sound"]');
 
     const key = controlKey('#filter', 'frequency');
     const slider = `[data-test-control="${key}"] [data-test-slider]`;

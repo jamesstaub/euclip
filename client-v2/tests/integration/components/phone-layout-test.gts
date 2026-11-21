@@ -120,17 +120,17 @@ module('Integration | Phone layout', function (hooks) {
       assert.dom('[data-test-app-shell]').hasAttribute('data-sheet', 'closed');
       assert.dom('[data-test-footer-body]').doesNotExist();
 
-      await click('[data-test-footer-tab="source"]');
+      await click('[data-test-footer-tab="sound"]');
       assert.dom('[data-test-app-shell]').hasAttribute('data-sheet', 'half');
-      assert.dom('[data-test-footer-tab="source"]').hasAria('pressed', 'true');
+      assert.dom('[data-test-footer-tab="sound"]').hasAria('pressed', 'true');
 
-      await click('[data-test-footer-tab="controls"]');
+      await click('[data-test-footer-tab="sequence"]');
       assert.dom('[data-test-app-shell]').hasAttribute('data-sheet', 'half');
       assert
-        .dom('[data-test-footer-tab="controls"]')
+        .dom('[data-test-footer-tab="sequence"]')
         .hasAria('pressed', 'true');
 
-      await click('[data-test-footer-tab="controls"]');
+      await click('[data-test-footer-tab="sequence"]');
       assert.dom('[data-test-app-shell]').hasAttribute('data-sheet', 'closed');
     });
 
@@ -184,9 +184,9 @@ module('Integration | Phone layout', function (hooks) {
       assert.dom('[data-test-sheet-handle]').doesNotExist();
       assert
         .dom('[data-test-footer-body] [data-test-footer-tab]')
-        .exists({ count: 3 });
-      await click('[data-test-footer-tab="source"]');
-      await click('[data-test-footer-tab="source"]');
+        .exists({ count: 2 });
+      await click('[data-test-footer-tab="sound"]');
+      await click('[data-test-footer-tab="sound"]');
       assert.dom('[data-test-footer-body]').exists('tabs do not close it');
     });
   });
@@ -297,8 +297,8 @@ module('Integration | Phone layout', function (hooks) {
 
       await click('[data-test-chain-node="filter"]');
       assert.dom('[data-test-app-shell]').hasAttribute('data-sheet', 'closed');
-      assert.strictEqual(view.footerPane, 'controls', 'the tab is ready');
-      await click('[data-test-footer-tab="controls"]');
+      assert.strictEqual(view.footerPane, 'sound', 'the tab is ready');
+      await click('[data-test-footer-tab="sound"]');
       assert.dom('[data-test-app-shell]').hasAttribute('data-sheet', 'half');
       view.setRowsView('steps');
     });

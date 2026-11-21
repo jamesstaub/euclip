@@ -23,7 +23,7 @@ module(
       project = this.owner.lookup('service:project');
       view.phone = false;
       view.footerOpen = true;
-      view.footerPane = 'controls';
+      view.footerPane = 'sound';
     });
     hooks.afterEach(function () {
       window.localStorage.removeItem(VIEW_STORAGE_KEY);

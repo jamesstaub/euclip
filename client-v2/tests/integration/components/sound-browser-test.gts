@@ -50,7 +50,7 @@ module('Integration | Component | sound-browser', function (hooks) {
     project = this.owner.lookup('service:project');
     audio = this.owner.lookup('service:audio');
     view.footerOpen = true;
-    view.footerPane = 'source';
+    view.footerPane = 'sound';
     asked = [];
     audio.library = new LibraryClient(
       { api: '/v1', audio: '' },

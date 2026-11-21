@@ -73,7 +73,7 @@ module('Integration | Component | synth source', function (hooks) {
     scopes.forceRunning = true;
     scopes.reducedMotion = false;
     view.footerOpen = true;
-    view.footerPane = 'source';
+    view.footerPane = 'sound';
   });
 
   const OSC = `__().saw({ id: 'osc', frequency: 110 }).to('channel');
@@ -133,9 +133,9 @@ synth('#osc');
     await click('[data-test-synth-hint] [data-test-hint-button]');
     assert.strictEqual(range(), 'C2 to B3', 'starts where the notes are');
 
-    view.footerPane = 'controls';
-    await settled();
-    assert.dom('[data-test-control]').doesNotExist();
+    assert
+      .dom('[data-test-pane="controls"] [data-test-control]')
+      .doesNotExist('nothing is left for the processors');
     assert.strictEqual(audio.error(id), null);
   });
 
@@ -453,7 +453,7 @@ slider('#synth', 'resonance');
     scopes.step(0.02);
     assert.strictEqual(scopes.tapCount, 1, 'the rebuilt node has the one tap');
 
-    view.footerPane = 'controls';
+    view.footerPane = 'sequence';
     await settled();
     assert.strictEqual(scopes.visibleCount, 0, 'hidden: not registered');
     scopes.step(2);
@@ -518,9 +518,9 @@ slider('#synth', 'resonance');
     view.setRowsView('chain');
     await settled();
     await click('[data-test-chain-node="synth"]');
-    assert.strictEqual(view.footerPane, 'source');
+    assert.strictEqual(view.footerPane, 'sound');
     assert.dom('[data-test-synth="synth"]').exists('the synth’s editor');
     await click('[data-test-chain-node="filter"]');
-    assert.strictEqual(view.footerPane, 'controls');
+    assert.strictEqual(view.footerPane, 'sound');
   });
 });

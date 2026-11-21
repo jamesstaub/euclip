@@ -81,7 +81,7 @@ module('Integration | Component | waveform', function (hooks) {
     project = this.owner.lookup('service:project');
     audio = this.owner.lookup('service:audio');
     view.footerOpen = true;
-    view.footerPane = 'source';
+    view.footerPane = 'sound';
   });
 
   /** The app with a sliced-loop track added and selected, its waveform drawn. */
@@ -541,14 +541,14 @@ module('Integration | Component | waveform', function (hooks) {
       .hasText('0 st', 'the cell shows it in the unit chosen');
 
     // the speed is a source's control: the controls pane does not list it again
-    view.footerPane = 'controls';
+    view.footerPane = 'sound';
     await settled();
     assert
       .dom('[data-test-control="#sampler › speed"]')
       .doesNotExist(
         'a sampler’s controls are in the source tab, not the processors',
       );
-    view.footerPane = 'source';
+    view.footerPane = 'sound';
     await settled();
     await waitFor(`${STAGE}[data-ready]`);
     await click('[data-test-speed-menu] [data-test-menu-button]');
@@ -1474,11 +1474,12 @@ waveform(hat);
   test('the editor fits the pane: its numbers are inside the footer, not scrolled out of it', async function (assert) {
     await open();
     const pane = find('.track-footer__pane')!;
+    const source = find('[data-test-sound-source]')!;
     const values = find('.waveform__values')!.getBoundingClientRect();
     const footer = find('[data-test-track-footer]')!.getBoundingClientRect();
     assert.true(
-      pane.scrollHeight <= pane.clientHeight + 1,
-      `the pane has nothing to scroll (${pane.scrollHeight} in ${pane.clientHeight})`,
+      source.scrollHeight <= pane.clientHeight + 1,
+      `the editor is no taller than the pane (${source.scrollHeight} in ${pane.clientHeight})`,
     );
     assert.true(
       values.bottom <= footer.bottom + 1,
@@ -1520,7 +1521,7 @@ waveform(hat);
         selection: { anchor: target + 3 },
         userEvent: 'select',
       });
-      view.footerPane = 'controls';
+      view.footerPane = 'sound';
       await click('[data-test-script-toggle]');
       assert
         .dom(`[data-test-control="#filter › frequency"]`)

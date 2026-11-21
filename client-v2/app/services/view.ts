@@ -1,14 +1,14 @@
 import Service from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 
-export type FooterPane = 'source' | 'controls' | 'sequence';
+/**
+ * The footer's views of a track: its sound (the source's editor beside every node's controls, under the
+ * step picker) and its steps (the sequence pane). An earlier version's 'source' and 'controls' are 'sound'.
+ */
+export type FooterPane = 'sound' | 'sequence';
 
 /** In the order the footer's menu shows them. */
-export const FOOTER_PANES: readonly FooterPane[] = [
-  'source',
-  'controls',
-  'sequence',
-];
+export const FOOTER_PANES: readonly FooterPane[] = ['sound', 'sequence'];
 
 /** How long a section of the controls pane stays outlined after the signal chain sent the person to it. */
 export const LOCATE_MS = 1800;
@@ -108,11 +108,13 @@ export default class ViewService extends Service {
   @tracked scriptOpen = this.#stored.scriptOpen === true;
 
   /** The pane the footer menu has chosen. Change it with `setFooterPane`. */
-  @tracked footerPane: FooterPane = FOOTER_PANES.includes(
-    this.#stored.footerPane as FooterPane,
-  )
-    ? (this.#stored.footerPane as FooterPane)
-    : 'sequence';
+  @tracked footerPane: FooterPane =
+    this.#stored.footerPane === 'source' ||
+    this.#stored.footerPane === 'controls'
+      ? 'sound'
+      : FOOTER_PANES.includes(this.#stored.footerPane as FooterPane)
+        ? (this.#stored.footerPane as FooterPane)
+        : 'sequence';
 
   /**
    * The sections of the controls pane the person has closed, as `scope/section` keys. Sections are open
@@ -433,7 +435,7 @@ export default class ViewService extends Service {
 
   /** A node of the signal chain was opened: its controls, scrolled to and outlined. */
   showControlsOf(scopeId: string, nodeId: string): void {
-    this.footerPane = 'controls';
+    this.footerPane = 'sound';
     // (on the phone the sheet stays as it is: what it will show is ready when it is opened)
     if (!this.phone) this.footerOpen = true;
     this.scriptOpen = false;
@@ -448,7 +450,7 @@ export default class ViewService extends Service {
   /** A sampler of the signal chain was opened: its waveform, chosen in the source pane. */
   showSourceOf(scopeId: string, waveformKey: string | null): void {
     if (waveformKey !== null) this.chooseWaveform(scopeId, waveformKey);
-    this.footerPane = 'source';
+    this.footerPane = 'sound';
     if (!this.phone) this.footerOpen = true;
     this.scriptOpen = false;
     this.#save();

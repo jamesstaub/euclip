@@ -55,13 +55,13 @@ module('Unit | Service | view', function (hooks) {
     const view = this.owner.lookup('service:view');
     view.footerOpen = true;
     view.toggleScript();
-    view.setFooterPane('source');
+    view.setFooterPane('sound');
 
     assert.deepEqual(
       JSON.parse(window.localStorage.getItem(VIEW_STORAGE_KEY) ?? 'null'),
       {
         scriptOpen: true,
-        footerPane: 'source',
+        footerPane: 'sound',
         collapsed: [],
         waveforms: {},
         snaps: {},
@@ -119,7 +119,7 @@ module('Unit | Service | view', function (hooks) {
     );
     const view = this.owner.lookup('service:view');
     assert.true(view.scriptOpen);
-    assert.strictEqual(view.footerPane, 'controls');
+    assert.strictEqual(view.footerPane, 'sound');
   });
 
   test('broken JSON in storage falls back to the defaults', function (assert) {
