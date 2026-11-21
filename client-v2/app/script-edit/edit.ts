@@ -12,12 +12,14 @@ import {
   analyze,
   applyEdits,
   find,
+  findBranch,
   isAnalysis,
   isCannot,
   lineStart,
   stringOf,
   wholeLines,
   type Analysis,
+  type BranchRef,
   type Call,
   type Cannot,
   type Chain,
@@ -28,7 +30,7 @@ import {
   type Place,
 } from 'client-v2/script-edit/analyze';
 
-export type { Cannot, EditContext, NodeRef };
+export type { BranchRef, Cannot, EditContext, NodeRef };
 export {
   analyze,
   find,
@@ -252,6 +254,54 @@ export interface AddAction {
   at: NodeRef;
   side: 'before' | 'after';
   type: string;
+  /**
+   * `at` is the start of this branch, drawn again in the branch's row: the node goes into the branch's
+   * statement (after the start), not into the statement `at` is made by.
+   */
+  branch?: BranchRef;
+}
+
+/** Adds the first node of a branch, or the one nearest its start: `__('#id').chain().type({ id })`. */
+function addToBranch(
+  analysis: Analysis,
+  action: AddAction & { branch: BranchRef },
+): EditResult {
+  if (action.side === 'before') {
+    return {
+      cannot:
+        'This node belongs to the main chain: add before it in that chain.',
+    };
+  }
+  const chain = findBranch(analysis, action.branch);
+  if (isCannot(chain)) return chain;
+  const id = uniqueId(analysis, action.type);
+  const segment = `.${action.type}({ id: ${quote(id)} })`;
+  let edit: Edit;
+  if (chain.nodes.length > 0) {
+    const separator = separatorAt(analysis, chain, chain.nodes[0]);
+    edit = {
+      start: chain.rootEnd,
+      end: chain.rootEnd,
+      text: separator + segment,
+    };
+  } else {
+    const written = chain.multiline;
+    const separator = written
+      ? separatorAt(analysis, chain, chain.tail!)
+      : `\n${INDENT}`;
+    edit = {
+      start: chain.rootEnd,
+      end: chain.rootEnd,
+      text: `${separator}.chain()${separator}${segment}${written ? '' : separator}`,
+    };
+  }
+  return {
+    script: applyEdits(analysis.text, [
+      edit,
+      appendControls(analysis, controlsLine(id)),
+    ]),
+    id,
+  };
 }
 
 export function addNode(
@@ -263,6 +313,9 @@ export function addNode(
   if (!isAnalysis(analysis)) return analysis;
   if (!ctx.nodeTypes.has(action.type)) {
     return { cannot: `'${action.type}' is not a node type the library has.` };
+  }
+  if (action.branch) {
+    return addToBranch(analysis, { ...action, branch: action.branch });
   }
   const place = find(analysis, action.at);
   if (isCannot(place)) return place;
@@ -357,6 +410,52 @@ export interface RemovePlan {
   wholeStatement: boolean;
   /** modulator statements that move this node, removed with it */
   modulators: number;
+  /** branch statements (`__('#id')...`) that start from a node that goes, removed with it */
+  branches: number;
+}
+
+/** Statements that cannot stand without the nodes in `ids`: their modulators and the branches that start from them. */
+function dependentsOf(
+  analysis: Analysis,
+  ids: readonly string[],
+  skip: readonly Chain[],
+): {
+  statements: Chain[];
+  ids: string[];
+  modulators: number;
+  branches: number;
+} {
+  const statements: Chain[] = [];
+  const all = [...ids];
+  let modulators = 0;
+  let branches = 0;
+  const idsOf = (chain: Chain): string[] =>
+    chain.nodes.flatMap((call) => (call.id === null ? [] : [call.id]));
+  for (let at = 0; at < all.length; at++) {
+    const id = all[at]!;
+    const found = [
+      ...modulatorsOf(analysis, id).map((chain) => ({ chain, branch: false })),
+      ...analysis.chains
+        .filter((chain) => chain.root === 'branch' && chain.from === id)
+        .map((chain) => ({ chain, branch: true })),
+    ];
+    for (const { chain, branch } of found) {
+      if (statements.includes(chain) || skip.includes(chain)) continue;
+      statements.push(chain);
+      if (branch) branches++;
+      else modulators++;
+      all.push(...idsOf(chain));
+    }
+  }
+  return { statements, ids: all, modulators, branches };
+}
+
+/** The ids of the nodes that go when a node is removed: itself, or its whole statement's. */
+function goneWith(analysis: Analysis, place: Place): string[] {
+  const nodes = wholeStatementFor(analysis, place)
+    ? place.chain.nodes
+    : [place.chain.nodes[place.index]!];
+  return nodes.flatMap((call) => (call.id === null ? [] : [call.id]));
 }
 
 function modulatorsOf(analysis: Analysis, id: string): Chain[] {
@@ -370,7 +469,7 @@ function modulatorsOf(analysis: Analysis, id: string): Chain[] {
 
 function wholeStatementFor(analysis: Analysis, place: Place): boolean {
   const { chain, index } = place;
-  if (chain.root === 'bus') return false; // the bus stays: `__.bus('main')`
+  if (chain.root !== 'chain') return false; // the bus stays: `__.bus('main')`; so does a branch's selection
   return (
     chain.nodes.length === 1 ||
     (index === 0 && analysis.ctx.sourceTypes.has(chain.nodes[0]!.name))
@@ -386,9 +485,15 @@ export function planRemove(
   if (!isAnalysis(analysis)) return analysis;
   const place = find(analysis, node);
   if (isCannot(place)) return place;
+  const { modulators, branches } = dependentsOf(
+    analysis,
+    goneWith(analysis, place),
+    [place.chain],
+  );
   return {
     wholeStatement: wholeStatementFor(analysis, place),
-    modulators: modulatorsOf(analysis, node.id).length,
+    modulators,
+    branches,
   };
 }
 
@@ -420,27 +525,77 @@ export function removeNode(
   if (isCannot(place)) return place;
   const { chain, index } = place;
   const call = chain.nodes[index]!;
-  const removed: string[] = [];
   const edits: Edit[] = [];
-  const dependants = modulatorsOf(analysis, node.id);
-  const collect = (target: Chain): void => {
-    for (const each of target.nodes)
-      if (each.id !== null) removed.push(each.id);
-  };
-  if (call.id !== null && !removed.includes(call.id)) removed.push(call.id);
-  if (wholeStatementFor(analysis, place)) {
-    collect(chain);
+  const whole = wholeStatementFor(analysis, place);
+  if (whole) {
     edits.push(wholeLines(analysis.text, chain.start, chain.end));
+  } else if (chain.root === 'branch' && chain.nodes.length === 1) {
+    // the only node of a branch: `.chain()` goes with it, leaving `__('#id').to('bus')`
+    const start = chain.chainCall!.trivia;
+    const end = chain.tail!.start;
+    if (/\/[/*]/.test(analysis.text.slice(start, end))) {
+      return {
+        cannot:
+          'A comment is in the way inside this branch: remove the node in the script.',
+      };
+    }
+    edits.push({ start, end, text: '' });
   } else {
     edits.push(removeCall(analysis, chain, call));
   }
-  for (const modulator of dependants) {
-    if (modulator === chain) continue;
-    collect(modulator);
-    edits.push(wholeLines(analysis.text, modulator.start, modulator.end));
+  const dependants = dependentsOf(analysis, goneWith(analysis, place), [chain]);
+  for (const statement of dependants.statements) {
+    edits.push(wholeLines(analysis.text, statement.start, statement.end));
   }
-  edits.push(...removeControlsOf(analysis, removed));
+  edits.push(...removeControlsOf(analysis, dependants.ids));
   return { script: applyEdits(script, dedupe(edits)) };
+}
+
+/** What removing a whole branch takes with it: the nodes it makes (and their modulators), or nothing but itself. */
+export function planRemoveBranch(
+  script: string,
+  branch: BranchRef,
+  ctx: EditContext,
+): { nodes: number; modulators: number } | Cannot {
+  const analysis = open(script, ctx);
+  if (!isAnalysis(analysis)) return analysis;
+  const chain = findBranch(analysis, branch);
+  if (isCannot(chain)) return chain;
+  const { modulators, branches } = dependentsOf(
+    analysis,
+    chain.nodes.flatMap((call) => (call.id === null ? [] : [call.id])),
+    [chain],
+  );
+  return { nodes: chain.nodes.length, modulators: modulators + branches };
+}
+
+/** Deletes a branch's statement, the controls of the nodes only it made, and what hangs on those nodes. */
+export function removeBranch(
+  script: string,
+  branch: BranchRef,
+  ctx: EditContext,
+): EditResult {
+  const analysis = open(script, ctx);
+  if (!isAnalysis(analysis)) return analysis;
+  const chain = findBranch(analysis, branch);
+  if (isCannot(chain)) return chain;
+  const dependants = dependentsOf(
+    analysis,
+    chain.nodes.flatMap((call) => (call.id === null ? [] : [call.id])),
+    [chain],
+  );
+  return {
+    script: applyEdits(
+      script,
+      dedupe([
+        wholeLines(analysis.text, chain.start, chain.end),
+        ...dependants.statements.map((statement) =>
+          wholeLines(analysis.text, statement.start, statement.end),
+        ),
+        ...removeControlsOf(analysis, dependants.ids),
+      ]),
+    ),
+  };
 }
 
 function dedupe(edits: Edit[]): Edit[] {
@@ -526,12 +681,17 @@ export function busNameProblem(name: string): string | null {
 }
 
 /** Where a chain's last node, or a bus, is sent: the `.to('...')` of its statement. */
-export type SendFrom = { node: NodeRef } | { bus: string };
+export type SendFrom =
+  { node: NodeRef } | { bus: string } | { branch: BranchRef };
 
 function sendPlace(
   analysis: Analysis,
   from: SendFrom,
 ): { chain: Chain } | Cannot {
+  if ('branch' in from) {
+    const chain = findBranch(analysis, from.branch);
+    return isCannot(chain) ? chain : { chain };
+  }
   if ('bus' in from) {
     const chain = [...analysis.chains]
       .reverse()

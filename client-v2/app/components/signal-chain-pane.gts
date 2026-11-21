@@ -30,12 +30,15 @@ import {
   moveNode,
   planModulator,
   planRemove,
+  planRemoveBranch,
   planSend,
+  removeBranch,
   removeModulator,
   removeNode,
   retarget,
   sendTo,
   suggestDepth,
+  type BranchRef,
   type EditContext,
   type EditResult,
   type NodeRef,
@@ -82,6 +85,11 @@ interface PickerGroup {
 interface Chosen {
   kind: 'node' | 'dest' | 'link';
   id: string;
+  /**
+   * For a node: where it was chosen, `rowKey:index`. A node can be drawn in two rows (a branch starts
+   * from one), and what can be done with it depends on which, so a choice is a place, not an id.
+   */
+  at?: string;
 }
 
 type Reasons = Record<
@@ -312,10 +320,22 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
   }
   /** the picker is open: where the new node goes */
   @tracked picking:
-    { side: 'before' | 'after'; id: string } | { chain: true } | null = null;
+    | {
+        side: 'before' | 'after';
+        id: string;
+        /** the node is a branch's start, drawn again: the new node goes into the branch's statement */
+        branch?: BranchRef;
+      }
+    | { chain: true }
+    | null = null;
   @tracked query = '';
   /** removing needs a word first: what it would take with it */
-  @tracked confirming: { id: string; plan: RemovePlan } | null = null;
+  @tracked confirming: {
+    id: string;
+    plan: RemovePlan;
+    /** removing a whole branch: which, and how many nodes it makes */
+    branch?: { ref: BranchRef; nodes: number };
+  } | null = null;
   /** what the last action could not do, in words */
   @tracked problem: string | null = null;
   /** the "Send to…" list is open for this row */
@@ -413,6 +433,61 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
 
   // --- the chosen node and its actions ----------------------------------------------------------------
 
+  /** The statement of a branch row: how the script tells it from the statement of the node it starts from. */
+  branchOf = (row: ChainRow): BranchRef | null => {
+    const start = row.nodes[row.shared - 1];
+    if (row.kind !== 'chain' || row.shared === 0 || !start) return null;
+    const own = row.nodes[row.shared];
+    return {
+      from: start.id,
+      to: row.destination.name,
+      first: own ? this.refOf(own) : null,
+      twin: row.twin,
+    };
+  };
+
+  /** Where the chosen node is drawn: its row and its place in it (a branch row draws its start again). */
+  get place(): { row: ChainRow; index: number } | null {
+    const current = this.current;
+    if (current?.kind !== 'node') return null;
+    if (current.at) {
+      const colon = current.at.lastIndexOf(':');
+      const row = this.rows.find((r) => r.key === current.at!.slice(0, colon));
+      const index = Number(current.at.slice(colon + 1));
+      if (row && row.nodes[index]?.id === current.id) return { row, index };
+    }
+    let any: { row: ChainRow; index: number } | null = null;
+    for (const row of this.rows) {
+      const index = row.nodes.findIndex((n) => n.id === current.id);
+      if (index < 0) continue;
+      if (index >= row.shared) return { row, index };
+      any ??= { row, index };
+    }
+    return any;
+  }
+
+  /** The chosen node is drawn again in a branch row, from the row it branched from: it is not the branch's own. */
+  get isReference(): boolean {
+    const place = this.place;
+    return place !== null && place.index < place.row.shared;
+  }
+
+  /** The branch a choice is the start of: its drawn-again start node, or the one connection it has when it makes no node. */
+  get branchRemoval(): { row: ChainRow; ref: BranchRef } | null {
+    const place = this.place;
+    const link = this.selectedLink;
+    const row =
+      place && place.index === place.row.shared - 1
+        ? place.row
+        : link &&
+            link.index === link.row.shared - 1 &&
+            link.row.nodes.length === link.row.shared
+          ? link.row
+          : null;
+    const ref = row ? this.branchOf(row) : null;
+    return row && ref ? { row, ref } : null;
+  }
+
   get selected(): ChainNode | null {
     return this.current?.kind === 'node'
       ? (this.nodes.get(this.current.id) ?? null)
@@ -435,8 +510,17 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
       : null;
   }
 
-  isSelected = (node: ChainNode): boolean =>
-    this.current?.kind === 'node' && this.current.id === node.id;
+  isSelected = (node: ChainNode, row: ChainRow, index: number): boolean => {
+    const place = this.place;
+    return (
+      this.current?.id === node.id &&
+      place?.row.key === row.key &&
+      place.index === index
+    );
+  };
+
+  /** A branch row's first nodes are the main chain's, drawn again. */
+  isRef = (row: ChainRow, index: number): boolean => index < row.shared;
 
   isDestSelected = (row: ChainRow): boolean =>
     this.current?.kind === 'dest' && this.current.id === row.key;
@@ -458,6 +542,7 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
   /** The connection chosen, if one is: the link after a node of a row (the last one leads to the row's end). */
   get selectedLink(): {
     row: ChainRow;
+    index: number;
     from: ChainNode;
     to: ChainNode | null;
   } | null {
@@ -471,6 +556,7 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
     if (!row || !from) return null;
     return {
       row,
+      index: Number(current.id.slice(at + 1)),
       from,
       to: row.nodes[Number(current.id.slice(at + 1)) + 1] ?? null,
     };
@@ -580,6 +666,13 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
     }
     const link = this.selectedLink;
     const type = [...context.nodeTypes][0] ?? 'gain';
+    const place = this.place;
+    const removal = this.branchRemoval;
+    const planned = removal
+      ? planRemoveBranch(text, removal.ref, context)
+      : null;
+    const removeBranchWhy =
+      planned && 'cannot' in planned ? planned.cannot : null;
     const modulatable =
       this.modulatable(anchor).length === 0
         ? anchor.macro
@@ -593,8 +686,50 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
       return {
         ...all('Choose a node to do this.'),
         chain: chainWhy,
-        insert: check(addNode(text, { at: ref, side: 'after', type }, context)),
+        insert: check(
+          addNode(
+            text,
+            {
+              at: ref,
+              side: 'after',
+              type,
+              ...(link.row.shared > 0 && link.index === link.row.shared - 1
+                ? { branch: this.branchOf(link.row) ?? undefined }
+                : {}),
+            },
+            context,
+          ),
+        ),
+        remove: removal
+          ? removeBranchWhy
+          : 'Choose a node to remove it, or the start of a branch to remove the branch.',
         route: link.to ? branch : this.sendWhy(link.row),
+      };
+    }
+    if (place && this.isReference) {
+      const main =
+        'This node is the main chain’s, drawn again where the branch starts: change it in the chain it belongs to.';
+      const start = place.index === place.row.shared - 1;
+      const own = start ? this.branchOf(place.row) : null;
+      return {
+        ...all(null),
+        chain: chainWhy,
+        before: main,
+        after: own
+          ? check(
+              addNode(
+                text,
+                { at: ref, side: 'after', type, branch: own },
+                context,
+              ),
+            )
+          : main,
+        insert: 'Choose a connection to insert a node into it.',
+        left: main,
+        right: main,
+        remove: removal ? removeBranchWhy : main,
+        modulate: modulatable,
+        route: branch,
       };
     }
     return {
@@ -646,7 +781,11 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
   }
 
   get removeAction(): string {
-    return this.modulatorRow ? 'remove-modulator' : 'remove';
+    return this.modulatorRow
+      ? 'remove-modulator'
+      : this.branchRemoval
+        ? 'remove-branch'
+        : 'remove';
   }
 
   /** Every icon of the toolbar with its name and, if it is off, why: the phone's "?" lists them. */
@@ -666,7 +805,11 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
   }
 
   get removeLabel(): string {
-    return this.modulatorRow ? 'Remove modulator' : 'Remove';
+    return this.modulatorRow
+      ? 'Remove modulator'
+      : this.branchRemoval
+        ? 'Remove branch'
+        : 'Remove';
   }
 
   /** The toolbar is part of the selected track's row in Signal view, whatever is or is not chosen. */
@@ -675,8 +818,8 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
   }
 
   /** A tap on a node chooses it, chooses its track, and shows it in the footer at once. */
-  choose = (node: ChainNode): void => {
-    this.chosen = { kind: 'node', id: node.id };
+  choose = (node: ChainNode, row: ChainRow, index: number): void => {
+    this.chosen = { kind: 'node', id: node.id, at: `${row.key}:${index}` };
     this.confirming = null;
     this.problem = null;
     this.args.onSelectTrack?.(this.args.scopeId);
@@ -721,6 +864,8 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
       this.chosen = null;
       this.newBus = '';
       this.newBusOpen = false;
+      // (the list was last used for a branch, perhaps: a tap on a chip sends)
+      this.sendMode = 'send';
       this.sending = row.key;
     } else {
       this.chosen = { kind: 'dest', id: row.key };
@@ -792,7 +937,16 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
   openPicker = (side: 'before' | 'after'): void => {
     if (!this.selected) return;
     this.query = '';
-    this.picking = { side, id: this.selected.id };
+    const place = this.place;
+    const branch =
+      place && this.isReference && place.index === place.row.shared - 1
+        ? this.branchOf(place.row)
+        : null;
+    this.picking = {
+      side,
+      id: this.selected.id,
+      ...(branch ? { branch } : {}),
+    };
   };
 
   closePicker = (): void => {
@@ -846,10 +1000,18 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
 
   /** Between two nodes: after the first of them. */
   insertHere = (): void => {
-    const from = this.selectedLink?.from;
-    if (!from) return;
+    const link = this.selectedLink;
+    if (!link) return;
     this.query = '';
-    this.picking = { side: 'after', id: from.id };
+    const branch =
+      link.row.shared > 0 && link.index === link.row.shared - 1
+        ? this.branchOf(link.row)
+        : null;
+    this.picking = {
+      side: 'after',
+      id: link.from.id,
+      ...(branch ? { branch } : {}),
+    };
   };
 
   add = async (type: string): Promise<void> => {
@@ -873,7 +1035,12 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
     await this.apply(
       addNode(
         this.script,
-        { at: this.refOf(node), side: picking.side, type },
+        {
+          at: this.refOf(node),
+          side: picking.side,
+          type,
+          ...(picking.branch ? { branch: picking.branch } : {}),
+        },
         this.context,
       ),
     );
@@ -900,7 +1067,7 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
       this.problem = plan.cannot;
       return;
     }
-    if (plan.wholeStatement || plan.modulators > 0) {
+    if (plan.wholeStatement || plan.modulators > 0 || plan.branches > 0) {
       this.confirming = { id: node.id, plan };
       return;
     }
@@ -910,6 +1077,13 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
   confirmRemove = async (): Promise<void> => {
     const confirming = this.confirming;
     this.confirming = null;
+    if (confirming?.branch) {
+      await this.apply(
+        removeBranch(this.script, confirming.branch.ref, this.context),
+        { choose: null },
+      );
+      return;
+    }
     const node = confirming ? this.nodes.get(confirming.id) : undefined;
     if (node) await this.#removeNow(node);
   };
@@ -928,6 +1102,18 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
   get confirmText(): string {
     const confirming = this.confirming;
     if (!confirming) return '';
+    if (confirming.branch) {
+      const { nodes } = confirming.branch;
+      const parts = [
+        nodes === 0
+          ? 'This removes the branch: the extra connection from the node.'
+          : `This removes the branch, and the ${nodes === 1 ? 'node' : `${nodes} nodes`} it makes with ${nodes === 1 ? 'its' : 'their'} controls.`,
+      ];
+      if (confirming.plan.modulators > 0)
+        parts.push('What moves those nodes goes too.');
+      parts.push('The main chain is not touched. Undo brings it all back.');
+      return parts.join(' ');
+    }
     const parts = [
       confirming.plan.wholeStatement
         ? 'This removes the whole chain it is in, with the controls of every node in it.'
@@ -940,6 +1126,13 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
           : `The ${confirming.plan.modulators} modulators that move it go too.`,
       );
     }
+    if (confirming.plan.branches > 0) {
+      parts.push(
+        confirming.plan.branches === 1
+          ? 'The branch that starts from it goes too.'
+          : `The ${confirming.plan.branches} branches that start from it go too.`,
+      );
+    }
     parts.push('Undo brings it all back.');
     return parts.join(' ');
   }
@@ -947,10 +1140,15 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
   // --- destinations ---------------------------------------------------------------------------------------
 
   /** The script a row's end is written in, and what it says to change: the row's last node, or the bus. */
-  #sendFrom = (row: ChainRow): { node: NodeRef } | { bus: string } | null => {
+  #sendFrom = (
+    row: ChainRow,
+  ): { node: NodeRef } | { bus: string } | { branch: BranchRef } | null => {
     if (row.kind === 'bus') return row.bus === null ? null : { bus: row.bus };
     const last = row.nodes[row.nodes.length - 1];
-    return row.kind === 'chain' && last ? { node: this.refOf(last) } : null;
+    if (row.kind !== 'chain' || !last) return null;
+    // a branch that makes no node of its own is told from the statement of the node it starts from
+    const branch = row.nodes.length === row.shared ? this.branchOf(row) : null;
+    return branch ? { branch } : { node: this.refOf(last) };
   };
 
   sendWhy = (row: ChainRow): string | null => {
@@ -960,7 +1158,7 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
     if (row.destination.kind === 'output') {
       return 'This bus is the last stop: main goes to the speakers.';
     }
-    if (row.branch) {
+    if (row.branch && (row.kind !== 'chain' || row.shared === 0)) {
       return 'This chain splits here, so where it goes is changed in the script.';
     }
     const from = this.#sendFrom(row);
@@ -1027,7 +1225,28 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
   /** Remove, for what is chosen: a node, or a whole modulator. */
   removeChosen = async (): Promise<void> => {
     if (this.modulatorRow) await this.removeModulator();
+    else if (this.branchRemoval) this.removeWholeBranch();
     else await this.remove();
+  };
+
+  /** Removing a branch asks first: it takes the nodes only it made. */
+  removeWholeBranch = (): void => {
+    const removal = this.branchRemoval;
+    if (!removal) return;
+    const plan = planRemoveBranch(this.script, removal.ref, this.context);
+    if ('cannot' in plan) {
+      this.problem = plan.cannot;
+      return;
+    }
+    this.confirming = {
+      id: removal.ref.from,
+      plan: {
+        wholeStatement: false,
+        modulators: plan.modulators,
+        branches: 0,
+      },
+      branch: { ref: removal.ref, nodes: plan.nodes },
+    };
   };
 
   closeSend = (): void => {
@@ -1319,15 +1538,21 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
                   <button
                     type="button"
                     class="chain-node"
-                    aria-pressed={{if (this.isSelected node) "true" "false"}}
+                    aria-pressed={{if
+                      (this.isSelected node row index)
+                      "true"
+                      "false"
+                    }}
                     data-readonly={{if (this.isReadOnly node) "true"}}
+                    data-ref={{if (this.isRef row index) "true"}}
                     data-test-chain-node={{node.id}}
                     data-type={{node.type}}
-                    {{on "click" (fn this.choose node)}}
+                    {{on "click" (fn this.choose node row index)}}
                   >
                     <b>{{node.type}}</b>
                     {{#unless node.autoId}}<span>{{node.id}}</span>{{/unless}}
-                    {{#if (this.isReadOnly node)}}<i>edit in script</i>{{/if}}
+                    {{#if (this.isRef row index)}}<i>main chain</i>
+                    {{else if (this.isReadOnly node)}}<i>edit in script</i>{{/if}}
                   </button>
                   <span class="chain-wire">
                     <button

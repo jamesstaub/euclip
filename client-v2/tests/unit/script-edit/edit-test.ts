@@ -15,11 +15,15 @@ import {
   giveId,
   moveNode,
   planRemove,
+  planRemoveBranch,
+  removeBranch,
   removeNode,
+  type BranchRef,
   type EditContext,
   type EditResult,
   type NodeRef,
 } from 'client-v2/script-edit/edit';
+import { analyze, isAnalysis } from 'client-v2/script-edit/analyze';
 import { samplerScript } from 'client-v2/project/default-project';
 
 const ctx: EditContext = {
@@ -359,7 +363,11 @@ controls('#gain');
 
     test('the source removes the whole statement, and the plan says so first', function (assert) {
       const plan = planRemove(KICK, ref('sampler', 'sampler'), ctx);
-      assert.deepEqual(plan, { wholeStatement: true, modulators: 0 });
+      assert.deepEqual(plan, {
+        wholeStatement: true,
+        modulators: 0,
+        branches: 0,
+      });
       const next = script(removeNode(KICK, ref('sampler', 'sampler'), ctx));
       assert.false(next.includes('.lowpass('));
       assert.false(
@@ -383,6 +391,7 @@ controls('#gain');
       assert.deepEqual(planRemove(text, ref('a', 'gain'), ctx), {
         wholeStatement: true,
         modulators: 0,
+        branches: 0,
       });
       assert.strictEqual(
         script(removeNode(text, ref('a', 'gain'), ctx)),
@@ -422,6 +431,7 @@ controls('#f');
       assert.deepEqual(planRemove(text, ref('f', 'lowpass'), ctx), {
         wholeStatement: false,
         modulators: 1,
+        branches: 0,
       });
       assert.strictEqual(
         script(removeNode(text, ref('f', 'lowpass'), ctx)),
@@ -452,6 +462,7 @@ controls('#f');
       assert.deepEqual(planRemove(text, ref('glue', 'compressor'), ctx), {
         wholeStatement: false,
         modulators: 0,
+        branches: 0,
       });
       assert.strictEqual(
         script(removeNode(text, ref('glue', 'compressor'), ctx)),
@@ -902,6 +913,278 @@ controls('#f');
           "  .lowpass({ id: 'filter', frequency: 2000, q: 2 })\n  .delay({ id: 'delay' })\n  .gain({ id: 'level'",
         ),
       );
+    });
+  });
+
+  module('branches', function () {
+    // a track with its main chain, a branch from the sampler (the owner's), and controls
+    const MAIN = `__()
+  .sampler({ id: 'sampler' })
+  .gain({ id: 'level', gain: 0.9 })
+  .to('channel');
+__('#sampler').to('verb');
+
+// Controls
+knob('#level', 'gain');
+`;
+    const startRef: BranchRef = {
+      from: 'sampler',
+      to: 'verb',
+      first: null,
+      twin: 0,
+    };
+    const WITH_DELAY = `__()
+  .sampler({ id: 'sampler' })
+  .gain({ id: 'level', gain: 0.9 })
+  .to('channel');
+__('#sampler')
+  .chain()
+  .delay({ id: 'delay' })
+  .to('verb');
+
+// Controls
+knob('#level', 'gain');
+controls('#delay');
+`;
+    const delayRef = ref('delay', 'delay');
+    const branchWith = (first: NodeRef): BranchRef => ({
+      ...startRef,
+      first,
+    });
+
+    test('the analyser reads the branch forms and refuses other selections', function (assert) {
+      const read = (text: string) => {
+        const a = analyze(text, ctx);
+        if (!isAnalysis(a)) throw new Error(a.cannot);
+        return a.chains.filter((chain) => chain.root === 'branch');
+      };
+      assert.strictEqual(read(MAIN).length, 1);
+      assert.strictEqual(read(WITH_DELAY)[0]!.nodes.length, 1);
+      assert.strictEqual(read(WITH_DELAY)[0]!.from, 'sampler');
+      for (const other of [
+        "__('#sampler').trigger();",
+        "__('sampler').to('verb');",
+        "__('#a').delay({ id: 'x' }).to('verb');", // a node call on a selection only sets
+        "__('#a').chain().to('verb');",
+        "__('#a').chain().delay({ id: 'x' }).connect('#b');",
+      ]) {
+        assert.strictEqual(read(other).length, 0, other);
+      }
+    });
+
+    test('Insert on the branch’s link writes into the branch, not the main chain', function (assert) {
+      const next = script(
+        addNode(
+          MAIN,
+          {
+            at: ref('sampler', 'sampler'),
+            side: 'after',
+            type: 'delay',
+            branch: startRef,
+          },
+          ctx,
+        ),
+      );
+      assert.strictEqual(next, WITH_DELAY);
+      // without the branch, the same request is the main chain's
+      assert.true(
+        script(
+          addNode(
+            MAIN,
+            { at: ref('sampler', 'sampler'), side: 'after', type: 'delay' },
+            ctx,
+          ),
+        ).includes(
+          ".sampler({ id: 'sampler' })\n  .delay({ id: 'delay' })\n  .gain(",
+        ),
+      );
+    });
+
+    test('a second insert goes where it is asked for in the same statement', function (assert) {
+      const later = script(
+        addNode(
+          WITH_DELAY,
+          { at: delayRef, side: 'after', type: 'reverb' },
+          ctx,
+        ),
+      );
+      assert.true(
+        later.includes(
+          "__('#sampler')\n  .chain()\n  .delay({ id: 'delay' })\n  .reverb({ id: 'reverb' })\n  .to('verb');",
+        ),
+        later,
+      );
+      const first = script(
+        addNode(
+          WITH_DELAY,
+          {
+            at: ref('sampler', 'sampler'),
+            side: 'after',
+            type: 'reverb',
+            branch: branchWith(delayRef),
+          },
+          ctx,
+        ),
+      );
+      assert.true(
+        first.includes(
+          "__('#sampler')\n  .chain()\n  .reverb({ id: 'reverb' })\n  .delay({ id: 'delay' })\n  .to('verb');",
+        ),
+        first,
+      );
+      assert.true(
+        first.includes(".gain({ id: 'level', gain: 0.9 })\n  .to('channel');"),
+        'the main chain is as it was',
+      );
+    });
+
+    test('nothing is added before the branch’s start, which is the main chain’s', function (assert) {
+      const result = addNode(
+        MAIN,
+        {
+          at: ref('sampler', 'sampler'),
+          side: 'before',
+          type: 'delay',
+          branch: startRef,
+        },
+        ctx,
+      );
+      assert.true('cannot' in result);
+    });
+
+    test('remove, move and send work on a node the branch makes', function (assert) {
+      const two = script(
+        addNode(
+          WITH_DELAY,
+          { at: delayRef, side: 'after', type: 'reverb' },
+          ctx,
+        ),
+      );
+      assert.true(
+        script(removeNode(two, ref('delay', 'delay'), ctx)).includes(
+          "__('#sampler')\n  .chain()\n  .reverb({ id: 'reverb' })\n  .to('verb');",
+        ),
+      );
+      assert.true(
+        script(
+          moveNode(
+            two,
+            { node: ref('delay', 'delay'), direction: 'right' },
+            ctx,
+          ),
+        ).includes(
+          ".chain()\n  .reverb({ id: 'reverb' })\n  .delay({ id: 'delay' })\n  .to('verb');",
+        ),
+      );
+      assert.true(
+        'cannot' in
+          moveNode(
+            two,
+            { node: ref('delay', 'delay'), direction: 'left' },
+            ctx,
+          ),
+        'it is first of the branch',
+      );
+      // the last node of a branch goes: it is a plain branch again, and its control goes
+      assert.strictEqual(script(removeNode(WITH_DELAY, delayRef, ctx)), MAIN);
+      assert.strictEqual(
+        script(
+          sendTo(WITH_DELAY, { from: { node: delayRef }, to: 'hall' }, ctx),
+        ),
+        WITH_DELAY.replace("to('verb')", "to('hall')"),
+      );
+    });
+
+    test('Send to on a branch that makes nothing rewrites its own .to()', function (assert) {
+      const text = `${MAIN}__('#sampler').to('verb');\n`;
+      const second: BranchRef = { ...startRef, twin: 1 };
+      const next = script(
+        sendTo(text, { from: { branch: second }, to: 'hall' }, ctx),
+      );
+      assert.strictEqual(
+        next,
+        `${MAIN}__('#sampler').to('hall');\n`,
+        'the second of two alike',
+      );
+      assert.strictEqual(
+        script(sendTo(MAIN, { from: { branch: startRef }, to: 'hall' }, ctx)),
+        MAIN.replace("to('verb')", "to('hall')"),
+      );
+      assert.strictEqual(
+        script(
+          sendTo(
+            MAIN,
+            { from: { node: ref('level', 'gain') }, to: 'hall' },
+            ctx,
+          ),
+        ),
+        MAIN.replace("to('channel')", "to('hall')"),
+        'the main chain’s own end is still its own',
+      );
+    });
+
+    test('Remove branch deletes the statement and the controls of what it made', function (assert) {
+      assert.deepEqual(
+        planRemoveBranch(WITH_DELAY, branchWith(delayRef), ctx),
+        {
+          nodes: 1,
+          modulators: 0,
+        },
+      );
+      assert.strictEqual(
+        script(removeBranch(WITH_DELAY, branchWith(delayRef), ctx)),
+        MAIN.replace("__('#sampler').to('verb');\n", ''),
+      );
+      assert.strictEqual(
+        script(removeBranch(MAIN, startRef, ctx)),
+        MAIN.replace("__('#sampler').to('verb');\n", ''),
+      );
+      assert.true(
+        'cannot' in removeBranch(MAIN, { ...startRef, twin: 1 }, ctx),
+      );
+    });
+
+    test('removing the main node a branch starts from removes the branch too', function (assert) {
+      const plan = planRemove(WITH_DELAY, ref('sampler', 'sampler'), ctx);
+      assert.deepEqual(plan, {
+        wholeStatement: true,
+        modulators: 0,
+        branches: 1,
+      });
+      assert.strictEqual(
+        script(removeNode(WITH_DELAY, ref('sampler', 'sampler'), ctx)),
+        '\n// Controls\n',
+      );
+      // a middle node with a branch of its own: it and the branch go, the rest stays
+      const mid = `__()
+  .sampler({ id: 'sampler' })
+  .gain({ id: 'level' })
+  .to('channel');
+__('#level').to('verb');
+`;
+      assert.strictEqual(
+        script(removeNode(mid, ref('level', 'gain'), ctx)),
+        "__()\n  .sampler({ id: 'sampler' })\n  .to('channel');\n",
+      );
+    });
+
+    test('a modulator on a node the branch made goes with the branch', function (assert) {
+      const modulated = script(
+        addModulator(
+          WITH_DELAY,
+          {
+            target: delayRef,
+            param: 'delayTime',
+            type: 'lfo',
+            depth: 1,
+          },
+          ctx,
+        ),
+      );
+      assert.true(modulated.includes(".modulate('#delay', 'delayTime')"));
+      const gone = script(removeBranch(modulated, branchWith(delayRef), ctx));
+      assert.false(gone.includes('lfo'), gone);
+      assert.false(gone.includes('#delay'), gone);
     });
   });
 });

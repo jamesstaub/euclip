@@ -215,6 +215,17 @@
   border-style: dashed;
 }
 
+/* a branch row draws the node it starts from again: it is the main chain's, so it is dashed and says so */
+.chain-node[data-ref="true"] {
+  border-style: dashed;
+  opacity: 0.8;
+
+  & i {
+    font-size: 0.625rem;
+    font-style: normal;
+  }
+}
+
 /* a node made by code Euclip cannot edit from here: it says so, quietly */
 .chain-node[data-readonly="true"] {
   border-style: dotted;

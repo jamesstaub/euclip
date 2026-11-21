@@ -417,6 +417,133 @@ module('Integration | Component | signal chain', function (hooks) {
     assert.strictEqual(project.doc.tracks[0]!.script, before);
   });
 
+  test('Insert node here on a branch writes into the branch; the main chain statement is untouched', async function (assert) {
+    await render(<template><AppShell /></template>);
+    const kick = (): string => project.doc.tracks[0]!.script;
+    const original = kick();
+    const mainChain = (text: string): string =>
+      text.slice(text.indexOf('__()'), text.indexOf(".to('channel');"));
+
+    // a branch from the sampler to main, as the owner made it
+    await click(`${pane} [data-test-chain-link="row-0:0"]`);
+    await click('[data-test-chain-action="route"]');
+    await click('[data-test-chain-send-to="main"]');
+    const branched = kick();
+    assert.true(
+      branched.includes("__('#sampler').to('main');"),
+      'a: ' + branched,
+    );
+    assert.strictEqual(
+      findAll(`${pane} [data-test-chain-row="chain"]`).length,
+      2,
+    );
+    assert
+      .dom(
+        `${pane} [data-test-chain-row="chain"][data-branch="true"] [data-test-chain-node="sampler"]`,
+      )
+      .hasAttribute(
+        'data-ref',
+        'true',
+        'the branch row says its start is the main chain’s',
+      )
+      .includesText('main chain');
+
+    // the sampler drawn on the branch row: its remove is the branch's, and it cannot move
+    const branchSampler = `${pane} [data-test-chain-row="chain"][data-branch="true"] [data-test-chain-node="sampler"]`;
+    await click(branchSampler);
+    assert.dom('[data-test-chain-action="move-right"]').isDisabled();
+    assert.dom('[data-test-chain-action="add-before"]').isDisabled();
+    assert.dom('[data-test-chain-action="remove-branch"]').isNotDisabled();
+    assert.dom('[data-test-chain-action="add-after"]').isNotDisabled();
+
+    // the link from the branch's start to where it goes
+    await click(`${pane} [data-test-chain-link="row-1:0"]`);
+    assert
+      .dom(`${pane} [data-test-chain-link="row-1:0"]`)
+      .hasAria('label', 'Connection from sampler to main');
+    await click('[data-test-chain-action="insert"]');
+    await click('[data-test-chain-type="delay"]');
+
+    const after = kick();
+    assert.strictEqual(
+      mainChain(after),
+      mainChain(original),
+      'the main chain statement is as it was',
+    );
+    assert.true(
+      after.includes(
+        "__('#sampler')\n  .chain()\n  .delay({ id: 'delay' })\n  .to('main');",
+      ),
+      after,
+    );
+    assert.true(after.includes("controls('#delay');"));
+    assert.dom('[data-test-script-error]').doesNotExist();
+    assert.deepEqual(
+      findAll(
+        `${pane} [data-test-chain-row="chain"][data-branch="true"] [data-test-chain-node]`,
+      ).map((n) => n.getAttribute('data-test-chain-node')),
+      ['sampler', 'delay'],
+    );
+
+    // Send to on the branch's chip, and Remove on the node it made, change that statement only
+    await click(
+      `${pane} [data-test-chain-row="chain"][data-branch="true"] [data-test-chain-dest="main"]`,
+    );
+    await click('[data-test-chain-send-to="channel"]');
+    assert.true(
+      kick().includes(".delay({ id: 'delay' })\n  .to('channel');"),
+      'b: ' + kick(),
+    );
+    assert.strictEqual(mainChain(kick()), mainChain(original));
+    await click(
+      `${pane} [data-test-chain-row="chain"][data-branch="true"] [data-test-chain-node="delay"]`,
+    );
+    await click('[data-test-chain-action="remove"]');
+    assert.strictEqual(kick(), branched.replace("to('main')", "to('channel')"));
+
+    // Remove branch (from its start), confirmed, takes the statement; undo gives it back
+    await click(branchSampler);
+    await click('[data-test-chain-action="remove-branch"]');
+    assert.dom('[data-test-chain-confirm]').exists();
+    await click('[data-test-chain-confirm-remove]');
+    assert.strictEqual(kick(), original);
+    assert.strictEqual(
+      findAll(`${pane} [data-test-chain-row="chain"]`).length,
+      1,
+    );
+
+    // one undo each step back to the branch, and back to the script before it
+    project.undo();
+    await settled();
+    assert.true(
+      kick().includes("__('#sampler').to('channel');"),
+      'c: ' + kick(),
+    );
+    while (kick() !== original && project.canUndo) {
+      project.undo();
+      await settled();
+    }
+    assert.strictEqual(kick(), original, 'undo restores the script exactly');
+  });
+
+  test('removing a main node that a branch starts from takes the branch with it, after a confirm', async function (assert) {
+    await render(<template><AppShell /></template>);
+    await click(`${pane} [data-test-chain-link="row-0:1"]`);
+    await click('[data-test-chain-action="route"]');
+    await click('[data-test-chain-send-to="main"]');
+    assert.true(project.doc.tracks[0]!.script.includes("__('#filter')"));
+    await click(
+      `${pane} [data-test-chain-row="chain"]:not([data-branch]) [data-test-chain-node="filter"]`,
+    );
+    await click('[data-test-chain-action="remove"]');
+    assert
+      .dom('[data-test-chain-confirm]')
+      .includesText('The branch that starts from it goes too.');
+    await click('[data-test-chain-confirm-remove]');
+    assert.false(project.doc.tracks[0]!.script.includes("__('#filter')"));
+    assert.dom('[data-test-script-error]').doesNotExist();
+  });
+
   test('a modulation link offers Retarget and Remove modulator', async function (assert) {
     await render(<template><AppShell /></template>);
     await click(`${pane} [data-test-chain-node="filter"]`);

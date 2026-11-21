@@ -101,10 +101,19 @@ export interface Chain {
   end: number;
   /** the chain's own expression, without the `;` */
   exprEnd: number;
-  root: 'chain' | 'bus';
+  /**
+   * `chain`: `__()...`, `bus`: `__.bus('name')...`, `branch`: `__('#id').to('bus')` or
+   * `__('#id').chain().node()....to('bus')`, which adds a connection (and nodes) to a node the
+   * statements above made.
+   */
+  root: 'chain' | 'bus' | 'branch';
   /** for a bus: its name */
   bus: string | null;
-  /** the end of `__()` or `__.bus('name')` */
+  /** for a branch: the id of the node it starts from (which another statement made) */
+  from: string | null;
+  /** for a branch that has nodes: its `.chain()` call (nodes of a branch go after it) */
+  chainCall: Call | null;
+  /** where the first node call goes: the end of `__()`, `__.bus('name')` or a branch's `.chain()` (or `__('#id')`) */
   rootEnd: number;
   /** `const x =`: the variable's name */
   declared: string | null;
@@ -148,6 +157,11 @@ export const CONTROL_DECLARATIONS: ReadonlySet<string> = new Set([
   'waveform',
   'synth',
 ]);
+
+type Shape = Omit<
+  Chain,
+  'start' | 'end' | 'exprEnd' | 'declared' | 'multiline'
+>;
 
 const TAILS = new Set(['to', 'connect', 'modulate']);
 
@@ -196,11 +210,7 @@ function idOf(args: N[]): { id: string | null; unknown: boolean } {
 }
 
 /** Unwinds `__().a().b()` into its root and calls; null when it is not that shape. */
-function unwind(
-  expression: N,
-  text: string,
-  ctx: EditContext,
-): Omit<Chain, 'start' | 'end' | 'exprEnd' | 'declared' | 'multiline'> | null {
+function unwind(expression: N, text: string, ctx: EditContext): Shape | null {
   const calls: Call[] = [];
   let at: N = expression;
   for (;;) {
@@ -208,8 +218,15 @@ function unwind(
     const call: CallExpression = at;
     const callee = call.callee;
     if (isIdentifier(callee, '__')) {
-      if (call.arguments.length !== 0) return null; // __('#x') selects; it makes nothing
-      return finish(calls, 'chain', null, call.end, ctx);
+      if (call.arguments.length === 0) {
+        return finish(calls, 'chain', null, call.end, ctx);
+      }
+      // __('#x') selects what exists: only the branch form is read
+      const id =
+        call.arguments.length === 1
+          ? /^#([A-Za-z_][\w-]*)$/.exec(stringOf(call.arguments[0]) ?? '')?.[1]
+          : undefined;
+      return id === undefined ? null : finishBranch(calls, id, call.end);
     }
     if (
       !isMember(callee) ||
@@ -250,14 +267,62 @@ function finish(
   bus: string | null,
   rootEnd: number,
   ctx: EditContext,
-): Omit<Chain, 'start' | 'end' | 'exprEnd' | 'declared' | 'multiline'> | null {
+): Shape | null {
   const last = calls[calls.length - 1];
   const tail = last && TAILS.has(last.name) && !last.isNode ? last : null;
   const nodes = tail ? calls.slice(0, -1) : calls;
   // every call before the tail must be a node; a tail is one of to / connect / modulate
   if (!nodes.every((call) => call.isNode)) return null;
   void ctx;
-  return { root, bus, rootEnd, calls, nodes, tail };
+  return {
+    root,
+    bus,
+    from: null,
+    chainCall: null,
+    rootEnd,
+    calls,
+    nodes,
+    tail,
+  };
+}
+
+/** `__('#id')` then, optionally, `.chain()` and node calls, then `.to('bus')`. */
+function finishBranch(
+  calls: Call[],
+  from: string,
+  selectorEnd: number,
+): Shape | null {
+  const tail = calls[calls.length - 1];
+  if (
+    !tail ||
+    tail.name !== 'to' ||
+    tail.isNode ||
+    tail.args.length !== 1 ||
+    stringOf(tail.args[0]) === null
+  ) {
+    return null;
+  }
+  let nodes = calls.slice(0, -1);
+  const first = nodes[0];
+  const chainCall =
+    first && first.name === 'chain' && !first.isNode && first.args.length === 0
+      ? first
+      : null;
+  if (chainCall) nodes = nodes.slice(1);
+  // nodes are made through `.chain()` (a node call on a selection only sets), and it makes nothing alone
+  if (!nodes.every((call) => call.isNode) || nodes.length > 0 !== !!chainCall) {
+    return null;
+  }
+  return {
+    root: 'branch',
+    bus: null,
+    from,
+    chainCall,
+    rootEnd: chainCall ? chainCall.end : selectorEnd,
+    calls,
+    nodes,
+    tail,
+  };
 }
 
 function isCreator(node: unknown, ctx: EditContext): boolean {
@@ -421,6 +486,44 @@ export function find(analysis: Analysis, ref: NodeRef): Place | Cannot {
   }
   const place = plain[ref.ordinal - 1];
   return place ?? { cannot: 'This node is not found in the script.' };
+}
+
+/** A branch statement as the drawing knows it: where it starts, where it ends, its first own node, its order among twins. */
+export interface BranchRef {
+  /** the id of the node it starts from */
+  from: string;
+  /** the bus it ends at */
+  to: string;
+  /** the first node the statement makes, null when it makes none */
+  first: NodeRef | null;
+  /** among branches with the same start and end that make no node: which, from 0 */
+  twin: number;
+}
+
+/** The branch statement a drawn branch row is, not the statement of the node it starts from. */
+export function findBranch(analysis: Analysis, ref: BranchRef): Chain | Cannot {
+  if (ref.first) {
+    const place = find(analysis, ref.first);
+    if (isCannot(place)) return place;
+    if (place.chain.root === 'branch' && place.chain.from === ref.from) {
+      return place.chain;
+    }
+    return {
+      cannot: `This branch is not written as __('#${ref.from}').chain()...to('bus'), so it is changed in the script.`,
+    };
+  }
+  const bare = analysis.chains.filter(
+    (chain) =>
+      chain.root === 'branch' &&
+      chain.from === ref.from &&
+      chain.nodes.length === 0 &&
+      stringOf(chain.tail?.args[0]) === ref.to,
+  );
+  return (
+    bare[ref.twin] ?? {
+      cannot: `The branch from '${ref.from}' to '${ref.to}' is made by code Euclip cannot edit here. Edit it in the script.`,
+    }
+  );
 }
 
 export function isCannot<T extends object>(value: T | Cannot): value is Cannot {

@@ -43,6 +43,18 @@ export interface ChainRow {
   destination: ChainDestination;
   /** a continuation of an earlier row from a node with two connections out */
   branch: boolean;
+  /**
+   * How many of the row's first nodes are the same nodes as in the row it branched from (they are
+   * drawn again so the branch reads from its start, but they belong to that row's statement, not to the
+   * branch's). 0 for a row that is not a branch.
+   */
+  shared: number;
+  /**
+   * For a branch that makes no node of its own (all of its nodes are shared): which of the rows with
+   * the same start and destination this is, counted from 0. The script's statements are told apart
+   * by it.
+   */
+  twin: number;
   /** for a bus row: the bus's name */
   bus: string | null;
 }
@@ -126,7 +138,12 @@ export function buildChainGraph(view: ViewGraph): ChainGraph {
 
   // --- audio chains
   const seen = new Set<string>();
-  const walk = (start: string, via: string[], branch: boolean): void => {
+  const walk = (
+    start: string,
+    via: string[],
+    branch: boolean,
+    shared: number,
+  ): void => {
     const path = [...via, start];
     const next = out.get(start) ?? [];
     let first = true;
@@ -142,12 +159,14 @@ export function buildChainGraph(view: ViewGraph): ChainGraph {
           nodes: path.map(nodeOf),
           destination: end,
           branch: branch || !first,
+          shared: first ? shared : path.length,
+          twin: 0,
           bus: null,
         });
         first = false;
         ended = true;
       } else if (!path.includes(to)) {
-        walk(to, path, branch || !first);
+        walk(to, path, branch || !first, first ? shared : path.length);
         first = false;
         ended = true;
       }
@@ -160,6 +179,8 @@ export function buildChainGraph(view: ViewGraph): ChainGraph {
         nodes: path.map(nodeOf),
         destination: { kind: 'none', name: 'nowhere' },
         branch,
+        shared,
+        twin: 0,
         bus: null,
       });
     }
@@ -169,10 +190,11 @@ export function buildChainGraph(view: ViewGraph): ChainGraph {
     const feeders = (into.get(node.key) ?? []).filter((key) =>
       isAudio(byKey.get(key)),
     );
-    if (feeders.length === 0) walk(node.key, [], false);
+    if (feeders.length === 0) walk(node.key, [], false, 0);
   }
   // whatever a loop kept from having a start
-  for (const node of audio) if (!seen.has(node.key)) walk(node.key, [], false);
+  for (const node of audio)
+    if (!seen.has(node.key)) walk(node.key, [], false, 0);
 
   // --- buses: their inserts in order, then where they go
   for (const bus of view.nodes) {
@@ -201,6 +223,8 @@ export function buildChainGraph(view: ViewGraph): ChainGraph {
         ? (endAt(route) ?? { kind: 'none', name: 'nowhere' })
         : { kind: 'none', name: 'nowhere' },
       branch: false,
+      shared: 0,
+      twin: 0,
       bus: bus.id,
     });
   }
@@ -227,6 +251,8 @@ export function buildChainGraph(view: ViewGraph): ChainGraph {
           param: target.param,
         },
         branch: index > 0,
+        shared: 0,
+        twin: 0,
         bus: null,
       });
     });
@@ -238,6 +264,8 @@ export function buildChainGraph(view: ViewGraph): ChainGraph {
         nodes: path.map(nodeOf),
         destination: { kind: 'none', name: 'nowhere' },
         branch: false,
+        shared: 0,
+        twin: 0,
         bus: null,
       });
     }
@@ -249,5 +277,13 @@ export function buildChainGraph(view: ViewGraph): ChainGraph {
     if (feeders.length === 0) walkControl(node.key, []);
   }
 
+  // (branches that make nothing of their own are told apart by their order)
+  const counted = new Map<string, number>();
+  for (const row of rows) {
+    if (row.shared === 0 || row.nodes.length !== row.shared) continue;
+    const key = `${row.nodes[row.shared - 1]!.id}>${row.destination.name}`;
+    row.twin = counted.get(key) ?? 0;
+    counted.set(key, row.twin + 1);
+  }
   return { rows };
 }
