@@ -1168,6 +1168,60 @@ __('#level').to('verb');
       );
     });
 
+    test('branching from the last node adds a statement and leaves the chain alone; a repeat is refused', function (assert) {
+      const next = script(
+        branchFrom(KICK, { node: ref('level', 'gain'), to: 'main' }, ctx),
+      );
+      assert.strictEqual(
+        next,
+        KICK.replace(
+          ".to('channel');\n",
+          ".to('channel');\n__('#level').to('main');\n",
+        ).replace(/^/, ''),
+      );
+      assert.true(
+        'cannot' in
+          branchFrom(next, { node: ref('level', 'gain'), to: 'main' }, ctx),
+      );
+      const same = branchFrom(
+        KICK,
+        { node: ref('level', 'gain'), to: 'channel' },
+        ctx,
+      );
+      assert.deepEqual(same, { cannot: 'level already goes to channel.' });
+      // from a branch's own last node, and from a chain of one node
+      const single = "__().sampler({ id: 'a' }).to('channel');\n";
+      assert.strictEqual(
+        script(branchFrom(single, { node: ref('a', 'sampler'), to: 'x' }, ctx)),
+        `${single}__('#a').to('x');\n`.replace('\n__', '\n__'),
+      );
+      const deeper = script(
+        addNode(
+          next,
+          {
+            at: ref('level', 'gain'),
+            side: 'after',
+            type: 'delay',
+            branch: { from: 'level', to: 'main', first: null, twin: 0 },
+          },
+          ctx,
+        ),
+      );
+      assert.true(
+        script(
+          branchFrom(deeper, { node: ref('delay', 'delay'), to: 'x' }, ctx),
+        ).includes("__('#delay').to('x');"),
+      );
+      assert.deepEqual(
+        sendTo(
+          KICK,
+          { from: { node: ref('level', 'gain') }, to: 'channel' },
+          ctx,
+        ),
+        { cannot: 'level already goes to channel.' },
+      );
+    });
+
     test('a modulator on a node the branch made goes with the branch', function (assert) {
       const modulated = script(
         addModulator(

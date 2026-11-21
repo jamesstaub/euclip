@@ -254,6 +254,12 @@
 }
 
 /* the name of what is chosen: one cell of fixed width, cut short rather than moving the buttons */
+.chain-actions__status {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.75rem;
+}
+
 .chain-actions__what {
   flex: none;
   inline-size: 8.5rem;

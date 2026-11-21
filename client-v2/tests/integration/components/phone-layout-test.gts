@@ -206,7 +206,7 @@ module('Integration | Phone layout', function (hooks) {
       const bar = find('[data-test-chain-actions]')!;
       assert.strictEqual(getComputedStyle(bar).flexDirection, 'column');
       const tools = [...bar.querySelectorAll('.chain-tool')];
-      assert.strictEqual(tools.length, 9, 'every action keeps its slot');
+      assert.strictEqual(tools.length, 10, 'every action keeps its slot');
       for (const tool of tools) {
         assert.strictEqual(
           getComputedStyle(tool.querySelector('.chain-tool__label')!).display,
@@ -256,7 +256,7 @@ module('Integration | Phone layout', function (hooks) {
       await render(<template><AppShell /></template>);
 
       await click('[data-test-chain-why] [data-test-hint-button]');
-      assert.dom('[data-test-chain-legend] li').exists({ count: 9 });
+      assert.dom('[data-test-chain-legend] li').exists({ count: 10 });
       assert.dom('[data-test-chain-legend]').includesText('Add before');
     });
 

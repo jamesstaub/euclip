@@ -763,6 +763,19 @@ export function sendTo(
   if (refused) return refused;
   const place = sendPlace(analysis, action.from) as { chain: Chain };
   const { chain } = place;
+  if (
+    !action.create &&
+    chain.tail?.name === 'to' &&
+    stringOf(chain.tail.args[0]) === action.to
+  ) {
+    const who =
+      'node' in action.from
+        ? action.from.node.id
+        : 'bus' in action.from
+          ? `The bus '${action.from.bus}'`
+          : action.from.branch.from;
+    return { cannot: `${who} already goes to ${action.to}.` };
+  }
   const edits: Edit[] = [];
   const tail = chain.tail;
   if (tail) {
@@ -943,6 +956,12 @@ export function retarget(
     edits.push(written);
   }
   const [selector, param] = found.chain.tail!.args as [N, N];
+  if (
+    stringOf(selector) === `#${targetId}` &&
+    stringOf(param) === action.param
+  ) {
+    return { cannot: `It already moves ${targetId}.${action.param}.` };
+  }
   edits.push(
     { start: selector.start, end: selector.end, text: quote(`#${targetId}`) },
     { start: param.start, end: param.end, text: quote(action.param) },
@@ -1027,6 +1046,24 @@ export function branchFrom(
   const place = find(analysis, action.node);
   if (isCannot(place)) return place;
   const call = place.chain.nodes[place.index]!;
+  const goes = (chain: Chain): boolean =>
+    stringOf(chain.tail?.args[0]) === action.to;
+  const already = analysis.chains.some(
+    (chain) =>
+      (call.id !== null &&
+        chain.root === 'branch' &&
+        chain.from === call.id &&
+        goes(chain)) ||
+      (chain === place.chain &&
+        place.index === chain.nodes.length - 1 &&
+        chain.tail?.name === 'to' &&
+        goes(chain)),
+  );
+  if (already) {
+    return {
+      cannot: `${call.id ?? action.node.type} already goes to ${action.to}.`,
+    };
+  }
   const edits: Edit[] = [];
   let id = call.id;
   if (id === null) {

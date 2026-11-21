@@ -9,6 +9,8 @@ import moveRight from 'client-v2/assets/icons/move-right.svg?raw';
 import removeNode from 'client-v2/assets/icons/remove-node.svg?raw';
 import modulate from 'client-v2/assets/icons/modulate.svg?raw';
 import addChain from 'client-v2/assets/icons/add-chain.svg?raw';
+import send from 'client-v2/assets/icons/send.svg?raw';
+import branch from 'client-v2/assets/icons/branch.svg?raw';
 import reroute from 'client-v2/assets/icons/reroute.svg?raw';
 import retarget from 'client-v2/assets/icons/retarget.svg?raw';
 import arrow from 'client-v2/assets/icons/arrow.svg?raw';
@@ -57,6 +59,8 @@ const ICONS = {
   modulate: inline(modulate),
   addChain: inline(addChain),
   reroute: inline(reroute),
+  send: inline(send),
+  branch: inline(branch),
   retarget: inline(retarget),
   arrow: inline(arrow),
   automation: inline(automation),

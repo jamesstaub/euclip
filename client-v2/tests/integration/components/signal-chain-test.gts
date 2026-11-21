@@ -396,7 +396,10 @@ module('Integration | Component | signal chain', function (hooks) {
 
     const before = project.doc.tracks[0]!.script;
     await click(`${pane} [data-test-chain-link="row-0:1"]`);
-    await click('[data-test-chain-action="route"]');
+    assert
+      .dom('[data-test-chain-action="route"]')
+      .isDisabled('a link between nodes is not where a chain ends');
+    await click('[data-test-chain-action="branch"]');
     assert.dom('[data-test-chain-send]').includesText('Branch to');
     await click('[data-test-chain-send-to="main"]');
 
@@ -426,7 +429,7 @@ module('Integration | Component | signal chain', function (hooks) {
 
     // a branch from the sampler to main, as the owner made it
     await click(`${pane} [data-test-chain-link="row-0:0"]`);
-    await click('[data-test-chain-action="route"]');
+    await click('[data-test-chain-action="branch"]');
     await click('[data-test-chain-send-to="main"]');
     const branched = kick();
     assert.true(
@@ -529,7 +532,7 @@ module('Integration | Component | signal chain', function (hooks) {
   test('removing a main node that a branch starts from takes the branch with it, after a confirm', async function (assert) {
     await render(<template><AppShell /></template>);
     await click(`${pane} [data-test-chain-link="row-0:1"]`);
-    await click('[data-test-chain-action="route"]');
+    await click('[data-test-chain-action="branch"]');
     await click('[data-test-chain-send-to="main"]');
     assert.true(project.doc.tracks[0]!.script.includes("__('#filter')"));
     await click(
@@ -542,6 +545,99 @@ module('Integration | Component | signal chain', function (hooks) {
     await click('[data-test-chain-confirm-remove]');
     assert.false(project.doc.tracks[0]!.script.includes("__('#filter')"));
     assert.dom('[data-test-script-error]').doesNotExist();
+  });
+
+  test('the last connection offers Send to… (move the end) and Branch to… (add an output), and neither fails silently', async function (assert) {
+    await render(<template><AppShell /></template>);
+    const kick = (): string => project.doc.tracks[0]!.script;
+    const original = kick();
+    const last = `${pane} [data-test-chain-link="row-0:2"]`;
+    const status = (): string =>
+      document.querySelector('[data-test-chain-status]')?.textContent?.trim() ??
+      '';
+
+    await click(last);
+    assert.dom(last).hasAria('label', 'Connection from level to channel');
+    assert
+      .dom('[data-test-chain-action="route"]')
+      .hasAria('label', 'Send to…')
+      .isNotDisabled();
+    assert
+      .dom('[data-test-chain-action="branch"]')
+      .hasAria('label', 'Branch to…')
+      .isNotDisabled();
+
+    // to the bus it already goes to: nothing changes, it says so, and there is no undo step to take
+    await click('[data-test-chain-action="branch"]');
+    await click('[data-test-chain-send-to="channel"]');
+    assert.strictEqual(status(), 'level already goes to channel.');
+    assert.strictEqual(kick(), original);
+    assert.false(project.canUndo, 'no undo step was made');
+    await click('[data-test-chain-action="route"]');
+    await click('[data-test-chain-send-to="channel"]');
+    assert.strictEqual(status(), 'level already goes to channel.');
+    assert.strictEqual(kick(), original);
+
+    // to another bus: a second statement, the chain's own .to() alone, a second row
+    await click(last);
+    await click('[data-test-chain-action="branch"]');
+    await click('[data-test-chain-send-to="main"]');
+    const branched = kick();
+    assert.strictEqual(
+      branched.replace("__('#level').to('main');\n", ''),
+      original,
+      'the only change is the new statement',
+    );
+    assert.true(branched.includes(".to('channel');\n__('#level').to('main');"));
+    assert.strictEqual(status(), '');
+    const rows = findAll(`${pane} [data-test-chain-row="chain"]`);
+    assert.strictEqual(rows.length, 2, 'a second row');
+    assert
+      .dom(
+        `${pane} [data-test-chain-row="chain"][data-branch="true"] [data-test-chain-node="level"]`,
+      )
+      .hasAttribute('data-ref', 'true');
+
+    // the same again is a no-op; a branch from the branch's own last link works and is editable
+    await click(last);
+    await click('[data-test-chain-action="branch"]');
+    await click('[data-test-chain-send-to="main"]');
+    assert.strictEqual(status(), 'level already goes to main.');
+    assert.strictEqual(kick(), branched);
+    await click(`${pane} [data-test-chain-link="row-1:2"]`);
+    await click('[data-test-chain-action="insert"]');
+    await click('[data-test-chain-type="delay"]');
+    assert.true(
+      kick().includes(
+        "__('#level')\n  .chain()\n  .delay({ id: 'delay' })\n  .to('main');",
+      ),
+      kick(),
+    );
+    assert.true(
+      kick().includes(".gain({ id: 'level', gain: 0.9 })\n  .to('channel');"),
+    );
+    await click(
+      `${pane} [data-test-chain-row="chain"][data-branch="true"] [data-test-chain-link="row-1:3"]`,
+    );
+    await click('[data-test-chain-action="branch"]');
+    await click('[data-test-chain-send-to="channel"]');
+    assert.true(kick().includes("__('#delay').to('channel');"), kick());
+
+    // a new bus
+    await click(last);
+    await click('[data-test-chain-action="branch"]');
+    await click('[data-test-chain-send-new]');
+    await fillIn('[data-test-chain-new-bus]', 'fx');
+    await click('[data-test-chain-new-bus-create]');
+    assert.true(kick().includes("__('#level').to('fx');"), kick());
+    assert.true(project.doc.script.includes("__.bus('fx')"));
+    assert.dom('[data-test-script-error]').doesNotExist();
+
+    while (kick() !== original && project.canUndo) {
+      project.undo();
+      await settled();
+    }
+    assert.strictEqual(kick(), original, 'undo restores the script exactly');
   });
 
   test('a modulation link offers Retarget and Remove modulator', async function (assert) {

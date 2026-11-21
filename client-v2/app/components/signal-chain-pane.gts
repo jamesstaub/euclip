@@ -101,7 +101,8 @@ type Reasons = Record<
   | 'remove'
   | 'modulate'
   | 'chain'
-  | 'route',
+  | 'route'
+  | 'branch',
   string | null
 >;
 
@@ -608,12 +609,20 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
   }
 
   /** What the "route" slot does for what is chosen. */
-  get routeKind(): 'send' | 'branch' | 'retarget' | null {
+  get routeKind(): 'send' | 'retarget' | null {
     if (this.selectedDest) return 'send';
     if (this.modulatorRow) return 'retarget';
+    return this.sendRow ? 'send' : null;
+  }
+
+  /** The row whose end a chosen last node or last connection is: what Send to… moves. */
+  get sendRow(): ChainRow | null {
     const link = this.selectedLink;
-    if (link) return link.to ? 'branch' : 'send';
-    return this.selected ? 'branch' : null;
+    if (link) return link.to ? null : link.row;
+    const place = this.place;
+    return place && place.index === place.row.nodes.length - 1
+      ? place.row
+      : null;
   }
 
   /** What each action would say if it cannot be done, for what is chosen (null: it can). */
@@ -633,6 +642,7 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
       modulate: why,
       chain: null,
       route: why,
+      branch: why,
     });
     const errored = this.hasError
       ? 'The script has an error. Fix it, or undo, before editing here.'
@@ -681,7 +691,14 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
         : this.modulatorTypes.length === 0
           ? 'The library has no modulator to add.'
           : null;
-    const branch = check(planBranch(text, ref, context));
+    const row = link?.row ?? place?.row;
+    const branch =
+      row?.kind === 'bus'
+        ? 'A bus’s inserts are chained in the script (.insert()), not branched from here.'
+        : check(planBranch(text, ref, context));
+    const sendOnly =
+      'Send to… moves where a chain ends: choose its last node or its last connection.';
+    const route = this.sendRow ? this.sendWhy(this.sendRow) : sendOnly;
     if (link) {
       return {
         ...all('Choose a node to do this.'),
@@ -703,7 +720,8 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
         remove: removal
           ? removeBranchWhy
           : 'Choose a node to remove it, or the start of a branch to remove the branch.',
-        route: link.to ? branch : this.sendWhy(link.row),
+        route,
+        branch,
       };
     }
     if (place && this.isReference) {
@@ -729,7 +747,8 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
         right: main,
         remove: removal ? removeBranchWhy : main,
         modulate: modulatable,
-        route: branch,
+        route,
+        branch,
       };
     }
     return {
@@ -740,7 +759,8 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
       left: check(moveNode(text, { node: ref, direction: 'left' }, context)),
       right: check(moveNode(text, { node: ref, direction: 'right' }, context)),
       modulate: modulatable,
-      route: branch,
+      route,
+      branch,
     };
   }
 
@@ -751,6 +771,7 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
     // what is chosen decides which comes first: where it goes, then what it is
     const order = [
       'route',
+      'branch',
       'remove',
       'modulate',
       'before',
@@ -767,17 +788,11 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
   }
 
   get routeLabel(): string {
-    return this.routeKind === 'send'
-      ? 'Send to…'
-      : this.routeKind === 'branch'
-        ? 'Branch to…'
-        : this.routeKind === 'retarget'
-          ? 'Retarget'
-          : 'Reroute';
+    return this.routeKind === 'retarget' ? 'Retarget' : 'Send to…';
   }
 
   get routeIcon(): IconName {
-    return this.routeKind === 'retarget' ? 'retarget' : 'reroute';
+    return this.routeKind === 'retarget' ? 'retarget' : 'send';
   }
 
   get removeAction(): string {
@@ -801,6 +816,7 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
       { icon: 'modulate', label: 'Add modulator', reason: reasons.modulate },
       { icon: 'addChain', label: 'Add chain', reason: reasons.chain },
       { icon: this.routeIcon, label: this.routeLabel, reason: reasons.route },
+      { icon: 'branch', label: 'Branch to…', reason: reasons.branch },
     ];
   }
 
@@ -921,8 +937,16 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
       this.problem = result.cannot;
       return false;
     }
-    this.problem = null;
     const scope = options.scope ?? this.args.scopeId;
+    const now =
+      scope === PROJECT_SCOPE
+        ? this.project.doc.script
+        : this.project.doc.tracks.find((track) => track.id === scope)?.script;
+    if (result.script === now) {
+      this.problem = 'That would change nothing.';
+      return false;
+    }
+    this.problem = null;
     this.project.apply(
       { type: 'setScript', scope, script: result.script },
       { group: options.group ?? `chain-${++actions}` },
@@ -1194,32 +1218,33 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
   @tracked sendMode: 'send' | 'branch' = 'send';
   #branchFrom: string | null = null;
 
-  /** The route slot: send the chain's end, branch from a node, or retarget a modulator, by what is chosen. */
+  /** The route slot: move where a chain ends (Send to…), or retarget a modulator. */
   route = (): void => {
     this.newBus = '';
     this.newBusOpen = false;
     this.problem = null;
-    const kind = this.routeKind;
-    if (kind === 'retarget') {
+    if (this.routeKind === 'retarget') {
       const modulator = this.modulatorRow?.nodes[0];
       if (modulator) this.retargeting = modulator.id;
-    } else if (kind === 'send') {
-      const row = this.selectedDest ?? this.selectedLink?.row;
+    } else if (this.routeKind === 'send') {
+      const row = this.selectedDest ?? this.sendRow;
       if (!row) return;
       this.sendMode = 'send';
       this.sending = row.key;
-    } else if (kind === 'branch') {
-      const anchor = this.anchor;
-      const row = anchor
-        ? this.rows.find((candidate) =>
-            candidate.nodes.some((n) => n.id === anchor.id),
-          )
-        : null;
-      if (!anchor || !row) return;
-      this.sendMode = 'branch';
-      this.#branchFrom = anchor.id;
-      this.sending = row.key;
     }
+  };
+
+  /** The branch slot: also send the chosen node (or the one before the chosen connection) somewhere, adding a connection. */
+  branchTo = (): void => {
+    this.newBus = '';
+    this.newBusOpen = false;
+    this.problem = null;
+    const anchor = this.anchor;
+    const row = this.selectedLink?.row ?? this.place?.row;
+    if (!anchor || !row) return;
+    this.sendMode = 'branch';
+    this.#branchFrom = anchor.id;
+    this.sending = row.key;
   };
 
   /** Remove, for what is chosen: a node, or a whole modulator. */
@@ -1695,6 +1720,20 @@ export default class SignalChainPane extends Component<SignalChainPaneSignature>
             @action="route"
             @onClick={{this.route}}
           />
+          <Tool
+            @icon="branch"
+            @label="Branch to…"
+            @reason={{this.reasons.branch}}
+            @action="branch"
+            @onClick={{this.branchTo}}
+          />
+          {{#if this.problem}}
+            <p
+              class="chain-actions__status"
+              role="status"
+              data-test-chain-status
+            >{{this.problem}}</p>
+          {{/if}}
           <Hint @label="About the signal chain" data-test-chain-why>
             {{#if this.view.phone}}
               <ul class="chain-legend" data-test-chain-legend>
