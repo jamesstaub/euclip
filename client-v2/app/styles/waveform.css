@@ -671,7 +671,14 @@
   & .popup-menu__button {
     block-size: 100%;
     min-block-size: 0;
-    min-inline-size: var(--target-min);
+    min-inline-size: 1.75rem;
+  }
+
+  /* its dots lie along the cell, and smaller: it sits in the label's row */
+  & .popup-menu__button .icon {
+    inline-size: 0.875rem;
+    block-size: 0.875rem;
+    transform: rotate(90deg);
   }
 
   & .menu {
@@ -1052,6 +1059,10 @@
 }
 
 @media (pointer: coarse) {
+  .waveform__speed-menu .popup-menu__button {
+    min-inline-size: var(--target-min);
+  }
+
   .waveform__value .waveform__lane-button {
     min-inline-size: 2.25rem;
   }
@@ -1110,6 +1121,9 @@
 
 /* the speed's tall cell is a grid of named areas: its lane button shares the label's, at its start */
 .waveform__value--speed .waveform__lane-button {
+  /* (over the label, which shares its area and would take its clicks) */
+  position: relative;
+  z-index: 1;
   grid-area: label;
   justify-self: start;
   margin-inline-start: 0;
