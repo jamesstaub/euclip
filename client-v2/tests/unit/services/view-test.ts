@@ -65,63 +65,51 @@ module('Unit | Service | view', function (hooks) {
         collapsed: [],
         waveforms: {},
         snaps: {},
-        lanes: {},
-        laneSets: {},
+        laneView: {},
         sheetSize: 'half',
       },
     );
   });
 
-  const ROW = { grids: ['g1', 'g2'], lanes: ['q', 'f'] };
+  const ROW = { grids: ['g1', 'g2'], lanes: ['q', 'f', 'n'], active: ['f'] };
 
-  test('with no choice a track shows all its grids and its first lane', function (assert) {
+  test('with no choice a track shows its grids and the lanes in play', function (assert) {
     const view = this.owner.lookup('service:view');
-    assert.deepEqual([...view.shownLanes('a', ROW)], ['g1', 'g2', 'q']);
+    assert.deepEqual([...view.shownLanes('a', ROW)], ['g1', 'g2', 'f']);
+    assert.true(view.isLaneShown('a', 'f', true));
+    assert.false(view.isLaneShown('a', 'q', false));
   });
 
-  test('lanes are checked and unchecked per track, and remembered', function (assert) {
+  test('lanes are opened and hidden per track, and remembered', function (assert) {
     const view = this.owner.lookup('service:view');
-    view.setLane('a', ROW, 'f', true);
-    view.setLane('a', ROW, 'g1', false);
-    assert.deepEqual([...view.shownLanes('a', ROW)], ['g2', 'q', 'f']);
+    view.setLane('a', 'q', true);
+    view.setLane('a', 'f', false);
+    view.setLane('a', 'g1', false);
+    assert.deepEqual([...view.shownLanes('a', ROW)], ['g2', 'q']);
     assert.deepEqual(
       [...view.shownLanes('b', ROW)],
-      ['g1', 'g2', 'q'],
+      ['g1', 'g2', 'f'],
       'another track is as it was',
     );
     const stored = JSON.parse(
       window.localStorage.getItem(VIEW_STORAGE_KEY) ?? 'null',
-    ) as { laneSets: Record<string, { keys: string[] }> };
-    assert.deepEqual(stored.laneSets['a']!.keys, ['g2', 'q', 'f']);
+    ) as { laneView: Record<string, { open: string[]; closed: string[] }> };
+    assert.deepEqual(stored.laneView['a'], {
+      open: ['q'],
+      closed: ['f', 'g1'],
+    });
   });
 
-  test('everything can be unchecked; what is gone is ignored; what is new is shown', function (assert) {
+  test('a lane that comes into play is shown unless it was hidden; one opened stays open when cleared', function (assert) {
     const view = this.owner.lookup('service:view');
-    for (const key of ['g1', 'g2', 'q']) view.setLane('a', ROW, key, false);
-    assert.strictEqual(view.shownLanes('a', ROW).size, 0);
-    const later = { grids: ['g2', 'g3'], lanes: ['f', 'n'] };
+    view.setLane('a', 'q', false);
+    view.setLane('a', 'f', true);
+    const later = { ...ROW, active: ['q', 'n'] };
     assert.deepEqual(
       [...view.shownLanes('a', later)],
-      ['g3', 'n'],
-      'g1 and q are gone from the row; g3 and n are new, so shown; f stays unchecked',
+      ['g1', 'g2', 'f', 'n'],
+      'q was hidden; f was opened (and is no longer in play); n came into play',
     );
-  });
-
-  test('Show lane checks a lane without unchecking the others', function (assert) {
-    const view = this.owner.lookup('service:view');
-    view.setLane('a', ROW, 'g1', false);
-    view.revealLane('a', ROW, 'f');
-    assert.deepEqual([...view.shownLanes('a', ROW)], ['g2', 'q', 'f']);
-  });
-
-  test('a single choice from an earlier version becomes that lane and all the grids', function (assert) {
-    window.localStorage.setItem(
-      VIEW_STORAGE_KEY,
-      JSON.stringify({ lanes: { a: 'f', b: '' } }),
-    );
-    const view = this.owner.lookup('service:view');
-    assert.deepEqual([...view.shownLanes('a', ROW)], ['g1', 'g2', 'f']);
-    assert.deepEqual([...view.shownLanes('b', ROW)], ['g1', 'g2']);
   });
 
   test('a remembered choice is restored', function (assert) {

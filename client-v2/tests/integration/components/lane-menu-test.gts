@@ -36,39 +36,46 @@ module('Integration | Track row lanes menu', function (hooks) {
     window.localStorage.removeItem(VIEW_STORAGE_KEY);
   });
 
-  /** Both per-step controls of the first track become lanes of its one sequence. */
+  /** A step of each of the filter's controls is painted: both lanes come into play under the one grid. */
   async function twoLanes(): Promise<void> {
     await render(<template><AppShell /></template>);
-    audio.chooseStepMode('t-kick', FREQUENCY, 'per-step:steps');
-    audio.chooseStepMode('t-kick', Q, 'per-step:steps');
+    audio.setLaneValue('t-kick', FREQUENCY, 0, 500);
+    audio.setLaneValue('t-kick', Q, 2, 4);
     await settled();
   }
 
-  test('a plain one-grid track has no Lanes button', async function (assert) {
-    await render(<template><AppShell /></template>);
-    assert.dom(`${track} .track__lanes`).doesNotExist();
-    assert.dom(`${track} [data-test-step]`).exists({ count: 16 });
-  });
-
-  test('the menu lists the grid, then the lanes, as checkboxes; the defaults are the grid and the first lane', async function (assert) {
-    await twoLanes();
-    assert.dom(`${track} .track__lanes`).includesText('Lanes 2/3');
-    assert.dom(`${track} [data-test-lane]`).exists({ count: 1 });
-    assert.dom(`${track} [data-test-lane="${FREQUENCY}"]`).exists();
-
-    await click(button);
-    assert.deepEqual(
-      findAll(`${track} [data-test-menu-item]`).map((el) => [
-        el.textContent.trim(),
+  /** The menu's items for these labels, as [label, role, checked]. */
+  const itemsFor = (...labels: string[]): (string | null)[][] =>
+    findAll(`${track} [data-test-menu-item]`)
+      .map((el) => [
+        el.getAttribute('data-test-menu-item'),
         el.getAttribute('role'),
         el.getAttribute('aria-checked'),
-      ]),
-      [
-        ['steps', 'menuitemcheckbox', 'true'],
-        ['frequency', 'menuitemcheckbox', 'true'],
-        ['q', 'menuitemcheckbox', 'false'],
-      ],
-    );
+      ])
+      .filter(([label]) => labels.includes(label ?? ''));
+
+  test('with no step set, the row shows its grid and no lane; the menu lists every control’s lane', async function (assert) {
+    await render(<template><AppShell /></template>);
+    assert.dom(`${track} [data-test-step]`).exists({ count: 16 });
+    assert.dom(`${track} [data-test-lane]`).doesNotExist();
+    await click(button);
+    assert.deepEqual(itemsFor('steps', 'frequency', 'q'), [
+      ['steps', 'menuitemcheckbox', 'true'],
+      ['frequency', 'menuitemcheckbox', 'false'],
+      ['q', 'menuitemcheckbox', 'false'],
+    ]);
+  });
+
+  test('a lane in play is shown, and the menu says how many steps it sets', async function (assert) {
+    await twoLanes();
+    assert.dom(`${track} [data-test-lane]`).exists({ count: 2 });
+    await click(button);
+    assert.deepEqual(itemsFor('steps', 'frequency', 'q'), [
+      ['steps', 'menuitemcheckbox', 'true'],
+      ['frequency', 'menuitemcheckbox', 'true'],
+      ['q', 'menuitemcheckbox', 'true'],
+    ]);
+    assert.dom(item('frequency')).includesText('1 step set');
   });
 
   test('toggling shows and hides, the menu stays open, and a lane can stand without its grid', async function (assert) {
@@ -76,52 +83,49 @@ module('Integration | Track row lanes menu', function (hooks) {
     await click(button);
     await click(item('q'));
     assert.dom(`${track} [data-test-menu]`).exists('still open');
-    assert.dom(`${track} [data-test-lane]`).exists({ count: 2 });
-    assert.dom(`${track} .track__lanes`).includesText('Lanes 3/3');
+    assert.dom(`${track} [data-test-lane]`).exists({ count: 1 });
 
     await click(item('steps'));
     assert.dom(`${track} [data-test-step]`).doesNotExist('the grid is hidden');
     assert
       .dom(`${track} [data-test-lane]`)
-      .exists({ count: 2 }, 'its lanes stay');
-    assert.dom(`${track} [data-lane-step]`).exists({ count: 32 });
+      .exists({ count: 1 }, 'its lane stays');
+    assert.dom(`${track} [data-lane-step]`).exists({ count: 16 });
 
     await click(item('frequency'));
-    await click(item('q'));
     assert.dom(`${track} [data-test-no-lanes]`).hasText('No lanes shown');
-    assert.dom(`${track} .track__lanes`).includesText('Lanes 0/3');
+    assert.dom(`${track} .track__lanes`).includesText('Lanes 0/');
     assert.dom(`${track} [data-test-menu]`).exists();
 
     await click(item('steps'));
     assert.dom(`${track} [data-test-step]`).exists({ count: 16 });
     const stored = JSON.parse(
       window.localStorage.getItem(VIEW_STORAGE_KEY) ?? '{}',
-    ) as { laneSets: Record<string, { keys: string[] }> };
-    assert.deepEqual(stored.laneSets['t-kick']!.keys, [STEPS]);
+    ) as { laneView: Record<string, { open: string[]; closed: string[] }> };
+    assert.deepEqual(stored.laneView['t-kick'], {
+      open: [STEPS],
+      closed: [Q, FREQUENCY],
+    });
   });
 
-  test('Show lane checks that lane and leaves the others alone', async function (assert) {
-    await twoLanes();
-    await click(button);
-    await click(item('steps'));
-    await click(button);
-    await click('[data-test-footer-tab="controls"]').catch(() => undefined);
-    await click(`[data-test-control="${Q}"] [data-test-show-lane]`);
-    assert.dom(`${track} [data-test-lane="${Q}"]`).exists();
-    assert.dom(`${track} [data-test-lane="${FREQUENCY}"]`).exists();
-    assert
-      .dom(`${track} [data-test-step]`)
-      .doesNotExist('the grid stays unchecked');
-  });
-
-  test('a control just made per step is checked in the row', async function (assert) {
+  test('a control’s lane button opens its lane under the row and in the track’s row', async function (assert) {
     await render(<template><AppShell /></template>);
-    await click(`[data-test-control="${Q}"] [data-test-menu-button]`);
-    await click('[data-test-menu-item="Per step"]');
+    const lane = `[data-test-control="${Q}"] [data-test-lane-button]`;
+    assert.dom(lane).hasAttribute('aria-pressed', 'false');
+    await click(lane);
+    assert.dom(lane).hasAttribute('aria-pressed', 'true');
+    assert
+      .dom(
+        `[data-test-control="${Q}"] [data-test-control-steps] [data-lane-step]`,
+      )
+      .exists({ count: 16 }, 'under the control, in its sequence’s columns');
     assert.dom(`${track} [data-test-lane="${Q}"]`).exists();
-    await click(`[data-test-control="${FREQUENCY}"] [data-test-menu-button]`);
-    await click('[data-test-menu-item="Per step"]');
-    assert.dom(`${track} [data-test-lane]`).exists({ count: 2 });
+    assert.dom(`${track} [data-test-lane]`).exists({ count: 1 });
+    await click(lane);
+    assert.dom(`${track} [data-test-lane="${Q}"]`).doesNotExist();
+    assert
+      .dom(`[data-test-control="${Q}"] [data-test-control-steps]`)
+      .doesNotExist();
   });
 
   test('two sequences: grouped by sequence, each lane under its own grid', async function (assert) {
@@ -138,23 +142,27 @@ stepGrid('fills');
 `,
     });
     await settled();
-    audio.chooseStepMode('t-kick', FREQUENCY, 'per-step:steps');
-    audio.chooseStepMode('t-kick', Q, 'per-step:fills');
+    audio.setLaneSequence('t-kick', Q, 'fills');
+    audio.setLaneValue('t-kick', FREQUENCY, 0, 500);
+    audio.setLaneValue('t-kick', Q, 0, 4);
     await settled();
     await click(button);
+    const labels = findAll(`${track} [data-test-menu] li`).map(
+      (el) =>
+        el
+          .querySelector('[data-test-menu-item]')
+          ?.getAttribute('data-test-menu-item') ?? el.textContent.trim(),
+    );
     assert.deepEqual(
-      findAll(`${track} [data-test-menu] li`).map((el) =>
-        el.textContent.trim(),
-      ),
-      ['steps', 'steps', 'frequency', 'fills', 'fills', 'q'],
+      labels.filter((label) => ['steps', 'fills', 'q'].includes(label)),
+      ['steps', 'steps', 'fills', 'fills', 'q'],
       'a heading and the grid, then the lanes, for each sequence',
     );
-    await click(item('q'));
     const stacks = findAll(`${track} .track__grid`);
     assert.strictEqual(stacks.length, 2);
     assert.dom(`[data-test-lane="${Q}"]`, stacks[1]).exists();
     assert.dom(`[data-test-lane="${Q}"]`, stacks[0]).doesNotExist();
-    assert.true(!!project.doc.tracks[0]);
+    assert.dom(`[data-test-lane="${FREQUENCY}"]`, stacks[0]).exists();
     assert.true(!!FILLS);
   });
 
@@ -167,7 +175,7 @@ stepGrid('fills');
         return box.left + box.width / 2;
       });
       assert.strictEqual(steps.length, 16);
-      const bars = findAll(`${track} [data-lane-step]`);
+      const bars = findAll(`${track} [data-lane="${FREQUENCY}"]`);
       assert.strictEqual(bars.length, 16);
       for (const bar of bars) {
         const box = bar.getBoundingClientRect();

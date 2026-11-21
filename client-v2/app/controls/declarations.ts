@@ -202,7 +202,7 @@ const NUMBER_OPTIONS: readonly OptionSpec[] = [
     name: 'perStep',
     type: 'sequence | true',
     description:
-      "A value for every step of a named sequence of this script, in place of one value: { perStep: 'steps' }, or true for the script's first. Each step sets the parameter as it comes round, before the sequence's own callback, so a filter in notes is a melody and a sampler's speed can change on every hit. The values are drawn as a lane under the sequence's grid. The person can switch it on and off from the control's menu.",
+      "The sequence the control's lane follows: { perStep: 'steps' }, or true for the script's first. Every slider, knob and toggle on a parameter has a lane, drawn under its sequence's grid (the first sequence with a grid, unless this says another): a step can hold a value of its own, and every other step follows the control. Each step sets the parameter as it comes round, before the sequence's own callback, so a filter in notes is a melody and a sampler's speed can change on every hit. The person paints the steps; this only chooses the sequence.",
   },
   {
     name: 'sequence',
@@ -277,7 +277,7 @@ const NUMBER_SIGNATURES: readonly SignatureSpec[] = [
 ];
 
 const OPTIONS =
-  'Options: label, min, max, step, values, glide (seconds the parameter takes to get to where the control is put, or a control of your own that says), perStep (a value for every step of a named sequence, drawn as a lane under its grid), and mode: the unit the control starts in, which the person can change from its menu. ' +
+  "Options: label, min, max, step, values, glide (seconds the parameter takes to get to where the control is put, or a control of your own that says), perStep (the sequence the control's lane follows: steps can hold values of their own), and mode: the unit the control starts in, which the person can change from its menu. " +
   'What is on offer depends on the parameter: a frequency "hz", "note", "cents"; a level "linear", "decibels"; a time "seconds", "ms", "steps"; ' +
   'a sampler start or end "seconds", "ms", "percent", "slice"; a speed "ratio", "semitones", "ratio-cents", "sequence-sync"; anything else "linear", "exponential", "stepped". ' +
   'A sampler\'s speed in "sequence-sync" is tied to a named sequence of the script: at 1 the whole sound lasts exactly one pass of the sequence, at 2 half of one, at 1/2 two, and it follows the tempo. ' +

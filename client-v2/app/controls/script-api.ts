@@ -61,10 +61,10 @@ export interface ControlHost {
   /** seconds a control's parameter takes to get where the control is put, as things stand (0: at once) */
   glide(key: string): number;
   /**
-   * For a control that has a value for every step of a sequence (as things stand when it is asked):
-   * its value on the step now playing. Null for a control with a single value.
+   * For a control whose lane is in play (some step of it has a value of its own, as things stand when
+   * it is asked): its value on the step now playing. Null for a control at its single value.
    */
-  perStep(key: string): { value: number } | null;
+  perStep(key: string): { value: number | boolean } | null;
   /** a step grid's length and step length as set on the grid (the project's), where they have been */
   gridShape(key: string): { length?: number; step?: string };
   /**
@@ -360,8 +360,8 @@ export function createControlApi(
         // (with a glide it starts where it is called, on the step in a callback, and sweeps from there)
         const seconds = host.glide(key);
         set(value, seconds);
-        // A control that has a value for every step: the parameter goes where the script puts it
-        // until the next step, whose own value then applies. Its lane is not rewritten.
+        // A control whose lane is in play: the parameter goes where the script puts it until the next
+        // step, whose value then applies. Its lane is not rewritten.
         if (host.perStep(key)) return;
         host.moved(key, value, seconds);
       },

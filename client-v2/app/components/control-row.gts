@@ -4,15 +4,15 @@ import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import NumberEntry from 'client-v2/components/ui/number-entry';
 import PopupMenu, { type MenuItem } from 'client-v2/components/ui/popup-menu';
-import type { ControlView } from 'client-v2/audio/runner';
-import { controlWidget, type ControlEntry } from 'client-v2/controls/registry';
+import type { ControlView, StepGridView } from 'client-v2/audio/runner';
 import { GLIDE_MAPPING } from 'client-v2/controls/modes';
-import { rowLanes, sequenceLanes } from 'client-v2/components/row-lanes';
+import Icon from 'client-v2/components/icon';
 import {
-  glideBlockedItems,
-  stepMenuItems,
-  unitMenuItems,
-} from 'client-v2/controls/unit-menu';
+  controlWidget,
+  stepGridWidget,
+  type ControlEntry,
+} from 'client-v2/controls/registry';
+import { glideBlockedItems, unitMenuItems } from 'client-v2/controls/unit-menu';
 import { mappingOf, numberOf } from 'client-v2/controls/view';
 import intoView from 'client-v2/modifiers/into-view';
 import onEscape from 'client-v2/modifiers/on-escape';
@@ -20,11 +20,15 @@ import onOutside from 'client-v2/modifiers/on-outside';
 import type AudioService from 'client-v2/services/audio';
 import type ViewService from 'client-v2/services/view';
 
+const Grid = stepGridWidget().component;
+
 export interface ControlRowSignature {
   Element: HTMLLIElement;
   Args: {
     scopeId: string;
     control: ControlView;
+    /** it is under a step picker: while a step is chosen there, it sets that step's own value */
+    steps?: boolean;
   };
 }
 
@@ -32,6 +36,10 @@ export interface ControlRowSignature {
  * One declared control in the controls pane: its label, the widget its kind names (from the registry),
  * a readout that can be typed into, and its menu (slider mode, reset, and MIDI learn to come). The menu
  * opens from its own button, and from a long press or a right click on the widget.
+ *
+ * A slider, knob or toggle on a parameter has a lane: its lane button (the multislider) opens it under
+ * the row, in its sequence's step columns, and says how many steps hold a value of their own. The
+ * control keeps working: it is the value of every step that holds none.
  */
 export default class ControlRow extends Component<ControlRowSignature> {
   @service declare audio: AudioService;
@@ -92,10 +100,7 @@ export default class ControlRow extends Component<ControlRowSignature> {
   }
 
   get text(): string {
-    return (
-      mappingOf(this.args.control)?.format(numberOf(this.args.control.value)) ??
-      ''
-    );
+    return mappingOf(this.shown)?.format(numberOf(this.shown.value)) ?? '';
   }
 
   /** Where the parameter is, when code has moved it away from the control. */
@@ -145,14 +150,8 @@ export default class ControlRow extends Component<ControlRowSignature> {
                 this.audio.setControlGlide(scopeId, control.key, undefined),
             },
           ];
-    const steps = stepMenuItems(control, (choice) => {
-      this.audio.chooseStepMode(scopeId, control.key, choice);
-      // (a control just made per step has a lane: it is shown in the track's row)
-      if (choice.startsWith('per-step:')) this.checkLane();
-    });
     return [
       ...modes,
-      ...steps,
       ...glides,
       {
         label: 'Reset',
@@ -169,37 +168,129 @@ export default class ControlRow extends Component<ControlRowSignature> {
     ];
   }
 
-  /**
-   * It has a value for every step of a sequence (and the sequence is there): its row here is a stub,
-   * and its values are a lane under that sequence's grid.
-   */
-  get lane(): string | undefined {
-    const per = this.args.control.perStep;
-    return per && !per.missing ? per.sequence : undefined;
+  /** Its lane, where it has one and the sequence it follows is in the script. */
+  get lane(): ControlView['lane'] {
+    const lane = this.args.control.lane;
+    return lane && !lane.missing ? lane : undefined;
   }
 
-  /** Its sequence is not in the script now: it is at its single value meanwhile, and says so. */
+  /** The sequence its lane follows is not in the script now: it is at its single value meanwhile, and says so. */
   get laneMissing(): string | undefined {
-    const per = this.args.control.perStep;
-    return per?.missing ? per.sequence : undefined;
+    const lane = this.args.control.lane;
+    return lane?.missing && lane.locked > 0 ? lane.sequence : undefined;
   }
 
-  /** Checks this control's lane in the track's row (the others stay as they are). */
-  checkLane = (): void => {
-    const row = rowLanes(sequenceLanes(this.audio, this.args.scopeId));
-    this.view.revealLane(this.args.scopeId, row, this.args.control.key);
+  /** The lane is open (here, under its grid in the track's row and in the sequence pane). */
+  get laneShown(): boolean {
+    const lane = this.lane;
+    return (
+      lane !== undefined &&
+      this.view.isLaneShown(
+        this.args.scopeId,
+        this.args.control.key,
+        lane.locked > 0,
+      )
+    );
+  }
+
+  /** The grid of the sequence the lane follows: the lane is drawn in its step columns. */
+  get laneGrid(): StepGridView | undefined {
+    const lane = this.lane;
+    return lane
+      ? this.audio
+          .stepGrids(this.args.scopeId)
+          .find((grid) => grid.name === lane.sequence)
+      : undefined;
+  }
+
+  get laneKeys(): string[] {
+    return [this.args.control.key];
+  }
+
+  get laneLabel(): string {
+    const lane = this.lane;
+    if (!lane) return '';
+    return `${this.laneShown ? 'Hide' : 'Show'} ${this.args.control.label} steps${
+      lane.locked > 0 ? ` (${lane.locked} of ${lane.steps} set)` : ''
+    }`;
+  }
+
+  /**
+   * The step being edited, where a step is chosen over the controls (the step picker) and this
+   * control's lane follows its sequence: the widget then sets that step's own value.
+   */
+  get editing(): {
+    index: number;
+    value: number | boolean;
+    set: boolean;
+  } | null {
+    const lane = this.lane;
+    const chosen = this.args.steps
+      ? this.view.chosenStep(this.args.scopeId)
+      : null;
+    if (!lane || !chosen || chosen.sequence !== lane.sequence) return null;
+    const view = this.audio
+      .lanes(this.args.scopeId, lane.sequence)
+      .find((candidate) => candidate.key === this.args.control.key);
+    const value = view?.values[chosen.index];
+    if (!view || value === undefined) return null;
+    return {
+      index: chosen.index,
+      value: view.kind === 'toggle' ? value > 0 : value,
+      set: view.locked[chosen.index] ?? false,
+    };
+  }
+
+  /** The control as the widget is to draw it: while a step is edited, at that step's value. */
+  get shown(): ControlView {
+    const editing = this.editing;
+    return editing
+      ? { ...this.args.control, value: editing.value, effective: null }
+      : this.args.control;
+  }
+
+  get stepNumber(): number {
+    return (this.editing?.index ?? 0) + 1;
+  }
+
+  get stepLabel(): string {
+    const editing = this.editing;
+    if (!editing) return '';
+    return editing.set
+      ? `Step ${editing.index + 1} has its own ${this.args.control.label}: press to follow the control again`
+      : `Step ${editing.index + 1} follows the control: move it to give the step its own value`;
+  }
+
+  /** A value set while a step is edited: the step's own. */
+  setStep = (value: number | boolean): void => {
+    const editing = this.editing;
+    if (!editing) return;
+    this.audio.setLaneValue(
+      this.args.scopeId,
+      this.args.control.key,
+      editing.index,
+      value,
+    );
   };
 
-  /** Shows the lane in the track's row (checked in its Lanes menu), bringing the row into view. */
-  showLane = (): void => {
-    this.checkLane();
-    const id = this.args.scopeId;
-    // (the row is redrawn with the lane first)
-    void Promise.resolve().then(() => {
-      [...document.querySelectorAll<HTMLElement>('[data-track-id]')]
-        .find((row) => row.dataset['trackId'] === id)
-        ?.scrollIntoView({ block: 'nearest' });
-    });
+  /** The step follows the control again. */
+  clearStep = (): void => {
+    const editing = this.editing;
+    if (!editing) return;
+    this.audio.setLaneValue(
+      this.args.scopeId,
+      this.args.control.key,
+      editing.index,
+      null,
+    );
+  };
+
+  toggleLane = (): void => {
+    this.view.setLane(
+      this.args.scopeId,
+      this.args.control.key,
+      !this.laneShown,
+    );
   };
 
   openMenu = (): void => {
@@ -214,7 +305,8 @@ export default class ControlRow extends Component<ControlRowSignature> {
   commit = (typed: string): boolean => {
     const value = mappingOf(this.args.control)?.parse(typed);
     if (value === null || value === undefined) return false;
-    this.audio.setControl(this.args.scopeId, this.args.control.key, value);
+    if (this.editing) this.setStep(value);
+    else this.audio.setControl(this.args.scopeId, this.args.control.key, value);
     return true;
   };
 
@@ -226,33 +318,58 @@ export default class ControlRow extends Component<ControlRowSignature> {
       data-linked={{if this.linked "true"}}
       data-waiting={{if @control.waiting "true"}}
       data-mode={{@control.mode}}
+      data-editing-step={{if this.editing "true"}}
       title={{@control.waiting}}
       data-test-control={{@control.key}}
       ...attributes
       {{intoView this.linked}}
     >
+      {{#if this.laneGrid}}
+        <button
+          type="button"
+          class="control-row__lane-button"
+          aria-pressed={{if this.laneShown "true" "false"}}
+          aria-label={{this.laneLabel}}
+          title={{this.laneLabel}}
+          data-active={{if this.lane.locked "true"}}
+          data-test-lane-button
+          {{on "click" this.toggleLane}}
+        >
+          <Icon @name="multislider" />
+          {{#if this.lane.locked}}
+            <span
+              class="control-row__lane-count"
+              data-test-lane-count
+            >{{this.lane.locked}}</span>
+          {{/if}}
+        </button>
+      {{/if}}
       <span
         class="control-row__label truncate"
         title={{@control.label}}
       >{{@control.label}}</span>
+      {{#if this.editing}}
+        <button
+          type="button"
+          class="control-row__step"
+          aria-label={{this.stepLabel}}
+          title={{this.stepLabel}}
+          data-set={{if this.editing.set "true"}}
+          data-test-step-chip
+          disabled={{if this.editing.set false true}}
+          {{on "click" this.clearStep}}
+        ><span class="control-row__step-word">step
+          </span>{{this.stepNumber}}</button>
+      {{/if}}
 
-      {{#if this.lane}}
-        <span class="control-row__lane" data-test-control-lane>
-          <span class="truncate">per step of
-            <b>{{this.lane}}</b></span>
-          <button
-            type="button"
-            class="btn btn--s btn--on-yellow"
-            data-test-show-lane
-            {{on "click" this.showLane}}
-          >Show lane</button>
-        </span>
-      {{else if this.entry}}
+      {{#if this.entry}}
         <this.entry.component
           class="control-row__widget"
           @scopeId={{@scopeId}}
-          @control={{@control}}
+          @control={{this.shown}}
           @onMenu={{this.openMenu}}
+          @onSet={{if this.editing this.setStep}}
+          @onReset={{if this.editing this.clearStep}}
         />
         {{#if this.entry.number}}
           <NumberEntry
@@ -271,7 +388,7 @@ export default class ControlRow extends Component<ControlRowSignature> {
           class="control-row__effective"
           role="status"
           data-test-lane-missing
-        >no sequence ‘{{this.laneMissing}}’: single value</span>
+        >no sequence ‘{{this.laneMissing}}’: its steps wait</span>
       {{/if}}
 
       {{#if this.effectiveText}}
@@ -317,6 +434,20 @@ export default class ControlRow extends Component<ControlRowSignature> {
         @open={{this.menuOpen}}
         @onOpenChange={{this.setMenuOpen}}
       />
+
+      {{#if this.laneShown}}
+        {{#if this.laneGrid}}
+          <Grid
+            class="control-row__steps"
+            @scopeId={{@scopeId}}
+            @control={{this.laneGrid}}
+            @lanes={{true}}
+            @laneKeys={{this.laneKeys}}
+            @hideSteps={{true}}
+            data-test-control-steps
+          />
+        {{/if}}
+      {{/if}}
     </li>
   </template>
 }

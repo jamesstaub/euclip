@@ -28,17 +28,20 @@ interface Stored {
   footerPane?: unknown;
   collapsed?: unknown;
   snaps?: unknown;
-  lanes?: unknown;
-  laneSets?: unknown;
+  laneView?: unknown;
   sheetOpen?: unknown;
   sheetSize?: unknown;
   selectedTrack?: unknown;
 }
 
-/** What a track's row can show as lanes, by key: its step grids and its per-step controls, in the script's order. */
+/**
+ * What a track can show as lanes, by key: its step grids and its controls' lanes, in the script's
+ * order, and which of those lanes are in play (some step holds a value of its own).
+ */
 export interface RowLanes {
   grids: string[];
   lanes: string[];
+  active: string[];
 }
 
 /** How tall the phone's track sheet is when it is open: half the screen, or up to the project bar. */
@@ -175,21 +178,6 @@ export default class ViewService extends Service {
   }
 
   /**
-   * The per-step lane a track's row shows (at most one), by track: a control's key, or '' for none.
-   * One not listed has not been chosen: the row shows the first. Remembered; nothing to undo.
-   */
-  @tracked private lanes: Readonly<Record<string, string>> =
-    this.#stored.lanes &&
-    typeof this.#stored.lanes === 'object' &&
-    !Array.isArray(this.#stored.lanes)
-      ? Object.fromEntries(
-          Object.entries(this.#stored.lanes).filter(
-            (entry): entry is [string, string] => typeof entry[1] === 'string',
-          ),
-        )
-      : {};
-
-  /**
    * What every track's row shows where its step grid is: 'steps' or the signal 'chain' drawn from the
    * running script. One choice for all the rows, from the project bar; nothing to undo. Not remembered:
    * the app always opens on the steps (the owner's choice, 2026-11-20).
@@ -201,22 +189,20 @@ export default class ViewService extends Service {
   }
 
   /**
-   * The lanes a track's row shows, by track: everything the row can show per sequence is a lane, the
-   * step grids (by their keys) and the per-step controls (by theirs). A track not listed has made no
-   * choice: all its grids and its first per-step lane. `known` is what existed when the choice was last
-   * made, so that something new (a lane just switched to Per step, a new sequence's grid) is shown
-   * without being asked. Remembered; nothing to undo. (`lanes`, above, is the single choice of an
-   * earlier version: the grids and that lane.)
+   * Which lanes a track shows, by track, where the person has said: `open` (its lane button pressed,
+   * checked in a Lanes menu) and `closed` (Hide lane, unchecked). Everything else follows the data: a
+   * grid is shown, and a control's lane is shown while some step holds a value of its own. One choice
+   * for the track's row, its sequence pane and its control rows. Remembered; nothing to undo.
    */
-  @tracked private laneSets: Readonly<
-    Record<string, { keys: string[]; known: string[] }>
+  @tracked private laneView: Readonly<
+    Record<string, { open: string[]; closed: string[] }>
   > =
-    this.#stored.laneSets &&
-    typeof this.#stored.laneSets === 'object' &&
-    !Array.isArray(this.#stored.laneSets)
+    this.#stored.laneView &&
+    typeof this.#stored.laneView === 'object' &&
+    !Array.isArray(this.#stored.laneView)
       ? Object.fromEntries(
-          Object.entries(this.#stored.laneSets).flatMap(([scope, value]) => {
-            const entry = value as { keys?: unknown; known?: unknown } | null;
+          Object.entries(this.#stored.laneView).flatMap(([scope, value]) => {
+            const entry = value as { open?: unknown; closed?: unknown } | null;
             const strings = (list: unknown): string[] =>
               Array.isArray(list)
                 ? list.filter((key): key is string => typeof key === 'string')
@@ -225,7 +211,10 @@ export default class ViewService extends Service {
               ? [
                   [
                     scope,
-                    { keys: strings(entry.keys), known: strings(entry.known) },
+                    {
+                      open: strings(entry.open),
+                      closed: strings(entry.closed),
+                    },
                   ],
                 ]
               : [];
@@ -233,57 +222,62 @@ export default class ViewService extends Service {
         )
       : {};
 
-  /** The keys of the lanes shown now: the choice, less what is gone, plus what is new. */
+  /** The keys of what a track shows now, in the script's order: grids, then lanes. */
   shownLanes(scopeId: string, row: RowLanes): Set<string> {
-    const all = [...row.grids, ...row.lanes];
-    const chosen = this.laneSets[scopeId];
-    if (chosen) {
-      return new Set(
-        all.filter(
-          (key) => chosen.keys.includes(key) || !chosen.known.includes(key),
-        ),
-      );
-    }
-    const legacy = this.lanes[scopeId];
-    return new Set(
-      legacy === undefined
-        ? [...row.grids, ...row.lanes.slice(0, 1)]
-        : [...row.grids, ...row.lanes.filter((key) => key === legacy)],
-    );
+    const said = this.laneView[scopeId];
+    const open = new Set(said?.open);
+    const closed = new Set(said?.closed);
+    const active = new Set(row.active);
+    return new Set([
+      ...row.grids.filter((key) => !closed.has(key)),
+      ...row.lanes.filter(
+        (key) => !closed.has(key) && (open.has(key) || active.has(key)),
+      ),
+    ]);
   }
 
-  /** One lane checked or unchecked in a track's row. */
-  setLane(scopeId: string, row: RowLanes, key: string, on: boolean): void {
-    const now = this.shownLanes(scopeId, row);
-    if (on) now.add(key);
-    else now.delete(key);
-    this.laneSets = {
-      ...this.laneSets,
-      [scopeId]: {
-        keys: [...row.grids, ...row.lanes].filter((k) => now.has(k)),
-        known: [...row.grids, ...row.lanes],
-      },
+  /** Whether one lane of a track is shown (`active`: some step of it holds a value of its own). */
+  isLaneShown(scopeId: string, key: string, active: boolean): boolean {
+    const said = this.laneView[scopeId];
+    if (said?.closed.includes(key)) return false;
+    return active || (said?.open.includes(key) ?? false);
+  }
+
+  /** One grid or lane of a track shown or hidden, wherever it is drawn. */
+  setLane(scopeId: string, key: string, on: boolean): void {
+    const said = this.laneView[scopeId] ?? { open: [], closed: [] };
+    const open = said.open.filter((k) => k !== key);
+    const closed = said.closed.filter((k) => k !== key);
+    this.laneView = {
+      ...this.laneView,
+      [scopeId]: on
+        ? { open: [...open, key], closed }
+        : { open, closed: [...closed, key] },
     };
     this.#save();
   }
 
-  /** A lane is to be seen (Show lane, or a control just made per step): checked, and nothing else changes. */
-  revealLane(scopeId: string, row: RowLanes, key: string): void {
-    // (always written down, so that the default's "first lane" cannot move away from it later)
-    const now = this.shownLanes(scopeId, row);
-    now.add(key);
-    const all = [...row.grids, ...row.lanes];
-    this.laneSets = {
-      ...this.laneSets,
-      [scopeId]: {
-        keys: [
-          ...all.filter((k) => now.has(k)),
-          ...(all.includes(key) ? [] : [key]),
-        ],
-        known: all,
-      },
-    };
-    this.#save();
+  /**
+   * The step whose values the track's controls are editing, by track: a sequence and a step of it,
+   * chosen in the step picker over its controls. While one is chosen, a control whose lane follows that
+   * sequence sets that step's own value instead of its single value. Not remembered; nothing to undo.
+   */
+  @tracked private chosenSteps: Readonly<
+    Record<string, { sequence: string; index: number }>
+  > = {};
+
+  chosenStep(scopeId: string): { sequence: string; index: number } | null {
+    return this.chosenSteps[scopeId] ?? null;
+  }
+
+  /** Chooses a step to edit (null: back to the controls' single values). */
+  chooseStep(
+    scopeId: string,
+    step: { sequence: string; index: number } | null,
+  ): void {
+    const { [scopeId]: _gone, ...rest } = this.chosenSteps;
+    void _gone;
+    this.chosenSteps = step === null ? rest : { ...rest, [scopeId]: step };
   }
 
   /** Which sequence the synth editor's step strip shows, by track, where the person has chosen. Not remembered. */
@@ -489,8 +483,7 @@ export default class ViewService extends Service {
           collapsed: this.collapsed,
           waveforms: this.waveforms,
           snaps: this.snaps,
-          lanes: this.lanes,
-          laneSets: this.laneSets,
+          laneView: this.laneView,
           sheetSize: this.sheetSize,
           selectedTrack: this.selectedTrack,
           // (only a phone remembers whether the footer was open: elsewhere it starts open)

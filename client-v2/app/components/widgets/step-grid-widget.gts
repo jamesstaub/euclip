@@ -7,7 +7,6 @@ import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import LaneMenu from 'client-v2/components/lane-menu';
-import { rowLanes, sequenceLanes } from 'client-v2/components/row-lanes';
 import Hint from 'client-v2/components/ui/hint';
 import type { LaneView, StepGridView } from 'client-v2/audio/runner';
 import { ControlGesture } from 'client-v2/controls/gesture';
@@ -40,6 +39,10 @@ function pressed(value: number): 'true' | 'false' {
 
 function is(a: number, b: number | null | undefined): boolean {
   return a === b;
+}
+
+function isToggle(lane: LaneView): boolean {
+  return lane.kind === 'toggle';
 }
 
 /** A step that holds more than on or off shows what it holds. */
@@ -400,26 +403,40 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
 
   // --- lanes: a per-step control's value on every step, in the grid's own columns ---------------------
 
-  /** The sequence's per-step controls. (Their bars are items of the grid itself, so they stand under their steps.) */
+  /**
+   * The lanes drawn under the grid: the ones named, else the ones the track shows (a lane in play, or
+   * one the person has opened). Their bars are items of the grid itself, so they stand under their steps.
+   */
   get lanes(): LaneView[] {
     if (!this.args.lanes) return [];
     const all = this.audio.lanes(this.args.scopeId, this.args.control.name);
     const only = this.args.laneKeys;
     return only === undefined
-      ? all
+      ? all.filter((lane) =>
+          this.view.isLaneShown(this.args.scopeId, lane.key, lane.active),
+        )
       : all.filter((lane) => only.includes(lane.key));
   }
 
-  /** Unchecks a lane in the track row's Lanes menu (the row's own view state). */
+  /** Hides a lane, wherever the track draws it. */
   hideLane = (key: string): void => {
-    const scopeId = this.args.scopeId;
-    this.view.setLane(
-      scopeId,
-      rowLanes(sequenceLanes(this.audio, scopeId)),
-      key,
-      false,
-    );
+    this.view.setLane(this.args.scopeId, key, false);
   };
+
+  isLocked = (lane: LaneView, index: number): boolean =>
+    lane.locked[index] ?? false;
+
+  isOn = (value: number): boolean => value > 0;
+
+  /** A toggle's cell pressed: a step that has its own value follows the control again; one that follows gets the other value. */
+  #tapCell(lane: LaneView, index: number): void {
+    this.audio.setLaneValue(
+      this.args.scopeId,
+      lane.key,
+      index,
+      lane.locked[index] ? null : !((lane.values[index] ?? 0) > 0),
+    );
+  }
 
   /** The unit a lane's values are in, where it is not the obvious one: ` · note`, ` · seq`. */
   unitOf = (lane: LaneView): string => {
@@ -455,9 +472,14 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
     const at = this.laneAt;
     if (!at || at.key !== lane.key) return '';
     const value = lane.values[at.index];
-    return value === undefined
-      ? ''
-      : `step ${at.index + 1}: ${mappingOf(lane.control)?.format(value) ?? String(value)}`;
+    if (value === undefined) return '';
+    const text =
+      lane.kind === 'toggle'
+        ? value > 0
+          ? 'on'
+          : 'off'
+        : (mappingOf(lane.control)?.format(value) ?? String(value));
+    return `step ${at.index + 1}: ${text}${lane.locked[at.index] ? '' : ' (follows the control)'}`;
   };
 
   /** The bar a pointer is over: the one in its column, in the nearest row (a long sequence wraps). */
@@ -551,6 +573,12 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
     if (!bar || key === undefined) return;
     const grid = event.currentTarget as HTMLElement;
     const index = Number(bar.dataset['laneStep']);
+    const tapped = this.#laneOf(key);
+    if (tapped?.kind === 'toggle') {
+      // (a toggle's cell is pressed, not dragged)
+      if (event.button === 0) this.#tapCell(tapped, index);
+      return;
+    }
     this.#lane = {
       key,
       index,
@@ -583,8 +611,23 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
     if (!this.laneGesture.active && this.laneAt !== null) this.laneAt = null;
   };
 
-  /** The arrow keys on a focused bar step its value, as a slider's do; Enter opens the number box. */
+  /**
+   * The arrow keys on a focused bar step its value, as a slider's do; Enter opens the number box.
+   * A toggle's cell: Enter or Space presses it. Delete or Backspace: the step follows the control again.
+   */
   laneKey = (lane: LaneView, index: number, event: KeyboardEvent): void => {
+    if (event.key === 'Delete' || event.key === 'Backspace') {
+      event.preventDefault();
+      this.audio.setLaneValue(this.args.scopeId, lane.key, index, null);
+      return;
+    }
+    if (lane.kind === 'toggle') {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        this.#tapCell(lane, index);
+      }
+      return;
+    }
     const map = mappingOf(lane.control);
     if (!map) return;
     if (event.key === 'Enter') {
@@ -619,9 +662,14 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
       : '';
   }
 
+  /** A value typed for a bar; nothing typed: the step follows the control again. */
   commitLane = (typed: string): boolean => {
     const editing = this.laneEditing;
     const lane = editing && this.#laneOf(editing.key);
+    if (editing && lane && typed.trim() === '') {
+      this.audio.setLaneValue(this.args.scopeId, lane.key, editing.index, null);
+      return true;
+    }
     const value = lane ? mappingOf(lane.control)?.parse(typed) : null;
     if (!editing || value === null || value === undefined) return false;
     this.audio.setLaneValue(
@@ -964,24 +1012,44 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
           <LaneMenu
             @scopeId={{@scopeId}}
             @lane={{lane}}
-            @onHide={{if @laneKeys (fn this.hideLane lane.key)}}
+            @onHide={{fn this.hideLane lane.key}}
           />
         </div>
         {{#each lane.values key="@index" as |value index|}}
-          {{! template-lint-disable no-invalid-interactive }}
-          <span
-            class="lane__bar
-              {{if (is index @control.playhead) 'lane__bar--current'}}"
-            role="slider"
-            tabindex="0"
-            aria-label="{{lane.label}}, step {{plusOne index}}"
-            aria-orientation="vertical"
-            aria-valuenow={{value}}
-            data-lane={{lane.key}}
-            data-lane-step={{index}}
-            {{cssVars pos=(this.barPosition lane value)}}
-            {{on "keydown" (fn this.laneKey lane index)}}
-          ></span>
+          {{#if (isToggle lane)}}
+            {{! template-lint-disable no-invalid-interactive }}
+            <span
+              class="lane__bar lane__bar--toggle
+                {{if (this.isLocked lane index) 'lane__bar--locked'}}
+                {{if (is index @control.playhead) 'lane__bar--current'}}"
+              role="switch"
+              tabindex="0"
+              aria-label="{{lane.label}}, step {{plusOne index}}"
+              aria-checked={{if (this.isOn value) "true" "false"}}
+              data-on={{if (this.isOn value) "true"}}
+              data-locked={{if (this.isLocked lane index) "true"}}
+              data-lane={{lane.key}}
+              data-lane-step={{index}}
+              {{on "keydown" (fn this.laneKey lane index)}}
+            ></span>
+          {{else}}
+            {{! template-lint-disable no-invalid-interactive }}
+            <span
+              class="lane__bar
+                {{if (this.isLocked lane index) 'lane__bar--locked'}}
+                {{if (is index @control.playhead) 'lane__bar--current'}}"
+              role="slider"
+              tabindex="0"
+              aria-label="{{lane.label}}, step {{plusOne index}}"
+              aria-orientation="vertical"
+              aria-valuenow={{value}}
+              data-locked={{if (this.isLocked lane index) "true"}}
+              data-lane={{lane.key}}
+              data-lane-step={{index}}
+              {{cssVars pos=(this.barPosition lane value)}}
+              {{on "keydown" (fn this.laneKey lane index)}}
+            ></span>
+          {{/if}}
         {{/each}}
       {{/each}}
       {{#if this.laneEditing}}

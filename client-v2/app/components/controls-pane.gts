@@ -4,6 +4,7 @@ import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import ControlRow from 'client-v2/components/control-row';
 import Hint from 'client-v2/components/ui/hint';
+import StepPicker from 'client-v2/components/step-picker';
 import intoView from 'client-v2/modifiers/into-view';
 import {
   OWN_GROUP,
@@ -148,6 +149,7 @@ export default class ControlsPane extends Component<ControlsPaneSignature> {
             <code>.lowpass(\{ id: 'filter' })</code></p>
         </Hint>
       </h3>
+      <StepPicker @scopeId={{@scopeId}} />
       {{#each this.chains key="key" as |chain|}}
         <div
           class="control-chain {{if chain.title 'control-chain--named'}}"
@@ -195,7 +197,11 @@ export default class ControlsPane extends Component<ControlsPaneSignature> {
               </summary>
               <ul class="control-list">
                 {{#each section.controls key="key" as |control|}}
-                  <ControlRow @scopeId={{@scopeId}} @control={{control}} />
+                  <ControlRow
+                    @scopeId={{@scopeId}}
+                    @control={{control}}
+                    @steps={{true}}
+                  />
                 {{/each}}
               </ul>
             </details>

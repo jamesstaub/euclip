@@ -261,3 +261,48 @@
   justify-self: end;
   margin-inline-end: var(--target-min);
 }
+
+/*
+ * A step that follows the control (it holds no value of its own) is a ghost of the control's value:
+ * an outline at its height, not a fill. Painting it gives it a value of its own, filled.
+ */
+.lane__bar:not(.lane__bar--locked, .lane__bar--toggle)::before {
+  background: transparent;
+  box-shadow: inset 0 var(--border-width-2) 0 var(--light-blue);
+  opacity: 0.55;
+}
+
+.lane__bar--current:not(.lane__bar--locked, .lane__bar--toggle)::before {
+  box-shadow: inset 0 var(--border-width-2) 0 var(--step-current);
+  opacity: 1;
+}
+
+/* a toggle's lane: a cell for every step, on or off; a step that follows the control is a ghost */
+.lane__bar--toggle {
+  block-size: 1.75rem;
+  cursor: pointer;
+  touch-action: manipulation;
+
+  &::before {
+    block-size: 100%;
+    background: transparent;
+  }
+
+  &[data-on]::before {
+    background: var(--light-blue);
+    opacity: 0.35;
+  }
+
+  &[data-locked]::before {
+    opacity: 1;
+  }
+
+  &[data-locked]:not([data-on])::before {
+    box-shadow: inset 0 0 0 var(--border-width-2) var(--light-blue);
+  }
+
+  &.lane__bar--current::before {
+    outline: var(--border-width-2) solid var(--step-current);
+    outline-offset: -2px;
+  }
+}

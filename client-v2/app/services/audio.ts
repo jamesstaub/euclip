@@ -812,42 +812,43 @@ export default class AudioService extends Service {
     }
   }
 
-  /** The per-step controls of a sequence, as lanes under its grid. */
+  /** The lanes of a sequence: every control whose lane follows it, in play or not. */
   lanes(scopeId: string, sequence: string): LaneView[] {
     void this.revision;
     return this.runner?.lanes(scopeId, sequence) ?? [];
   }
 
-  /** "Single value" or "Per step: name" chosen from a control's menu: one step to undo. */
-  chooseStepMode(scopeId: string, key: string, choice: string): void {
-    const group = `per-step-${++this.#unitChoices}`;
-    for (const operation of this.runner?.stepChoiceOperations(
-      scopeId,
-      key,
-      choice,
-    ) ?? []) {
-      this.project.apply(operation, { group });
-    }
-  }
-
-  /** Every step of a lane back at the control's single value: one step to undo. */
+  /** Every step of a lane back to following the single value: one step to undo. */
   resetLane(scopeId: string, key: string): void {
     const operation = this.runner?.laneResetOperation(scopeId, key);
     if (operation) this.project.apply(operation);
   }
 
-  /** One bar of a lane set: with a `group`, part of a gesture that is one step to undo. */
+  /**
+   * One step of a lane given a value of its own, or (null) back to following the single value: with a
+   * `group`, part of a gesture that is one step to undo.
+   */
   setLaneValue(
     scopeId: string,
     key: string,
     index: number,
-    value: number,
+    value: number | boolean | null,
     group?: string,
   ): void {
     const operation = this.runner?.laneOperation(scopeId, key, index, value);
     if (operation) {
       this.project.apply(operation, group === undefined ? {} : { group });
     }
+  }
+
+  /** A lane follows another sequence of the script: one step to undo. */
+  setLaneSequence(scopeId: string, key: string, sequence: string): void {
+    const operation = this.runner?.laneSequenceOperation(
+      scopeId,
+      key,
+      sequence,
+    );
+    if (operation) this.project.apply(operation);
   }
 
   /** Sets a grid's length or step length (the project's, over the script's); undefined forgets it. */

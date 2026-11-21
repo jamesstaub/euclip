@@ -413,7 +413,7 @@ slider('#synth', 'resonance');
     assert.dom(`${piano} [data-down="true"]`).doesNotExist('and lets go');
   });
 
-  test('per step on the pitch: the keyboard sets the single value and says so', async function (assert) {
+  test('steps of the pitch set: the keyboard sets the others and says so', async function (assert) {
     await open();
     await useOscillator();
     await click('[data-test-script-toggle]');
@@ -425,7 +425,14 @@ slider('#synth', 'resonance');
     );
     await click('[data-test-script-toggle]');
     await waitUntil(() => find(piano));
-    assert.dom('[data-test-pitch-status]').includesText('per step');
+    audio.setLaneValue(
+      project.doc.tracks.at(-1)!.id,
+      '#osc › frequency',
+      0,
+      440,
+    );
+    await settled();
+    assert.dom('[data-test-pitch-status]').includesText('1 of 16 steps');
     await press('E2');
     assert.strictEqual(stored(), noteToHz(40));
   });

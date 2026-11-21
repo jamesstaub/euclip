@@ -596,17 +596,196 @@ button.number-entry:disabled {
   color: var(--near-black);
 }
 
-.control-row__lane {
-  display: flex;
-  flex: 1 1 auto;
+/*
+ * Its lane button (the multislider, from v1): pressed while the lane is open under the row; blue with
+ * a count while steps hold values of their own, so a control whose steps override it says so.
+ */
+.control-row__lane-button {
+  display: inline-flex;
+  flex: none;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  min-inline-size: 0;
-  font-size: var(--font-size-6);
+  gap: 0.125rem;
+  min-inline-size: var(--target-min);
+  min-block-size: var(--target-min);
+  margin-inline-start: calc(-1 * var(--space-1));
+  padding: 0 var(--space-1);
+  border: 0;
+  background: transparent;
+  color: var(--near-black);
+  cursor: pointer;
+
+  & .icon {
+    inline-size: 1.125rem;
+    block-size: 1.125rem;
+  }
+
+  &[data-active] {
+    background: var(--dark-blue);
+    color: var(--light-blue);
+  }
+
+  &[aria-pressed="true"] {
+    background: var(--near-black);
+    color: var(--light-blue);
+  }
+}
+
+.control-row__lane-count {
+  font-size: var(--font-size-7);
+  font-weight: var(--font-weight-heavy);
+  line-height: var(--line-height-solid);
+}
+
+/* the open lane: under the row's controls, the whole width of the list, in its sequence's step columns */
+.control-row:has(> .control-row__steps) {
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+
+  /* (a wrapping line breaks at its items' base sizes before shrinking them: the label's is small, and it
+     grows back to its width where there is room, so only the lane goes onto a line of its own) */
+  & > .control-row__label {
+    flex: 1 0 2.5rem;
+    max-inline-size: 5.5rem;
+  }
+
+  & .control-row__effective {
+    inset-block: calc(max(2.75rem, var(--target-min)) - 0.75rem) auto;
+  }
+}
+
+.control-row__steps {
+  flex: 1 0 100%;
+  margin-inline-start: calc(-1 * var(--space-2));
+  padding-block-start: 0;
+  border-block-start: var(--border-dark);
+  background: var(--near-black);
+  color: var(--light-gray);
 }
 
 .control-row__unknown {
   flex: 1 1 auto;
   font-size: var(--font-size-7);
+}
+
+/*
+ * The step picker over a track's controls: All steps (the controls' own values), or one step whose
+ * own values the controls then set. A step some control holds a value for has a dot.
+ */
+.step-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  margin-block-end: var(--space-2);
+  font-size: var(--font-size-7);
+}
+
+.step-picker__label {
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+}
+
+.step-picker__all,
+.step-picker__step {
+  min-block-size: 1.75rem;
+  border: var(--border-width-1) solid var(--step-line);
+  background: var(--step-off);
+  color: var(--text-on-accent);
+  font-size: var(--font-size-7);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  touch-action: manipulation;
+
+  &[aria-pressed="true"] {
+    background: var(--light-blue);
+  }
+}
+
+.step-picker__all {
+  padding-inline: var(--space-2);
+}
+
+.step-picker__steps {
+  display: grid;
+  grid-template-columns: repeat(16, minmax(0, 1.75rem));
+  flex: 1 1 16rem;
+  max-inline-size: 28rem;
+}
+
+.step-picker__step {
+  position: relative;
+  min-inline-size: 0;
+  padding: 0;
+
+  &[data-current] {
+    box-shadow: inset 0 -0.1875rem 0 var(--step-current);
+  }
+
+  &[data-set]::after {
+    content: "";
+    position: absolute;
+    inset-block-start: 0.125rem;
+    inset-inline-end: 0.125rem;
+    inline-size: 0.3125rem;
+    block-size: 0.3125rem;
+    border-radius: 50%;
+    background: var(--dark-blue);
+  }
+}
+
+@media (pointer: coarse) {
+  .step-picker__all,
+  .step-picker__step {
+    min-block-size: var(--target-min);
+  }
+}
+
+/* a control setting a chosen step's value, not its own: tinted, with the step named beside its label */
+.control-row[data-editing-step] {
+  background: color-mix(in srgb, var(--light-blue) 35%, var(--light-yellow));
+}
+
+.control-row__step {
+  flex: none;
+  min-block-size: 1.5rem;
+  margin-inline-start: calc(-1 * var(--space-1));
+  padding-inline: var(--space-1);
+  border: var(--border-width-1) dashed var(--near-black);
+  background: transparent;
+  color: var(--near-black);
+  font-size: var(--font-size-7);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+
+  &[data-set] {
+    border-style: solid;
+    background: var(--near-black);
+    color: var(--light-blue);
+    cursor: pointer;
+  }
+
+  &[data-set]::after {
+    content: " ×";
+  }
+}
+
+/* under its own control the lane needs no name: its head keeps what it says about a step, and its menu */
+.control-row__steps .lane__head > b {
+  display: none;
+}
+
+/* while a step is edited the row has its chip too: the label gives up room first, cut short */
+.control-row[data-editing-step] .control-row__label {
+  flex-shrink: 1;
+  min-inline-size: 2.5rem;
+}
+
+[data-phone="true"] .control-row__step-word {
+  display: none;
+}
+
+/* a finger's width for each step: eight to a row */
+[data-phone="true"] .step-picker__steps {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  flex-basis: 100%;
 }

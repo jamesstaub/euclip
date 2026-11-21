@@ -4,11 +4,7 @@ import { service } from '@ember/service';
 import PopupMenu, { type MenuItem } from 'client-v2/components/ui/popup-menu';
 import type { LaneView } from 'client-v2/audio/runner';
 import { GLIDE_MAPPING } from 'client-v2/controls/modes';
-import {
-  glideBlockedItems,
-  stepMenuItems,
-  unitMenuItems,
-} from 'client-v2/controls/unit-menu';
+import { glideBlockedItems, unitMenuItems } from 'client-v2/controls/unit-menu';
 import type AudioService from 'client-v2/services/audio';
 import type ViewService from 'client-v2/services/view';
 
@@ -17,14 +13,15 @@ export interface LaneMenuSignature {
   Args: {
     scopeId: string;
     lane: LaneView;
-    /** unchecks the lane in the track row's Lanes menu (only where the lane is in such a row) */
+    /** hides the lane (wherever the track draws it) */
     onHide?: () => void;
   };
 }
 
 /**
- * A per-step lane's own menu, at the end of its head: the control's menu (the shared unit, per-step and
- * glide items, Reset, Show in script) and, for the lane, Reset lane and Hide lane.
+ * A lane's own menu, at the end of its head: the control's menu (the shared unit and glide items,
+ * Reset, Show in script) and, for the lane, the sequence it follows (where there is a choice), Clear
+ * all steps and Hide lane.
  */
 export default class LaneMenu extends Component<LaneMenuSignature> {
   @service declare audio: AudioService;
@@ -42,9 +39,19 @@ export default class LaneMenu extends Component<LaneMenuSignature> {
     const units = unitMenuItems(control, (choice) =>
       this.audio.chooseControlMode(scopeId, control.key, choice),
     );
-    const steps = stepMenuItems(control, (choice) =>
-      this.audio.chooseStepMode(scopeId, control.key, choice),
-    );
+    // (the sequences with a grid it could follow, where there is more than one)
+    const sequences = control.lane?.sequences ?? [];
+    const follows: MenuItem[] =
+      sequences.length > 1
+        ? sequences.map((name, index) => ({
+            id: `follow:${name}`,
+            label: `Steps of ${name}`,
+            checked: name === control.lane?.sequence,
+            separated: index === 0,
+            onSelect: () =>
+              this.audio.setLaneSequence(scopeId, control.key, name),
+          }))
+        : [];
     const glide = control.glide;
     // (the time itself is set in the control's own menu, which has the box for it)
     const glides: MenuItem[] = !glide
@@ -74,7 +81,6 @@ export default class LaneMenu extends Component<LaneMenuSignature> {
         ];
     return [
       ...units,
-      ...steps,
       ...glides,
       {
         label: 'Reset',
@@ -92,10 +98,12 @@ export default class LaneMenu extends Component<LaneMenuSignature> {
         },
       },
       { label: 'Learn MIDI (coming)', disabled: true },
+      ...follows,
       {
         id: 'reset-lane',
-        label: 'Reset lane',
+        label: 'Clear all steps',
         separated: true,
+        disabled: !lane.active,
         onSelect: () => this.audio.resetLane(scopeId, control.key),
       },
       ...(onHide

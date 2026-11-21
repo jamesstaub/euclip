@@ -526,8 +526,7 @@ module('Integration | Component | waveform', function (hooks) {
       'Semitones',
       'Cents',
       'Sequence sync',
-      'Single value',
-      'Per step',
+      'Show steps',
       'GlideSet per trigger; cannot glide',
       'Reset',
       'Show in script',
@@ -565,41 +564,26 @@ module('Integration | Component | waveform', function (hooks) {
     );
   });
 
-  test('the speed can be per step from its menu here: a stub in the same cell, its lane in the track’s row, in the unit chosen', async function (assert) {
+  test('the speed’s lane is shown and hidden from its menu here; steps set say so in its cell, which keeps its size', async function (assert) {
     await open();
     const cell = find('[data-test-waveform-value="speed"]') as HTMLElement;
     const before = cell.getBoundingClientRect();
     await click('[data-test-speed-menu] [data-test-menu-button]');
     await click('[data-test-menu-item="Semitones"]');
     await click('[data-test-speed-menu] [data-test-menu-button]');
-    assert
-      .dom('[data-test-menu-item="Per step"]')
-      .exists('the menu offers Per step');
-    await click('[data-test-menu-item="Per step"]');
-    const options = project.doc.tracks.at(-1)!.values.controls[
-      '#sampler › speed'
-    ]?.options as { perStep?: string; stepValues?: number[] };
-    assert.strictEqual(typeof options.perStep, 'string');
-    assert.true(options.stepValues!.length > 1, 'a value for every step');
-    assert.true(
-      options.stepValues!.every((step) => step === 1),
-      'each from the speed it had',
-    );
-    assert.dom(value('speed')).hasText('per step');
-    const after = cell.getBoundingClientRect();
-    assert.strictEqual(after.width, before.width, 'the cell does not change');
-    assert.strictEqual(after.height, before.height);
+    await click('[data-test-menu-item="Show steps"]');
     assert
       .dom(`[data-test-lane="#sampler › speed"]`)
       .exists('its lane is under the grid, in the track’s row');
-    assert
-      .dom(
-        '[data-test-lane="#sampler › speed"] [data-test-lane-entry], [data-test-lane="#sampler › speed"]',
-      )
-      .exists();
+    const scope = project.doc.tracks.at(-1)!.id;
+    audio.setLaneValue(scope, '#sampler › speed', 1, 2);
+    await settled();
+    assert.dom(value('speed')).hasText('0 st · 1 set');
+    const after = cell.getBoundingClientRect();
+    assert.strictEqual(after.width, before.width, 'the cell does not change');
+    assert.strictEqual(after.height, before.height);
     await click('[data-test-speed-menu] [data-test-menu-button]');
-    assert.dom('[data-test-menu-item="Show lane"]').exists();
-    // the faint cell does not reach its menu: the open menu and everything above it are opaque
+    // the open menu and everything above it are opaque
     for (
       let el = find(
         '[data-test-speed-menu] [data-test-menu]',
@@ -613,11 +597,8 @@ module('Integration | Component | waveform', function (hooks) {
         `${el.className || el.tagName} is opaque`,
       );
     }
-    assert
-      .dom('[data-test-menu-item="Single value"]')
-      .doesNotHaveAttribute('aria-disabled');
-    await click('[data-test-menu-item="Single value"]');
-    assert.dom(value('speed')).hasText('0 st');
+    await click('[data-test-menu-item="Hide steps"]');
+    assert.dom(`[data-test-lane="#sampler › speed"]`).doesNotExist();
   });
 
   test('Snap is a label and three choices; untouched it follows the sound, chosen it is kept', async function (assert) {

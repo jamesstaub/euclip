@@ -45,15 +45,16 @@ export interface ControlUserOptions {
   length?: number;
   step?: string;
   /**
-   * A slider or knob that has a value for every step of a sequence: the sequence's name; `false` for
-   * "a single value" where the script says per step; absent: as the script says.
+   * A slider, knob or toggle: the sequence its lane follows, where the person has chosen one; absent:
+   * the script's `perStep`, else the first sequence with a grid. (`false` is an earlier version's
+   * "single value": its stored steps are not in play until a step is next set.)
    */
   perStep?: string | false;
   /**
-   * Its value for each step, in the parameter's own terms (as its single value is). Kept when it goes
-   * back to a single value, for when it returns.
+   * Its lane: a value of its own for a step, in the parameter's own terms (as its single value is; a
+   * toggle's true or false), or null where the step follows the single value. Absent: none has one.
    */
-  stepValues?: number[];
+  stepValues?: (number | boolean | null)[];
 }
 
 /**

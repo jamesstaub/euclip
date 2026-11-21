@@ -4,6 +4,7 @@ import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import SignalChainPane from 'client-v2/components/signal-chain-pane';
+import LanesMenu from 'client-v2/components/lanes-menu';
 import PopupMenu, { type MenuItem } from 'client-v2/components/ui/popup-menu';
 import type { StepGridView } from 'client-v2/audio/runner';
 import {
@@ -86,7 +87,7 @@ export default class TrackRow extends Component<TrackRowSignature> {
     return this.audio.error(this.args.track.id)?.message;
   }
 
-  /** Everything the row can show: each sequence's grid and its per-step lanes. */
+  /** Everything the row can show: each sequence's grid and its controls' lanes. */
   get sequences(): SequenceLanes[] {
     return sequenceLanes(this.audio, this.args.track.id);
   }
@@ -95,7 +96,7 @@ export default class TrackRow extends Component<TrackRowSignature> {
     return rowLanes(this.sequences);
   }
 
-  /** The keys of the grids and lanes that are checked in the Lanes menu. */
+  /** The keys of the grids and lanes the track shows (services/view.ts). */
   get shown(): Set<string> {
     return this.view.shownLanes(this.args.track.id, this.rowKeys);
   }
@@ -124,47 +125,6 @@ export default class TrackRow extends Component<TrackRowSignature> {
   get hasLanesMenu(): boolean {
     return this.total > 1;
   }
-
-  get laneText(): string {
-    const { grids, lanes } = this.rowKeys;
-    const shown = this.shown;
-    const count = [...grids, ...lanes].filter((key) => shown.has(key)).length;
-    return `Lanes ${count}/${this.total}`;
-  }
-
-  get laneItems(): MenuItem[] {
-    const shown = this.shown;
-    const row = this.rowKeys;
-    const many = this.sequences.length > 1;
-    const toggle = (key: string, label: string, id: string): MenuItem => ({
-      id,
-      label,
-      toggle: true,
-      checked: shown.has(key),
-      onSelect: () =>
-        this.view.setLane(this.args.track.id, row, key, !shown.has(key)),
-    });
-    return this.sequences.flatMap(({ grid, lanes }, index) => [
-      ...(many
-        ? [
-            {
-              id: `heading:${grid.key}`,
-              label: grid.name,
-              heading: true,
-              separated: index > 0,
-            } satisfies MenuItem,
-          ]
-        : []),
-      toggle(grid.key, grid.name, `grid:${grid.key}`),
-      ...lanes.map((lane) => toggle(lane.key, lane.label, `lane:${lane.key}`)),
-    ]);
-  }
-
-  @tracked laneMenuOpen = false;
-
-  setLaneMenuOpen = (open: boolean): void => {
-    this.laneMenuOpen = open;
-  };
 
   openGenerators = (): void => {
     this.args.onSelect(this.args.track.id);
@@ -301,14 +261,11 @@ export default class TrackRow extends Component<TrackRowSignature> {
 
         {{#if this.hasLanesMenu}}
           {{#unless this.showChain}}
-            <PopupMenu
+            <LanesMenu
               class="track__lanes"
+              @scopeId={{@track.id}}
               @label="Track {{@order}} lanes"
-              @text={{this.laneText}}
-              @items={{this.laneItems}}
               @up={{true}}
-              @open={{this.laneMenuOpen}}
-              @onOpenChange={{this.setLaneMenuOpen}}
             />
           {{/unless}}
         {{/if}}

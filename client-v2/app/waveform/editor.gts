@@ -31,12 +31,7 @@ import {
   type ModeName,
 } from 'client-v2/controls/modes';
 import { REGION_GAP } from 'client-v2/controls/live-range';
-import { rowLanes, sequenceLanes } from 'client-v2/components/row-lanes';
-import {
-  glideBlockedItems,
-  stepMenuItems,
-  unitMenuItems,
-} from 'client-v2/controls/unit-menu';
+import { glideBlockedItems, unitMenuItems } from 'client-v2/controls/unit-menu';
 import { mappingOf, numberOf } from 'client-v2/controls/view';
 import cssVars from 'client-v2/modifiers/css-vars';
 import selectOptions, {
@@ -477,8 +472,9 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
         : null;
       if (!control || !map) return [];
       const value = numberOf(control.value);
-      const perStep =
-        id === 'speed' && !!control.perStep && !control.perStep.missing;
+      // (a speed whose steps hold values of their own: its number is still the value of the others)
+      const lane = id === 'speed' ? control.lane : undefined;
+      const stepsSet = lane && !lane.missing ? lane.locked : 0;
       return [
         {
           id,
@@ -486,15 +482,15 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
           name,
           short,
           mid,
-          // (a speed with a value for every step is a stub here, in the same cell: its values are a lane)
-          text: perStep ? 'per step' : map.format(value),
+          text:
+            stepsSet > 0
+              ? `${map.format(value)} · ${stepsSet} set`
+              : map.format(value),
           value,
           map,
           position: map.toPosition(value),
           // (the loop's points keep their place while the loop is off: there, but not in play)
-          faint:
-            perStep ||
-            ((id === 'loopStart' || id === 'loopEnd') && !this.looping),
+          faint: (id === 'loopStart' || id === 'loopEnd') && !this.looping,
         },
       ];
     };
@@ -540,16 +536,6 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
     this.speedMenu = open;
   };
 
-  /** Checks a per-step control's lane in the track's row (the others stay as they are). */
-  #checkLane(key: string): void {
-    const scopeId = this.args.scopeId;
-    this.view.revealLane(
-      scopeId,
-      rowLanes(sequenceLanes(this.audio, scopeId)),
-      key,
-    );
-  }
-
   get speedMenuItems(): MenuItem[] {
     const control = this.control('speed');
     if (!control) return [];
@@ -557,27 +543,29 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
     const units = unitMenuItems(control, (choice) =>
       this.audio.chooseControlMode(scopeId, control.key, choice),
     );
-    const steps = stepMenuItems(control, (choice) => {
-      this.audio.chooseStepMode(scopeId, control.key, choice);
-      // (a speed just made per step has a lane: it is shown in the track's row)
-      if (choice.startsWith('per-step:')) this.#checkLane(control.key);
-    });
-    const per = control.perStep && !control.perStep.missing;
+    // its lane, shown or hidden: the same choice as the lane button of a control's row
+    const lane = control.lane && !control.lane.missing ? control.lane : null;
+    const shown =
+      lane !== null &&
+      this.view.isLaneShown(scopeId, control.key, lane.locked > 0);
+    const steps: MenuItem[] = lane
+      ? [
+          {
+            id: 'show-lane',
+            label: shown ? 'Hide steps' : 'Show steps',
+            ...(lane.locked > 0
+              ? { hint: `${lane.locked} of ${lane.steps} set` }
+              : {}),
+            separated: units.length > 0,
+            onSelect: () => this.view.setLane(scopeId, control.key, !shown),
+          },
+        ]
+      : [];
     const glides = glideBlockedItems(control, units.length > 0);
     const line = control.line;
     return [
       ...units,
       ...steps,
-      ...(per
-        ? [
-            {
-              id: 'show-lane',
-              label: 'Show lane',
-              separated: steps.length === 0,
-              onSelect: () => this.#checkLane(control.key),
-            },
-          ]
-        : []),
       ...glides,
       {
         label: 'Reset',

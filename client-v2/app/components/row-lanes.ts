@@ -8,7 +8,7 @@ export interface SequenceLanes {
   lanes: LaneView[];
 }
 
-/** Everything a track's row can show per sequence: each step grid and its per-step controls, in script order. */
+/** Everything a track can show per sequence: each step grid and its controls' lanes, in script order. */
 export function sequenceLanes(
   audio: AudioService,
   scopeId: string,
@@ -25,6 +25,9 @@ export function rowLanes(sequences: readonly SequenceLanes[]): RowLanes {
     grids: sequences.map((sequence) => sequence.grid.key),
     lanes: sequences.flatMap((sequence) =>
       sequence.lanes.map((lane) => lane.key),
+    ),
+    active: sequences.flatMap((sequence) =>
+      sequence.lanes.filter((lane) => lane.active).map((lane) => lane.key),
     ),
   };
 }

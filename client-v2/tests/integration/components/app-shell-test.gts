@@ -715,7 +715,7 @@ stepGrid('ones');
         .hasText('4', 'the other grid is as it was');
     });
 
-    test('a lane has its own menu, the control’s menu plus Reset lane and Hide lane: units, Single value, Reset lane, Hide lane; the bars stay in their steps’ columns', async function (assert) {
+    test('a lane has its own menu, the control’s menu plus Clear all steps and Hide lane; the bars stay in their steps’ columns', async function (assert) {
       view.footerPane = 'controls';
       await render(<template><AppShell /></template>);
       const labels = (): (string | null)[] =>
@@ -723,19 +723,20 @@ stepGrid('ones');
           item.getAttribute('data-test-menu-item'),
         );
       await click(`${row(FREQUENCY)} [data-test-menu-button]`);
-      await click('[data-test-menu-item="Per step"]');
-      await click(`${row(FREQUENCY)} [data-test-menu-button]`);
       const control = labels();
       await triggerKeyEvent(document.body, 'keydown', 'Escape');
-      await click(`${row(FREQUENCY)} [data-test-show-lane]`);
+      await click(`${row(FREQUENCY)} [data-test-lane-button]`);
 
       const inRow = `[data-track-id="t-kick"] [data-test-lane-menu="${FREQUENCY}"]`;
       await click(`${inRow} [data-test-menu-button]`);
       assert.deepEqual(
         labels(),
-        [...control, 'Reset lane', 'Hide lane'],
+        [...control, 'Clear all steps', 'Hide lane'],
         'the control’s items, then the lane’s own',
       );
+      assert
+        .dom('[data-test-menu-item="Clear all steps"]')
+        .hasAria('disabled', 'true', 'no step holds a value of its own yet');
       // fully opaque, all the way up
       const menu = find('[data-test-menu]') as HTMLElement;
       for (let el: HTMLElement | null = menu; el; el = el.parentElement) {
@@ -774,70 +775,52 @@ stepGrid('ones');
       );
       assert.true(off < 1, `centres within 1 px (${off.toFixed(2)})`);
 
-      // Reset lane: every step back at the single value, one step to undo
+      // Clear all steps: every step follows the control again, one step to undo
       audio.setLaneValue('t-kick', FREQUENCY, 3, 500);
       await settled();
       await click(`${inRow} [data-test-menu-button]`);
-      await click('[data-test-menu-item="Reset lane"]');
+      await click('[data-test-menu-item="Clear all steps"]');
       const values = (): unknown =>
         (
-          project.doc.tracks[0]!.values.controls[FREQUENCY]?.options as {
-            stepValues: number[];
-          }
-        ).stepValues;
-      assert.deepEqual(values(), new Array(16).fill(2000));
+          project.doc.tracks[0]!.values.controls[FREQUENCY]?.options as
+            { stepValues?: unknown[] } | undefined
+        )?.stepValues;
+      assert.strictEqual(values(), undefined);
       project.undo();
       await settled();
       assert.strictEqual((values() as number[])[3], 500, 'one undo step');
 
-      // Hide lane unchecks it in the row's Lanes menu
+      // Hide lane hides it in the row (and under the control)
       await click(`${inRow} [data-test-menu-button]`);
       await click('[data-test-menu-item="Hide lane"]');
       assert.dom(inRow).doesNotExist();
-
-      // Single value from a lane's own menu turns the lane off
-      await click(`${row(FREQUENCY)} [data-test-show-lane]`);
-      await click(`${inRow} [data-test-menu-button]`);
-      await click('[data-test-menu-item="Single value"]');
-      assert.dom(inRow).doesNotExist('the lane is gone');
-      assert.strictEqual(
-        audio.controls('t-kick').find((c) => c.key === FREQUENCY)!.perStep,
-        undefined,
-      );
+      assert
+        .dom(`${row(FREQUENCY)} [data-test-lane-button]`)
+        .hasAttribute('aria-pressed', 'false');
+      assert
+        .dom(`${row(FREQUENCY)} [data-test-lane-count]`)
+        .hasText('1', 'the button still says a step is set');
     });
 
-    test('a slider set to “Per step” becomes a lane under its sequence’s grid: bars in the steps’ columns, painted by a drag, one step to undo', async function (assert) {
+    test('a slider’s lane: the control stays, painted steps hold their own value, the others follow it, one step to undo', async function (assert) {
       view.footerPane = 'controls';
       await render(<template><AppShell /></template>);
       const options = (): Record<string, unknown> | undefined =>
         project.doc.tracks[0]!.values.controls[FREQUENCY]?.options as
           Record<string, unknown> | undefined;
-      await click(`${row(FREQUENCY)} [data-test-menu-button]`);
-      assert
-        .dom('[data-test-menu-item="Single value"]')
-        .hasAria('checked', 'true');
-      await click('[data-test-menu-item="Per step"]');
-      assert.deepEqual(
-        options()?.['stepValues'],
-        new Array(16).fill(2000),
-        'every step takes the value it had',
-      );
-      // its row in the controls pane is a stub that says so, with its menu and a way to its lane
-      assert
-        .dom(`${row(FREQUENCY)} [data-test-control-lane]`)
-        .includesText('per step of steps');
-      assert.dom(`${row(FREQUENCY)} [data-test-slider]`).doesNotExist();
-      assert.dom(`${row(FREQUENCY)} [data-test-menu-button]`).exists();
-      await click(`${row(FREQUENCY)} [data-test-show-lane]`);
+      assert.dom(`${row(FREQUENCY)} [data-test-lane-count]`).doesNotExist();
+      await click(`${row(FREQUENCY)} [data-test-lane-button]`);
       assert.strictEqual(
-        view.footerPane,
-        'controls',
-        'Show lane leaves the footer tab alone',
+        options(),
+        undefined,
+        'opening the lane stores nothing',
       );
+      assert
+        .dom(`${row(FREQUENCY)} [data-test-slider]`)
+        .exists('the control stays');
       assert.true(
-        view
-          .shownLanes('t-kick', { grids: [STEPS], lanes: [FREQUENCY] })
-          .has(FREQUENCY),
+        view.isLaneShown('t-kick', FREQUENCY, false),
+        'the lane is open for the track',
       );
       view.footerPane = 'sequence';
       await settled();
@@ -848,6 +831,7 @@ stepGrid('ones');
         .includesText('frequency');
       const bars = findAll(`${pane} [data-lane-step]`);
       assert.strictEqual(bars.length, 16, 'a bar for every step');
+      assert.dom(`${pane} [data-locked]`).doesNotExist('every step follows');
       // each bar stands under its step: the same horizontal centre
       const centre = (el: Element): number => {
         const rect = el.getBoundingClientRect();
@@ -887,22 +871,20 @@ stepGrid('ones');
         );
       await triggerEvent(document.body, 'pointermove', at(2, 0.75));
       await triggerEvent(document.body, 'pointerup', at(2, 0.75));
-      const painted = options()!['stepValues'] as number[];
+      const painted = options()!['stepValues'] as (number | null)[];
       assert.true(
-        painted.slice(0, 3).every((value) => value !== 2000),
-        `three bars set in one drag (${painted
-          .slice(0, 4)
-          .map((v) => Math.round(v))
-          .join(', ')})`,
+        painted.slice(0, 3).every((value) => typeof value === 'number'),
+        'three bars set in one drag',
       );
       assert.true(painted[1]! < painted[0]!, 'lower in a bar is a lower value');
       assert.true(painted[2]! > painted[0]!);
-      assert.strictEqual(painted[3], 2000, 'the rest are as they were');
+      assert.strictEqual(painted[3], null, 'the rest follow the control');
+      assert.dom(`${pane} [data-locked]`).exists({ count: 3 });
       project.undo();
       await settled();
-      assert.deepEqual(
+      assert.strictEqual(
         options()?.['stepValues'],
-        new Array(16).fill(2000),
+        undefined,
         'the whole drag is one step to undo',
       );
 
@@ -924,11 +906,15 @@ stepGrid('ones');
       assert.strictEqual((options()!['stepValues'] as number[])[4], 440);
       assert.strictEqual(
         frequencyOf('t-kick'),
-        (options()!['stepValues'] as number[])[0],
-        'stopped: the parameter holds the first step’s value',
+        2000,
+        'stopped on the first step, which follows the control',
       );
+      // Delete on a bar: it follows the control again
+      await triggerKeyEvent(bars[4]!, 'keydown', 'Delete');
+      assert.strictEqual(options()?.['stepValues'], undefined);
+      await triggerKeyEvent(bars[4]!, 'keydown', 'ArrowUp');
 
-      // the track’s row has the lane too, and a way to hide it; back to a single value it is gone
+      // the track’s row has the lane too, and a way to hide it
       assert
         .dom('[data-test-track="1"] [data-lane-step]')
         .exists({ count: 16 });
@@ -936,9 +922,6 @@ stepGrid('ones');
       await click(
         '[data-test-track="1"] .track__lanes [data-test-menu-button]',
       );
-      assert
-        .dom('[data-test-track="1"] .track__lanes')
-        .includesText('Lanes 2/2');
       await click('[data-test-track="1"] [data-test-menu-item="frequency"]');
       assert.dom('[data-test-track="1"] [data-lane-step]').doesNotExist();
       await click('[data-test-track="1"] [data-test-menu-item="frequency"]');
@@ -947,17 +930,9 @@ stepGrid('ones');
         .exists({ count: 16 });
       view.footerPane = 'controls';
       await settled();
-      await click(`${row(FREQUENCY)} [data-test-menu-button]`);
-      await click('[data-test-menu-item="Single value"]');
-      assert.dom('[data-lane-step]').doesNotExist();
       assert
-        .dom(`${row(FREQUENCY)} [data-test-slider]`)
-        .exists('a slider again');
-      project.undo();
-      await settled();
-      assert
-        .dom('[data-test-track="1"] [data-lane-step]')
-        .exists({ count: 16 }, 'undo: per step again, its values with it');
+        .dom(`${row(FREQUENCY)} [data-test-lane-count]`)
+        .hasText('1', 'the control says one step holds its own value');
     });
 
     test('the sequence card header does not move when the length changes, and the generators stand above the grid', async function (assert) {
@@ -1290,8 +1265,6 @@ stepGrid('ones');
           'Hz',
           'Note',
           'Note and cents',
-          'Single value',
-          'Per step',
           'Glide: off…',
           'Reset glide',
           'Reset',
@@ -2081,7 +2054,9 @@ slider(__.bus('drums'), 'gain');
       );
       await fillIn('[data-test-footer-name]', 'Boom');
 
-      await click(`[data-test-track="${order}"] [data-test-menu-button]`);
+      await click(
+        `[data-test-track="${order}"] .track__actions [data-test-menu-button]`,
+      );
       await click('[data-test-menu-item="Duplicate"]');
       const copy = project.tracks[order]!;
       const original = project.tracks[order - 1]!;
@@ -2127,9 +2102,11 @@ slider(__.bus('drums'), 'gain');
     test('a track is removed from its menu, and Undo brings it back', async function (assert) {
       await render(<template><AppShell /></template>);
 
-      await click('[data-test-track="2"] [data-test-menu-button]');
+      await click(
+        '[data-test-track="2"] .track__actions [data-test-menu-button]',
+      );
       assert
-        .dom('[data-test-track="2"] [data-test-menu-button]')
+        .dom('[data-test-track="2"] .track__actions [data-test-menu-button]')
         .hasAria('expanded', 'true');
       await click('[data-test-track="2"] [data-test-menu-item="Remove"]');
 
@@ -2159,7 +2136,9 @@ slider(__.bus('drums'), 'gain');
       await render(<template><AppShell /></template>);
       await click('[data-test-track="2"] [data-test-track-select]');
       assert.dom('[data-test-track="2"]').hasAttribute('aria-current', 'true');
-      await click('[data-test-track="2"] [data-test-menu-button]');
+      await click(
+        '[data-test-track="2"] .track__actions [data-test-menu-button]',
+      );
       await click('[data-test-track="2"] [data-test-menu-item="Remove"]');
       assert.dom('[data-test-track]').exists({ count: 3 });
       assert
@@ -2172,7 +2151,9 @@ slider(__.bus('drums'), 'gain');
         .hasText('snare');
       assert.deepEqual(pressedSteps(2), [4, 12, 15], 'its pattern is back');
 
-      await click('[data-test-track="1"] [data-test-menu-button]');
+      await click(
+        '[data-test-track="1"] .track__actions [data-test-menu-button]',
+      );
       await click(
         '[data-test-track="1"] [data-test-menu-item="Pattern generators"]',
       );

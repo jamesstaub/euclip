@@ -207,17 +207,16 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
     return this.args.synth.pitch !== null || this.args.synth.playsNote;
   }
 
-  /** The pitch has a value for every step: the keyboard sets the control's single value and says so. */
+  /** Steps of the pitch's lane hold values of their own: the keyboard sets the others, and says so. */
   get perStep(): boolean {
-    return this.args.synth.pitch?.perStep !== undefined;
+    const lane = this.args.synth.pitch?.lane;
+    return lane !== undefined && !lane.missing && lane.locked > 0;
   }
 
   get perStepText(): string | null {
-    const per = this.args.synth.pitch?.perStep;
-    if (!per) return null;
-    return per.missing
-      ? 'Pitch is per step, but its sequence is not in the script: the keys set its single value.'
-      : `Pitch is per step of ${per.sequence}: the keys set its single value, not the lane.`;
+    const lane = this.args.synth.pitch?.lane;
+    if (!lane || lane.missing || lane.locked === 0) return null;
+    return `${lane.locked} of ${lane.steps} steps of ${lane.sequence} hold a pitch of their own: the keys set the others.`;
   }
 
   // --- the keys ------------------------------------------------------------------------------------------------

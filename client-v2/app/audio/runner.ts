@@ -171,19 +171,11 @@ export interface ControlView {
    */
   glideWhy?: string;
   /**
-   * The ways the control can hold its value, as its menu lists them: a single value, or one for every
-   * step of a named sequence of the script (an item per sequence). Empty where that is not offered
-   * (a toggle, a select, a control with no parameter, a script with no named sequence).
+   * Its lane: a value it can hold on any step of a sequence (an Elektron-style lock), over the single
+   * value that every other step follows. Every slider and knob on a number parameter and every toggle
+   * on a parameter has one where the script has a sequence with a step grid; absent for the rest.
    */
-  stepChoices: ModeChoice[];
-  stepChoice: string;
-  /** It has a value for every step of a sequence (see `LaneView`). Absent: a single value. */
-  perStep?: {
-    /** the sequence, as chosen */
-    sequence: string;
-    /** the sequence is not in the script now: the control is at its single value meanwhile */
-    missing: boolean;
-  };
+  lane?: LaneInfo;
   /** its range depends on something not there yet (a sample still loading): what, in words */
   waiting?: string;
 }
@@ -197,9 +189,23 @@ export interface GlideView {
   follows?: string;
 }
 
+/** Where a control's lane is and what it holds (see `ControlView.lane`). */
+export interface LaneInfo {
+  /** the sequence it follows: the person's choice, else the script's `perStep`, else the first with a grid */
+  sequence: string;
+  /** the sequence is not in the script now: every step is at the single value meanwhile */
+  missing: boolean;
+  /** the sequences with a step grid it could follow, in the script's order */
+  sequences: string[];
+  /** how many steps of the sequence hold a value of their own */
+  locked: number;
+  /** how many steps the sequence has */
+  steps: number;
+}
+
 /**
- * A per-step control as a lane under its sequence's grid: a bar for every step, each the control's
- * value on that step.
+ * A control's lane under its sequence's grid: a bar (a toggle's: a cell) for every step, each the
+ * value the control has on that step: the step's own where it has one, else the single value.
  */
 export interface LaneView {
   /** the control's key */
@@ -207,13 +213,15 @@ export interface LaneView {
   label: string;
   /** the control as its row would show it: its unit, range and mode are the lane's */
   control: ControlView;
-  /** a value for each step of the sequence, in the parameter's own terms */
+  /** a toggle's lane is on and off; a slider's or knob's is numbers */
+  kind: 'number' | 'toggle';
+  /** the value on each step, in the parameter's own terms (a toggle's: 1 on, 0 off) */
   values: number[];
+  /** which steps hold a value of their own (the others follow the single value) */
+  locked: boolean[];
+  /** some step holds a value of its own: the lane is in play */
+  active: boolean;
 }
-
-const SINGLE = 'single';
-const PER_STEP = 'per-step';
-const stepChoice = (sequence: string): string => `${PER_STEP}:${sequence}`;
 
 /** One item of a control's unit menu. */
 export interface ModeChoice {
@@ -631,11 +639,19 @@ export class ProjectRunner {
         const declaration =
           declared.get(key) ??
           runtime.declarations.find((candidate) => candidate.key === key);
-        const per = declaration && this.#perStepOf(runtime, declaration);
-        if (!declaration || !per?.found) return null;
-        const values = this.#stepValues(runtime, declaration, per.sequence);
-        const at = this.#lastStep.get(`${runtime.id}/${per.sequence}`) ?? 0;
-        return { value: values[at] ?? values[0] ?? 0 };
+        const lane = declaration && this.#activeLane(runtime, declaration);
+        if (!declaration || !lane) return null;
+        const steps =
+          runtime.scope.transport.get(lane.sequence)?.steps.length ?? 0;
+        const last = this.#lastStep.get(`${runtime.id}/${lane.sequence}`) ?? 0;
+        return {
+          value: this.#stepValue(
+            runtime,
+            declaration,
+            lane.sequence,
+            last < steps ? last : 0,
+          ),
+        };
       },
       glide: (key) =>
         this.#controlViews(runtime.id, true).find((view) => view.key === key)
@@ -766,8 +782,28 @@ export class ProjectRunner {
           this.#applyGridShape(runtime, op.key);
           this.#resync(runtime);
         }
-        // (a control may have gone per step, or back, or had a bar moved)
+        // (a lane may have come into play, or gone out of it, or had a bar moved)
         this.#reconcileStepListeners();
+        if (
+          runtime &&
+          ('stepValues' in op.options || 'perStep' in op.options)
+        ) {
+          // a lane out of play: its parameter goes back to the single value
+          const declaration = runtime.declarations.find(
+            (d) => d.key === op.key,
+          );
+          if (
+            declaration &&
+            this.#laneOf(runtime, declaration) &&
+            !this.#activeLane(runtime, declaration)
+          ) {
+            this.#applyControl(
+              op.scope,
+              op.key,
+              this.#singleValue(runtime, declaration),
+            );
+          }
+        }
         break;
       }
       case 'setScript':
@@ -1173,7 +1209,7 @@ export class ProjectRunner {
           source,
           meta,
           value,
-          effective: this.#perStepOf(runtime, declaration)?.found
+          effective: this.#activeLane(runtime, declaration)
             ? null // (its parameter is wherever its lane has put it: that is the control's own doing)
             : this.#settledAway(runtime, declaration.key, away)
               ? (now as number | boolean | string)
@@ -1183,7 +1219,7 @@ export class ProjectRunner {
           modes,
           choices,
           choice,
-          ...this.#stepChoices(runtime, declaration, meta),
+          ...this.#laneInfo(runtime, declaration),
           ...(meta.kind === 'number'
             ? glideWhy === undefined
               ? { glide: this.#glideOf(runtime, values, declaration) }
@@ -1813,6 +1849,16 @@ export class ProjectRunner {
     if (!runtime || !binding) return; // a value for a control that is not declared now: dormant
     if (binding.type === 'param' && !Array.isArray(value)) {
       const declaration = runtime.declarations.find((d) => d.key === key)!;
+      // A lane in play whose step now (the one playing, or held while stopped) has a value of its own:
+      // the step keeps it. The single value is for the steps that follow it, from the next of them on.
+      const lane = this.#activeLane(runtime, declaration);
+      if (lane) {
+        const steps =
+          runtime.scope.transport.get(lane.sequence)?.steps.length ?? 0;
+        const last = this.#lastStep.get(`${scopeId}/${lane.sequence}`) ?? 0;
+        const locks = this.#locksOf(runtime, declaration, lane.sequence);
+        if (locks[last < steps ? last : 0] !== null) return;
+      }
       const sync = this.#syncOf(runtime, declaration);
       if (sync && typeof value === 'number') {
         // the control holds a multiplier: the parameter gets the speed that is at this tempo
@@ -1915,214 +1961,266 @@ export class ProjectRunner {
   // --- A value for every step ------------------------------------------------------------------------
 
   /**
-   * Whether a control holds a value for every step of a sequence, and of which: by the person's choice,
-   * else by the script's `perStep`. Null for a single value. Only a number control on a parameter.
+   * The sequence a control's lane follows: the person's choice, else the script's `perStep` (`true`: the
+   * first sequence with a grid), else the first sequence with a grid. Null for a control that has no
+   * lane: one that is not a slider or knob on a number parameter or a toggle on a parameter, or a
+   * script with no sequence to follow.
    */
-  #perStepOf(
+  #laneOf(
     runtime: ScopeRuntime,
     declaration: Declaration,
-  ): { sequence: string; found: boolean } | null {
+  ): { sequence: string; found: boolean; sequences: string[] } | null {
     const binding = declaration.bindings[0];
     if (binding?.type !== 'param') return null;
-    if (declaration.kind !== 'slider' && declaration.kind !== 'knob')
+    if (
+      declaration.kind !== 'slider' &&
+      declaration.kind !== 'knob' &&
+      declaration.kind !== 'toggle'
+    ) {
       return null;
+    }
+    const sequences = this.#gridSequences(runtime);
     const chosen = valuesOf(this.#host.getDoc(), runtime.id)?.controls[
       declaration.key
     ]?.options?.perStep;
-    const wanted = chosen ?? declaration.options.perStep;
-    if (wanted === undefined || wanted === false) return null;
+    const declared = declaration.options.perStep;
     const sequence =
-      typeof wanted === 'string' ? wanted : this.#sequenceNames(runtime)[0];
+      typeof chosen === 'string'
+        ? chosen
+        : typeof declared === 'string'
+          ? declared
+          : (sequences[0] ?? this.#sequenceNames(runtime)[0]);
     if (sequence === undefined) return null;
     return {
       sequence,
       found: runtime.scope.transport.get(sequence) !== undefined,
+      sequences,
     };
   }
 
-  /** A per-step control's values, fitted to its sequence as it is now: kept as far as they go, the rest its single value. */
-  #stepValues(
+  /** The named sequences a step grid is declared for, in the order the script declares the grids. */
+  #gridSequences(runtime: ScopeRuntime): string[] {
+    const names: string[] = [];
+    for (const declaration of runtime.declarations) {
+      const binding = declaration.bindings[0];
+      if (
+        binding?.type === 'sequence' &&
+        !names.includes(binding.name) &&
+        runtime.scope.transport.get(binding.name)
+      ) {
+        names.push(binding.name);
+      }
+    }
+    return names;
+  }
+
+  /**
+   * The values a control's steps hold of their own, one for each step of its sequence as it is now:
+   * null where the step follows the single value. (What is stored past the sequence's end is kept in
+   * the document, for when it grows again.) A choice of "single value" from an earlier version
+   * (`perStep: false`) holds none.
+   */
+  #locksOf(
     runtime: ScopeRuntime,
     declaration: Declaration,
     sequence: string,
-  ): number[] {
-    const state = valuesOf(this.#host.getDoc(), runtime.id)?.controls[
+  ): (number | boolean | null)[] {
+    const options = valuesOf(this.#host.getDoc(), runtime.id)?.controls[
       declaration.key
-    ];
-    const kept = state?.options?.stepValues ?? [];
-    const single = this.#singleValue(runtime, declaration);
+    ]?.options;
     const length = runtime.scope.transport.get(sequence)?.steps.length ?? 0;
+    const kept = options?.perStep === false ? [] : (options?.stepValues ?? []);
+    const toggle = declaration.kind === 'toggle';
     return Array.from({ length }, (_, index) => {
       const value = kept[index];
-      return typeof value === 'number' && Number.isFinite(value)
-        ? value
-        : single;
+      if (toggle) return typeof value === 'boolean' ? value : null;
+      return typeof value === 'number' && Number.isFinite(value) ? value : null;
     });
   }
 
+  /** The control's lane where it is in play: its sequence is there and some step holds a value of its own. */
+  #activeLane(
+    runtime: ScopeRuntime,
+    declaration: Declaration,
+  ): { sequence: string } | null {
+    const lane = this.#laneOf(runtime, declaration);
+    if (!lane?.found) return null;
+    return this.#locksOf(runtime, declaration, lane.sequence).some(
+      (value) => value !== null,
+    )
+      ? { sequence: lane.sequence }
+      : null;
+  }
+
+  /** What a control has on one step of its lane: the step's own value, else the single value. */
+  #stepValue(
+    runtime: ScopeRuntime,
+    declaration: Declaration,
+    sequence: string,
+    index: number,
+  ): number | boolean {
+    return (
+      this.#locksOf(runtime, declaration, sequence)[index] ??
+      this.#singleValue(runtime, declaration)
+    );
+  }
+
   /** The control's single value: what the project holds, else what the script gives the parameter. */
-  #singleValue(runtime: ScopeRuntime, declaration: Declaration): number {
+  #singleValue(
+    runtime: ScopeRuntime,
+    declaration: Declaration,
+  ): number | boolean {
+    const toggle = declaration.kind === 'toggle';
     const stored = valuesOf(this.#host.getDoc(), runtime.id)?.controls[
       declaration.key
     ]?.value;
-    if (typeof stored === 'number') return stored;
+    if (toggle ? typeof stored === 'boolean' : typeof stored === 'number') {
+      return stored as number | boolean;
+    }
     // (a synced speed holds a multiplier: 1 until there is another)
-    if (this.#syncOf(runtime, declaration)) return 1;
+    if (!toggle && this.#syncOf(runtime, declaration)) return 1;
     const fallback = runtime.defaults.get(declaration.key);
-    if (typeof fallback === 'number') return fallback;
+    if (toggle ? typeof fallback === 'boolean' : typeof fallback === 'number') {
+      return fallback as number | boolean;
+    }
     const binding = declaration.bindings[0];
     const node =
       binding?.type === 'param'
         ? this.#select(runtime, binding.selector)[0]
         : undefined;
     const value =
-      binding?.type === 'param' ? node?.param(binding.param).value : 0;
+      binding?.type === 'param' ? node?.param(binding.param).value : undefined;
+    if (toggle) return value === true;
     return typeof value === 'number' ? value : 0;
   }
 
-  #stepChoices(
+  /** What a control's row says about its lane. */
+  #laneInfo(
     runtime: ScopeRuntime,
     declaration: Declaration,
-    meta: ControlMeta,
-  ): Pick<ControlView, 'stepChoices' | 'stepChoice' | 'perStep'> {
-    const binding = declaration.bindings[0];
-    const offered =
-      binding?.type === 'param' &&
-      meta.kind === 'number' &&
-      (declaration.kind === 'slider' || declaration.kind === 'knob');
-    const names = offered ? this.#sequenceNames(runtime) : [];
-    const per = this.#perStepOf(runtime, declaration);
-    if (names.length === 0 && !per)
-      return { stepChoices: [], stepChoice: SINGLE };
-    const stepChoices: ModeChoice[] = [
-      { id: SINGLE, label: 'Single value' },
-      ...names.map((name) => ({
-        id: stepChoice(name),
-        label: names.length === 1 ? 'Per step' : `Per step: ${name}`,
-      })),
-    ];
-    if (per && !names.includes(per.sequence)) {
-      stepChoices.push({
-        id: stepChoice(per.sequence),
-        label: `Per step: ${per.sequence} (missing)`,
-      });
-    }
+  ): Pick<ControlView, 'lane'> {
+    const lane = this.#laneOf(runtime, declaration);
+    if (!lane) return {};
+    const locks = lane.found
+      ? this.#locksOf(runtime, declaration, lane.sequence)
+      : [];
     return {
-      stepChoices,
-      stepChoice: per ? stepChoice(per.sequence) : SINGLE,
-      ...(per
-        ? { perStep: { sequence: per.sequence, missing: !per.found } }
-        : {}),
+      lane: {
+        sequence: lane.sequence,
+        missing: !lane.found,
+        sequences: lane.sequences,
+        locked: locks.filter((value) => value !== null).length,
+        steps: locks.length,
+      },
     };
   }
 
-  /** The per-step controls of a sequence, as lanes, in the order the script declares them. */
+  /**
+   * The lanes of a sequence: every control whose lane follows it, in play or not, in the order the
+   * script declares them.
+   */
   lanes(scopeId: string, sequence: string): LaneView[] {
     const runtime = this.#scopes.get(scopeId);
     if (!runtime) return [];
     const views = this.#controlViews(scopeId, true);
     const lanes: LaneView[] = [];
     for (const declaration of runtime.declarations) {
-      const per = this.#perStepOf(runtime, declaration);
-      if (!per?.found || per.sequence !== sequence) continue;
+      const lane = this.#laneOf(runtime, declaration);
+      if (!lane?.found || lane.sequence !== sequence) continue;
       const control = views.find((view) => view.key === declaration.key);
       if (!control) continue;
+      const locks = this.#locksOf(runtime, declaration, sequence);
+      const single = this.#singleValue(runtime, declaration);
+      const number = (value: number | boolean): number =>
+        typeof value === 'boolean' ? (value ? 1 : 0) : value;
       lanes.push({
         key: declaration.key,
         label: control.label,
         control,
-        values: this.#stepValues(runtime, declaration, sequence),
+        kind: declaration.kind === 'toggle' ? 'toggle' : 'number',
+        values: locks.map((value) => number(value ?? single)),
+        locked: locks.map((value) => value !== null),
+        active: locks.some((value) => value !== null),
       });
     }
     return lanes;
   }
 
   /**
-   * What choosing "Single value" or "Per step: name" from a control's menu comes to, for one step to
-   * undo. Going per step the first time, every step takes the control's single value, so nothing
-   * jumps; values it had per step before are kept and come back.
+   * One step of a control's lane given a value of its own (the document's operation for a bar moved,
+   * typed or a toggle's cell pressed), or, with null, back to following the single value. Null when
+   * there is nothing to change.
    */
-  stepChoiceOperations(
-    scopeId: string,
-    key: string,
-    choice: string,
-  ): Operation[] {
-    const runtime = this.#scopes.get(scopeId);
-    const declaration = runtime?.declarations.find((d) => d.key === key);
-    if (!runtime || !declaration) return [];
-    if (choice === SINGLE) {
-      return [
-        {
-          type: 'setControlOptions',
-          scope: scopeId,
-          key,
-          // (false where the script says per step: the person's "single" has to outrank it)
-          options: {
-            perStep:
-              declaration.options.perStep === undefined ? undefined : false,
-          },
-        },
-      ];
-    }
-    const sequence = choice.slice(PER_STEP.length + 1);
-    const kept = valuesOf(this.#host.getDoc(), scopeId)?.controls[key]?.options
-      ?.stepValues;
-    const length = runtime.scope.transport.get(sequence)?.steps.length ?? 0;
-    const single = this.#singleValue(runtime, declaration);
-    return [
-      {
-        type: 'setControlOptions',
-        scope: scopeId,
-        key,
-        options: {
-          perStep: sequence,
-          ...(kept === undefined
-            ? { stepValues: new Array<number>(length).fill(single) }
-            : {}),
-        },
-      },
-    ];
-  }
-
-  /** A lane's values with one step set (the document's operation for a bar moved or typed). */
   laneOperation(
     scopeId: string,
     key: string,
     index: number,
-    value: number,
+    value: number | boolean | null,
   ): Operation | null {
     const runtime = this.#scopes.get(scopeId);
     const declaration = runtime?.declarations.find((d) => d.key === key);
-    const per =
-      runtime && declaration ? this.#perStepOf(runtime, declaration) : null;
-    if (!runtime || !declaration || !per?.found) return null;
-    const values = this.#stepValues(runtime, declaration, per.sequence);
-    if (index < 0 || index >= values.length || values[index] === value) {
+    const lane =
+      runtime && declaration ? this.#laneOf(runtime, declaration) : null;
+    if (!runtime || !declaration || !lane?.found) return null;
+    const length =
+      runtime.scope.transport.get(lane.sequence)?.steps.length ?? 0;
+    if (index < 0 || index >= length) return null;
+    if (
+      value !== null &&
+      typeof value !== (declaration.kind === 'toggle' ? 'boolean' : 'number')
+    ) {
       return null;
     }
+    const state = valuesOf(this.#host.getDoc(), scopeId)?.controls[key];
+    const legacy = state?.options?.perStep === false;
+    const kept = legacy ? [] : [...(state?.options?.stepValues ?? [])];
+    const locks = this.#locksOf(runtime, declaration, lane.sequence);
+    if ((locks[index] ?? null) === value) return null;
+    // (the steps past the sequence's end stay as they are)
+    const values: (number | boolean | null)[] = Array.from(
+      { length: Math.max(kept.length, length) },
+      (_, at) => (at < length ? (locks[at] ?? null) : (kept[at] ?? null)),
+    );
     values[index] = value;
     return {
       type: 'setControlOptions',
       scope: scopeId,
       key,
-      options: { stepValues: values },
+      options: {
+        stepValues: values.some((step) => step !== null) ? values : undefined,
+        ...(legacy ? { perStep: lane.sequence } : {}),
+      },
     };
   }
 
-  /** A lane with every step back at the control's single value (one operation). Null when it is not a lane. */
+  /** Every step of a lane back to following the single value (one operation). Null when none holds its own. */
   laneResetOperation(scopeId: string, key: string): Operation | null {
-    const runtime = this.#scopes.get(scopeId);
-    const declaration = runtime?.declarations.find((d) => d.key === key);
-    const per =
-      runtime && declaration ? this.#perStepOf(runtime, declaration) : null;
-    if (!runtime || !declaration || !per?.found) return null;
-    const single = this.#singleValue(runtime, declaration);
-    const length = runtime.scope.transport.get(per.sequence)?.steps.length ?? 0;
+    const state = valuesOf(this.#host.getDoc(), scopeId)?.controls[key];
+    if (state?.options?.stepValues === undefined) return null;
     return {
       type: 'setControlOptions',
       scope: scopeId,
       key,
-      options: { stepValues: new Array<number>(length).fill(single) },
+      options: { stepValues: undefined },
+    };
+  }
+
+  /** The lane follows another sequence (its steps' values stay as they are, step for step). */
+  laneSequenceOperation(
+    scopeId: string,
+    key: string,
+    sequence: string,
+  ): Operation | null {
+    const runtime = this.#scopes.get(scopeId);
+    const declaration = runtime?.declarations.find((d) => d.key === key);
+    const lane =
+      runtime && declaration ? this.#laneOf(runtime, declaration) : null;
+    if (!lane || lane.sequence === sequence) return null;
+    return {
+      type: 'setControlOptions',
+      scope: scopeId,
+      key,
+      options: { perStep: sequence },
     };
   }
 
@@ -2146,11 +2244,11 @@ export class ProjectRunner {
     const wanted = new Map<string, { runtime: ScopeRuntime; name: string }>();
     for (const runtime of this.#scopes.values()) {
       for (const declaration of runtime.declarations) {
-        const per = this.#perStepOf(runtime, declaration);
-        if (per?.found) {
-          wanted.set(`${runtime.id}/${per.sequence}`, {
+        const lane = this.#activeLane(runtime, declaration);
+        if (lane) {
+          wanted.set(`${runtime.id}/${lane.sequence}`, {
             runtime,
-            name: per.sequence,
+            name: lane.sequence,
           });
         }
       }
@@ -2205,13 +2303,9 @@ export class ProjectRunner {
       for (const declaration of runtime.declarations) {
         const binding = declaration.bindings[0];
         if (binding?.type !== 'param') continue;
-        const per = this.#perStepOf(runtime, declaration);
-        if (!per?.found || per.sequence !== name) continue;
-        const kept = values?.controls[declaration.key]?.options?.stepValues;
-        const wanted =
-          typeof kept?.[index] === 'number'
-            ? kept[index]
-            : this.#singleValue(runtime, declaration);
+        const lane = this.#activeLane(runtime, declaration);
+        if (!lane || lane.sequence !== name) continue;
+        const wanted = this.#stepValue(runtime, declaration, name, index);
         const first = this.#reach(runtime, declaration)[0];
         const range = first
           ? this.#metaOf(first.param(binding.param), declaration.options)
@@ -2220,11 +2314,14 @@ export class ProjectRunner {
         // the synced sequence's, worked out now, so it follows the tempo, the sequence and the sound.
         const sync = this.#syncOf(runtime, declaration);
         // (otherwise held to the range the control has now: a lane's values may be from a wider one)
-        const value = sync
-          ? this.#syncedSpeed(runtime, declaration, sync, wanted)
-          : range?.kind === 'number'
-            ? Math.min(range.max, Math.max(range.min, wanted))
-            : wanted;
+        const value =
+          typeof wanted !== 'number'
+            ? wanted
+            : sync
+              ? this.#syncedSpeed(runtime, declaration, sync, wanted)
+              : range?.kind === 'number'
+                ? Math.min(range.max, Math.max(range.min, wanted))
+                : wanted;
         // (a glide the control has is portamento between steps; with none the step's value lands on the step)
         const stored = values?.controls[declaration.key]?.options?.glide;
         const glide =
@@ -2233,7 +2330,7 @@ export class ProjectRunner {
             : (declaration.options.glide ?? 0);
         const how = {
           ...(at === undefined ? {} : { at }),
-          ...(glide > 0 ? { glide } : {}),
+          ...(glide > 0 && typeof value === 'number' ? { glide } : {}),
         };
         for (const node of this.#reach(runtime, declaration)) {
           node.param(binding.param).set(value, how);
@@ -2249,8 +2346,8 @@ export class ProjectRunner {
     if (this.engine.transport.state === 'started') return;
     const names = new Set<string>();
     for (const declaration of runtime.declarations) {
-      const per = this.#perStepOf(runtime, declaration);
-      if (per?.found) names.add(per.sequence);
+      const lane = this.#activeLane(runtime, declaration);
+      if (lane) names.add(lane.sequence);
     }
     for (const name of names) {
       const steps = runtime.scope.transport.get(name)?.steps.length ?? 0;
@@ -2383,8 +2480,8 @@ export class ProjectRunner {
       if (binding?.type !== 'param') continue;
       const sync = this.#syncOf(runtime, declaration);
       if (!sync) continue;
-      const per = this.#perStepOf(runtime, declaration);
-      if (per?.found) {
+      const per = this.#activeLane(runtime, declaration);
+      if (per) {
         // each step applies its own multiplier x factor as it comes; while stopped, the step it holds
         const last = this.#lastStep.get(`${runtime.id}/${per.sequence}`) ?? 0;
         const steps =
@@ -2456,7 +2553,7 @@ export class ProjectRunner {
     const inNew = (speed: number): number =>
       toSync ? (factor === null ? 1 : nearestSync(speed / factor)) : speed;
     const state = valuesOf(this.#host.getDoc(), scopeId)?.controls[key];
-    const per = this.#perStepOf(runtime, declaration);
+    const per = this.#activeLane(runtime, declaration);
     // The single value: the speed it is playing at (a per-step control's parameter is wherever its
     // step put it, so there the speed the single value stands for).
     const playing = node?.param(binding.param).value;
@@ -2483,7 +2580,11 @@ export class ProjectRunner {
         type: 'setControlOptions',
         scope: scopeId,
         key,
-        options: { stepValues: steps.map((value) => inNew(speedOf(value))) },
+        options: {
+          stepValues: steps.map((value) =>
+            typeof value === 'number' ? inNew(speedOf(value)) : value,
+          ),
+        },
       });
     }
     return operations;
