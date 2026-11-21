@@ -201,20 +201,26 @@ export function combine(
 
 /**
  * A pattern of hits and rests given the values steps hold: a step that is on keeps the value it has
- * (or had, before the dials began to write) when that is above 0, and is 1 otherwise; a step that is
- * off is 0. So a grid of slice numbers keeps its slices where the rhythm still has a hit.
+ * (or had, before the dials began to write) when that is above 0; a new hit takes the value last used
+ * on the grid (the last step above 0, as a tapped step does), so a track whose steps are notes is not
+ * given note 1; and on a grid with no values at all, `fill` (1, or a note on a track that plays notes).
+ * A step that is off is 0. So a grid of slice numbers keeps its slices where the rhythm still has a hit.
  */
 export function keepValues(
   hits: readonly number[],
   current: readonly number[],
   base: readonly number[] = [],
+  fill = 1,
 ): number[] {
+  const last = (steps: readonly number[]) =>
+    [...steps].reverse().find((value) => value > 0);
+  const fresh = last(current) ?? last(base) ?? fill;
   return hits.map((hit, index) => {
     if (hit === 0) return 0;
     const now = current[index] ?? 0;
     if (now > 0) return now;
     const before = base[index] ?? 0;
-    return before > 0 ? before : 1;
+    return before > 0 ? before : fresh;
   });
 }
 
@@ -239,20 +245,45 @@ export function isEdited(
 export function applyGenerator(
   state: GeneratorState,
   current: readonly number[],
+  fill = 1,
 ): { steps: number[]; generator: GeneratorState } {
   const length = current.length;
   const continuing =
     state.made !== undefined && state.made === written(current);
   const base = continuing ? fit(state.base ?? [], length) : [...current];
   const hits = combine(state.combine, base, generate(state, length));
-  const steps = keepValues(hits, current, base);
+  const steps = keepValues(hits, current, base, fill);
   return { steps, generator: { ...state, made: written(steps), base } };
+}
+
+/** What a new hit is on an empty grid of a track that plays its steps as notes: middle C. */
+export const NOTE_FILL = 60;
+
+/**
+ * What a new hit is on an empty grid: `NOTE_FILL` where the steps are notes (the synth editor's strip,
+ * or a script with a synth played by note), else 1.
+ */
+export function hitFill(
+  notes: boolean,
+  sources: readonly { kind: string; synth?: { playsNote: boolean } }[],
+): number {
+  return notes ||
+    sources.some((source) => source.kind === 'synth' && source.synth?.playsNote)
+    ? NOTE_FILL
+    : 1;
 }
 
 export type Tool = 'left' | 'right' | 'reverse' | 'invert';
 
-/** A tool on the pattern as it stands (the library's `rotate`, `reverse`, `invert`): same length, values kept where steps stay on. */
-export function applyTool(tool: Tool, steps: readonly number[]): number[] {
+/**
+ * A tool on the pattern as it stands (the library's `rotate`, `reverse`, `invert`): same length, values
+ * kept where steps stay on. Invert's new hits take a value as a generator's do (see `keepValues`).
+ */
+export function applyTool(
+  tool: Tool,
+  steps: readonly number[],
+  fill = 1,
+): number[] {
   const pattern = [...steps];
   switch (tool) {
     // (the library's `rotate` by 1 brings each step one place earlier: to the left)
@@ -263,7 +294,7 @@ export function applyTool(tool: Tool, steps: readonly number[]): number[] {
     case 'reverse':
       return fit(reverse(pattern), steps.length);
     case 'invert':
-      return fit(invert(pattern), steps.length);
+      return keepValues(fit(invert(pattern), steps.length), steps, [], fill);
   }
 }
 

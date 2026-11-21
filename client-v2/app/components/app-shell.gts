@@ -13,6 +13,7 @@ import {
   newSlicedLoopTrack,
   newSynthTrack,
   newTrack,
+  newTrackId,
 } from 'client-v2/project/default-project';
 import { PROJECT_SCOPE, type TrackDocument } from 'client-v2/project/schema';
 import type AudioService from 'client-v2/services/audio';
@@ -47,11 +48,15 @@ export default class AppShell extends Component<AppShellSignature> {
   @service declare project: ProjectService;
   @service declare view: ViewService;
 
+  /** The rows show signal chains, not steps (the project bar's Seq / Signal). */
+  get showChains(): boolean {
+    return this.view.rowsView === 'chain';
+  }
+
   @tracked sidebarOpen =
     this.args.initialSidebarOpen ?? window.matchMedia(SIDEBAR_BESIDE).matches;
 
   /** A track's id, PROJECT_SCOPE for the main output, or undefined: the first track. */
-  @tracked private chosenId: string | undefined;
 
   /** What was just removed, while there is still time to take it back. */
   @tracked notice: string | undefined;
@@ -66,6 +71,11 @@ export default class AppShell extends Component<AppShellSignature> {
   }
 
   /** A sound was given to a sampler: where the browser is a drawer over the tracks, it gets out of the way. */
+  /** New tracks made from sounds: the first of them is selected. */
+  tracksCreated = (ids: string[]): void => {
+    if (ids[0] !== undefined) this.view.selectTrack(ids[0]);
+  };
+
   soundUsed = (): void => {
     if (!window.matchMedia(SIDEBAR_BESIDE).matches) this.sidebarOpen = false;
   };
@@ -78,9 +88,11 @@ export default class AppShell extends Component<AppShellSignature> {
   /** The selected track, or null when the main output is selected. */
   get selectedTrack(): TrackDocument | null {
     const tracks = this.project.tracks;
-    if (this.chosenId === PROJECT_SCOPE) return null;
+    if (this.view.selectedTrack === PROJECT_SCOPE) return null;
     return (
-      tracks.find((track) => track.id === this.chosenId) ?? tracks[0] ?? null
+      tracks.find((track) => track.id === this.view.selectedTrack) ??
+      tracks[0] ??
+      null
     );
   }
 
@@ -97,10 +109,6 @@ export default class AppShell extends Component<AppShellSignature> {
     return (
       this.project.tracks.findIndex((track) => track.id === this.selectedId) + 1
     );
-  }
-
-  get selectedName(): string {
-    return this.selectedTrack ? `Track ${this.selectedOrder}` : 'Main output';
   }
 
   /** The main output houses the project script; every track has its own. */
@@ -121,7 +129,7 @@ export default class AppShell extends Component<AppShellSignature> {
   };
 
   select = (id: string): void => {
-    this.chosenId = id;
+    this.view.selectTrack(id);
   };
 
   /** An edit in the editor. It is the document's script from this moment; it runs after a pause. */
@@ -130,36 +138,54 @@ export default class AppShell extends Component<AppShellSignature> {
   };
 
   addTrack = (): void => {
-    const track = newTrack(`track ${this.project.tracks.length + 1}`);
+    const track = newTrack('');
     this.project.apply({ type: 'addTrack', track });
-    this.chosenId = track.id;
+    this.view.selectTrack(track.id);
   };
 
   /** New Track's other kind: a loop played slice by slice. */
   addSlicedLoop = (): void => {
-    const track = newSlicedLoopTrack('loop');
+    const track = newSlicedLoopTrack('');
     this.project.apply({ type: 'addTrack', track });
-    this.chosenId = track.id;
+    this.view.selectTrack(track.id);
   };
 
   /** New Track's third kind: an oscillator played by a sequence, with the synth editor in the source pane. */
   addSynth = (): void => {
-    const track = newSynthTrack('synth');
+    const track = newSynthTrack('');
     this.project.apply({ type: 'addTrack', track });
-    this.chosenId = track.id;
+    this.view.selectTrack(track.id);
+  };
+
+  /** A copy of a track (script, pattern, values and channel), just after it, and selected. One undo. */
+  duplicateTrack = (track: TrackDocument): void => {
+    const index = this.project.tracks.findIndex(
+      (candidate) => candidate.id === track.id,
+    );
+    if (index < 0) return;
+    const copy: TrackDocument = {
+      ...structuredClone(track),
+      id: newTrackId(),
+      name: track.name.trim() === '' ? '' : `${track.name} copy`,
+    };
+    this.project.apply({ type: 'addTrack', track: copy, index: index + 1 });
+    this.view.selectTrack(copy.id);
   };
 
   removeTrack = (track: TrackDocument): void => {
     const index = this.project.tracks.findIndex(
       (candidate) => candidate.id === track.id,
     );
+    const name = this.audio.trackName(track, index + 1);
     this.project.apply({ type: 'removeTrack', id: track.id });
-    if (this.chosenId === track.id) {
+    if (this.view.selectedTrack === track.id) {
       // the track that takes its place, or the one before, or the main output
       const tracks = this.project.tracks;
-      this.chosenId = (tracks[index] ?? tracks[index - 1])?.id ?? PROJECT_SCOPE;
+      this.view.selectTrack(
+        (tracks[index] ?? tracks[index - 1])?.id ?? PROJECT_SCOPE,
+      );
     }
-    this.notice = `Removed ${track.name}.`;
+    this.notice = `Removed ${name}.`;
     clearTimeout(this.#noticeTimer);
     this.#noticeTimer = setTimeout(() => (this.notice = undefined), NOTICE_MS);
   };
@@ -216,7 +242,7 @@ export default class AppShell extends Component<AppShellSignature> {
           @onClose={{this.closeSidebar}}
           @onUsed={{this.soundUsed}}
           @scopeId={{this.selectedId}}
-          @targetName={{this.selectedName}}
+          @onTracksCreated={{this.tracksCreated}}
           {{onEscape this.closeSidebar}}
         />
       {{/if}}
@@ -237,7 +263,9 @@ export default class AppShell extends Component<AppShellSignature> {
         @selectedId={{this.selectedId}}
         @onSelect={{this.select}}
         @onRemove={{this.removeTrack}}
+        @onDuplicate={{this.duplicateTrack}}
         @projectError={{this.projectError}}
+        @chains={{this.showChains}}
       />
 
       {{#if this.notice}}

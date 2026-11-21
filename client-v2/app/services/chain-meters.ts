@@ -12,6 +12,8 @@ interface Entry {
   nodeId: string;
   node: Node | undefined;
   control: boolean;
+  /** an audio node met some other way than by id (a track's channel output): looked up each frame */
+  resolve?: () => AudioNode | null;
   /** the elements that show it: the link after the node, and the chip at the end of the row (if this is its last node) */
   elements: HTMLElement[];
   shown: number;
@@ -116,8 +118,42 @@ export default class ChainMetersService extends Service {
    */
   register(root: HTMLElement, scopeId: string): () => void {
     const pane: Pane = { root, scopeId, visible: false, entries: [] };
-    this.#panes.set(root, pane);
     this.#collect(pane);
+    return this.#add(pane);
+  }
+
+  /**
+   * One meter outside the chain pictures: `element` is given `--level` (0 to 1, the peak from -48 dB
+   * to full scale) for the audio node `resolve` gives, while the element is on screen. The node is
+   * asked for again each frame, so one that is rebuilt is followed. Returns what to call when it goes.
+   */
+  registerOutput(
+    element: HTMLElement,
+    key: string,
+    resolve: () => AudioNode | null,
+  ): () => void {
+    const entry: Entry = {
+      key: `output:${key}`,
+      scopeId: '',
+      nodeId: '',
+      node: undefined,
+      control: false,
+      resolve,
+      elements: [element],
+      shown: -1,
+      live: false,
+    };
+    return this.#add({
+      root: element,
+      scopeId: '',
+      visible: false,
+      entries: [entry],
+    });
+  }
+
+  #add(pane: Pane): () => void {
+    const root = pane.root;
+    this.#panes.set(root, pane);
     if (typeof IntersectionObserver === 'undefined') {
       pane.visible = true;
     } else {
@@ -244,6 +280,11 @@ export default class ChainMetersService extends Service {
     for (const pane of this.#panes.values()) {
       if (!pane.visible) continue;
       for (const entry of pane.entries) {
+        if (entry.resolve) {
+          const output = entry.resolve();
+          if (output) wanted.set(entry.key, output);
+          continue;
+        }
         let node = entry.node;
         if (!node || node.disposed) {
           node = this.audio.nodeById(entry.scopeId, entry.nodeId);

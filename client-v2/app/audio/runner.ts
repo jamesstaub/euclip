@@ -16,6 +16,7 @@
  * This is a plain class with no Ember in it: the audio service owns one for the live engine, and tests
  * make their own on an OfflineAudioContext.
  */
+import { hitFill } from 'client-v2/controls/generators';
 import type {
   BufferRef,
   Bus,
@@ -230,7 +231,7 @@ export interface ModeChoice {
 export const FOLLOW_SECONDS = 0.02;
 const FOLLOW = { glide: FOLLOW_SECONDS };
 /** Seconds to fade the output over before everything is silenced: short, but enough to avoid a click. */
-const SILENCE_FADE = 0.02;
+const SILENCE_FADE = 0.03;
 
 /** The scope and the buffer Euclip hears a sound with (`ProjectRunner.hear`): not a project's. */
 const HEAR_SCOPE = '~hear';
@@ -831,6 +832,14 @@ export class ProjectRunner {
   }
 
   /** A node of a scope's running script, by id (for tapping its output); undefined if there is none. */
+  /** What leaves a track's channel strip: after its level and pan, on its way to main. */
+  channelOutput(trackId: string): AudioNode | null {
+    const runtime = this.#scopes.get(trackId);
+    return runtime && trackId !== PROJECT_SCOPE
+      ? runtime.host.bus(OUT_BUS).output
+      : null;
+  }
+
   nodeById(scopeId: string, nodeId: string): Node | undefined {
     const runtime = this.#scopes.get(scopeId);
     return runtime ? this.#select(runtime, `#${nodeId}`)[0] : undefined;
@@ -1747,12 +1756,12 @@ export class ProjectRunner {
       steps[index] = 0;
     } else {
       // what it held before; else the note (or slice) last used on this grid, so a tapped step on a
-      // track that plays its steps' values as notes is not note 1; else 1
+      // track that plays its steps' values as notes is not note 1; else 1 (middle C on such a track)
       steps[index] =
         memory[index] ||
         runtime.stepLast.get(name) ||
         [...sequence.steps].reverse().find((value) => value > 0) ||
-        1;
+        hitFill(false, this.sources(scopeId));
       runtime.stepLast.set(name, steps[index]);
     }
     runtime.stepMemory.set(name, memory);
@@ -3059,44 +3068,14 @@ export class ProjectRunner {
   }
 
   /**
-   * Silences everything, for the Stop button's second press. cracked-up has no all-notes-off and no way
-   * to empty a delay or reverb, so: the main output is faded to nothing over a few milliseconds (no
-   * click), every voice is released, every script's scope is emptied (which disposes its delays and
-   * reverbs, and their tails with them) and run again, which makes them anew, and the output comes
-   * back. The document and every stored control value are left alone (the scripts read them as they
-   * ran before). The output is restored even if something throws.
+   * Stops everything, for the Stop button: cracked-up's `stopAll`. The transport stops, the main
+   * output fades out over a few milliseconds (no click), every voice, loop, envelope and delay or
+   * reverb tail is cut, and the output comes back for what is played next. Nothing is rebuilt, and the
+   * document and every control value are left alone.
    */
-  async silence(): Promise<void> {
-    const main = this.engine.root.bus('main');
-    const level = main.gain.value;
-    main.gain.set(0, { glide: SILENCE_FADE });
-    try {
-      if (!this.engine.offline) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, SILENCE_FADE * 1000 * 1.5),
-        );
-      }
-      this.stopHearing();
-      const releaseAll = (): void => {
-        try {
-          this.engine.root.select('*').release();
-        } catch {
-          // (nothing to release)
-        }
-      };
-      releaseAll();
-      for (const [id, runtime] of [...this.#scopes]) {
-        try {
-          await runtime.scope.build(() => undefined);
-          await this.run(id, true);
-        } catch (error) {
-          console.warn('Euclip: a scope could not be rebuilt.', error);
-        }
-      }
-      releaseAll();
-    } finally {
-      main.gain.set(level, { glide: SILENCE_FADE });
-    }
+  silence(): void {
+    this.stopHearing();
+    this.engine.stopAll({ fade: SILENCE_FADE });
   }
 
   /** Resolves when every sound of the pool has loaded (or failed). For tests and offline rendering. */

@@ -1,6 +1,7 @@
 import { module, test } from 'qunit';
 import {
   click,
+  find,
   fillIn,
   findAll,
   render,
@@ -10,6 +11,7 @@ import {
 } from '@ember/test-helpers';
 import { setupRenderingTest } from 'client-v2/tests/helpers';
 import AppShell from 'client-v2/components/app-shell';
+import { PROJECT_SCOPE } from 'client-v2/project/schema';
 import type AudioService from 'client-v2/services/audio';
 import type ProjectService from 'client-v2/services/project';
 import type ViewService from 'client-v2/services/view';
@@ -95,6 +97,9 @@ module('Integration | Component | signal chain', function (hooks) {
       .dom('[data-test-track="2"] [data-test-step]')
       .exists('steps are the default');
     assert.dom('[data-test-track="1"] [data-test-pane="chain"]').doesNotExist();
+    assert
+      .dom('[data-test-track="output"] [data-test-pane="chain"]')
+      .doesNotExist('nor the main output’s buses, in Seq');
 
     await click(options[1]!);
     assert.deepEqual(
@@ -109,11 +114,15 @@ module('Integration | Component | signal chain', function (hooks) {
     }
     assert
       .dom('[data-test-track="output"] [data-test-pane="chain"]')
-      .exists('the main output always');
+      .exists('the main output too');
     const stored = JSON.parse(
       window.localStorage.getItem('euclip:view') ?? '{}',
-    ) as { rowsView: string };
-    assert.strictEqual(stored.rowsView, 'chain', 'remembered');
+    ) as { rowsView?: string };
+    assert.strictEqual(
+      stored.rowsView,
+      undefined,
+      'not remembered: it opens on Seq',
+    );
     assert.false(project.canUndo, 'not an undo step');
     await click(options[0]!);
     assert.dom('[data-test-track="3"] [data-test-step]').exists();
@@ -157,17 +166,17 @@ module('Integration | Component | signal chain', function (hooks) {
       assert.strictEqual(
         meters.visibleCount,
         1,
-        'only the main output shows a chain in Seq',
+        'no row shows a chain in Seq, the main output included: only the channel strip’s meter',
       );
-      assert.strictEqual(meters.tapCount, 1, 'its one insert');
+      assert.strictEqual(meters.tapCount, 1);
 
       view.setRowsView('chain');
       await seen(4);
       meters.step(0.02);
       assert.strictEqual(
         meters.tapCount,
-        10,
-        'three tracks of three nodes, and the insert',
+        11,
+        'three tracks of three nodes, the insert, and the channel strip',
       );
 
       view.setRowsView('steps');
@@ -177,7 +186,7 @@ module('Integration | Component | signal chain', function (hooks) {
       assert.strictEqual(
         meters.tapCount,
         1,
-        'the rows that went take their taps',
+        'the rows that went take their taps (the strip’s stays)',
       );
     });
 
@@ -185,7 +194,7 @@ module('Integration | Component | signal chain', function (hooks) {
       await render(<template><AppShell /></template>);
       await seen(4);
       meters.step(0.02);
-      assert.strictEqual(meters.tapCount, 10);
+      assert.strictEqual(meters.tapCount, 11);
       await setScript(KICK, (text) =>
         text.replace(
           "  .lowpass({ id: 'filter', frequency: 2000, q: 2 })\n",
@@ -196,7 +205,35 @@ module('Integration | Component | signal chain', function (hooks) {
       meters.step(0.02);
       meters.step(2);
       meters.step(0.02);
-      assert.strictEqual(meters.tapCount, 9, 'one node fewer');
+      assert.strictEqual(meters.tapCount, 10, 'one node fewer');
+    });
+
+    test('the channel strip meters what leaves its track, after the fader, and follows the selected track', async function (assert) {
+      view.setRowsView('steps');
+      view.footerOpen = true;
+      await render(<template><AppShell /></template>);
+      await seen(1);
+      meters.step(0.02);
+      assert.dom('[data-test-strip-meter]').exists();
+      assert.strictEqual(meters.tapCount, 1, 'one tap: the strip’s output');
+      assert.notStrictEqual(audio.channelOutput('t-kick'), null);
+      assert.strictEqual(
+        (find('[data-test-strip-meter]') as HTMLElement).style.getPropertyValue(
+          '--level',
+        ),
+        '0',
+        'silent: nothing is playing',
+      );
+      await click('[data-test-track="2"] [data-test-track-select]');
+      await seen(1);
+      meters.step(2);
+      meters.step(0.02);
+      assert.strictEqual(
+        meters.tapCount,
+        1,
+        'still one, now the other track’s',
+      );
+      assert.strictEqual(audio.channelOutput(PROJECT_SCOPE), null);
     });
 
     test('with reduced motion nothing flows', async function (assert) {

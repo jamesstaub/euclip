@@ -17,6 +17,7 @@ import {
 } from 'client-v2/audio/runner';
 import config from 'client-v2/config/environment';
 import { LibraryClient } from 'client-v2/library/client';
+import { newTrack } from 'client-v2/project/default-project';
 import {
   nameOfSource,
   nameProblem,
@@ -99,8 +100,6 @@ export default class AudioService extends Service {
 
   @tracked ready = false;
   @tracked playing = false;
-  /** Stop has been pressed once since playing: another press silences everything (see stop()). */
-  @tracked silenceArmed = false;
   @tracked private revision = 0;
   @tracked private playheadRevision = 0;
 
@@ -151,10 +150,7 @@ export default class AudioService extends Service {
     this.runner = runner;
     this.#off.push(
       this.project.subscribe((change) => this.#onProjectChange(change)),
-      engine.transport.on('start', () => {
-        this.playing = true;
-        this.silenceArmed = false;
-      }),
+      engine.transport.on('start', () => (this.playing = true)),
       engine.transport.on('stop', () => (this.playing = false)),
     );
     await runner.start();
@@ -205,30 +201,19 @@ export default class AudioService extends Service {
     if (!engine.offline) void engine.resume().catch(() => undefined);
     if (engine.transport.state !== 'started') engine.transport.start();
     this.playing = true;
-    this.silenceArmed = false;
     this.meters.poke();
     this.scopes.poke();
   }
 
   /**
-   * Stop has two stages. While playing it stops the transport and leaves what is sounding (looping
-   * samplers, delay and reverb tails) to carry on. Pressed again, with the transport already stopped,
-   * it silences everything. View state: no undo step, nothing written to the project.
+   * Stops everything: the sequencer stops, and the rest of the sound (looping samplers, held notes,
+   * delay and reverb tails) fades out quickly and is cut (`ProjectRunner.silence`). View state: no
+   * undo step, nothing written to the project.
    */
   stop(): void {
-    if (this.playing) {
-      this.engine?.transport.stop();
-      this.playing = false;
-      this.silenceArmed = true;
-      return;
-    }
-    this.silenceArmed = false;
-    void this.silence();
-  }
-
-  /** Silences everything now: voices, loops and the tails of delays and reverbs. */
-  silence(): Promise<void> {
-    return waitForPromise(this.runner?.silence() ?? Promise.resolve());
+    if (this.runner) this.runner.silence();
+    else this.engine?.transport.stop();
+    this.playing = false;
   }
 
   toggle(): void {
@@ -277,6 +262,11 @@ export default class AudioService extends Service {
   }
 
   /** A node of a scope's running script, by id. Not tracked: for the meters, which look again every frame. */
+  /** What leaves a track's channel strip (post fader), for its meter. */
+  channelOutput(trackId: string): AudioNode | null {
+    return this.runner?.channelOutput(trackId) ?? null;
+  }
+
   nodeById(scopeId: string, nodeId: string): Node | undefined {
     return this.runner?.nodeById(scopeId, nodeId);
   }
@@ -296,6 +286,29 @@ export default class AudioService extends Service {
   sources(scopeId: string): SourceView[] {
     void this.revision;
     return this.runner?.sources(scopeId) ?? [];
+  }
+
+  /**
+   * What a track is called when the person has not named it: the file its first source plays (its name
+   * without folder or extension: "Snare"), else that source's node type ("polysynth"). Null when the
+   * script has no source editor, or has not run yet.
+   */
+  autoTrackName(scopeId: string): string | null {
+    const first = this.sources(scopeId)[0];
+    if (!first) return null;
+    if (first.kind === 'synth') return first.synth.type;
+    const key = first.waveform.sound?.key;
+    if (key === undefined) return 'sampler';
+    const source = this.project.doc.samples[key];
+    const file = source?.label ?? source?.library ?? key;
+    return fileTitle(file) || key;
+  }
+
+  /** A track's name as shown: the person's, else the automatic one, else "Track 3". */
+  trackName(track: { id: string; name: string }, order: number): string {
+    return (
+      track.name.trim() || this.autoTrackName(track.id) || `Track ${order}`
+    );
   }
 
   /** The controls of one source node, for the source tab. */
@@ -452,6 +465,39 @@ export default class AudioService extends Service {
     return name;
   }
   #uses = 0;
+
+  /**
+   * Create New Tracks from: one new sampler track per sound, each playing its sound and named after
+   * it, all in one step to undo. The person's own files are read first, as Use reads them. Resolves
+   * the new tracks' ids, in order (none when a file could not be read: then nothing was added).
+   */
+  async newTracksFrom(sounds: readonly SoundRef[]): Promise<string[]> {
+    for (const sound of sounds) {
+      if (sound.kind !== 'mine' || this.projectNameOf(sound) !== undefined)
+        continue;
+      try {
+        await this.#audioOf(sound);
+      } catch (error) {
+        this.failed = {
+          id: soundId(sound),
+          message: error instanceof Error ? error.message : String(error),
+        };
+        return [];
+      }
+      if (isDestroying(this)) return [];
+    }
+    const group = `tracks-${++this.#uses}`;
+    const ids: string[] = [];
+    for (const sound of sounds) {
+      const name = this.addToProject(sound, group);
+      if (name === undefined) continue;
+      // (unnamed: it is called after its sound, and follows it if the sound is changed)
+      const track = newTrack('', name);
+      this.project.apply({ type: 'addTrack', track }, { group });
+      ids.push(track.id);
+    }
+    return ids;
+  }
 
   /**
    * Hear: plays a sound for the ear and changes nothing. A second call for the sound that is playing
@@ -977,4 +1023,11 @@ declare module '@ember/service' {
   interface Registry {
     audio: AudioService;
   }
+}
+
+/** A file's name without its folder or extension: "/Roland/TR-808/Snare.wav" is "Snare". */
+export function fileTitle(path: string): string {
+  const base = path.slice(path.lastIndexOf('/') + 1);
+  const dot = base.lastIndexOf('.');
+  return dot > 0 ? base.slice(0, dot) : base;
 }

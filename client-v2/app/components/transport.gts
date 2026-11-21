@@ -67,13 +67,8 @@ export default class Transport extends Component<TransportSignature> {
       <button
         type="button"
         class="icon-btn transport__btn"
-        aria-label={{if this.audio.silenceArmed "Silence all sound" "Stop"}}
-        title={{if
-          this.audio.silenceArmed
-          "Press again to silence all sound"
-          "Stop"
-        }}
-        data-armed={{if this.audio.silenceArmed "true" "false"}}
+        aria-label="Stop"
+        title="Stop"
         data-test-transport-stop
         {{on "click" this.stop}}
       >

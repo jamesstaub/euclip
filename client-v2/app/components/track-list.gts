@@ -25,8 +25,11 @@ export interface TrackListSignature {
     selectedId: string;
     onSelect: (id: string) => void;
     onRemove: (track: TrackDocument) => void;
+    onDuplicate: (track: TrackDocument) => void;
     /** an error in the project script, to mark the main output with */
     projectError?: string;
+    /** the rows show signal chains (the project bar's Signal), not steps */
+    chains?: boolean;
   };
 }
 
@@ -50,6 +53,7 @@ const TrackList: TOC<TrackListSignature> = <template>
             @selected={{is track.id @selectedId}}
             @onSelect={{@onSelect}}
             @onRemove={{@onRemove}}
+            @onDuplicate={{@onDuplicate}}
           />
         </li>
       {{/each}}
@@ -88,14 +92,16 @@ const TrackList: TOC<TrackListSignature> = <template>
                 >!</span>
               {{/if}}
             </div>
-            {{! the main output has no steps: its buses are drawn in its row, always }}
+            {{! the main output has no steps: in Signal view its buses are drawn in its row; in Seq, nothing }}
             <div class="track__sequence">
-              <SignalChainPane
-                @scopeId={{PROJECT_SCOPE}}
-                @label="Main output"
-                @onSelectTrack={{@onSelect}}
-                @selected={{is @selectedId PROJECT_SCOPE}}
-              />
+              {{#if @chains}}
+                <SignalChainPane
+                  @scopeId={{PROJECT_SCOPE}}
+                  @label="Main output"
+                  @onSelectTrack={{@onSelect}}
+                  @selected={{is @selectedId PROJECT_SCOPE}}
+                />
+              {{/if}}
             </div>
           </div>
         </article>

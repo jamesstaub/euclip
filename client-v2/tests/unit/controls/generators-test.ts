@@ -120,7 +120,18 @@ module('Unit | Controls | generators', function () {
   test('a generated hit keeps the value its step had; a rest is 0', function (assert) {
     assert.deepEqual(
       keepValues([1, 1, 0, 1], [3, 0, 5, 0], [0, 0, 0, 7]),
-      [3, 1, 0, 7],
+      [3, 5, 0, 7],
+      'a new hit takes the value last used on the grid',
+    );
+    assert.deepEqual(
+      keepValues([1, 0, 1, 0], [0, 0, 0, 0]),
+      [1, 0, 1, 0],
+      'an empty grid: 1',
+    );
+    assert.deepEqual(
+      keepValues([1, 0, 1, 0], [0, 0, 0, 0], [], 60),
+      [60, 0, 60, 0],
+      'an empty grid of a track that plays notes: the fill note, not note 1',
     );
     const slices = [1, 0, 3, 3, 5, 0, 7, 8];
     const made = applyGenerator(
@@ -137,7 +148,14 @@ module('Unit | Controls | generators', function () {
       { ...made.generator, on: 2, off: 0 },
       made.steps,
     );
-    assert.deepEqual(again.steps, [1, 1, 3, 3, 5, 1, 7, 8]);
+    assert.deepEqual(again.steps, [1, 7, 3, 3, 5, 7, 7, 8]);
+    // a note grid: new hits are the grid's note, not MIDI note 1
+    const notes = applyGenerator(
+      dials({ kind: 'euclid', hits: 4 }),
+      [48, 0, 0, 0, 0, 0, 0, 0],
+      60,
+    );
+    assert.deepEqual(notes.steps, [48, 0, 48, 0, 48, 0, 48, 0]);
   });
 
   test('Replace writes over; Or, And and Xor meet what was there when the dials began', function (assert) {
@@ -193,7 +211,12 @@ module('Unit | Controls | generators', function () {
     assert.deepEqual(applyTool('right', steps), [3, 2, 0, 0]);
     assert.deepEqual(applyTool('left', steps), [0, 0, 3, 2]);
     assert.deepEqual(applyTool('reverse', steps), [3, 0, 0, 2]);
-    assert.deepEqual(applyTool('invert', steps), [0, 1, 1, 0]);
+    assert.deepEqual(
+      applyTool('invert', steps),
+      [0, 3, 3, 0],
+      'new hits take the value last used',
+    );
+    assert.deepEqual(applyTool('invert', [0, 0], 60), [60, 60]);
   });
 
   test('what is stored is read back within the grid’s length, and nonsense takes the defaults', function (assert) {

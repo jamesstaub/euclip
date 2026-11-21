@@ -16,6 +16,7 @@ import cssVars from 'client-v2/modifiers/css-vars';
 import {
   applyGenerator,
   applyTool,
+  hitFill,
   binaryMax,
   COMBINES,
   defaultGenerator,
@@ -781,9 +782,17 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
     }
   }
 
+  /** What a new hit is on an empty grid: a note on a track that plays its steps as notes, else 1. */
+  get #fill(): number {
+    return hitFill(
+      this.args.notes === true,
+      this.audio.sources(this.args.scopeId),
+    );
+  }
+
   /** Writes what the dials now make into the grid: live, and one step to undo for the gesture. */
   #write(state: GeneratorState, gesture?: string): void {
-    const made = applyGenerator(state, this.args.control.steps);
+    const made = applyGenerator(state, this.args.control.steps, this.#fill);
     this.audio.setPattern(
       this.args.scopeId,
       this.args.control.key,
@@ -833,7 +842,7 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
     this.audio.setPattern(
       this.args.scopeId,
       this.args.control.key,
-      applyTool(tool, this.args.control.steps),
+      applyTool(tool, this.args.control.steps, this.#fill),
       undefined,
       `tool-${++generatorGestures}`,
     );

@@ -16,6 +16,7 @@ import type { LineProblem } from 'client-v2/modifiers/mount-editor';
 import type { DeclarationWarning } from 'client-v2/controls/declarations';
 import { PROJECT_SCOPE, type TrackDocument } from 'client-v2/project/schema';
 import type AudioService from 'client-v2/services/audio';
+import type ProjectService from 'client-v2/services/project';
 import type ViewService from 'client-v2/services/view';
 import type { FooterPane } from 'client-v2/services/view';
 
@@ -88,6 +89,7 @@ export interface TrackFooterSignature {
 export default class TrackFooter extends Component<TrackFooterSignature> {
   @service declare audio: AudioService;
   @service declare view: ViewService;
+  @service declare project: ProjectService;
 
   get scopeId(): string {
     return this.args.track?.id ?? PROJECT_SCOPE;
@@ -96,6 +98,39 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
   get name(): string {
     return this.args.track ? `Track ${this.args.order}` : 'Main output';
   }
+
+  /** What the name field shows greyed when the track has no name of its own: what it is called instead. */
+  get autoName(): string {
+    const track = this.args.track;
+    return track
+      ? (this.audio.autoTrackName(track.id) ?? `Track ${this.args.order}`)
+      : '';
+  }
+
+  /** The name field is left: its text is the track's name; emptied, the track is called after its sound. */
+  commitName = (event: Event): void => {
+    const track = this.args.track;
+    const field = event.target as HTMLInputElement;
+    if (!track) return;
+    const name = field.value.trim();
+    field.value = name;
+    if (name !== track.name) {
+      this.project.apply({ type: 'renameTrack', id: track.id, name });
+    }
+  };
+
+  onNameKey = (event: KeyboardEvent): void => {
+    const field = event.target as HTMLInputElement;
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      field.blur();
+    } else if (event.key === 'Escape') {
+      // put back what it was; the sheet stays open
+      event.stopPropagation();
+      field.value = this.args.track?.name ?? '';
+      field.blur();
+    }
+  };
 
   get scriptLabel(): string {
     return this.args.track ? `${this.name} script` : 'Project script';
@@ -208,7 +243,22 @@ export default class TrackFooter extends Component<TrackFooterSignature> {
       <div class="track-footer__bar">
         <h2 class="track-footer__title truncate" data-test-footer-title>
           <b>{{this.name}}</b>
-          <span>{{if @track @track.name "Project"}}</span>
+          {{#if @track}}
+            <input
+              type="text"
+              class="track-footer__name"
+              aria-label="Name of {{this.name}}"
+              placeholder={{this.autoName}}
+              value={{@track.name}}
+              autocomplete="off"
+              spellcheck="false"
+              data-test-footer-name
+              {{on "change" this.commitName}}
+              {{on "keydown" this.onNameKey}}
+            />
+          {{else}}
+            <span>Project</span>
+          {{/if}}
         </h2>
 
         {{#if this.view.phone}}

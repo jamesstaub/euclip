@@ -2,11 +2,11 @@ import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { modifier } from 'ember-modifier';
 import { service } from '@ember/service';
-import Hint from 'client-v2/components/ui/hint';
 import Slider from 'client-v2/components/ui/slider';
 import { mapping } from 'client-v2/controls/modes';
 import type { TrackDocument } from 'client-v2/project/schema';
 import type AudioService from 'client-v2/services/audio';
+import type ChainMetersService from 'client-v2/services/chain-meters';
 import type ProjectService from 'client-v2/services/project';
 
 /** The level fader: decibels, from silence to a little above unity. */
@@ -35,11 +35,13 @@ export interface ChannelStripSignature {
  * The selected track's channel strip: the level and pan of its `channel` bus, which Euclip makes for
  * every track and routes to main. The values are the project's, not the script's, and the strip is not
  * declared in the script: what links the two is the script's `.to('channel')`, shown under the heading.
- * A script that sends nothing there leaves the strip with nothing to act on, and it says so. No metering.
+ * A script that sends nothing there leaves the strip with nothing to act on, and it says so. Beside the
+ * fader, a meter of what leaves the strip: after its level and pan (post fader).
  */
 export default class ChannelStrip extends Component<ChannelStripSignature> {
   @service declare audio: AudioService;
   @service declare project: ProjectService;
+  @service('chain-meters') declare meters: ChainMetersService;
 
   /** Nothing the track's script makes goes to `channel`: the strip's level and pan do nothing. */
   get idle(): boolean {
@@ -53,13 +55,30 @@ export default class ChannelStrip extends Component<ChannelStripSignature> {
   @tracked upright = true;
 
   watchShape = modifier<{ Element: HTMLElement }>((element) => {
+    let frame = 0;
     const observer = new ResizeObserver(([entry]) => {
       const upright = (entry?.contentRect.width ?? 0) < UPRIGHT_BELOW_PX;
-      if (upright !== this.upright) this.upright = upright;
+      // (turning the fader changes the strip's size: done on the next frame, not inside the
+      // observer's own delivery, where it would loop)
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (upright !== this.upright) this.upright = upright;
+      });
     });
     observer.observe(element);
-    return () => observer.disconnect();
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
   });
+
+  /** The meter listens to the track's channel output while it is on screen (`chain-meters`). */
+  meter = modifier<{ Element: HTMLElement; Args: { Positional: [string] } }>(
+    (element, [trackId]) =>
+      this.meters.registerOutput(element, `channel/${trackId}`, () =>
+        this.audio.channelOutput(trackId),
+      ),
+  );
 
   setLevel = (level: number): void =>
     this.project.apply({
@@ -84,16 +103,7 @@ export default class ChannelStrip extends Component<ChannelStripSignature> {
       {{this.watchShape}}
     >
       <div class="channel-strip__title">
-        <h3>channel strip</h3>
-        <Hint @label="About the channel strip" data-test-channel-hint>
-          <p>Sound this track sends to
-            <code>'channel'</code>
-            passes through this level and pan, then to main. A track’s script
-            ends its chain with
-            <code>.to('channel')</code>.</p>
-          <p>The strip is Euclip’s, not the script’s: its level and pan are kept
-            in the project.</p>
-        </Hint>
+        <h3>channel</h3>
       </div>
       {{#if this.idle}}
         <p
@@ -109,16 +119,26 @@ export default class ChannelStrip extends Component<ChannelStripSignature> {
       >
         <div class="channel-strip__control channel-strip__control--gain">
           <span>gain</span>
-          <Slider
-            class="channel-strip__fader"
-            @value={{@track.level}}
-            @mapping={{LEVEL}}
-            @label="Track level"
-            @orientation={{if this.upright "vertical" "horizontal"}}
-            @onChange={{this.setLevel}}
-            @onReset={{this.resetLevel}}
-            data-test-strip-level
-          />
+          <div class="channel-strip__fader-meter">
+            <Slider
+              class="channel-strip__fader"
+              @value={{@track.level}}
+              @mapping={{LEVEL}}
+              @label="Track level"
+              @orientation={{if this.upright "vertical" "horizontal"}}
+              @onChange={{this.setLevel}}
+              @onReset={{this.resetLevel}}
+              data-test-strip-level
+            />
+            {{! post fader: what leaves the strip, after its level and pan }}
+            <div
+              class="channel-strip__meter"
+              role="img"
+              aria-label="Track output level"
+              data-test-strip-meter
+              {{this.meter @track.id}}
+            ></div>
+          </div>
           <output>{{levelText @track.level}}</output>
         </div>
         <div class="channel-strip__control">

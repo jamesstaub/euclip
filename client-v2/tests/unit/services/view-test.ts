@@ -1,6 +1,6 @@
 import { module, test } from 'qunit';
 import { setupTest } from 'client-v2/tests/helpers';
-import { VIEW_STORAGE_KEY } from 'client-v2/services/view';
+import ViewService, { VIEW_STORAGE_KEY } from 'client-v2/services/view';
 
 module('Unit | Service | view', function (hooks) {
   setupTest(hooks);
@@ -39,6 +39,18 @@ module('Unit | Service | view', function (hooks) {
     assert.true(view.footerOpen);
   });
 
+  test('the selected track is remembered, so a reload comes back to it', function (assert) {
+    const view = this.owner.lookup('service:view');
+    assert.strictEqual(view.selectedTrack, undefined, 'none yet');
+    view.selectTrack('t-snare');
+    const stored = JSON.parse(
+      window.localStorage.getItem(VIEW_STORAGE_KEY) ?? '{}',
+    ) as { selectedTrack?: string };
+    assert.strictEqual(stored.selectedTrack, 't-snare');
+    // a page loaded later reads it back
+    assert.strictEqual(new ViewService(this.owner).selectedTrack, 't-snare');
+  });
+
   test('the script choice and the footer pane are remembered in localStorage', function (assert) {
     const view = this.owner.lookup('service:view');
     view.footerOpen = true;
@@ -55,7 +67,6 @@ module('Unit | Service | view', function (hooks) {
         snaps: {},
         lanes: {},
         laneSets: {},
-        rowsView: 'steps',
         sheetSize: 'half',
       },
     );

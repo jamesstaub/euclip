@@ -10,6 +10,7 @@ import Knob from 'client-v2/components/ui/knob';
 import NumberEntry from 'client-v2/components/ui/number-entry';
 import {
   applyGenerator,
+  hitFill,
   isEdited,
   readGenerator,
 } from 'client-v2/controls/generators';
@@ -127,7 +128,11 @@ export default class SequencePane extends Component<SequencePaneSignature> {
       // (the same dials, held to the new length: 5 of 16 is 5 of 12)
       const refit = readGenerator({ ...dials, made: undefined }, fitted);
       if (refit) {
-        const made = applyGenerator(refit, fitted);
+        const made = applyGenerator(
+          refit,
+          fitted,
+          hitFill(false, this.audio.sources(scopeId)),
+        );
         this.audio.setPattern(
           scopeId,
           grid.key,

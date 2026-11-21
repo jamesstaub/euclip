@@ -111,7 +111,7 @@ module('Integration | Component | app-shell', function (hooks) {
       await render(<template><AppShell /></template>);
 
       assert.dom('[data-test-footer-title]').includesText('Track 1');
-      assert.dom('[data-test-footer-title]').includesText('kick');
+      assert.dom('[data-test-footer-name]').hasValue('kick');
       assert.dom('[data-test-footer-body]').doesNotExist();
       await click('[data-test-footer-toggle]');
       assert.dom('[data-test-footer-body]').exists();
@@ -1670,48 +1670,6 @@ stepGrid('ones');
       );
     });
 
-    test('the channel strip says how the script reaches it, and when the script does not', async function (assert) {
-      await render(<template><AppShell /></template>);
-      assert
-        .dom('[data-test-channel-strip]')
-        .doesNotIncludeText(
-          'passes through',
-          'the strip does not explain itself unasked',
-        );
-      await click('[data-test-channel-hint] [data-test-hint-button]');
-      assert
-        .dom('[data-test-channel-hint] [data-test-hint]')
-        .includesText('passes through this level and pan, then to main');
-      assert
-        .dom('[data-test-channel-hint] [data-test-hint]')
-        .includesText(".to('channel')");
-      await click('[data-test-channel-hint] [data-test-hint-button]');
-      assert.dom('[data-test-hint]').doesNotExist('a second press closes it');
-      assert.dom('[data-test-channel-strip]').doesNotHaveAttribute('data-idle');
-      assert.dom('[data-test-channel-idle]').doesNotExist();
-
-      await click('[data-test-script-toggle]');
-      await typeScript((text) => text.replace(".to('channel')", ".to('main')"));
-      await click('[data-test-script-toggle]');
-      assert.dom('[data-test-script-error]').doesNotExist();
-      assert.dom('[data-test-channel-strip]').hasAttribute('data-idle', 'true');
-      assert
-        .dom('[data-test-channel-idle]')
-        .includesText("This track’s script doesn’t send to 'channel'");
-      await click('[data-test-track="2"] [data-test-track-select]');
-      assert
-        .dom('[data-test-channel-idle]')
-        .doesNotExist('the next track’s does');
-
-      await click('[data-test-track="1"] [data-test-track-select]');
-      await click('[data-test-script-toggle]');
-      await typeScript((text) => text.replace(".to('main')", ".to('channel')"));
-      await click('[data-test-script-toggle]');
-      assert
-        .dom('[data-test-channel-idle]')
-        .doesNotExist('sending there again');
-    });
-
     test('chains are separate blocks, a bus is a block with its level first, and a node with no id says so', async function (assert) {
       await render(<template><AppShell /></template>);
       await click('[data-test-script-toggle]');
@@ -2097,6 +2055,48 @@ slider(__.bus('drums'), 'gain');
         .hasTagName('button', 'the number is still the control that selects');
     });
 
+    test('a track is called after its sound until it is named in the footer; Duplicate copies it, just after', async function (assert) {
+      await render(<template><AppShell /></template>);
+      const names = (): string[] =>
+        findAll('[data-test-track-name]').map((name) =>
+          name.textContent.trim(),
+        );
+      const before = names();
+      await click('[data-test-new-track]');
+      const order = before.length + 1;
+      assert.strictEqual(project.tracks[order - 1]!.name, '');
+      assert.strictEqual(names()[order - 1], 'kick', 'called after its sound');
+      assert.dom('[data-test-footer-name]').hasValue('');
+      assert.dom('[data-test-footer-name]').hasAttribute('placeholder', 'kick');
+
+      await fillIn('[data-test-footer-name]', '  Boom  ');
+      assert.strictEqual(project.tracks[order - 1]!.name, 'Boom');
+      assert.strictEqual(names()[order - 1], 'Boom');
+      assert.dom('[data-test-footer-name]').hasValue('Boom');
+      await fillIn('[data-test-footer-name]', '');
+      assert.strictEqual(
+        names()[order - 1],
+        'kick',
+        'emptied: its sound again',
+      );
+      await fillIn('[data-test-footer-name]', 'Boom');
+
+      await click(`[data-test-track="${order}"] [data-test-menu-button]`);
+      await click('[data-test-menu-item="Duplicate"]');
+      const copy = project.tracks[order]!;
+      const original = project.tracks[order - 1]!;
+      assert.strictEqual(names()[order], 'Boom copy', 'just after it');
+      assert.notStrictEqual(copy.id, original.id);
+      assert.strictEqual(copy.script, original.script);
+      assert.deepEqual(copy.values, original.values);
+      assert
+        .dom(`[data-test-track="${order + 1}"]`)
+        .hasAria('current', 'true', 'and selected');
+      project.undo();
+      await settled();
+      assert.strictEqual(project.tracks.length, order, 'one undo');
+    });
+
     test('New Track adds a track from the template, with its grid and controls, and selects it', async function (assert) {
       await render(<template><AppShell /></template>);
 
@@ -2106,7 +2106,7 @@ slider(__.bus('drums'), 'gain');
       assert.dom('[data-test-track="4"]').hasAria('current', 'true');
       assert
         .dom('[data-test-track="4"] [data-test-track-name]')
-        .hasText('track 4');
+        .hasText('kick', 'unnamed: called after its sound');
       assert
         .dom('[data-test-track="4"] [data-test-step]')
         .exists({ count: 16 });
@@ -2329,7 +2329,7 @@ slider(__.bus('drums'), 'gain');
       assert.strictEqual(transport.state, 'stopped', 'nor on a control');
     });
 
-    test('Stop has two stages: the second silences everything', async function (assert) {
+    test('Stop stops everything in one press: the sequencer, and the rest of the sound', async function (assert) {
       await render(<template><AppShell /></template>);
       const transport = audio.engine!.transport;
       const stop = '[data-test-transport-stop]';
@@ -2337,48 +2337,27 @@ slider(__.bus('drums'), 'gain');
       const silence = audio.runner!.silence.bind(audio.runner);
       audio.runner!.silence = () => {
         silenced.push(1);
-        return silence();
+        silence();
       };
       const before = JSON.stringify(project.doc);
       const level = audio.engine!.root.bus('main').gain.value;
       const undoable = project.canUndo;
 
       assert.dom(stop).hasAttribute('aria-label', 'Stop');
-      assert.dom(stop).hasAttribute('data-armed', 'false');
-
       await click('[data-test-transport-play]');
       await click(stop);
       assert.strictEqual(transport.state, 'stopped');
-      assert.deepEqual(
-        silenced,
-        [],
-        'the first press only stops the transport',
-      );
-      assert.dom(stop).hasAttribute('aria-label', 'Silence all sound');
-      assert
-        .dom(stop)
-        .hasAttribute('title', 'Press again to silence all sound');
-      assert.dom(stop).hasAttribute('data-armed', 'true');
-
-      await click(stop);
-      assert.deepEqual(silenced, [1], 'the second press silences');
-      assert.dom(stop).hasAttribute('aria-label', 'Stop');
+      assert.deepEqual(silenced, [1], 'one press silences');
+      assert.false(audio.playing);
+      assert.dom(stop).hasAttribute('aria-label', 'Stop', 'no second stage');
 
       await click(stop);
       assert.deepEqual(
         silenced,
         [1, 1],
-        'and a press with nothing going is harmless',
+        'a press with nothing going is harmless',
       );
       assert.strictEqual(audio.engine!.root.bus('main').gain.value, level);
-
-      await click('[data-test-transport-play]');
-      await click(stop);
-      assert.dom(stop).hasAttribute('data-armed', 'true');
-      await click('[data-test-transport-play]');
-      assert
-        .dom(stop)
-        .hasAttribute('aria-label', 'Stop', 'Play resets the stage');
 
       assert.strictEqual(
         JSON.stringify(project.doc),

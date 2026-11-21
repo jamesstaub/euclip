@@ -406,12 +406,45 @@
     min-block-size: 2.25rem;
   }
 
+  /*
+   * With several sequences the strip's bar holds a picker as well as Rest: too much to share the
+   * octave row (the picker was squeezed to nothing, with the sidebar open most of all). It takes a row
+   * of its own under the octaves, and the rows below move down one.
+   */
+  .synth:has(.synth__stepchoice) {
+    & .synth__stepbar {
+      grid-area: 3 / 1;
+      justify-self: stretch;
+    }
+
+    & .synth__stepchoice {
+      max-inline-size: 16rem;
+    }
+
+    & .synth__stepgrid {
+      grid-area: 4 / 1 / auto / -1;
+    }
+
+    & .piano {
+      grid-area: 5 / 1 / auto / -1;
+    }
+
+    & .synth__status {
+      grid-area: 6 / 1 / auto / -1;
+    }
+
+    & .source-controls {
+      grid-area: 7 / 1 / auto / -1;
+    }
+  }
+
   .synth .control-row {
     min-block-size: 2rem;
   }
 
+  /* room for the longest of a synth's names in capitals: RESONANCE is 4.54rem in Poppins 600 at 12px */
   .synth .control-row__label {
-    inline-size: 4.5rem;
+    inline-size: 5rem;
   }
 }
 

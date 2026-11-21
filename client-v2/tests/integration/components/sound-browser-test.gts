@@ -10,6 +10,7 @@ import {
   triggerKeyEvent,
 } from '@ember/test-helpers';
 import { setupRenderingTest } from 'client-v2/tests/helpers';
+import { LONG_PRESS_MS } from 'client-v2/components/sound-browser';
 import AppShell from 'client-v2/components/app-shell';
 import { LibraryClient } from 'client-v2/library/client';
 import type AudioService from 'client-v2/services/audio';
@@ -119,7 +120,9 @@ module('Integration | Component | sound-browser', function (hooks) {
   test('Use puts a library sound in the project under a name of its own and gives it to the sampler; again, it is the same sound', async function (assert) {
     await show();
     await click('[data-test-sound-folder="samples"]');
-    assert.dom('[data-test-sound-target]').includesText('Track 1');
+    assert
+      .dom('[data-test-sound-target]')
+      .doesNotExist('no card: Use gives to the selected track');
     await click('[data-test-sound-use="snare.wav"]');
     // the built-in snare is another source (a URL of the app's): this is the library's file
     assert.deepEqual(project.doc.samples['snare_2'], {
@@ -391,6 +394,134 @@ module('Integration | Component | sound-browser', function (hooks) {
     assert.strictEqual(rowNames().length, 5, 'left: up one folder');
   });
 
+  test('rows select as in Finder: a click selects one, ⌘ adds or takes out, Shift a range, a long touch adds', async function (assert) {
+    await show();
+    const picked = (): string[] =>
+      findAll('[data-test-sound-row][data-selected]').map(
+        (row) => row.getAttribute('data-test-sound-row') ?? '',
+      );
+    const row = (name: string): string => `[data-test-sound-row="${name}"]`;
+    assert
+      .dom('[data-test-sound-footer]')
+      .doesNotExist('a folder of folders has no sounds to make tracks from');
+    await click('[data-test-sound-folder="Boss DR110"]');
+    assert
+      .dom('[data-test-sound-footer]')
+      .includesText('Create New Tracks from');
+    assert.dom('[data-test-create-from-folder]').hasText('Boss DR110 (4)');
+    assert.dom('[data-test-create-from-selection]').doesNotExist();
+
+    // a click: that one only, each time
+    await click(`${row('110CHH.mp3')} .sound-row__title`);
+    await click(row('110KIK.mp3'));
+    assert.deepEqual(picked(), ['110KIK.mp3']);
+    assert.dom('[data-test-create-from-selection]').hasText('Selection (1)');
+    // on a selected row every control is dark with a yellow mark: none is dark on dark
+    for (const control of findAll(
+      `${row('110KIK.mp3')} .sound-row__add, ${row('110KIK.mp3')} .sound-row__use`,
+    )) {
+      const style = getComputedStyle(control);
+      assert.notStrictEqual(
+        style.color,
+        style.backgroundColor,
+        control.className,
+      );
+    }
+
+    // ⌘ (or Ctrl) adds one, and takes it out again
+    await click(row('110CHH.mp3'), { metaKey: true });
+    await click(row('110OHH.mp3'), { ctrlKey: true });
+    assert.deepEqual(picked(), ['110CHH.mp3', '110KIK.mp3', '110OHH.mp3']);
+    await click(row('110KIK.mp3'), { metaKey: true });
+    assert.deepEqual(picked(), ['110CHH.mp3', '110OHH.mp3']);
+
+    // Shift: everything from the last row clicked on its own
+    await click(row('110CHH.mp3'));
+    await click(row('110KIK.mp3'), { shiftKey: true });
+    assert.deepEqual(picked(), ['110CHH.mp3', '110CYM.mp3', '110KIK.mp3']);
+    assert.dom('[data-test-create-from-selection]').hasText('Selection (3)');
+
+    // a row's buttons are their own: inside the selection it stays; outside, that row is the one
+    await click('[data-test-sound-hear="110CYM.mp3"]');
+    assert.strictEqual(picked().length, 3);
+    await click('[data-test-sound-add="110OHH.mp3"]');
+    assert.deepEqual(picked(), ['110OHH.mp3']);
+
+    // the keys: arrows move the one selected, Shift and an arrow select more; ⌘A every sound
+    const list = '[data-test-sound-list]';
+    await triggerKeyEvent(list, 'keydown', 'ArrowUp');
+    assert.deepEqual(picked(), ['110KIK.mp3']);
+    await triggerKeyEvent(list, 'keydown', 'ArrowUp', { shiftKey: true });
+    assert.deepEqual(picked(), ['110CYM.mp3', '110KIK.mp3']);
+    await triggerKeyEvent(list, 'keydown', 'A', { metaKey: true });
+    assert.strictEqual(picked().length, 4);
+
+    // a long touch adds the row, as ⌘ does; a short one is a click
+    await click(row('110CHH.mp3'));
+    await triggerEvent(row('110OHH.mp3'), 'pointerdown', {
+      pointerType: 'touch',
+      clientX: 0,
+      clientY: 0,
+    });
+    await new Promise((done) => setTimeout(done, LONG_PRESS_MS + 50));
+    await triggerEvent(row('110OHH.mp3'), 'pointerup', {
+      pointerType: 'touch',
+    });
+    await click(row('110OHH.mp3'));
+    assert.deepEqual(
+      picked(),
+      ['110CHH.mp3', '110OHH.mp3'],
+      'the click that ends a long touch changes nothing',
+    );
+
+    // a selection belongs to the folder it was made in
+    await click('[data-test-library-up]');
+    await click('[data-test-sound-folder="Boss DR110"]');
+    assert.dom('[data-test-create-from-selection]').doesNotExist();
+    assert.deepEqual(picked(), []);
+  });
+
+  test('Create New Tracks from makes one sampler track per sound, named after it, in one step to undo', async function (assert) {
+    await show();
+    const before = project.tracks.length;
+    await click('[data-test-sound-folder="samples"]');
+    await click('[data-test-sound-row="hat.wav"]');
+    await click('[data-test-sound-row="kick.wav"]', { metaKey: true });
+    await click('[data-test-create-from-selection]');
+    const made = project.tracks.slice(before);
+    const shown = (): string[] =>
+      findAll('[data-test-track-name]')
+        .slice(before)
+        .map((name) => name.textContent.trim());
+    assert.deepEqual(
+      made.map((track) => track.name),
+      ['', ''],
+      'not named: called after their sounds',
+    );
+    assert.deepEqual(shown(), ['kick', 'hat'], 'in the order listed');
+    assert.strictEqual(
+      project.doc.samples['hat_2']?.library,
+      '/samples/hat.wav',
+    );
+    assert.strictEqual(soundOf(made[0]!.id), 'kick_2');
+    assert.strictEqual(soundOf(made[1]!.id), 'hat_2');
+    assert
+      .dom('[data-test-sound-row][data-selected]')
+      .doesNotExist('the selection is used up');
+    assert.dom('[data-test-pool-notice]').includesText('Made 2 new tracks');
+    assert
+      .dom(`[data-test-track="${before + 1}"]`)
+      .hasAria('current', 'true', 'the first new track is selected');
+
+    project.undo();
+    await settled();
+    assert.strictEqual(project.tracks.length, before, 'one undo: all of them');
+    assert.strictEqual(project.doc.samples['hat_2'], undefined);
+
+    await click('[data-test-create-from-folder]');
+    assert.deepEqual(shown(), ['kick', 'snare', 'hat'], 'the whole folder');
+  });
+
   test('My sounds is the person’s shelf: a file added there is in no project until it is used', async function (assert) {
     await show();
     await click('[data-test-sounds-tab="mine"]');
@@ -558,10 +689,14 @@ module('Integration | Component | sound-browser', function (hooks) {
     await click('[data-test-waveform-browse]');
     assert.dom('[data-test-sound-browser]').exists('the sidebar opens');
     assert.dom('[data-test-sounds-tab="library"]').hasAria('selected', 'true');
-    assert
-      .dom('[data-test-sound-target-choice]')
-      .hasValue(audio.waveforms('t-kick')[1]!.key);
     await click('[data-test-sound-folder="samples"]');
+    assert
+      .dom('[data-test-sound-use="hat.wav"]')
+      .hasAria(
+        'label',
+        `Use hat.wav for ${audio.waveforms('t-kick')[1]!.label}`,
+        'Use names the sampler it was opened for',
+      );
     await click('[data-test-sound-use="hat.wav"]');
     assert.strictEqual(audio.sampler('t-kick', 'b')?.buffer?.key, 'hat_2');
     assert.strictEqual(

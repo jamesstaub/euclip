@@ -61,6 +61,33 @@
   }
 }
 
+/* the track's name, written in place: looks like the title until it is pointed at or focused */
+.track-footer__name {
+  inline-size: min(100%, 16rem);
+  min-inline-size: 0;
+  margin-inline-start: var(--space-1);
+  padding: var(--space-1);
+  border: var(--border-width-1, 1px) solid transparent;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+
+  &::placeholder {
+    color: inherit;
+    opacity: 0.6;
+  }
+
+  &:hover {
+    border-color: currentcolor;
+  }
+
+  &:focus {
+    border-color: var(--focus-ring);
+    outline: 0;
+    background: var(--surface-inset);
+  }
+}
+
 .track-footer__script-btn,
 .track-footer__collapse {
   flex: none;

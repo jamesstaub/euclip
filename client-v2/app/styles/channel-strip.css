@@ -94,6 +94,37 @@
 }
 
 /*
+ * The fader and, beside it, the meter of what leaves the strip (post fader). Lying down, the meter is a
+ * thin bar under the slider; standing up, a thin column beside the fader, as tall as it.
+ * `--level` (0 to 1: -48 dB to full scale) is written by the chain-meters service.
+ */
+.channel-strip__fader-meter {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 2px;
+  min-inline-size: 0;
+
+  & .slider {
+    flex: 1 1 auto;
+  }
+}
+
+.channel-strip__meter {
+  --level: 0;
+
+  flex: none;
+  block-size: 4px;
+  background:
+    linear-gradient(
+      to right,
+      var(--blue) calc(var(--level) * 100%),
+      transparent 0
+    ),
+    var(--dark-gray);
+}
+
+/*
  * Beside the panes (the footer is wide enough, and this is not the phone layout, where the footer is a
  * sheet as wide as the screen but laid out as narrow, at every width) the strip stands up.
  */
@@ -150,6 +181,31 @@
     & .channel-strip__control--gain {
       flex: 1 1 0;
       min-block-size: 5.5rem;
+    }
+
+    & .channel-strip__fader-meter {
+      flex-direction: row;
+      justify-content: center;
+      align-self: stretch;
+      gap: var(--space-1);
+      min-block-size: 0;
+
+      & .slider--vertical {
+        flex: none;
+      }
+    }
+
+    & .channel-strip__meter {
+      align-self: stretch;
+      inline-size: 6px;
+      block-size: auto;
+      background:
+        linear-gradient(
+          to top,
+          var(--blue) calc(var(--level) * 100%),
+          transparent 0
+        ),
+        var(--dark-gray);
     }
   }
 }

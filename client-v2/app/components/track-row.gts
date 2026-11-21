@@ -58,6 +58,7 @@ export interface TrackRowSignature {
     selected: boolean;
     onSelect: (id: string) => void;
     onRemove: (track: TrackDocument) => void;
+    onDuplicate: (track: TrackDocument) => void;
   };
 }
 
@@ -172,6 +173,11 @@ export default class TrackRow extends Component<TrackRowSignature> {
     this.view.setFooterPane('sequence');
   };
 
+  /** What the track is called: its name, else its sound's or source's (`audio.trackName`). */
+  get name(): string {
+    return this.audio.trackName(this.args.track, this.args.order);
+  }
+
   get menuItems(): MenuItem[] {
     return [
       {
@@ -179,6 +185,10 @@ export default class TrackRow extends Component<TrackRowSignature> {
         label: 'Pattern generators',
         disabled: this.stepGrids.length === 0,
         onSelect: this.openGenerators,
+      },
+      {
+        label: 'Duplicate',
+        onSelect: () => this.args.onDuplicate(this.args.track),
       },
       {
         label: 'Remove',
@@ -209,7 +219,7 @@ export default class TrackRow extends Component<TrackRowSignature> {
   <template>
     <article
       class="track {{if @selected 'track--active'}}"
-      aria-label="Track {{@order}}, {{@track.name}}"
+      aria-label="Track {{@order}}, {{this.name}}"
       aria-current={{if @selected "true"}}
       data-error={{if this.error "true"}}
       data-test-track={{@order}}
@@ -237,11 +247,11 @@ export default class TrackRow extends Component<TrackRowSignature> {
           <button
             type="button"
             class="btn btn--quiet track__source-btn"
-            aria-label="Select {{@track.name}}"
+            aria-label="Select {{this.name}}"
             data-test-track-name
             {{on "click" (fn @onSelect @track.id)}}
           >
-            <span class="truncate">{{@track.name}}</span>
+            <span class="truncate">{{this.name}}</span>
           </button>
           {{#if this.error}}
             <span

@@ -17,9 +17,6 @@ import {
   type LibraryFile,
   type LibraryFolder,
 } from 'client-v2/library/client';
-import selectOptions, {
-  type SelectOption,
-} from 'client-v2/modifiers/select-options';
 import { MAX_FILE_TEXT } from 'client-v2/project/pool';
 import type { ShelfEntry } from 'client-v2/project/storage';
 import type { PoolEntry, SoundRef } from 'client-v2/services/audio';
@@ -32,8 +29,13 @@ const HINTS = [
   { key: '⏎', does: 'use (or open a folder)' },
   { key: '→', does: 'open a folder' },
   { key: '←', does: 'up one folder' },
+  { key: '⇧↑↓', does: 'select more, up or down' },
+  { key: '⌘A', does: 'select every sound' },
   { key: '/', does: 'search' },
 ] as const;
+
+/** How long a touch is held on a row before it selects (as ⌘-click does). */
+export const LONG_PRESS_MS = 500;
 
 /** How long after the last key a search is sent. */
 export const SEARCH_DELAY_MS = 300;
@@ -67,8 +69,8 @@ export interface SoundBrowserSignature {
     onUsed?: () => void;
     /** the selected track's id (or the project scope): where "Use" puts a sound */
     scopeId?: string;
-    /** what to call it: "Track 1" */
-    targetName?: string;
+    /** new tracks were made from sounds (Create New Tracks from): their ids, in order */
+    onTracksCreated?: (ids: string[]) => void;
   };
 }
 
@@ -122,8 +124,9 @@ const focusNow = modifier<{ Element: HTMLInputElement }>((element) => {
  * Three places a sound can be, one way round: the **Library** (everything Euclip offers, on the
  * server) and **My sounds** (the person's own files, kept across their projects) are where sounds come
  * from; **This project** is the named sounds this project's scripts refer to. Hear plays a sound and
- * changes nothing. Use puts it in the project if it is not there and gives it to the sampler the card
- * at the top names. Add puts it in the project without giving it to anything.
+ * changes nothing. Use puts it in the project if it is not there and gives it to the selected track's
+ * sampler. Add puts it in the project without giving it to anything. Pressing a row (not its buttons)
+ * selects it; the footer makes new tracks from the folder's sounds or from those selected.
  */
 export default class SoundBrowser extends Component<SoundBrowserSignature> {
   @service declare audio: AudioService;
@@ -133,6 +136,9 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
   @tracked selected = -1;
   @tracked notice: string | null = null;
   @tracked dropping = false;
+  /** the sounds selected by pressing their rows, by row id: only ever of the rows shown */
+  @tracked chosen: ReadonlySet<string> = new Set();
+  @tracked creating = false;
 
   // the library
   @tracked path = '/';
@@ -169,6 +175,7 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
 
   willDestroy(): void {
     super.willDestroy();
+    this.#cancelLongPress();
     this.#endSearchWait();
     this.#searching?.abort();
     this.audio.stopHearing();
@@ -181,6 +188,8 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
   showTab = (tab: SoundsTab): void => {
     this.view.soundsTab = tab;
     this.selected = -1;
+    this.#anchor = -1;
+    this.chosen = new Set();
     this.notice = null;
     if (tab === 'mine') void this.readShelf();
   };
@@ -205,22 +214,6 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
         : undefined) ?? targets[0]
     );
   }
-
-  get targetChoices(): readonly SelectOption[] {
-    return this.targets.map((waveform) => ({
-      value: waveform.key,
-      label: waveform.label,
-    }));
-  }
-
-  changeTarget = (event: Event): void => {
-    const scopeId = this.args.scopeId;
-    if (scopeId === undefined) return;
-    this.view.soundTarget = {
-      scopeId,
-      key: (event.target as HTMLSelectElement).value,
-    };
-  };
 
   // --- the rows ---------------------------------------------------------------------------------------
 
@@ -337,6 +330,8 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
       this.path = next;
     }
     this.selected = -1;
+    this.#anchor = -1;
+    this.chosen = new Set();
     this.folderState = 'loading';
     this.folderError = null;
     try {
@@ -371,6 +366,8 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
     this.query = (event.target as HTMLInputElement).value;
     this.view.soundsTab = 'library';
     this.selected = -1;
+    this.#anchor = -1;
+    this.chosen = new Set();
     this.#endSearchWait();
     this.#searching?.abort();
     if (this.query.trim() === '') {
@@ -393,6 +390,7 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
     this.query = '';
     this.found = null;
     this.searchState = 'idle';
+    this.chosen = new Set();
   };
 
   search = async (page: number): Promise<void> => {
@@ -430,12 +428,12 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
   };
 
   hear = (row: Row, index: number): void => {
-    this.selected = index;
+    this.#press(index);
     if (row.sound) void waitForPromise(this.audio.hear(row.sound));
   };
 
   use = (row: Row, index: number): void => {
-    this.selected = index;
+    this.#press(index);
     const target = this.target;
     const scopeId = this.args.scopeId;
     if (!row.sound || !target || scopeId === undefined) return;
@@ -449,7 +447,7 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
   };
 
   add = (row: Row, index: number): void => {
-    this.selected = index;
+    this.#press(index);
     if (!row.sound) return;
     const name = this.audio.addToProject(row.sound);
     if (name !== undefined) this.notice = `In this project as '${name}'.`;
@@ -460,6 +458,163 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
     else this.hear(row, index);
   };
 
+  // --- selecting rows, and Create New Tracks from ---------------------------------------------------
+
+  isChosen = (row: Row): boolean => this.chosen.has(row.id);
+
+  /** The row a range is drawn from (Shift): the last one pressed or toggled on its own. */
+  #anchor = -1;
+  #pressTimer: ReturnType<typeof setTimeout> | undefined;
+  #pressStart: { x: number; y: number } | null = null;
+  #longPressed = false;
+
+  /** Only this row is selected (a folder's row: none is): a plain click, or the arrow keys. */
+  #selectOnly(index: number): void {
+    const row = this.rows[index];
+    this.selected = index;
+    this.#anchor = index;
+    this.chosen = new Set(row?.sound ? [row.id] : []);
+  }
+
+  /** This row joins the selection, or leaves it: ⌘ or Ctrl and a click, or a long touch. */
+  #toggleAt(index: number): void {
+    const row = this.rows[index];
+    if (!row?.sound) return;
+    const next = new Set(this.chosen);
+    if (next.has(row.id)) next.delete(row.id);
+    else next.add(row.id);
+    this.chosen = next;
+    this.selected = index;
+    this.#anchor = index;
+  }
+
+  /** The sounds from the anchor to this row are the selection: Shift and a click, or Shift and an arrow. */
+  #rangeTo(index: number): void {
+    const from = this.#anchor < 0 ? index : this.#anchor;
+    const [low, high] = from < index ? [from, index] : [index, from];
+    this.chosen = new Set(
+      this.rows
+        .slice(low, high + 1)
+        .filter((row) => row.sound)
+        .map((row) => row.id),
+    );
+    this.selected = index;
+  }
+
+  /** A row's button was pressed: that row is the one, unless it is part of the selection already. */
+  #press(index: number): void {
+    const row = this.rows[index];
+    if (row && this.chosen.has(row.id)) this.selected = index;
+    else this.#selectOnly(index);
+  }
+
+  /** A click on a sound's row, not on one of its buttons: selects as Finder does. */
+  pressRow = (index: number, event: MouseEvent): void => {
+    const target = event.target as HTMLElement;
+    if (target.closest('button, label, input, select, a, [role="menu"]'))
+      return;
+    if (this.#longPressed) {
+      // (the click that ends a long touch: the touch has done its selecting)
+      this.#longPressed = false;
+      return;
+    }
+    if (event.shiftKey) this.#rangeTo(index);
+    else if (event.metaKey || event.ctrlKey) this.#toggleAt(index);
+    else this.#selectOnly(index);
+  };
+
+  /** A long touch on a row (not a mouse) adds it to the selection or takes it out, as ⌘-click does. */
+  rowPointerDown = (index: number, event: PointerEvent): void => {
+    this.#cancelLongPress();
+    this.#longPressed = false;
+    if (event.pointerType === 'mouse') return;
+    if ((event.target as HTMLElement).closest('button, label, input')) return;
+    this.#pressStart = { x: event.clientX, y: event.clientY };
+    this.#pressTimer = setTimeout(() => {
+      this.#pressTimer = undefined;
+      this.#longPressed = true;
+      this.#toggleAt(index);
+      navigator.vibrate?.(10);
+    }, LONG_PRESS_MS);
+  };
+
+  /** A finger that moves is scrolling the list, not pressing. */
+  rowPointerMove = (event: PointerEvent): void => {
+    const start = this.#pressStart;
+    if (!start || this.#pressTimer === undefined) return;
+    if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 8)
+      this.#cancelLongPress();
+  };
+
+  rowPointerEnd = (): void => {
+    this.#cancelLongPress();
+  };
+
+  /** (no callout menu on a long touch: it selects) */
+  rowContextMenu = (event: Event): void => {
+    if (this.#longPressed || this.#pressTimer !== undefined)
+      event.preventDefault();
+  };
+
+  #cancelLongPress(): void {
+    clearTimeout(this.#pressTimer);
+    this.#pressTimer = undefined;
+    this.#pressStart = null;
+  }
+
+  /** The open folder's name and sounds, when it has sounds: the footer's first action. */
+  get folderSounds(): { name: string; sounds: SoundRef[] } | null {
+    if (this.tab !== 'library' || this.searching) return null;
+    const folder = this.folder;
+    if (this.folderState !== 'ready' || !folder || folder.files.length === 0)
+      return null;
+    return {
+      name: this.crumbs[this.crumbs.length - 1]!.name,
+      sounds: folder.files.map((file) => ({
+        kind: 'library',
+        path: file.path,
+        name: file.name,
+      })),
+    };
+  }
+
+  /** The selected sounds, in the order they are listed. */
+  get chosenSounds(): SoundRef[] {
+    return this.rows
+      .filter((row) => row.sound && this.chosen.has(row.id))
+      .map((row) => row.sound!);
+  }
+
+  get hasFooter(): boolean {
+    return this.folderSounds !== null || this.chosen.size > 0;
+  }
+
+  createFromFolder = (): void => {
+    const folder = this.folderSounds;
+    if (folder) void this.#createTracks(folder.sounds);
+  };
+
+  createFromSelection = (): void => {
+    void this.#createTracks(this.chosenSounds);
+  };
+
+  async #createTracks(sounds: SoundRef[]): Promise<void> {
+    if (sounds.length === 0 || this.creating) return;
+    this.creating = true;
+    try {
+      const ids = await waitForPromise(this.audio.newTracksFrom(sounds));
+      if (isDestroying(this) || ids.length === 0) return;
+      this.chosen = new Set();
+      this.notice =
+        ids.length === 1
+          ? 'Made a new track. Undo takes it back.'
+          : `Made ${ids.length} new tracks. Undo takes them all back.`;
+      this.args.onTracksCreated?.(ids);
+    } finally {
+      if (!isDestroying(this)) this.creating = false;
+    }
+  }
+
   /** The keys of the list: up and down hear, Enter uses, right opens, left goes up. */
   onListKey = (event: KeyboardEvent): void => {
     const target = event.target as HTMLElement;
@@ -469,7 +624,8 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
       if (rows.length === 0) return;
       const index = Math.min(rows.length - 1, Math.max(0, to));
       event.preventDefault();
-      this.selected = index;
+      if (event.shiftKey) this.#rangeTo(index);
+      else this.#selectOnly(index);
       const row = rows[index]!;
       if (row.sound && this.audio.hearing?.id !== row.id) {
         void waitForPromise(this.audio.hear(row.sound));
@@ -492,6 +648,14 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
           event.preventDefault();
           this.up();
         }
+        return;
+      case 'a':
+      case 'A':
+        if (!(event.metaKey || event.ctrlKey)) return;
+        event.preventDefault();
+        this.chosen = new Set(
+          rows.filter((each) => each.sound).map((each) => each.id),
+        );
         return;
       case 'Enter':
         // (on a button, Enter is that button's)
@@ -723,9 +887,15 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
           <p>▶ hears a sound and changes nothing.
             <b>Use</b>
             puts it in the project if it is not there yet, and gives it to the
-            sampler named at the top.
+            selected track’s sampler.
             <b>+</b>
             puts it in the project without giving it to anything.</p>
+          <p>Click a sound’s row to select it; ⌘-click (Ctrl-click) adds one or
+            takes it out, Shift-click selects everything between. On a touch
+            screen, hold a row to add it.
+            <b>Create New Tracks from</b>
+            makes one track per sound: from the whole folder, or from the sounds
+            you selected.</p>
           <p>Drop an audio file anywhere on this panel to add it to My sounds.</p>
           <ul>
             {{#each HINTS as |hint|}}
@@ -743,33 +913,6 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
           <Icon @name="cancel" />
         </button>
       </header>
-
-      <section class="target-card" aria-label="Where Use puts a sound">
-        <div class="target-card__label">
-          <span>Use gives a sound to</span>
-        </div>
-        <p class="target-card__target" data-test-sound-target>{{if
-            @targetName
-            @targetName
-            "Track 1"
-          }}
-          <span><Icon @name="arrow" class="icon--m" />
-            {{#if this.target}}
-              {{#if (isLast 0 this.targets)}}
-                {{this.target.label}}
-              {{else}}
-                <select
-                  class="select target-card__select"
-                  aria-label="Which sampler of {{@targetName}}"
-                  data-test-sound-target-choice
-                  {{on "change" this.changeTarget}}
-                  {{selectOptions this.targetChoices this.target.key}}
-                ></select>
-              {{/if}}
-            {{else}}
-              <span data-test-sound-no-target>no sampler</span>
-            {{/if}}</span></p>
-      </section>
 
       <div class="sound-search" role="search">
         <Icon @name="search" />
@@ -995,7 +1138,7 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
         </div>
       {{/if}}
 
-      {{! template-lint-disable no-invalid-interactive }}
+      {{! template-lint-disable no-invalid-interactive no-pointer-down-event-binding }}
       <ul
         class="sound-list scroll-y"
         aria-label={{if
@@ -1028,7 +1171,7 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
           {{else}}
             <li
               class="sound-row sound-row--sound"
-              data-selected={{if (eq index this.selected) "true"}}
+              data-selected={{if (this.isChosen row) "true"}}
               data-current={{if
                 (eq row.inProject this.target.sound.key)
                 (if row.inProject "true")
@@ -1036,6 +1179,12 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
               data-state={{if row.entry row.entry.state (this.hearState row)}}
               data-test-sound-row={{row.name}}
               {{keepInView (eq index this.selected)}}
+              {{on "click" (fn this.pressRow index)}}
+              {{on "pointerdown" (fn this.rowPointerDown index)}}
+              {{on "pointermove" this.rowPointerMove}}
+              {{on "pointerup" this.rowPointerEnd}}
+              {{on "pointercancel" this.rowPointerEnd}}
+              {{on "contextmenu" this.rowContextMenu}}
             >
               <button
                 type="button"
@@ -1071,7 +1220,9 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
                   </svg></span>
               </button>
               <span class="sound-row__text">
-                <span class="sound-row__title truncate">{{row.name}}</span>
+                <span class="sound-row__title truncate">{{row.name}}{{#if
+                    (this.isChosen row)
+                  }}<span class="sr-only">, selected</span>{{/if}}</span>
                 <span
                   class="sound-row__detail truncate"
                   title={{row.usedFull}}
@@ -1194,6 +1345,38 @@ export default class SoundBrowser extends Component<SoundBrowserSignature> {
           {{/if}}
         {{/if}}
       </ul>
+
+      {{#if this.hasFooter}}
+        <footer class="sound-footer" data-test-sound-footer>
+          <span class="sound-footer__label">Create New Tracks from</span>
+          <div class="sound-footer__actions">
+            {{#if this.folderSounds}}
+              <button
+                type="button"
+                class="btn btn--s sound-footer__action"
+                disabled={{this.creating}}
+                data-test-create-from-folder
+                {{on "click" this.createFromFolder}}
+              ><span class="truncate">{{this.folderSounds.name}}</span>
+                <span
+                  class="sound-footer__count"
+                >({{this.folderSounds.sounds.length}})</span></button>
+            {{/if}}
+            {{#if this.chosen.size}}
+              <button
+                type="button"
+                class="btn btn--s sound-footer__action"
+                disabled={{this.creating}}
+                data-test-create-from-selection
+                {{on "click" this.createFromSelection}}
+              >Selection
+                <span
+                  class="sound-footer__count"
+                >({{this.chosen.size}})</span></button>
+            {{/if}}
+          </div>
+        </footer>
+      {{/if}}
     </aside>
   </template>
 }

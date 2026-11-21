@@ -114,7 +114,7 @@ module('Unit | Audio | runner', function () {
       h.engine.transport.stop();
       [...h.engine.scope(ONE).select('#s')][0]!.trigger();
       const before = JSON.stringify(h.doc);
-      if (silence) await h.runner.silence();
+      if (silence) h.runner.silence();
       return { h, before };
     }
 
@@ -138,23 +138,28 @@ module('Unit | Audio | runner', function () {
       assert.deepEqual(h.derived, [], 'and nothing was written by the runner');
     });
 
-    test('the scripts are rebuilt, so sound can be made again, and the output level is back', async function (assert) {
+    test('nothing is rebuilt; sound can be made again, and the output level is back', async function (assert) {
       const { h } = await sounding(true);
+      const sampler = [...h.engine.scope(ONE).select('#s')][0]!;
       assert.strictEqual(h.runner.error(ONE), null);
       assert.true(h.runner.isBuilt(ONE));
       assert.strictEqual(h.engine.root.bus('main').gain.value, 1);
-      [...h.engine.scope(ONE).select('#s')][0]!.trigger();
+      assert.strictEqual(
+        [...h.engine.scope(ONE).select('#s')][0],
+        sampler,
+        'the same node: the script was not run again',
+      );
+      sampler.trigger();
       assert.true(rms(await h.render(), 0.2, 1) > 0.001, 'it plays again');
     });
 
-    test('silencing leaves control values alone, and the output is restored if a rebuild throws', async function (assert) {
+    test('silencing stops the transport and leaves control values alone', async function (assert) {
       const h = await startProject();
       const before = JSON.stringify(h.doc);
       const level = h.engine.root.bus('main').gain.value;
-      const run = h.runner.run.bind(h.runner);
-      h.runner.run = () => Promise.reject(new Error('boom'));
-      await h.runner.silence();
-      h.runner.run = run;
+      h.engine.transport.start();
+      h.runner.silence();
+      assert.strictEqual(h.engine.transport.state, 'stopped');
       assert.strictEqual(JSON.stringify(h.doc), before);
       assert.strictEqual(h.engine.root.bus('main').gain.value, level);
     });

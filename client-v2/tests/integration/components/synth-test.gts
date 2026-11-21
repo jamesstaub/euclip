@@ -296,6 +296,67 @@ synth('#osc');
     assert.strictEqual(steps()[1], 36, 'a new step takes the last note used');
   });
 
+  const TWO = `__().monosynth({ id: 'synth' }).to('channel');
+__.transport.sequence('leadmelody', { steps: 16 }, (ev) => {
+  if (ev.value) __('#synth').trigger({ pitch: ev.value });
+});
+__.transport.sequence('countermelody', { steps: 16 }, () => {});
+stepGrid('leadmelody');
+stepGrid('countermelody');
+synth('#synth');
+slider('#synth', 'resonance');
+`;
+
+  test('on an empty grid of a synth played by note, a tapped step is middle C, not note 1', async function (assert) {
+    await open();
+    await click('[data-test-script-toggle]');
+    await typeScript(() => TWO);
+    await click('[data-test-script-toggle]');
+    await waitUntil(() => find('[data-test-step-sequence]'), { timeout: 3000 });
+    await settled();
+    await click('[data-test-track="4"] [data-test-step]');
+    const lead = project.doc.tracks.at(-1)!.values.controls[
+      stepGridKey('leadmelody')
+    ]?.value as number[];
+    assert.strictEqual(lead[0], 60);
+  });
+
+  test('several sequences: the strip’s picker has a row of its own beside a narrow scope, not squeezed by the octaves', async function (assert) {
+    await open();
+    await click('[data-test-script-toggle]');
+    await typeScript(() => TWO);
+    await click('[data-test-script-toggle]');
+    await waitUntil(() => find('[data-test-step-sequence]'), { timeout: 3000 });
+    // the middle arrangement (37rem to 57rem): as with the sidebar open beside a narrow footer
+    const box = find('.synth-box') as HTMLElement;
+    box.style.flex = 'none';
+    box.style.width = '44rem';
+    await settled();
+    // (offsetWidth: the test container is drawn at half size, which a bounding box would include)
+    const select = find('[data-test-step-sequence]') as HTMLElement;
+    const picker = select.getBoundingClientRect();
+    const keys = find('.synth__keybar')!.getBoundingClientRect();
+    assert.true(
+      select.offsetWidth >= 128,
+      `the picker is ${select.offsetWidth}px wide`,
+    );
+    assert.true(
+      picker.top >= keys.bottom - 1,
+      'it is under the octave bar, not on top of it',
+    );
+    const labels = findAll(
+      '[data-test-source-controls="synth"] .control-row__label',
+    ) as HTMLElement[];
+    assert.true(
+      labels.some((label) => label.textContent.trim() === 'resonance'),
+      'resonance is one of them',
+    );
+    const cut = labels
+      .filter((label) => label.scrollWidth > label.clientWidth)
+      .map((label) => label.textContent.trim());
+    assert.deepEqual(cut, [], 'no control’s name is cut off');
+  });
+
   test('an oscillator’s keyboard sets the stored pitch: a press and a drag are one undo step each', async function (assert) {
     await open();
     await useOscillator();

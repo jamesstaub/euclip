@@ -39,6 +39,9 @@ export default class TrackRail extends Component<TrackRailSignature> {
   @service declare audio: AudioService;
 
   /** The chosen number is kept in view when there are more tracks than the rail shows. */
+  nameOf = (track: TrackDocument, index: number): string =>
+    this.audio.trackName(track, index + 1);
+
   keepChosenInView = modifier((nav: HTMLElement, [chosen]: [string]) => {
     void chosen;
     nav
@@ -79,7 +82,7 @@ export default class TrackRail extends Component<TrackRailSignature> {
             <button
               type="button"
               class="track-rail__btn"
-              aria-label="Track {{plusOne index}} {{track.name}}"
+              aria-label="Track {{plusOne index}} {{this.nameOf track index}}"
               aria-current={{if (is track.id @selectedId) "true"}}
               data-rail-id={{track.id}}
               data-test-rail-track={{plusOne index}}

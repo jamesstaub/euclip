@@ -29,10 +29,10 @@ interface Stored {
   collapsed?: unknown;
   snaps?: unknown;
   lanes?: unknown;
-  rowsView?: unknown;
   laneSets?: unknown;
   sheetOpen?: unknown;
   sheetSize?: unknown;
+  selectedTrack?: unknown;
 }
 
 /** What a track's row can show as lanes, by key: its step grids and its per-step controls, in the script's order. */
@@ -81,6 +81,20 @@ export default class ViewService extends Service {
   constructor(owner?: ConstructorParameters<typeof Service>[0]) {
     super(owner);
     this.#phoneQuery.addEventListener('change', this.#onPhone);
+  }
+
+  /**
+   * The id of the track the person last selected, or the project scope for the main output. Remembered,
+   * so a reload comes back to it; a track that is gone falls back to the first (app-shell).
+   */
+  @tracked selectedTrack: string | undefined =
+    typeof this.#stored.selectedTrack === 'string'
+      ? this.#stored.selectedTrack
+      : undefined;
+
+  selectTrack(id: string): void {
+    this.selectedTrack = id;
+    this.#save();
   }
 
   /** How tall the sheet is when open (phone only). Remembered; nothing to undo. */
@@ -176,17 +190,14 @@ export default class ViewService extends Service {
       : {};
 
   /**
-   * What every track's row shows where its step grid is: 'steps' (the default) or the signal 'chain'
-   * drawn from the running script. One choice for all the rows, from the project bar; remembered; nothing
-   * to undo.
+   * What every track's row shows where its step grid is: 'steps' or the signal 'chain' drawn from the
+   * running script. One choice for all the rows, from the project bar; nothing to undo. Not remembered:
+   * the app always opens on the steps (the owner's choice, 2026-11-20).
    */
-  @tracked rowsView: 'steps' | 'chain' =
-    this.#stored.rowsView === 'chain' ? 'chain' : 'steps';
+  @tracked rowsView: 'steps' | 'chain' = 'steps';
 
   setRowsView(view: 'steps' | 'chain'): void {
-    if (this.rowsView === view) return;
     this.rowsView = view;
-    this.#save();
   }
 
   /**
@@ -480,8 +491,8 @@ export default class ViewService extends Service {
           snaps: this.snaps,
           lanes: this.lanes,
           laneSets: this.laneSets,
-          rowsView: this.rowsView,
           sheetSize: this.sheetSize,
+          selectedTrack: this.selectedTrack,
           // (only a phone remembers whether the footer was open: elsewhere it starts open)
           sheetOpen: this.phone ? this.opened : this.#stored.sheetOpen,
         }),
