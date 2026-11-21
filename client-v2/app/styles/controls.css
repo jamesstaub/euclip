@@ -603,25 +603,26 @@ button.number-entry:disabled {
  * a count while steps hold values of their own, so a control whose steps override it says so.
  */
 .lane-button {
-  /* its side: a finger's in a control row; a value cell of the waveform sets its own */
-  --lane-button-size: var(--target-min);
+  /* its side (`--lane-button-size`, set by what it stands in): a finger's in a control row */
+  --size: var(--lane-button-size, var(--target-min));
 
   display: inline-flex;
   flex: none;
   align-items: center;
+  justify-content: center;
   gap: 0.125rem;
-  min-inline-size: var(--lane-button-size);
-  block-size: var(--lane-button-size);
+  min-inline-size: var(--size);
+  block-size: var(--size);
   padding: 0.25rem;
   border: 0;
   background: transparent;
   color: var(--near-black);
   cursor: pointer;
 
-  /* (its bars fill the button, less a thin margin: the artwork's box is cropped to them) */
+  /* (its bars take most of the button: the artwork's box is cropped to them) */
   & .icon {
-    inline-size: calc(var(--lane-button-size) - 0.5rem);
-    block-size: calc(var(--lane-button-size) - 0.5rem);
+    inline-size: calc(var(--size) * 0.6);
+    block-size: calc(var(--size) * 0.6);
   }
 
   &[data-active] {

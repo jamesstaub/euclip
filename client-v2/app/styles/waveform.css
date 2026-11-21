@@ -621,6 +621,9 @@
  * into, and along its foot where the number is in its range, in the blue a slider's fill has.
  */
 .waveform__value {
+  /* (how big its lane button is, so its label can keep clear of it) */
+  --lane-button-size: 1.75rem;
+
   position: relative;
   display: flex;
   align-items: center;
@@ -1034,8 +1037,6 @@
 
 /* a value's lane button: at the cell's start, as tall as the cell, narrow where the pointer is fine */
 .waveform__value .waveform__lane-button {
-  --lane-button-size: 1.75rem;
-
   align-self: center;
   margin-inline-start: calc(-0.5 * var(--space-2));
 }
@@ -1045,7 +1046,7 @@
     min-inline-size: var(--target-min);
   }
 
-  .waveform__value .waveform__lane-button {
+  .waveform__value {
     --lane-button-size: 2.25rem;
   }
 }
@@ -1061,6 +1062,9 @@
 }
 
 .source-lane {
+  /* (its own button is the lane head's height, and the head keeps clear of it) */
+  --lane-button-size: 1.375rem;
+
   position: absolute;
   inset-inline: 0;
   inset-block-end: 0;
@@ -1083,11 +1087,10 @@
   inset-block-start: var(--space-1);
   inset-inline-start: var(--space-1);
   z-index: 1;
-  min-block-size: 1.375rem;
 }
 
 .source-lane__grid .lane__head {
-  padding-inline-start: calc(var(--target-min) + var(--space-1));
+  padding-inline-start: calc(var(--lane-button-size) + var(--space-2));
 }
 
 .source-lane__grid {
@@ -1096,8 +1099,8 @@
 }
 
 @media (pointer: coarse) {
-  .source-lane > .source-lane__close {
-    min-block-size: var(--target-min);
+  .source-lane {
+    --lane-button-size: var(--target-min);
   }
 }
 
@@ -1112,5 +1115,5 @@
 }
 
 .waveform__value--speed:has(> .waveform__lane-button) .waveform__label {
-  padding-inline-start: calc(1.75rem + var(--space-1));
+  padding-inline-start: calc(var(--lane-button-size) + var(--space-1));
 }
