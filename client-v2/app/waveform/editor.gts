@@ -2249,6 +2249,7 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
                       class="waveform__lane-button"
                       @control={{cell.control}}
                       @pressed={{cell.laneShown}}
+                      @count={{false}}
                       @onToggle={{fn this.toggleLane cell.control.key}}
                     />
                   {{/if}}

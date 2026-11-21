@@ -595,7 +595,12 @@ module('Integration | Component | waveform', function (hooks) {
     const scope = project.doc.tracks.at(-1)!.id;
     audio.setLaneValue(scope, SPEED, 1, 2);
     await settled();
-    assert.dom(`${button('speed')} [data-test-lane-count]`).hasText('1');
+    assert
+      .dom(button('speed'))
+      .hasAttribute('data-active', 'true', 'blue: a step is set');
+    assert
+      .dom(`${button('speed')} [data-test-lane-count]`)
+      .doesNotExist('no count in a small cell');
     const after = cell.getBoundingClientRect();
     assert.strictEqual(after.width, before.width, 'the cell does not change');
     assert.strictEqual(after.height, before.height);

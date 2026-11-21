@@ -633,10 +633,14 @@
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
 
-  /* the number's box is one width whatever is in it: digits, a unit, a field being typed in */
+  /*
+   * The number's box takes the room the name leaves (so it is one width whatever is in it: digits, a
+   * unit, a field being typed in), and never less than a short number needs.
+   */
   & .number-entry-box {
-    flex: none;
-    inline-size: 4.25rem;
+    flex: 1 1 0;
+    inline-size: auto;
+    min-inline-size: 3.25rem;
   }
 
   & .number-entry {
@@ -691,7 +695,7 @@
 
 /* a cell's name gives way before its control does */
 .waveform__label {
-  flex: 1 1 0;
+  flex: 0 1 auto;
   min-inline-size: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -754,10 +758,6 @@
   /* (under the row's own caption, "Loop points", its two cells are Start and End) */
   .waveform__label-mid {
     display: inline;
-  }
-
-  .waveform__value .number-entry-box {
-    inline-size: 3.5rem;
   }
 
   .waveform__group--time .waveform__value {
@@ -830,20 +830,16 @@
     display: none;
   }
 
-  .waveform__value .number-entry-box {
-    inline-size: 3.25rem;
-  }
-
   .waveform__value--speed .number-entry-box {
     inline-size: 100%;
+    padding-inline-end: 0.125rem;
   }
 
-  /* the speed's tall cell: its name, its number, and (in the expanded editor) its menu, one over another */
+  /* the speed's tall cell: its name over its menu and its number (the name has the row to itself) */
   .waveform__value--speed {
     grid-template:
-      "label" auto
-      "number" minmax(0, 1fr)
-      "menu" auto / minmax(0, 1fr);
+      "label label" auto
+      "menu number" minmax(0, 1fr) / auto minmax(0, 1fr);
   }
 
   .waveform__value--speed .waveform__label {
@@ -852,8 +848,7 @@
   }
 
   .waveform__value--speed .waveform__speed-menu {
-    justify-content: flex-end;
-    min-block-size: var(--target-min);
+    align-self: center;
   }
 
   /* (a narrow cell keeps its room for the name) */
@@ -873,13 +868,6 @@
   /* (names in a narrow cell are small enough to be read whole) */
   .waveform__group--time .waveform__label {
     font-size: 0.625rem;
-  }
-}
-
-/* in the compact editor (a phone's) the speed's menu is in the expanded one, where there is room above it to open */
-@container waveform (width < 36rem) {
-  .waveform:not(.waveform--expanded) .waveform__speed-menu {
-    display: none;
   }
 }
 
@@ -1046,16 +1034,10 @@
 
 /* a value's lane button: at the cell's start, as tall as the cell, narrow where the pointer is fine */
 .waveform__value .waveform__lane-button {
-  align-self: stretch;
-  min-inline-size: 1.75rem;
-  min-block-size: 0;
-  margin-inline-start: calc(-1 * var(--space-2));
-  padding: 0 0.25rem;
+  --lane-button-size: 1.75rem;
 
-  & .icon {
-    inline-size: 0.875rem;
-    block-size: 0.875rem;
-  }
+  align-self: center;
+  margin-inline-start: calc(-0.5 * var(--space-2));
 }
 
 @media (pointer: coarse) {
@@ -1064,7 +1046,7 @@
   }
 
   .waveform__value .waveform__lane-button {
-    min-inline-size: 2.25rem;
+    --lane-button-size: 2.25rem;
   }
 }
 

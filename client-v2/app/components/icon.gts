@@ -30,7 +30,8 @@ import stop from 'client-v2/assets/icons/fi-stop.svg?raw';
 
 /**
  * The SVG files in app/assets/icons are copied unchanged from the v1 app, except arrow, chevron and
- * search, which v1 drew with text characters and are new here. They are inlined (not <img>) so they
+ * search, which v1 drew with text characters and are new here, and multislider, whose viewBox is cropped
+ * to its bars (v1's left most of its box empty). They are inlined (not <img>) so they
  * take the colour of the text around them. Before that, the parts that only make sense in a standalone file
  * are dropped: the XML prolog and comments, fixed sizes, ids (which would repeat on the page), inline styles
  * and empty groups.
