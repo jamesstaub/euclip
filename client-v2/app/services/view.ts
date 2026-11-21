@@ -253,29 +253,6 @@ export default class ViewService extends Service {
     this.sourceLanes = key === null ? rest : { ...rest, [scopeId]: key };
   }
 
-  /**
-   * The step whose values the track's controls are editing, by track: a sequence and a step of it,
-   * chosen in the step picker over its controls. While one is chosen, a control whose lane follows that
-   * sequence sets that step's own value instead of its single value. Not remembered; nothing to undo.
-   */
-  @tracked private chosenSteps: Readonly<
-    Record<string, { sequence: string; index: number }>
-  > = {};
-
-  chosenStep(scopeId: string): { sequence: string; index: number } | null {
-    return this.chosenSteps[scopeId] ?? null;
-  }
-
-  /** Chooses a step to edit (null: back to the controls' single values). */
-  chooseStep(
-    scopeId: string,
-    step: { sequence: string; index: number } | null,
-  ): void {
-    const { [scopeId]: _gone, ...rest } = this.chosenSteps;
-    void _gone;
-    this.chosenSteps = step === null ? rest : { ...rest, [scopeId]: step };
-  }
-
   /** Which sequence the synth editor's step strip shows, by track, where the person has chosen. Not remembered. */
   @tracked private stepSequences: Readonly<Record<string, string>> = {};
 

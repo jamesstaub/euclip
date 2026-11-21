@@ -2,7 +2,6 @@ import Component from '@glimmer/component';
 import { service } from '@ember/service';
 import ControlsPane from 'client-v2/components/controls-pane';
 import SourcePane from 'client-v2/components/source-pane';
-import StepPicker from 'client-v2/components/step-picker';
 import type AudioService from 'client-v2/services/audio';
 
 export interface SoundPaneSignature {
@@ -16,9 +15,8 @@ export interface SoundPaneSignature {
 }
 
 /**
- * The "sound" view of a track: everything that sets how it sounds, in one place. The step picker over
- * it all (the controls' own values, or one step's); then the source's editor (a sampler's waveform, a
- * synth's keyboard and scope, with the source's controls) and every other node's controls (the
+ * The "sound" view of a track: everything that sets how it sounds, in one place: the source's editor
+ * (a sampler's waveform, a synth's keyboard and scope, with the source's controls) and every other node's controls (the
  * processors), side by side where the footer is wide and one under the other where it is not. Each
  * column scrolls by itself, so the editor stays in view while the controls are scrolled.
  *
@@ -39,7 +37,6 @@ export default class SoundPane extends Component<SoundPaneSignature> {
       ...attributes
     >
       <div class="sound-pane__layout">
-        <StepPicker class="sound-pane__picker" @scopeId={{@scopeId}} />
         <div class="sound-pane__columns">
           {{#if this.hasSource}}
             <div class="sound-pane__source" data-test-sound-source>

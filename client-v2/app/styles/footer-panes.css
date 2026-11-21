@@ -251,15 +251,14 @@
 }
 
 /*
- * The sound pane: the step picker, the source's editor and the processors.
+ * The sound pane: the source's editor and the processors.
  *
  * Narrow (the phone's sheet, a narrow footer) they stand one under the other: the editor first, as tall as
- * the pane (as the source pane always was alone), then the picker and the processors, which the footer's
- * pane scrolls to. (The pane is the pane's height and they overflow it: that is what lets the editor be
- * exactly as tall as what is in view.)
+ * the pane (as the source pane always was alone), then the processors, which the footer's pane scrolls
+ * to. (The pane is the pane's height and they overflow it: that is what lets the editor be exactly as
+ * tall as what is in view.)
  *
- * Wide, the picker runs across the top, and under it the editor and the processors stand side by side
- * as tall as the footer, each column scrolling by itself.
+ * Wide, they stand side by side as tall as the footer, each column scrolling by itself.
  *
  * The source column is itself the `track-footer` container the waveform editor asks about, so the editor
  * lays itself out for the room its column has, not the footer's.
@@ -297,36 +296,21 @@
   flex: 1 0 auto;
 }
 
-.sound-pane__picker {
-  order: 1;
-  padding-block-start: var(--space-2);
-}
-
 .sound-pane__processors {
-  order: 2;
   padding-block-end: var(--space-3);
 
   /* (stacked, the footer's pane scrolls: this one does not) */
   overflow: visible;
 }
 
-/* with no source editor the picker leads */
-.sound-pane:not(.sound-pane--source) .sound-pane__picker {
-  order: 0;
-}
-
 @container sound-pane (min-width: 44rem) {
   .sound-pane__layout:not([data-phone="true"] *) {
     display: grid;
-    grid-template:
-      "picker picker" auto
-      "source processors" minmax(0, 1fr)
-      / minmax(0, 1.4fr) minmax(20rem, 1fr);
+    grid-template: "source processors" minmax(0, 1fr) / minmax(0, 1.4fr) minmax(
+        20rem,
+        1fr
+      );
     column-gap: var(--space-3);
-
-    & .sound-pane__picker {
-      grid-area: picker;
-    }
 
     & .sound-pane__source {
       grid-area: source;

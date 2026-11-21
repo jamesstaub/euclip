@@ -18,13 +18,7 @@ export default class ToggleWidget extends Component<ControlWidgetSignature> {
   }
 
   change = (checked: boolean): void =>
-    this.args.onSet
-      ? this.args.onSet(checked)
-      : this.audio.setControl(
-          this.args.scopeId,
-          this.args.control.key,
-          checked,
-        );
+    this.audio.setControl(this.args.scopeId, this.args.control.key, checked);
 
   <template>
     <Toggle

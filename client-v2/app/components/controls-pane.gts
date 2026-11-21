@@ -195,11 +195,7 @@ export default class ControlsPane extends Component<ControlsPaneSignature> {
               </summary>
               <ul class="control-list">
                 {{#each section.controls key="key" as |control|}}
-                  <ControlRow
-                    @scopeId={{@scopeId}}
-                    @control={{control}}
-                    @steps={{true}}
-                  />
+                  <ControlRow @scopeId={{@scopeId}} @control={{control}} />
                 {{/each}}
               </ul>
             </details>

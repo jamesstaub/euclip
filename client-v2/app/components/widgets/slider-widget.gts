@@ -15,13 +15,6 @@ export interface ControlWidgetSignature {
     control: ControlView;
     /** opens the control's menu: for a long press or a right click on the widget */
     onMenu?: () => void;
-    /**
-     * Where a value set goes, in place of the control's own value: a chosen step's (the control row
-     * while a step is being edited). Absent: the control's value.
-     */
-    onSet?: (value: number | boolean) => void;
-    /** what a reset (a double click) does in place of forgetting the control's value */
-    onReset?: () => void;
   };
 }
 
@@ -47,14 +40,10 @@ export class NumberWidget extends Component<ControlWidgetSignature> {
   }
 
   change = (value: number): void =>
-    this.args.onSet
-      ? this.args.onSet(value)
-      : this.audio.setControl(this.args.scopeId, this.args.control.key, value);
+    this.audio.setControl(this.args.scopeId, this.args.control.key, value);
 
   reset = (): void =>
-    this.args.onReset
-      ? this.args.onReset()
-      : this.audio.resetControl(this.args.scopeId, this.args.control.key);
+    this.audio.resetControl(this.args.scopeId, this.args.control.key);
 
   menu = (): void => this.args.onMenu?.();
 }

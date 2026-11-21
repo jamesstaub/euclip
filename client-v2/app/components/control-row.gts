@@ -27,8 +27,6 @@ export interface ControlRowSignature {
   Args: {
     scopeId: string;
     control: ControlView;
-    /** it is under a step picker: while a step is chosen there, it sets that step's own value */
-    steps?: boolean;
     /**
      * It is one of the source's controls: its lane is shown over the source's editor, one at a time
      * (`ViewService.sourceLane`), not under the row.
@@ -105,7 +103,10 @@ export default class ControlRow extends Component<ControlRowSignature> {
   }
 
   get text(): string {
-    return mappingOf(this.shown)?.format(numberOf(this.shown.value)) ?? '';
+    return (
+      mappingOf(this.args.control)?.format(numberOf(this.args.control.value)) ??
+      ''
+    );
   }
 
   /** Where the parameter is, when code has moved it away from the control. */
@@ -217,76 +218,6 @@ export default class ControlRow extends Component<ControlRowSignature> {
     return [this.args.control.key];
   }
 
-  /**
-   * The step being edited, where a step is chosen over the controls (the step picker) and this
-   * control's lane follows its sequence: the widget then sets that step's own value.
-   */
-  get editing(): {
-    index: number;
-    value: number | boolean;
-    set: boolean;
-  } | null {
-    const lane = this.lane;
-    const chosen = this.args.steps
-      ? this.view.chosenStep(this.args.scopeId)
-      : null;
-    if (!lane || !chosen || chosen.sequence !== lane.sequence) return null;
-    const view = this.audio
-      .lanes(this.args.scopeId, lane.sequence)
-      .find((candidate) => candidate.key === this.args.control.key);
-    const value = view?.values[chosen.index];
-    if (!view || value === undefined) return null;
-    return {
-      index: chosen.index,
-      value: view.kind === 'toggle' ? value > 0 : value,
-      set: view.locked[chosen.index] ?? false,
-    };
-  }
-
-  /** The control as the widget is to draw it: while a step is edited, at that step's value. */
-  get shown(): ControlView {
-    const editing = this.editing;
-    return editing
-      ? { ...this.args.control, value: editing.value, effective: null }
-      : this.args.control;
-  }
-
-  get stepNumber(): number {
-    return (this.editing?.index ?? 0) + 1;
-  }
-
-  get stepLabel(): string {
-    const editing = this.editing;
-    if (!editing) return '';
-    return editing.set
-      ? `Step ${editing.index + 1} has its own ${this.args.control.label}: press to follow the control again`
-      : `Step ${editing.index + 1} follows the control: move it to give the step its own value`;
-  }
-
-  /** A value set while a step is edited: the step's own. */
-  setStep = (value: number | boolean): void => {
-    const editing = this.editing;
-    if (!editing) return;
-    this.audio.setLaneValue(
-      this.args.scopeId,
-      this.args.control.key,
-      editing.index,
-      value,
-    );
-  };
-
-  /** The step follows the control again. */
-  clearStep = (): void => {
-    const editing = this.editing;
-    if (!editing) return;
-    this.audio.setLaneValue(
-      this.args.scopeId,
-      this.args.control.key,
-      editing.index,
-      null,
-    );
-  };
-
   toggleLane = (): void => {
     if (this.args.sourceLane) {
       this.view.setSourceLane(
@@ -314,8 +245,7 @@ export default class ControlRow extends Component<ControlRowSignature> {
   commit = (typed: string): boolean => {
     const value = mappingOf(this.args.control)?.parse(typed);
     if (value === null || value === undefined) return false;
-    if (this.editing) this.setStep(value);
-    else this.audio.setControl(this.args.scopeId, this.args.control.key, value);
+    this.audio.setControl(this.args.scopeId, this.args.control.key, value);
     return true;
   };
 
@@ -327,7 +257,6 @@ export default class ControlRow extends Component<ControlRowSignature> {
       data-linked={{if this.linked "true"}}
       data-waiting={{if @control.waiting "true"}}
       data-mode={{@control.mode}}
-      data-editing-step={{if this.editing "true"}}
       title={{@control.waiting}}
       data-test-control={{@control.key}}
       ...attributes
@@ -344,28 +273,13 @@ export default class ControlRow extends Component<ControlRowSignature> {
         class="control-row__label truncate"
         title={{@control.label}}
       >{{@control.label}}</span>
-      {{#if this.editing}}
-        <button
-          type="button"
-          class="control-row__step"
-          aria-label={{this.stepLabel}}
-          title={{this.stepLabel}}
-          data-set={{if this.editing.set "true"}}
-          data-test-step-chip
-          disabled={{if this.editing.set false true}}
-          {{on "click" this.clearStep}}
-        ><span class="control-row__step-word">step
-          </span>{{this.stepNumber}}</button>
-      {{/if}}
 
       {{#if this.entry}}
         <this.entry.component
           class="control-row__widget"
           @scopeId={{@scopeId}}
-          @control={{this.shown}}
+          @control={{@control}}
           @onMenu={{this.openMenu}}
-          @onSet={{if this.editing this.setStep}}
-          @onReset={{if this.editing this.clearStep}}
         />
         {{#if this.entry.number}}
           <NumberEntry
