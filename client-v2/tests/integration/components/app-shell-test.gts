@@ -761,9 +761,28 @@ stepGrid('ones');
         .dom('[data-track-id="t-kick"] [data-lane-step]')
         .doesNotExist('the track’s row draws steps only');
 
-      // Clear all steps: every step follows the control again, one step to undo
+      // the lane's Clear all button is there while a step is set, and clears them
+      assert
+        .dom(`${row(FREQUENCY)} [data-test-lane-clear]`)
+        .hasAttribute('hidden');
       audio.setLaneValue('t-kick', FREQUENCY, 3, 500);
       await settled();
+      assert
+        .dom(`${row(FREQUENCY)} [data-test-lane-clear]`)
+        .doesNotHaveAttribute('hidden');
+      await click(`${row(FREQUENCY)} [data-test-lane-clear]`);
+      assert.strictEqual(
+        (
+          project.doc.tracks[0]!.values.controls[FREQUENCY]?.options as
+            { stepValues?: unknown[] } | undefined
+        )?.stepValues,
+        undefined,
+        'Clear all',
+      );
+      project.undo();
+      await settled();
+
+      // Clear all steps from the menu: every step follows the control again, one step to undo
       await click(`${inRow} [data-test-menu-button]`);
       await click('[data-test-menu-item="Clear all steps"]');
       const values = (): unknown =>

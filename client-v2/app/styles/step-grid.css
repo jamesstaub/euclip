@@ -20,7 +20,17 @@
   padding: var(--space-2);
 }
 
+/* with lanes, a last column for each lane's tools: at the grid's right end, after the steps' columns */
+.step-grid--lanes {
+  grid-template-columns: repeat(16, minmax(0, var(--step-w))) minmax(
+      max-content,
+      1fr
+    );
+}
+
 .step {
+  /* (it names its column, sixteen to a row, so a column after them can hold lane tools) */
+  grid-column: var(--col, auto);
   display: grid;
   place-items: center;
   inline-size: 100%;
@@ -215,6 +225,7 @@
 }
 
 .lane__bar {
+  grid-column: var(--col, auto);
   position: relative;
 
   /* (a finger's drag on a bar: 4rem, up from 2.75rem, where the row's multisliders were a little short) */
@@ -304,5 +315,53 @@
   &.lane__bar--current::before {
     outline: var(--border-width-2) solid var(--step-current);
     outline-offset: -2px;
+  }
+}
+
+/*
+ * A lane's tools, to the right of its bars (their last row), at the right end of the grid: its menu
+ * (the control's, and the lane's) and Clear all, which is there while a step holds a value of its own
+ * (its room is kept while it is not, so nothing moves).
+ */
+.lane__tools {
+  grid-column: -2 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  align-self: stretch;
+  gap: var(--space-1);
+  padding-inline-start: var(--space-2);
+}
+
+.lane__tools--row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.lane__tools .lane__menu {
+  align-self: auto;
+
+  & .popup-menu__button {
+    block-size: 1.5rem;
+  }
+}
+
+.lane__clear {
+  padding: 0.125rem var(--space-1);
+  border: var(--border-width-1) solid var(--light-blue);
+  background: transparent;
+  color: var(--light-blue);
+  font-size: 0.625rem;
+  font-weight: var(--font-weight-bold);
+  line-height: 1.2;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &[hidden] {
+    display: inline-block;
+    visibility: hidden;
   }
 }

@@ -41,6 +41,11 @@ function is(a: number, b: number | null | undefined): boolean {
   return a === b;
 }
 
+/** The column a step (or a lane's bar) stands in: sixteen to a row, whatever else the grid holds. */
+function colOf(index: number): number {
+  return (index % 16) + 1;
+}
+
 function isToggle(lane: LaneView): boolean {
   return lane.kind === 'toggle';
 }
@@ -419,6 +424,11 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
         )
       : all.filter((lane) => only.includes(lane.key));
   }
+
+  /** Every step of a lane follows its control again: one step to undo. */
+  clearLane = (key: string): void => {
+    this.audio.resetLane(this.args.scopeId, key);
+  };
 
   /** Hides a lane, wherever the track draws it. */
   hideLane = (key: string): void => {
@@ -965,7 +975,7 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
     {{! template-lint-disable no-pointer-down-event-binding }}
     {{! (a lane's bar is dragged from where the pointer goes down, as a slider is) }}
     <div
-      class="step-grid"
+      class="step-grid {{if this.lanes.length 'step-grid--lanes'}}"
       role="group"
       aria-label="{{@control.label}} steps"
       data-sequence={{@control.name}}
@@ -990,6 +1000,7 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
             data-selected={{if (is index @selected) "true"}}
             title="Double-click (or hold) to set its value"
             data-test-step={{index}}
+            {{cssVars col=(colOf index)}}
             {{on "click" (fn this.toggle index)}}
             {{on "dblclick" (fn this.doubleClick index)}}
             {{on "pointerdown" (fn this.pressDown index)}}
@@ -1012,11 +1023,6 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
           <span class="lane__says" data-test-lane-says>{{this.laneSays
               lane
             }}</span>
-          <LaneMenu
-            @scopeId={{@scopeId}}
-            @lane={{lane}}
-            @onHide={{fn this.hideLane lane.key}}
-          />
         </div>
         {{#each lane.values key="@index" as |value index|}}
           {{#if (isToggle lane)}}
@@ -1033,6 +1039,7 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
               data-locked={{if (this.isLocked lane index) "true"}}
               data-lane={{lane.key}}
               data-lane-step={{index}}
+              {{cssVars col=(colOf index)}}
               {{on "keydown" (fn this.laneKey lane index)}}
             ></span>
           {{else}}
@@ -1049,11 +1056,31 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
               data-locked={{if (this.isLocked lane index) "true"}}
               data-lane={{lane.key}}
               data-lane-step={{index}}
-              {{cssVars pos=(this.barPosition lane value)}}
+              {{cssVars pos=(this.barPosition lane value) col=(colOf index)}}
               {{on "keydown" (fn this.laneKey lane index)}}
             ></span>
           {{/if}}
         {{/each}}
+        {{! its tools: to the right of its bars (of their last row), at the grid's end }}
+        <span
+          class="lane__tools {{if (isToggle lane) 'lane__tools--row'}}"
+          data-test-lane-tools={{lane.key}}
+        >
+          <LaneMenu
+            @scopeId={{@scopeId}}
+            @lane={{lane}}
+            @onHide={{fn this.hideLane lane.key}}
+          />
+          <button
+            type="button"
+            class="lane__clear"
+            aria-label="Clear all {{lane.label}} steps"
+            title="Every step follows the control again"
+            hidden={{if lane.active false true}}
+            data-test-lane-clear
+            {{on "click" (fn this.clearLane lane.key)}}
+          >Clear all</button>
+        </span>
       {{/each}}
       {{#if this.laneEditing}}
         <NumberEntry
