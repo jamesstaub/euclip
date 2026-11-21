@@ -61,8 +61,8 @@ const focusFirst = modifier<{ Element: HTMLElement }>((element) => {
  */
 const placeUp = modifier<{
   Element: HTMLElement;
-  Args: { Positional: [up: boolean | undefined] };
-}>((menu, [up]) => {
+  Args: { Positional: [up: boolean | undefined, avoid: string | undefined] };
+}>((menu, [up, avoid]) => {
   const button = menu.parentElement?.querySelector<HTMLElement>(
     '.popup-menu__button',
   );
@@ -77,11 +77,23 @@ const placeUp = modifier<{
   const clamp = (value: number, low: number, high: number): number =>
     Math.min(Math.max(value, low), Math.max(low, high));
   const left = clamp(on.left, margin, window.innerWidth - margin - zero.width);
-  const top = clamp(
-    on.top - zero.height,
-    margin,
-    window.innerHeight - margin - zero.height,
+  // Over the button where there is room; lower where there is not, and inside the window (and above
+  // `avoid`, a box that is drawn over this one's lower edge), scrolling if that is still too little.
+  const over = avoid
+    ? document.querySelector(avoid)?.getBoundingClientRect()
+    : null;
+  const floor = Math.min(
+    window.innerHeight,
+    over && over.top > on.top ? over.top : window.innerHeight,
   );
+  const room = floor - 2 * margin;
+  let height = zero.height;
+  if (height > room) {
+    height = room;
+    menu.style.maxBlockSize = `${room}px`;
+    menu.style.overflowY = 'auto';
+  }
+  const top = clamp(on.top - height, margin, floor - margin - height);
   menu.style.left = `${left - zero.left}px`;
   menu.style.top = `${top - zero.top}px`;
 });
@@ -99,6 +111,8 @@ export interface PopupMenuSignature {
     text?: string;
     /** the menu opens above its button (for one at the foot of a pane) */
     up?: boolean;
+    /** a selector: a box drawn over the lower part of this menu's surroundings, which the menu stays above */
+    avoid?: string;
   };
 }
 
@@ -181,7 +195,7 @@ export default class PopupMenu extends Component<PopupMenuSignature> {
           role="menu"
           aria-label={{@label}}
           data-test-menu
-          {{placeUp @up}}
+          {{placeUp @up @avoid}}
           {{focusFirst}}
         >
           {{! keyed: the owner's list is made again whenever the running project changes (every step while it plays), and items replaced under the pointer cannot be clicked }}

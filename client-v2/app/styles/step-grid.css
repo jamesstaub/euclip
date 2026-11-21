@@ -168,17 +168,41 @@
   align-items: baseline;
   gap: var(--space-2);
   min-inline-size: 0;
+  position: relative;
   block-size: 1.375rem;
   margin-block-start: var(--space-1);
-  overflow: hidden;
+
+  /* (its text cells cut themselves short; the menu in it opens over the page) */
+  overflow: visible;
   font-size: var(--font-size-7);
   line-height: 1.375rem;
   text-transform: uppercase;
   white-space: nowrap;
 
   & b {
+    max-inline-size: 14rem;
     font-weight: var(--font-weight-heavy);
     letter-spacing: 0.04em;
+  }
+}
+
+/* the lane's own menu: at the head's end, the head's height (a finger's height where there is a finger) */
+.lane__menu {
+  align-self: stretch;
+  display: flex;
+
+  & .popup-menu__button {
+    min-block-size: 0;
+    block-size: 100%;
+    color: inherit;
+  }
+}
+
+@media (pointer: coarse) {
+  .lane__head {
+    block-size: var(--target-min);
+    align-items: center;
+    line-height: normal;
   }
 }
 

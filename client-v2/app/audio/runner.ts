@@ -176,8 +176,6 @@ export interface ControlView {
    */
   stepChoices: ModeChoice[];
   stepChoice: string;
-  /** Per step is not offered now, and why (a speed synced to a sequence holds a multiplier): for its disabled menu entry */
-  stepWhy?: string;
   /** It has a value for every step of a sequence (see `LaneView`). Absent: a single value. */
   perStep?: {
     /** the sequence, as chosen */
@@ -1101,16 +1099,9 @@ export class ProjectRunner {
         label: MODE_LABELS[id],
       }));
       let choice: string = mode;
-      // (a speed is synced to a sequence or has a value for every step, not both: where it has the
-      // second, the first is not offered, and not applied)
-      const perStep = this.#perStepOf(runtime, declaration) !== null;
       const sync =
         binding.type === 'param' ? this.#syncOf(runtime, declaration) : null;
-      if (
-        binding.type === 'param' &&
-        !perStep &&
-        this.#isSpeed(runtime, declaration)
-      ) {
+      if (binding.type === 'param' && this.#isSpeed(runtime, declaration)) {
         const names = this.#sequenceNames(runtime);
         for (const sequence of names) {
           choices.push({
@@ -1966,6 +1957,8 @@ export class ProjectRunner {
       declaration.key
     ]?.value;
     if (typeof stored === 'number') return stored;
+    // (a synced speed holds a multiplier: 1 until there is another)
+    if (this.#syncOf(runtime, declaration)) return 1;
     const fallback = runtime.defaults.get(declaration.key);
     if (typeof fallback === 'number') return fallback;
     const binding = declaration.bindings[0];
@@ -1982,31 +1975,14 @@ export class ProjectRunner {
     runtime: ScopeRuntime,
     declaration: Declaration,
     meta: ControlMeta,
-  ): Pick<ControlView, 'stepChoices' | 'stepChoice' | 'stepWhy' | 'perStep'> {
+  ): Pick<ControlView, 'stepChoices' | 'stepChoice' | 'perStep'> {
     const binding = declaration.bindings[0];
     const offered =
       binding?.type === 'param' &&
       meta.kind === 'number' &&
-      (declaration.kind === 'slider' || declaration.kind === 'knob') &&
-      // (a synced speed holds a multiplier, not a speed: it is one or the other)
-      this.#syncOf(runtime, declaration) === null;
+      (declaration.kind === 'slider' || declaration.kind === 'knob');
     const names = offered ? this.#sequenceNames(runtime) : [];
     const per = this.#perStepOf(runtime, declaration);
-    if (
-      names.length === 0 &&
-      !per &&
-      meta.kind === 'number' &&
-      binding?.type === 'param' &&
-      (declaration.kind === 'slider' || declaration.kind === 'knob') &&
-      this.#sequenceNames(runtime).length > 0
-    ) {
-      // (offered but for the sync: said, so that the menu has the entry)
-      return {
-        stepChoices: [],
-        stepChoice: SINGLE,
-        stepWhy: 'Not with sequence sync: choose another unit first',
-      };
-    }
     if (names.length === 0 && !per)
       return { stepChoices: [], stepChoice: SINGLE };
     const stepChoices: ModeChoice[] = [
@@ -2124,6 +2100,23 @@ export class ProjectRunner {
     };
   }
 
+  /** A lane with every step back at the control's single value (one operation). Null when it is not a lane. */
+  laneResetOperation(scopeId: string, key: string): Operation | null {
+    const runtime = this.#scopes.get(scopeId);
+    const declaration = runtime?.declarations.find((d) => d.key === key);
+    const per =
+      runtime && declaration ? this.#perStepOf(runtime, declaration) : null;
+    if (!runtime || !declaration || !per?.found) return null;
+    const single = this.#singleValue(runtime, declaration);
+    const length = runtime.scope.transport.get(per.sequence)?.steps.length ?? 0;
+    return {
+      type: 'setControlOptions',
+      scope: scopeId,
+      key,
+      options: { stepValues: new Array<number>(length).fill(single) },
+    };
+  }
+
   /**
    * The step listeners in place: one for each sequence that has per-step controls, by scope and name.
    * They are attached outside any build (a rebuild does not add another), follow the sequence the
@@ -2214,9 +2207,13 @@ export class ProjectRunner {
         const range = first
           ? this.#metaOf(first.param(binding.param), declaration.options)
           : undefined;
-        // (held to the range the control has now: a lane's values may be from a wider one)
-        const value =
-          range?.kind === 'number'
+        // A synced speed's steps are multipliers: each is this step's multiplier x the sound's length over
+        // the synced sequence's, worked out now, so it follows the tempo, the sequence and the sound.
+        const sync = this.#syncOf(runtime, declaration);
+        // (otherwise held to the range the control has now: a lane's values may be from a wider one)
+        const value = sync
+          ? this.#syncedSpeed(runtime, declaration, sync, wanted)
+          : range?.kind === 'number'
             ? Math.min(range.max, Math.max(range.min, wanted))
             : wanted;
         // (a glide the control has is portamento between steps; with none the step's value lands on the step)
@@ -2306,7 +2303,6 @@ export class ProjectRunner {
     ];
     const chosen = state?.options?.mode;
     if ((chosen ?? declaration.options.mode) !== SYNC) return null;
-    if (this.#perStepOf(runtime, declaration)) return null; // (a value for every step outranks it)
     if (!this.#isSpeed(runtime, declaration)) return null;
     const binding = declaration.bindings[0];
     if (binding?.type !== 'param') return null;
@@ -2378,6 +2374,22 @@ export class ProjectRunner {
       if (binding?.type !== 'param') continue;
       const sync = this.#syncOf(runtime, declaration);
       if (!sync) continue;
+      const per = this.#perStepOf(runtime, declaration);
+      if (per?.found) {
+        // each step applies its own multiplier x factor as it comes; while stopped, the step it holds
+        const last = this.#lastStep.get(`${runtime.id}/${per.sequence}`) ?? 0;
+        const steps =
+          runtime.scope.transport.get(per.sequence)?.steps.length ?? 0;
+        if (this.engine.transport.state !== 'started') {
+          this.#setStepValues(
+            runtime,
+            per.sequence,
+            last < steps ? last : 0,
+            undefined,
+          );
+        }
+        continue;
+      }
       const stored = values?.controls[declaration.key]?.value;
       const speed = this.#syncedSpeed(
         runtime,
@@ -2424,29 +2436,47 @@ export class ProjectRunner {
     const before = this.#syncOf(runtime, declaration);
     if (!before && !toSync) return operations;
     const node = this.#select(runtime, binding.selector)[0];
-    const speed = node?.param(binding.param).value;
-    if (typeof speed !== 'number') return operations;
-    if (!toSync) {
-      // out of sync: the speed it was playing at is the value from here on
-      operations.push({
-        type: 'setControlValue',
-        scope: scopeId,
-        key,
-        value: speed,
-      });
-      return operations;
-    }
     const name = options.sequence ?? this.#sequenceNames(runtime)[0];
     const seconds =
       name === undefined ? null : this.#sequenceSeconds(runtime, name);
     const length = node?.buffer?.buffer?.duration;
     const factor = seconds && length ? length / seconds : null;
-    operations.push({
-      type: 'setControlValue',
-      scope: scopeId,
-      key,
-      value: factor === null ? 1 : nearestSync(speed / factor),
-    });
+    // a value of the old unit as the speed it is, and as the new unit's number
+    const speedOf = (value: number): number =>
+      before ? (before.factor === null ? 1 : before.factor * value) : value;
+    const inNew = (speed: number): number =>
+      toSync ? (factor === null ? 1 : nearestSync(speed / factor)) : speed;
+    const state = valuesOf(this.#host.getDoc(), scopeId)?.controls[key];
+    const per = this.#perStepOf(runtime, declaration);
+    // The single value: the speed it is playing at (a per-step control's parameter is wherever its
+    // step put it, so there the speed the single value stands for).
+    const playing = node?.param(binding.param).value;
+    const single =
+      per || typeof playing !== 'number'
+        ? typeof state?.value === 'number'
+          ? speedOf(state.value)
+          : before
+            ? speedOf(1)
+            : undefined
+        : playing;
+    if (single !== undefined) {
+      operations.push({
+        type: 'setControlValue',
+        scope: scopeId,
+        key,
+        value: inNew(single),
+      });
+    }
+    // Every step of a lane goes with it, so each sounds as near as the unit allows.
+    const steps = state?.options?.stepValues;
+    if (steps) {
+      operations.push({
+        type: 'setControlOptions',
+        scope: scopeId,
+        key,
+        options: { stepValues: steps.map((value) => inNew(speedOf(value))) },
+      });
+    }
     return operations;
   }
 

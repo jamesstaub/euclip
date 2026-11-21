@@ -526,7 +526,8 @@ module('Integration | Component | waveform', function (hooks) {
       'Semitones',
       'Cents',
       'Sequence sync',
-      'Per stepNot with sequence sync: choose another unit first',
+      'Single value',
+      'Per step',
       'GlideSet per trigger; cannot glide',
       'Reset',
       'Show in script',
@@ -598,12 +599,23 @@ module('Integration | Component | waveform', function (hooks) {
       .exists();
     await click('[data-test-speed-menu] [data-test-menu-button]');
     assert.dom('[data-test-menu-item="Show lane"]').exists();
-    assert.false(
-      findAll('[data-test-menu-item]').some((item) =>
-        /Sequence sync/.test(item.textContent ?? ''),
-      ),
-      'sequence sync and per step are one or the other',
-    );
+    // the faint cell does not reach its menu: the open menu and everything above it are opaque
+    for (
+      let el = find(
+        '[data-test-speed-menu] [data-test-menu]',
+      ) as HTMLElement | null;
+      el;
+      el = el.parentElement
+    ) {
+      assert.strictEqual(
+        getComputedStyle(el).opacity,
+        '1',
+        `${el.className || el.tagName} is opaque`,
+      );
+    }
+    assert
+      .dom('[data-test-menu-item="Single value"]')
+      .doesNotHaveAttribute('aria-disabled');
     await click('[data-test-menu-item="Single value"]');
     assert.dom(value('speed')).hasText('0 st');
   });

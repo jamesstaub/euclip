@@ -715,6 +715,97 @@ stepGrid('ones');
         .hasText('4', 'the other grid is as it was');
     });
 
+    test('a lane has its own menu, the control’s menu plus Reset lane and Hide lane: units, Single value, Reset lane, Hide lane; the bars stay in their steps’ columns', async function (assert) {
+      view.footerPane = 'controls';
+      await render(<template><AppShell /></template>);
+      const labels = (): (string | null)[] =>
+        findAll('[data-test-menu-item]').map((item) =>
+          item.getAttribute('data-test-menu-item'),
+        );
+      await click(`${row(FREQUENCY)} [data-test-menu-button]`);
+      await click('[data-test-menu-item="Per step"]');
+      await click(`${row(FREQUENCY)} [data-test-menu-button]`);
+      const control = labels();
+      await triggerKeyEvent(document.body, 'keydown', 'Escape');
+      await click(`${row(FREQUENCY)} [data-test-show-lane]`);
+
+      const inRow = `[data-track-id="t-kick"] [data-test-lane-menu="${FREQUENCY}"]`;
+      await click(`${inRow} [data-test-menu-button]`);
+      assert.deepEqual(
+        labels(),
+        [...control, 'Reset lane', 'Hide lane'],
+        'the control’s items, then the lane’s own',
+      );
+      // fully opaque, all the way up
+      const menu = find('[data-test-menu]') as HTMLElement;
+      for (let el: HTMLElement | null = menu; el; el = el.parentElement) {
+        assert.strictEqual(
+          getComputedStyle(el).opacity,
+          '1',
+          `${el.className || el.tagName} is opaque`,
+        );
+      }
+      // a unit chosen here is the control's
+      await click('[data-test-menu-item="Note"]');
+      assert.strictEqual(
+        audio.controls('t-kick').find((c) => c.key === FREQUENCY)!.mode,
+        'note',
+      );
+      assert
+        .dom(
+          `[data-track-id="t-kick"] [data-test-lane="${FREQUENCY}"] [data-test-lane-caption]`,
+        )
+        .includesText('note');
+
+      // bars and steps keep their columns with the button there
+      const centre = (el: Element): number => {
+        const rect = el.getBoundingClientRect();
+        return rect.left + rect.width / 2;
+      };
+      const rowEl = '[data-track-id="t-kick"]';
+      const bars = findAll(`${rowEl} [data-lane-step]`);
+      const stepsIn = findAll(`${rowEl} [data-test-step]`);
+      assert.true(bars.length > 0, 'the row shows the lane');
+      assert.true(stepsIn.length >= bars.length, 'and the steps');
+      const off = Math.max(
+        ...bars.map((bar, index) =>
+          Math.abs(centre(bar) - centre(stepsIn[index]!)),
+        ),
+      );
+      assert.true(off < 1, `centres within 1 px (${off.toFixed(2)})`);
+
+      // Reset lane: every step back at the single value, one step to undo
+      audio.setLaneValue('t-kick', FREQUENCY, 3, 500);
+      await settled();
+      await click(`${inRow} [data-test-menu-button]`);
+      await click('[data-test-menu-item="Reset lane"]');
+      const values = (): unknown =>
+        (
+          project.doc.tracks[0]!.values.controls[FREQUENCY]?.options as {
+            stepValues: number[];
+          }
+        ).stepValues;
+      assert.deepEqual(values(), new Array(16).fill(2000));
+      project.undo();
+      await settled();
+      assert.strictEqual((values() as number[])[3], 500, 'one undo step');
+
+      // Hide lane unchecks it in the row's Lanes menu
+      await click(`${inRow} [data-test-menu-button]`);
+      await click('[data-test-menu-item="Hide lane"]');
+      assert.dom(inRow).doesNotExist();
+
+      // Single value from a lane's own menu turns the lane off
+      await click(`${row(FREQUENCY)} [data-test-show-lane]`);
+      await click(`${inRow} [data-test-menu-button]`);
+      await click('[data-test-menu-item="Single value"]');
+      assert.dom(inRow).doesNotExist('the lane is gone');
+      assert.strictEqual(
+        audio.controls('t-kick').find((c) => c.key === FREQUENCY)!.perStep,
+        undefined,
+      );
+    });
+
     test('a slider set to “Per step” becomes a lane under its sequence’s grid: bars in the steps’ columns, painted by a drag, one step to undo', async function (assert) {
       view.footerPane = 'controls';
       await render(<template><AppShell /></template>);

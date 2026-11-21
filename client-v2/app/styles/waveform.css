@@ -894,8 +894,19 @@
   }
 }
 
-/* the loop's points while the loop is off: in their places, not in play */
+/* the loop's points while the loop is off: in their places, not in play
+   (faint is for the cell's own content and fill, never its menu: an opacity on the cell would reach the popup in it) */
 .waveform__value--faint {
+  background: color-mix(in srgb, var(--dark-yellow) 50%, transparent);
+
+  & > :not(.waveform__speed-menu) {
+    opacity: 0.5;
+  }
+}
+
+/* the caption "Loop points" is not a box with a menu in it */
+.waveform__caption.waveform__value--faint {
+  background: none;
   opacity: 0.5;
 }
 

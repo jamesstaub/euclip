@@ -10,17 +10,6 @@ export function stepMenuItems(
   control: ControlView,
   choose: (choice: string) => void,
 ): MenuItem[] {
-  if (control.stepWhy !== undefined) {
-    return [
-      {
-        id: 'per-step',
-        label: 'Per step',
-        hint: control.stepWhy,
-        separated: true,
-        disabled: true,
-      },
-    ];
-  }
   return control.stepChoices.length > 1
     ? control.stepChoices.map((choice, index) => ({
         label: choice.label,

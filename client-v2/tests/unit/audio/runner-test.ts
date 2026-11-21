@@ -3675,12 +3675,6 @@ slider('#s', 'speed'${extra});`;
         [1.5, 1.5, 1.5, 1.5],
         'filled from the speed',
       );
-      assert.false(
-        control(h, ONE, SPEED).choices.some((choice) =>
-          choice.id.startsWith('sequence-sync'),
-        ),
-        'a speed with a value for every step is not synced as well',
-      );
       [0.5, 1, 2, 4].forEach((value, index) =>
         h.apply(h.runner.laneOperation(ONE, SPEED, index, value)),
       );
@@ -3706,12 +3700,115 @@ slider('#s', 'speed'${extra});`;
       );
     });
 
-    test('a synced speed does not offer Per step', async function (assert) {
+    // a 4 s loop over a 2 s sequence of four quarter notes: the factor is 2
+    const SYNCED_SCRIPT = `__().sampler({ id: 's', buffer: 'loop' }).to('channel');
+__.transport.sequence('beat', { steps: [1, 1, 1, 1], step: '1/4' }, (ev) => {
+  globalThis.euclipSeen.push([ev.index, [...__('#s')][0].param('speed').value]);
+});
+slider('#s', 'speed', { mode: 'sequence-sync', perStep: 'beat' });`;
+    const reset = (): void => {
       (globalThis as unknown as { euclipSeen: unknown[] }).euclipSeen = [];
-      const h = await startProject(
-        oneTrack(SCRIPT(", { mode: 'sequence-sync' }")),
+    };
+    const near = (a: number, b: number): boolean => Math.abs(a - b) < 1e-6;
+    const stepValues = (h: Harness): unknown =>
+      h.doc.tracks[0]!.values.controls[SPEED]?.options?.stepValues;
+    const setSteps = (h: Harness, values: number[]): void =>
+      h.apply({
+        type: 'setControlOptions',
+        scope: ONE,
+        key: SPEED,
+        options: { stepValues: values },
+      });
+    const speedNow = (h: Harness): number =>
+      h.runner.sampler(ONE, 's')!.param('speed').value as number;
+
+    test('a synced speed can be per step: each step plays its multiplier times the sound over the sequence', async function (assert) {
+      reset();
+      const h = await startProject(oneTrack(SYNCED_SCRIPT), 2.2);
+      assert.deepEqual(
+        control(h, ONE, SPEED).stepChoices.map((choice) => choice.label),
+        ['Single value', 'Per step'],
       );
-      assert.deepEqual(control(h, ONE, SPEED).stepChoices, []);
+      assert.true(
+        control(h, ONE, SPEED).choices.some((choice) =>
+          choice.id.startsWith('sequence-sync'),
+        ),
+        'sequence sync stays on offer',
+      );
+      setSteps(h, [0.5, 1, 2, 1 / 4]);
+      assert.strictEqual(control(h, ONE, SPEED).mode, 'sequence-sync');
+      assert.deepEqual(h.runner.lanes(ONE, 'beat')[0]!.values, [
+        0.5,
+        1,
+        2,
+        1 / 4,
+      ]);
+      await h.render();
+      assert.deepEqual(seen().slice(0, 4), [
+        [0, 1],
+        [1, 2],
+        [2, 4],
+        [3, 0.5],
+      ]);
+      assert.deepEqual(h.derived, [], 'nothing written by the steps');
+    });
+
+    test('a synced per-step speed follows the tempo without a rebuild or a write', async function (assert) {
+      reset();
+      const h = await startProject(oneTrack(SYNCED_SCRIPT));
+      setSteps(h, [0.5, 1, 2, 1 / 4]);
+      const node = h.runner.sampler(ONE, 's');
+      assert.true(near(speedNow(h), 1), 'stopped: the first step, 0.5 x 2');
+      h.apply({ type: 'setBpm', bpm: 60 });
+      assert.true(near(speedNow(h), 0.5), `at 60: 0.5 x 1 (${speedNow(h)})`);
+      assert.strictEqual(h.runner.sampler(ONE, 's'), node);
+      assert.deepEqual(h.derived, []);
+    });
+
+    test('per step while synced fills every step with the multiplier', async function (assert) {
+      reset();
+      const h = await startProject(
+        oneTrack(SYNCED_SCRIPT.replace(", perStep: 'beat'", '')),
+      );
+      move(h, ONE, SPEED, 2);
+      choose(h, 'per-step:beat');
+      assert.deepEqual(stepValues(h), [2, 2, 2, 2]);
+    });
+
+    test('changing the unit converts every step, so the sound stays as near as the unit allows', async function (assert) {
+      reset();
+      const h = await startProject(oneTrack(SYNCED_SCRIPT));
+      move(h, ONE, SPEED, 1 / 2);
+      setSteps(h, [0.5, 1, 2, 1 / 4]);
+      const to = (choice: string): void => {
+        for (const op of h.runner.modeOperations(ONE, SPEED, choice))
+          h.apply(op);
+      };
+      to('ratio');
+      assert.deepEqual(stepValues(h), [1, 2, 4, 0.5], 'speeds: x the factor 2');
+      assert.strictEqual(storedIn(h, ONE)[SPEED], 1, 'and the single value');
+      to('semitones');
+      assert.deepEqual(stepValues(h), [1, 2, 4, 0.5], 'a ratio in every unit');
+      to('sequence-sync');
+      assert.deepEqual(stepValues(h), [0.5, 1, 2, 1 / 4]);
+      assert.strictEqual(storedIn(h, ONE)[SPEED], 0.5);
+    });
+
+    test('with the sync sequence missing each step plays at 1, and the control says so', async function (assert) {
+      reset();
+      const h = await startProject(
+        oneTrack(
+          SYNCED_SCRIPT.replace(
+            "mode: 'sequence-sync'",
+            "mode: 'sequence-sync', sequence: 'gone'",
+          ),
+        ),
+      );
+      setSteps(h, [0.5, 1, 2, 1 / 4]);
+      assert.strictEqual(speedNow(h), 1);
+      assert.true(
+        /no sequence named 'gone'/.test(control(h, ONE, SPEED).waiting ?? ''),
+      );
     });
   });
 });

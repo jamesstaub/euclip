@@ -6,6 +6,8 @@ import Slider from 'client-v2/components/ui/slider';
 import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
+import LaneMenu from 'client-v2/components/lane-menu';
+import { rowLanes, sequenceLanes } from 'client-v2/components/row-lanes';
 import Hint from 'client-v2/components/ui/hint';
 import type { LaneView, StepGridView } from 'client-v2/audio/runner';
 import { ControlGesture } from 'client-v2/controls/gesture';
@@ -29,6 +31,7 @@ import selectOptions, {
   type SelectOption,
 } from 'client-v2/modifiers/select-options';
 import type AudioService from 'client-v2/services/audio';
+import type ViewService from 'client-v2/services/view';
 
 function pressed(value: number): 'true' | 'false' {
   return value !== 0 ? 'true' : 'false';
@@ -49,6 +52,26 @@ function stepLabel(index: number, value: number): string {
   const state = value === 0 ? 'off' : value === 1 ? 'on' : `value ${value}`;
   return `Step ${index + 1}, ${state}`;
 }
+
+/** What a lane's caption says for a unit that is not the parameter's own. */
+const LANE_UNITS: Readonly<Record<string, string>> = {
+  'sequence-sync': 'seq',
+  semitones: 'st',
+  'ratio-cents': 'ct',
+  note: 'note',
+  cents: 'note + ct',
+  decibels: 'dB',
+  ms: 'ms',
+  percent: '%',
+  slice: 'slice',
+  stepped: 'steps',
+  exponential: 'exp',
+  linear: 'lin',
+  steps: 'steps',
+  hz: 'Hz',
+  seconds: 's',
+  ratio: 'ratio',
+};
 
 export interface StepGridWidgetSignature {
   Element: HTMLDivElement;
@@ -124,6 +147,7 @@ function digits(text: string): string {
  */
 export default class StepGridWidget extends Component<StepGridWidgetSignature> {
   @service declare audio: AudioService;
+  @service declare view: ViewService;
 
   /** The step whose value is being typed, and what the box starts with when a digit opened it. */
   @tracked editing: number | null = null;
@@ -384,6 +408,25 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
       ? all
       : all.filter((lane) => only.includes(lane.key));
   }
+
+  /** Unchecks a lane in the track row's Lanes menu (the row's own view state). */
+  hideLane = (key: string): void => {
+    const scopeId = this.args.scopeId;
+    this.view.setLane(
+      scopeId,
+      rowLanes(sequenceLanes(this.audio, scopeId)),
+      key,
+      false,
+    );
+  };
+
+  /** The unit a lane's values are in, where it is not the obvious one: ` · note`, ` · seq`. */
+  unitOf = (lane: LaneView): string => {
+    const control = lane.control;
+    return control.modes.length > 1 && control.mode !== control.modes[0]
+      ? ` · ${LANE_UNITS[control.mode] ?? control.mode}`
+      : '';
+  };
 
   /** the bar the pointer is on or dragging, to say its value in the lane's head */
   @tracked laneAt: { key: string; index: number } | null = null;
@@ -903,10 +946,17 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
       {{#each this.lanes key="key" as |lane|}}
         {{! a lane: its head across the grid, then a bar under every step (items of the same grid) }}
         <div class="lane__head" data-test-lane={{lane.key}}>
-          <b class="truncate">{{lane.label}}</b>
+          <b class="truncate" data-test-lane-caption>{{lane.label}}{{this.unitOf
+              lane
+            }}</b>
           <span class="lane__says" data-test-lane-says>{{this.laneSays
               lane
             }}</span>
+          <LaneMenu
+            @scopeId={{@scopeId}}
+            @lane={{lane}}
+            @onHide={{if @laneKeys (fn this.hideLane lane.key)}}
+          />
         </div>
         {{#each lane.values key="@index" as |value index|}}
           {{! template-lint-disable no-invalid-interactive }}
