@@ -37,8 +37,13 @@
   -webkit-touch-callout: none;
 }
 
-/* the grid is not background: between its steps nothing is selected */
+/*
+ * the grid is not background: between its steps nothing is selected. It is only as wide as its
+ * sixteen columns, so the row beside it stays background that selects the track
+ */
 .track__row .step-grid {
+  inline-size: fit-content;
+  max-inline-size: 100%;
   cursor: default;
 }
 
