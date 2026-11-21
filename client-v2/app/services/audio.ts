@@ -825,6 +825,17 @@ export default class AudioService extends Service {
   }
 
   /**
+   * A lane's Reset: the control and every step back to the script's (the control's value forgotten,
+   * every step following it again). One step to undo.
+   */
+  resetLaneAndControl(scopeId: string, key: string): void {
+    const group = `reset-lane-${++this.#unitChoices}`;
+    const operation = this.runner?.laneResetOperation(scopeId, key);
+    if (operation) this.project.apply(operation, { group });
+    this.resetControl(scopeId, key, group);
+  }
+
+  /**
    * One step of a lane given a value of its own, or (null) back to following the single value: with a
    * `group`, part of a gesture that is one step to undo.
    */

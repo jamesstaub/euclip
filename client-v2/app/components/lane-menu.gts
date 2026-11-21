@@ -83,10 +83,11 @@ export default class LaneMenu extends Component<LaneMenuSignature> {
       ...units,
       ...glides,
       {
+        // (the lane and its control together: every step back to the script's default)
         label: 'Reset',
         separated: units.length > 0 || glides.length > 0,
-        disabled: !control.stored,
-        onSelect: () => this.audio.resetControl(scopeId, control.key),
+        disabled: !control.stored && !lane.active,
+        onSelect: () => this.audio.resetLaneAndControl(scopeId, control.key),
       },
       {
         label: 'Show in script',

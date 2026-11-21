@@ -795,6 +795,24 @@ stepGrid('ones');
       await settled();
       assert.strictEqual((values() as number[])[3], 500, 'one undo step');
 
+      // Reset in the lane's menu: the control and every step back to the script's, one step to undo
+      audio.setControl('t-kick', FREQUENCY, 1000);
+      await settled();
+      await click(`${inRow} [data-test-menu-button]`);
+      await click('[data-test-menu-item="Reset"]');
+      const state = (): unknown =>
+        project.doc.tracks[0]!.values.controls[FREQUENCY]?.value;
+      assert.strictEqual(
+        state(),
+        undefined,
+        'the control’s value is forgotten',
+      );
+      assert.strictEqual(values(), undefined, 'and every step follows it');
+      project.undo();
+      await settled();
+      assert.strictEqual(state(), 1000, 'one undo brings the value back');
+      assert.strictEqual((values() as number[])[3], 500, 'and the step');
+
       // Hide lane hides it under the control
       await click(`${inRow} [data-test-menu-button]`);
       await click('[data-test-menu-item="Hide lane"]');
