@@ -3421,14 +3421,47 @@ slider('#f', 'frequency', { glide: 'slow' });`),
           seconds: 0,
           stored: false,
         });
+        // each says why, for its menu's disabled Glide entry; the toggle (not a number) says nothing
+        const why = (key: string): string | undefined =>
+          control(h, ONE, key).glideWhy;
+        assert.strictEqual(why('#s › loop'), undefined);
+        assert.strictEqual(why('#s › start'), 'Set per trigger; cannot glide');
+        assert.strictEqual(why('#s › speed'), 'Set per trigger; cannot glide');
+        assert.strictEqual(
+          why('#f › q'),
+          'This parameter changes in steps',
+          'stepped by the script',
+        );
+        assert.strictEqual(
+          why('own'),
+          'Controls no parameter, so nothing to glide',
+        );
+        assert.strictEqual(why('#f › frequency'), undefined);
         // in a stepped unit by the person's choice, a parameter that could glide has none either
+        h.apply({
+          type: 'setControlOptions',
+          scope: ONE,
+          key: '#f › q',
+          options: { mode: 'linear' },
+        });
+        h.apply({
+          type: 'setControlOptions',
+          scope: ONE,
+          key: '#f › q',
+          options: { mode: 'stepped' },
+        });
+        assert.strictEqual(control(h, ONE, '#f › q').glide, undefined);
+        // notes are steps of the control, not of the parameter: it still glides from note to note
         h.apply({
           type: 'setControlOptions',
           scope: ONE,
           key: '#f › frequency',
           options: { mode: 'note' },
         });
-        assert.strictEqual(control(h, ONE, '#f › frequency').glide, undefined);
+        assert.deepEqual(control(h, ONE, '#f › frequency').glide, {
+          seconds: 0,
+          stored: false,
+        });
       });
 
       test('controls() gives its controls a glide to set too', async function (assert) {
@@ -3506,6 +3539,179 @@ slider('#f', 'frequency', { glide: 'slow' });`),
       assert.strictEqual(h.engine.transport.bpm, 120);
       h.apply({ type: 'setBpm', bpm: 97 });
       assert.strictEqual(h.engine.transport.bpm, 97);
+    });
+  });
+  module('a control’s range', function () {
+    const FILTER = (options: string, param = 'q'): string =>
+      `__().sine({ id: 'tone', frequency: 220 }).lowpass({ id: 'f', frequency: 2000, q: 1 }).to('channel');\nslider('#f', '${param}', ${options});`;
+    const Q = '#f › q';
+    const range = (h: Harness, key = Q): [number, number] => {
+      const meta = control(h, ONE, key).meta;
+      return meta.kind === 'number' ? [meta.min, meta.max] : [NaN, NaN];
+    };
+
+    test('a max beyond the parameter’s own is the control’s range, and the value reaches the node', async function (assert) {
+      const h = await startProject(oneTrack(FILTER('{ max: 100 }')));
+      assert.deepEqual(h.runner.warnings(ONE), []);
+      assert.strictEqual(range(h)[1], 100, 'the control goes to 100');
+      assert.true(range(h)[0] < 1, 'its minimum is still the parameter’s');
+      const map = mapping(control(h, ONE, Q).mode, {
+        ...(control(h, ONE, Q).meta as { min: number; max: number }),
+      });
+      assert.strictEqual(map.toValue(1), 100, 'a drag reaches the top');
+      assert.strictEqual(map.parse('100'), 100, 'so does typing');
+      move(h, ONE, Q, 100);
+      assert.strictEqual(paramOf(h, ONE, 'f', 'q').value, 100);
+      const native = (
+        paramOf(h, ONE, 'f', 'q') as unknown as {
+          audioParam: AudioParam | null;
+        }
+      ).audioParam;
+      assert.true(
+        (native?.maxValue ?? 0) >= 100,
+        `the browser’s own parameter goes to ${native?.maxValue}`,
+      );
+      assert.strictEqual(control(h, ONE, Q).value, 100);
+    });
+
+    test('a narrower range still works, and a lower end can be wider too', async function (assert) {
+      const h = await startProject(
+        oneTrack(
+          FILTER('{ min: 1, max: 10 }') +
+            "\nslider('#f', 'frequency', { min: 5 });",
+        ),
+      );
+      assert.deepEqual(h.runner.warnings(ONE), []);
+      assert.deepEqual(range(h), [1, 10]);
+      assert.deepEqual(range(h, '#f › frequency'), [5, 20000]);
+    });
+
+    test('a range that cannot be kept is said on its line, and the parameter’s own is used', async function (assert) {
+      const h = await startProject(
+        oneTrack(`__().sine({ id: 'tone', frequency: 220 }).lowpass({ id: 'f', frequency: 2000, q: 1 }).compressor({ id: 'c' }).to('channel');
+slider('#f', 'q', { min: 5, max: 1 });
+slider('#f', 'frequency', { min: 0 });
+slider('#c', 'ratio', { max: 100 });
+slider('#f', 'q', { max: NaN, min: 'low' });`),
+      );
+      const warnings = h.runner.warnings(ONE);
+      assert.deepEqual(
+        warnings.map((warning) => warning.line),
+        [2, 3, 4, 5, 5],
+        warnings.map((warning) => warning.message).join(' | '),
+      );
+      assert.true(
+        /min \(5\) must be below max \(1\)/.test(warnings[0]!.message),
+      );
+      assert.true(/log scale/.test(warnings[1]!.message));
+      assert.true(
+        /ratio cannot exceed 20 on this node/.test(warnings[2]!.message),
+        warnings[2]!.message,
+      );
+      assert.true(/finite number/.test(warnings[3]!.message));
+      assert.deepEqual(
+        range(h, '#f › frequency'),
+        [20, 20000],
+        'log: its own minimum',
+      );
+      assert.deepEqual(
+        range(h, '#c › ratio'),
+        [1, 20],
+        'held at what the browser accepts',
+      );
+      assert.strictEqual(range(h)[1], 30, 'q is at its own range');
+    });
+
+    test('a stored value beyond a narrowed range is shown and sounded at its end, and not rewritten until it is moved', async function (assert) {
+      const h = await startProject(oneTrack(FILTER('{ max: 100 }')));
+      move(h, ONE, Q, 80);
+      await h.setScript(ONE, FILTER('{ max: 10 }'));
+      assert.strictEqual(control(h, ONE, Q).value, 10, 'shown at the end');
+      assert.strictEqual(
+        paramOf(h, ONE, 'f', 'q').value,
+        10,
+        'and sounded there',
+      );
+      assert.strictEqual(storedIn(h, ONE)[Q], 80, 'the project still holds 80');
+      move(h, ONE, Q, 5);
+      assert.strictEqual(storedIn(h, ONE)[Q], 5);
+      await h.setScript(ONE, FILTER('{ max: 100 }'));
+      assert.strictEqual(control(h, ONE, Q).value, 5);
+    });
+  });
+
+  module('a speed with a value for every step', function () {
+    const SPEED = '#s › speed';
+    const SCRIPT = (extra = ''): string =>
+      `__().sampler({ id: 's', buffer: 'kick' }).to('channel');
+__.transport.sequence('beat', { steps: [1, 1, 1, 1], step: '1/4' }, (ev) => {
+  globalThis.euclipSeen.push([ev.index, [...__('#s')][0].param('speed').value]);
+});
+slider('#s', 'speed'${extra});`;
+    const seen = (): [number, number][] =>
+      (globalThis as unknown as { euclipSeen: [number, number][] }).euclipSeen;
+    const choose = (h: Harness, choice: string): void => {
+      for (const op of h.runner.stepChoiceOperations(ONE, SPEED, choice))
+        h.apply(op);
+    };
+
+    test('it offers Per step; each triggered step plays at its own speed; going back restores the single value', async function (assert) {
+      (globalThis as unknown as { euclipSeen: unknown[] }).euclipSeen = [];
+      const h = await startProject(oneTrack(SCRIPT()), 2.2);
+      move(h, ONE, SPEED, 1.5);
+      assert.deepEqual(
+        control(h, ONE, SPEED).stepChoices.map((choice) => choice.label),
+        ['Single value', 'Per step'],
+      );
+      assert.true(
+        control(h, ONE, SPEED).choices.some((choice) =>
+          choice.id.startsWith('sequence-sync'),
+        ),
+        'with the units, which include sequence sync',
+      );
+      choose(h, 'per-step:beat');
+      assert.deepEqual(
+        h.runner.lanes(ONE, 'beat')[0]!.values,
+        [1.5, 1.5, 1.5, 1.5],
+        'filled from the speed',
+      );
+      assert.false(
+        control(h, ONE, SPEED).choices.some((choice) =>
+          choice.id.startsWith('sequence-sync'),
+        ),
+        'a speed with a value for every step is not synced as well',
+      );
+      [0.5, 1, 2, 4].forEach((value, index) =>
+        h.apply(h.runner.laneOperation(ONE, SPEED, index, value)),
+      );
+      await h.render();
+      assert.deepEqual(
+        seen().slice(0, 4),
+        [
+          [0, 0.5],
+          [1, 1],
+          [2, 2],
+          [3, 4],
+        ],
+        'the speed a trigger would read, on each step',
+      );
+      choose(h, 'single');
+      assert.strictEqual(control(h, ONE, SPEED).value, 1.5);
+      assert.strictEqual(control(h, ONE, SPEED).perStep, undefined);
+      assert.true(
+        control(h, ONE, SPEED).choices.some((choice) =>
+          choice.id.startsWith('sequence-sync'),
+        ),
+        'sequence sync is back',
+      );
+    });
+
+    test('a synced speed does not offer Per step', async function (assert) {
+      (globalThis as unknown as { euclipSeen: unknown[] }).euclipSeen = [];
+      const h = await startProject(
+        oneTrack(SCRIPT(", { mode: 'sequence-sync' }")),
+      );
+      assert.deepEqual(control(h, ONE, SPEED).stepChoices, []);
     });
   });
 });

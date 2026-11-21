@@ -526,13 +526,14 @@ module('Integration | Component | waveform', function (hooks) {
       'Semitones',
       'Cents',
       'Sequence sync',
+      'Per stepNot with sequence sync: choose another unit first',
+      'GlideSet per trigger; cannot glide',
       'Reset',
       'Show in script',
     ]);
-    assert.false(
-      items.some((item) => /glide/i.test(item)),
-      'a speed does not glide',
-    );
+    assert
+      .dom('[data-test-menu-item="Glide"]')
+      .hasAria('disabled', 'true', 'a speed does not glide: it says so');
     await click('[data-test-menu-item="Semitones"]');
     assert.deepEqual(stored(), { mode: 'semitones' });
     assert
@@ -561,6 +562,50 @@ module('Integration | Component | waveform', function (hooks) {
       { mode: 'semitones' },
       'each choice is one step to undo',
     );
+  });
+
+  test('the speed can be per step from its menu here: a stub in the same cell, its lane in the track’s row, in the unit chosen', async function (assert) {
+    await open();
+    const cell = find('[data-test-waveform-value="speed"]') as HTMLElement;
+    const before = cell.getBoundingClientRect();
+    await click('[data-test-speed-menu] [data-test-menu-button]');
+    await click('[data-test-menu-item="Semitones"]');
+    await click('[data-test-speed-menu] [data-test-menu-button]');
+    assert
+      .dom('[data-test-menu-item="Per step"]')
+      .exists('the menu offers Per step');
+    await click('[data-test-menu-item="Per step"]');
+    const options = project.doc.tracks.at(-1)!.values.controls[
+      '#sampler › speed'
+    ]?.options as { perStep?: string; stepValues?: number[] };
+    assert.strictEqual(typeof options.perStep, 'string');
+    assert.true(options.stepValues!.length > 1, 'a value for every step');
+    assert.true(
+      options.stepValues!.every((step) => step === 1),
+      'each from the speed it had',
+    );
+    assert.dom(value('speed')).hasText('per step');
+    const after = cell.getBoundingClientRect();
+    assert.strictEqual(after.width, before.width, 'the cell does not change');
+    assert.strictEqual(after.height, before.height);
+    assert
+      .dom(`[data-test-lane="#sampler › speed"]`)
+      .exists('its lane is under the grid, in the track’s row');
+    assert
+      .dom(
+        '[data-test-lane="#sampler › speed"] [data-test-lane-entry], [data-test-lane="#sampler › speed"]',
+      )
+      .exists();
+    await click('[data-test-speed-menu] [data-test-menu-button]');
+    assert.dom('[data-test-menu-item="Show lane"]').exists();
+    assert.false(
+      findAll('[data-test-menu-item]').some((item) =>
+        /Sequence sync/.test(item.textContent ?? ''),
+      ),
+      'sequence sync and per step are one or the other',
+    );
+    await click('[data-test-menu-item="Single value"]');
+    assert.dom(value('speed')).hasText('0 st');
   });
 
   test('Snap is a label and three choices; untouched it follows the sound, chosen it is kept', async function (assert) {

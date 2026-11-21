@@ -31,7 +31,12 @@ import {
   type ModeName,
 } from 'client-v2/controls/modes';
 import { REGION_GAP } from 'client-v2/controls/live-range';
-import { unitMenuItems } from 'client-v2/controls/unit-menu';
+import { rowLanes, sequenceLanes } from 'client-v2/components/row-lanes';
+import {
+  glideBlockedItems,
+  stepMenuItems,
+  unitMenuItems,
+} from 'client-v2/controls/unit-menu';
 import { mappingOf, numberOf } from 'client-v2/controls/view';
 import cssVars from 'client-v2/modifiers/css-vars';
 import selectOptions, {
@@ -472,6 +477,8 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
         : null;
       if (!control || !map) return [];
       const value = numberOf(control.value);
+      const perStep =
+        id === 'speed' && !!control.perStep && !control.perStep.missing;
       return [
         {
           id,
@@ -479,12 +486,15 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
           name,
           short,
           mid,
-          text: map.format(value),
+          // (a speed with a value for every step is a stub here, in the same cell: its values are a lane)
+          text: perStep ? 'per step' : map.format(value),
           value,
           map,
           position: map.toPosition(value),
           // (the loop's points keep their place while the loop is off: there, but not in play)
-          faint: (id === 'loopStart' || id === 'loopEnd') && !this.looping,
+          faint:
+            perStep ||
+            ((id === 'loopStart' || id === 'loopEnd') && !this.looping),
         },
       ];
     };
@@ -530,6 +540,16 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
     this.speedMenu = open;
   };
 
+  /** Checks a per-step control's lane in the track's row (the others stay as they are). */
+  #checkLane(key: string): void {
+    const scopeId = this.args.scopeId;
+    this.view.revealLane(
+      scopeId,
+      rowLanes(sequenceLanes(this.audio, scopeId)),
+      key,
+    );
+  }
+
   get speedMenuItems(): MenuItem[] {
     const control = this.control('speed');
     if (!control) return [];
@@ -537,12 +557,31 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
     const units = unitMenuItems(control, (choice) =>
       this.audio.chooseControlMode(scopeId, control.key, choice),
     );
+    const steps = stepMenuItems(control, (choice) => {
+      this.audio.chooseStepMode(scopeId, control.key, choice);
+      // (a speed just made per step has a lane: it is shown in the track's row)
+      if (choice.startsWith('per-step:')) this.#checkLane(control.key);
+    });
+    const per = control.perStep && !control.perStep.missing;
+    const glides = glideBlockedItems(control, units.length > 0);
     const line = control.line;
     return [
       ...units,
+      ...steps,
+      ...(per
+        ? [
+            {
+              id: 'show-lane',
+              label: 'Show lane',
+              separated: steps.length === 0,
+              onSelect: () => this.#checkLane(control.key),
+            },
+          ]
+        : []),
+      ...glides,
       {
         label: 'Reset',
-        separated: units.length > 0,
+        separated: units.length > 0 || glides.length > 0 || steps.length > 0,
         disabled: !control.stored,
         onSelect: () => this.audio.resetControl(scopeId, control.key),
       },

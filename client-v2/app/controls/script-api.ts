@@ -273,6 +273,16 @@ export function createControlApi(
       return INERT;
     }
 
+    if (meta.kind === 'number') {
+      options = withRange(
+        options,
+        call,
+        param,
+        meta,
+        nominalOf(first.param(param)),
+        line,
+      );
+    }
     // Whether the parameter can glide is the library's to say (an audio-rate number); a control that
     // moves in steps has nothing to sweep through.
     const stepped =
@@ -324,9 +334,18 @@ export function createControlApi(
     };
     // The stored value passes through the script here, as an ordinary set. (A synced speed has a
     // value to set with nothing stored too: once through at the sequence's own pace.)
+    // (one beyond the range the control has now is applied at its nearest end, and not rewritten)
     const stored = host.stored(key);
-    if (stored !== undefined) set(stored);
-    else if (sync) set(1);
+    if (stored !== undefined) {
+      set(
+        typeof stored === 'number' && !sync && meta.kind === 'number'
+          ? Math.min(
+              options.max ?? meta.max,
+              Math.max(options.min ?? meta.min, stored),
+            )
+          : stored,
+      );
+    } else if (sync) set(1);
 
     return {
       get value() {
@@ -390,6 +409,14 @@ export function createControlApi(
       return INERT;
     }
     options = withGlide(options, call, true, '', line);
+    options = withRange(
+      options,
+      call,
+      'gain',
+      bus.gain.meta.kind === 'number' ? bus.gain.meta : null,
+      nominalOf(bus.gain),
+      line,
+    );
     const key = busKey(bus.name);
     const used = host.declare({
       key,
@@ -433,6 +460,16 @@ export function createControlApi(
       'a control of its own has no parameter to sweep',
       line,
     );
+    if (kind !== 'toggle') {
+      options = withRange(
+        options,
+        `${kind}('${name}')`,
+        name,
+        null,
+        null,
+        line,
+      );
+    }
     host.declare({
       key: name,
       kind,
@@ -568,6 +605,89 @@ export function createControlApi(
     }
     return grid(name, isOptions(options) ? options : {}, false, line);
   };
+
+  /**
+   * The options with `min` and `max` checked. They set the control's range, narrower or wider than the
+   * parameter's own (the library's range is what a control covers, not a limit). What cannot be kept
+   * is said on the declaration's line and dropped, so the control falls back to the parameter's own:
+   * a value that is not a finite number; a log-curve parameter's `min` of 0 or less (a log travel has
+   * no bottom at zero); a `min` not below the `max`. A value beyond what the browser's own parameter
+   * accepts (`nominal`: a filter's frequency stops at the Nyquist, a compressor's ratio at 20) is held
+   * at that limit with a warning, since a range that does nothing is not shown.
+   */
+  function withRange(
+    options: ControlOptions,
+    call: string,
+    name: string,
+    own: { min: number; max: number; curve?: string } | null,
+    nominal: { min: number; max: number } | null,
+    line: number | undefined,
+  ): ControlOptions {
+    if (options.min === undefined && options.max === undefined) return options;
+    const say = (message: string): void =>
+      host.warn({ message: `${call}: ${message}`, line });
+    const finite = (value: unknown): value is number =>
+      typeof value === 'number' && Number.isFinite(value);
+    let { min, max } = options;
+    const rest = { ...options };
+    delete rest.min;
+    delete rest.max;
+    if (min !== undefined && !finite(min)) {
+      say(`min must be a finite number; using the range of ${name}.`);
+      min = undefined;
+    }
+    if (max !== undefined && !finite(max)) {
+      say(`max must be a finite number; using the range of ${name}.`);
+      max = undefined;
+    }
+    if (min !== undefined && min <= 0 && own?.curve === 'log' && own.min > 0) {
+      say(
+        `${name} moves on a log scale, which cannot start at ${min}; using its own minimum, ${own.min}.`,
+      );
+      min = undefined;
+    }
+    if (nominal) {
+      if (max !== undefined && max > nominal.max) {
+        say(`${name} cannot exceed ${nominal.max} on this node.`);
+        max = nominal.max;
+      }
+      if (min !== undefined && min < nominal.min) {
+        say(`${name} cannot go below ${nominal.min} on this node.`);
+        min = nominal.min;
+      }
+    }
+    const low = min ?? own?.min ?? 0;
+    const high = max ?? own?.max ?? 1;
+    if ((min !== undefined || max !== undefined) && low >= high) {
+      say(
+        `min (${low}) must be below max (${high}); using the range of ${name}.`,
+      );
+      return rest;
+    }
+    return {
+      ...rest,
+      ...(min === undefined ? {} : { min }),
+      ...(max === undefined ? {} : { max }),
+    };
+  }
+
+  /**
+   * What the browser's own parameter behind a library parameter accepts (`AudioParam.minValue` and
+   * `maxValue`, which it holds values to). The library's public `Param` does not give it, so this reads
+   * the native parameters off the parameter when it has them (a macro's parameter has the ones inside
+   * it that it drives one to one). Null where there is none to read, or it has no limit worth saying.
+   */
+  function nominalOf(param: unknown): { min: number; max: number } | null {
+    const native = (
+      param as { audioParams?: () => readonly AudioParam[] }
+    ).audioParams?.();
+    if (!native || native.length === 0) return null;
+    const min = Math.max(...native.map((item) => item.minValue));
+    const max = Math.min(...native.map((item) => item.maxValue));
+    return Number.isFinite(min) && Number.isFinite(max) && min < max
+      ? { min, max }
+      : null;
+  }
 
   /** The sequences that have a grid declared, so that `controls()` adds one only where there is none. */
   /** The controls of its own this run has made, by the handle the script holds: `{ glide: thatControl }`. */

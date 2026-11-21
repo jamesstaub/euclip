@@ -18,6 +18,8 @@ export interface MenuItem {
   id?: string;
   /** one of several that can each be on: `checked` is its state, and choosing it leaves the menu open */
   toggle?: boolean;
+  /** why it cannot be chosen (or what it does): shown quietly after the label, and as its title */
+  hint?: string;
   /** a title for the items after it, not a choice */
   heading?: boolean;
 }
@@ -198,9 +200,12 @@ export default class PopupMenu extends Component<PopupMenuSignature> {
                   aria-checked={{checked item}}
                   aria-disabled={{if item.disabled "true"}}
                   tabindex="-1"
+                  title={{item.hint}}
                   data-test-menu-item={{item.label}}
                   {{on "click" (fn this.select item)}}
-                >{{item.label}}</button>
+                >{{item.label}}{{#if item.hint}}<span
+                      class="menu__hint"
+                    >{{item.hint}}</span>{{/if}}</button>
               </li>
             {{/if}}
           {{/each}}

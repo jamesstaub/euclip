@@ -8,7 +8,11 @@ import type { ControlView } from 'client-v2/audio/runner';
 import { controlWidget, type ControlEntry } from 'client-v2/controls/registry';
 import { GLIDE_MAPPING } from 'client-v2/controls/modes';
 import { rowLanes, sequenceLanes } from 'client-v2/components/row-lanes';
-import { stepMenuItems, unitMenuItems } from 'client-v2/controls/unit-menu';
+import {
+  glideBlockedItems,
+  stepMenuItems,
+  unitMenuItems,
+} from 'client-v2/controls/unit-menu';
 import { mappingOf, numberOf } from 'client-v2/controls/view';
 import intoView from 'client-v2/modifiers/into-view';
 import onEscape from 'client-v2/modifiers/on-escape';
@@ -122,10 +126,11 @@ export default class ControlRow extends Component<ControlRowSignature> {
     // Glide: how long the parameter takes to get to where the control is put. Only where it can.
     const glide = control.glide;
     const glides: MenuItem[] = !glide
-      ? []
+      ? glideBlockedItems(control, modes.length > 0)
       : glide.follows !== undefined
         ? [
             {
+              id: 'glide',
               label: `Glide: follows ${glide.follows} (${this.glideText})`,
               separated: modes.length > 0,
               disabled: true,
@@ -133,11 +138,13 @@ export default class ControlRow extends Component<ControlRowSignature> {
           ]
         : [
             {
+              id: 'glide',
               label: `Glide: ${this.glideText}…`,
               separated: modes.length > 0,
               onSelect: this.openGlide,
             },
             {
+              id: 'reset-glide',
               label: 'Reset glide',
               disabled: !glide.stored,
               onSelect: () =>

@@ -196,7 +196,7 @@ const NUMBER_OPTIONS: readonly OptionSpec[] = [
     name: 'glide',
     type: 'number | control',
     description:
-      "Seconds the parameter takes to get to where the control is put: { glide: 0.3 } sweeps there in 300 ms. The person can change it from the control's menu. Or a control of your own, to play it: const glide = slider('glide', { min: 0, max: 2 }); slider('#filter', 'frequency', { glide }). Only for a parameter that can glide (a continuous audio parameter, not a stepped one, a toggle, a choice or a sampler's start and end).",
+      "Seconds the parameter takes to get to where the control is put: { glide: 0.3 } sweeps there in 300 ms. The person can change it from the control's menu. Or a control of your own, to play it: const glide = slider('glide', { min: 0, max: 2 }); slider('#filter', 'frequency', { glide }). Only for a parameter that can glide (a continuous audio parameter, not a stepped one, a toggle, a choice or a sampler's speed, start and end).",
   },
   {
     name: 'perStep',
@@ -213,12 +213,14 @@ const NUMBER_OPTIONS: readonly OptionSpec[] = [
   {
     name: 'min',
     type: 'number',
-    description: 'A narrower lower end than the parameter’s own.',
+    description:
+      "The lower end of the control’s range, narrower or wider than the parameter’s own: slider('#filter', 'q', { max: 100 }). It sets what the control covers, and the sound goes where it is put; only a limit of the browser’s own parameter (a filter’s frequency stops at the Nyquist) holds it back, with a warning. On a log-scale parameter (a frequency) it must be above 0. Must be below max.",
   },
   {
     name: 'max',
     type: 'number',
-    description: 'A narrower upper end than the parameter’s own.',
+    description:
+      "The upper end of the control’s range, narrower or wider than the parameter’s own: slider('#filter', 'q', { max: 100 }). It sets what the control covers, and the sound goes where it is put; only a limit of the browser’s own parameter holds it back, with a warning. Must be above min.",
   },
   {
     name: 'step',

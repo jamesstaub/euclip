@@ -10,6 +10,17 @@ export function stepMenuItems(
   control: ControlView,
   choose: (choice: string) => void,
 ): MenuItem[] {
+  if (control.stepWhy !== undefined) {
+    return [
+      {
+        id: 'per-step',
+        label: 'Per step',
+        hint: control.stepWhy,
+        separated: true,
+        disabled: true,
+      },
+    ];
+  }
   return control.stepChoices.length > 1
     ? control.stepChoices.map((choice, index) => ({
         label: choice.label,
@@ -32,4 +43,26 @@ export function unitMenuItems(
         onSelect: () => choose(choice.id),
       }))
     : [];
+}
+
+/**
+ * Where a number control cannot glide, the Glide entry is still in its menu, disabled, with the reason:
+ * every number control's menu has the same shape. A control that can glide has the live entry instead
+ * (the row's menu builds it, as it opens the box that sets the time).
+ */
+export function glideBlockedItems(
+  control: ControlView,
+  separated: boolean,
+): MenuItem[] {
+  return control.glideWhy === undefined
+    ? []
+    : [
+        {
+          id: 'glide',
+          label: 'Glide',
+          hint: control.glideWhy,
+          separated,
+          disabled: true,
+        },
+      ];
 }

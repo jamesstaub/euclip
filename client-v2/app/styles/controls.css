@@ -390,6 +390,12 @@ button.number-entry:disabled {
   }
 }
 
+/* why an item cannot be chosen: said after its label, quietly */
+.menu__hint {
+  color: var(--text-muted);
+  font-size: var(--font-size-7);
+}
+
 @media (hover: hover) {
   .menu__item:not([aria-disabled]):hover {
     background: var(--surface-hover-on-dark);

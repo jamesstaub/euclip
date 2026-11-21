@@ -165,12 +165,19 @@ export interface ControlView {
    */
   glide?: GlideView;
   /**
+   * A number control that cannot glide: why, in a few words, for its menu's disabled Glide entry.
+   * Absent where it can (see `glide`), and for a toggle or a select.
+   */
+  glideWhy?: string;
+  /**
    * The ways the control can hold its value, as its menu lists them: a single value, or one for every
    * step of a named sequence of the script (an item per sequence). Empty where that is not offered
    * (a toggle, a select, a control with no parameter, a script with no named sequence).
    */
   stepChoices: ModeChoice[];
   stepChoice: string;
+  /** Per step is not offered now, and why (a speed synced to a sequence holds a multiplier): for its disabled menu entry */
+  stepWhy?: string;
   /** It has a value for every step of a sequence (see `LaneView`). Absent: a single value. */
   perStep?: {
     /** the sequence, as chosen */
@@ -1057,6 +1064,17 @@ export class ProjectRunner {
       const raw = stored ?? fallback;
       if (raw === undefined || Array.isArray(raw)) continue;
       let value = shown(raw) as number | boolean | string;
+      // A stored value outside the range the script gives now (it was narrowed since) is shown at the
+      // nearest end, as the sound is (see the script side). The project still holds what it held, until
+      // the person moves the control.
+      // (not a place in a sound: its range is the sound's, and what it is held to is the sampler's to say)
+      if (
+        meta.kind === 'number' &&
+        meta.duration === undefined &&
+        typeof value === 'number'
+      ) {
+        value = Math.min(meta.max, Math.max(meta.min, value));
+      }
       const modes = meta.kind === 'number' ? availableModes(meta) : [];
       const wanted = state?.options?.mode ?? options.mode;
       let mode =
@@ -1083,9 +1101,16 @@ export class ProjectRunner {
         label: MODE_LABELS[id],
       }));
       let choice: string = mode;
+      // (a speed is synced to a sequence or has a value for every step, not both: where it has the
+      // second, the first is not offered, and not applied)
+      const perStep = this.#perStepOf(runtime, declaration) !== null;
       const sync =
         binding.type === 'param' ? this.#syncOf(runtime, declaration) : null;
-      if (binding.type === 'param' && this.#isSpeed(runtime, declaration)) {
+      if (
+        binding.type === 'param' &&
+        !perStep &&
+        this.#isSpeed(runtime, declaration)
+      ) {
         const names = this.#sequenceNames(runtime);
         for (const sequence of names) {
           choices.push({
@@ -1124,6 +1149,18 @@ export class ProjectRunner {
             : value;
         if (sync.why !== undefined) waiting = sync.why;
       }
+      // Glide is for a continuous audio parameter. A unit that moves in whole steps (stepped, semitones,
+      // slices, a synced speed) jumps; notes do not: the parameter still glides from note to note.
+      const glideWhy: string | undefined =
+        meta.kind !== 'number'
+          ? undefined
+          : binding.type !== 'param' && binding.type !== 'bus'
+            ? 'Controls no parameter, so nothing to glide'
+            : !sweepable || meta.duration !== undefined
+              ? 'Set per trigger; cannot glide'
+              : mode !== 'note' && mapping(mode, meta).discrete
+                ? 'This parameter changes in steps'
+                : undefined;
       views.push({
         order,
         view: {
@@ -1147,11 +1184,10 @@ export class ProjectRunner {
           choices,
           choice,
           ...this.#stepChoices(runtime, declaration, meta),
-          ...(sweepable &&
-          meta.kind === 'number' &&
-          meta.duration === undefined &&
-          !mapping(mode, meta).discrete
-            ? { glide: this.#glideOf(runtime, values, declaration) }
+          ...(meta.kind === 'number'
+            ? glideWhy === undefined
+              ? { glide: this.#glideOf(runtime, values, declaration) }
+              : { glideWhy }
             : {}),
           ...(waiting === undefined ? {} : { waiting }),
         },
@@ -1863,15 +1899,17 @@ export class ProjectRunner {
       (candidate) => candidate.key === key,
     );
     if (!view || view.meta.kind !== 'number') return undefined;
+    const jumps =
+      view.meta.duration !== undefined ||
+      mapping(view.mode, view.meta).discrete;
     if (view.glide === undefined) {
       // (a sampler's places, a stepped unit: they jump. A control-rate number is the library's to set
       // at once, whatever it is given)
-      return view.meta.duration !== undefined ||
-        mapping(view.mode, view.meta).discrete
-        ? undefined
-        : FOLLOW;
+      return jumps ? undefined : FOLLOW;
     }
-    return view.glide.seconds > 0 ? { glide: view.glide.seconds } : FOLLOW;
+    if (view.glide.seconds > 0) return { glide: view.glide.seconds };
+    // (notes with no glide of their own jump from note to note)
+    return jumps ? undefined : FOLLOW;
   }
 
   // --- A value for every step ------------------------------------------------------------------------
@@ -1944,14 +1982,31 @@ export class ProjectRunner {
     runtime: ScopeRuntime,
     declaration: Declaration,
     meta: ControlMeta,
-  ): Pick<ControlView, 'stepChoices' | 'stepChoice' | 'perStep'> {
+  ): Pick<ControlView, 'stepChoices' | 'stepChoice' | 'stepWhy' | 'perStep'> {
     const binding = declaration.bindings[0];
     const offered =
       binding?.type === 'param' &&
       meta.kind === 'number' &&
-      (declaration.kind === 'slider' || declaration.kind === 'knob');
+      (declaration.kind === 'slider' || declaration.kind === 'knob') &&
+      // (a synced speed holds a multiplier, not a speed: it is one or the other)
+      this.#syncOf(runtime, declaration) === null;
     const names = offered ? this.#sequenceNames(runtime) : [];
     const per = this.#perStepOf(runtime, declaration);
+    if (
+      names.length === 0 &&
+      !per &&
+      meta.kind === 'number' &&
+      binding?.type === 'param' &&
+      (declaration.kind === 'slider' || declaration.kind === 'knob') &&
+      this.#sequenceNames(runtime).length > 0
+    ) {
+      // (offered but for the sync: said, so that the menu has the entry)
+      return {
+        stepChoices: [],
+        stepChoice: SINGLE,
+        stepWhy: 'Not with sequence sync: choose another unit first',
+      };
+    }
     if (names.length === 0 && !per)
       return { stepChoices: [], stepChoice: SINGLE };
     const stepChoices: ModeChoice[] = [
@@ -2151,10 +2206,19 @@ export class ProjectRunner {
         const per = this.#perStepOf(runtime, declaration);
         if (!per?.found || per.sequence !== name) continue;
         const kept = values?.controls[declaration.key]?.options?.stepValues;
-        const value =
+        const wanted =
           typeof kept?.[index] === 'number'
             ? kept[index]
             : this.#singleValue(runtime, declaration);
+        const first = this.#reach(runtime, declaration)[0];
+        const range = first
+          ? this.#metaOf(first.param(binding.param), declaration.options)
+          : undefined;
+        // (held to the range the control has now: a lane's values may be from a wider one)
+        const value =
+          range?.kind === 'number'
+            ? Math.min(range.max, Math.max(range.min, wanted))
+            : wanted;
         // (a glide the control has is portamento between steps; with none the step's value lands on the step)
         const stored = values?.controls[declaration.key]?.options?.glide;
         const glide =
@@ -2242,6 +2306,7 @@ export class ProjectRunner {
     ];
     const chosen = state?.options?.mode;
     if ((chosen ?? declaration.options.mode) !== SYNC) return null;
+    if (this.#perStepOf(runtime, declaration)) return null; // (a value for every step outranks it)
     if (!this.#isSpeed(runtime, declaration)) return null;
     const binding = declaration.bindings[0];
     if (binding?.type !== 'param') return null;
@@ -2292,7 +2357,9 @@ export class ProjectRunner {
         ? this.#select(runtime, binding.selector)[0]
         : undefined;
     const meta =
-      binding?.type === 'param' ? node?.param(binding.param).meta : undefined;
+      binding?.type === 'param' && node
+        ? this.#metaOf(node.param(binding.param), declaration.options)
+        : undefined;
     const speed = sync.factor * multiplier;
     return meta?.kind === 'number'
       ? Math.min(meta.max, Math.max(meta.min, speed))
@@ -2498,11 +2565,18 @@ export class ProjectRunner {
     if (meta.kind === 'choice')
       return { kind: 'choice', choices: meta.choices };
     const step = options.step ?? meta.step;
-    const min = Math.max(meta.min, options.min ?? meta.min);
+    // The script's min and max set the control's range, wider than the parameter's own or narrower (the
+    // script has been checked: finite, min below max). A range that is not one falls back to the parameter's.
+    const wanted = {
+      min: options.min ?? meta.min,
+      max: options.max ?? meta.max,
+    };
+    const valid = wanted.min < wanted.max;
+    const min = valid ? wanted.min : meta.min;
     return {
       kind: 'number',
       min,
-      max: Math.max(min, Math.min(meta.max, options.max ?? meta.max)),
+      max: valid ? wanted.max : meta.max,
       unit: meta.unit,
       curve: meta.curve,
       ...(step === undefined ? {} : { step }),
