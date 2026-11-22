@@ -20,6 +20,7 @@ import chain from 'client-v2/assets/icons/chain.svg?raw';
 import chevron from 'client-v2/assets/icons/chevron.svg?raw';
 import code from 'client-v2/assets/icons/fi-code.svg?raw';
 import dots from 'client-v2/assets/icons/fi-dots.svg?raw';
+import keys from 'client-v2/assets/icons/keys.svg?raw';
 import multislider from 'client-v2/assets/icons/multislider.svg?raw';
 import play from 'client-v2/assets/icons/fi-play.svg?raw';
 import search from 'client-v2/assets/icons/search.svg?raw';
@@ -30,7 +31,7 @@ import stop from 'client-v2/assets/icons/fi-stop.svg?raw';
 
 /**
  * The SVG files in app/assets/icons are copied unchanged from the v1 app, except arrow, chevron and
- * search, which v1 drew with text characters and are new here, and multislider, whose viewBox is cropped
+ * search, which v1 drew with text characters and are new here, keys (a keyboard), new here, and multislider, whose viewBox is cropped
  * to its bars (v1's left most of its box empty). They are inlined (not <img>) so they
  * take the colour of the text around them. Before that, the parts that only make sense in a standalone file
  * are dropped: the XML prolog and comments, fixed sizes, ids (which would repeat on the page), inline styles
@@ -70,6 +71,7 @@ const ICONS = {
   chevron: inline(chevron),
   code: inline(code),
   dots: inline(dots),
+  keys: inline(keys),
   multislider: inline(multislider),
   play: inline(play),
   search: inline(search),

@@ -7,10 +7,19 @@ import { service } from '@ember/service';
 import { modifier } from 'ember-modifier';
 import Icon from 'client-v2/components/icon';
 import SourceControls from 'client-v2/components/source-controls';
-import SourceLane from 'client-v2/components/source-lane';
+import LaneButton from 'client-v2/components/lane-button';
+import LaneSwitch from 'client-v2/components/lane-switch';
+import SourceLane, {
+  aimedControl,
+  sourceLanes,
+} from 'client-v2/components/source-lane';
 import StepGridWidget from 'client-v2/components/widgets/step-grid-widget';
 import Hint from 'client-v2/components/ui/hint';
-import type { StepGridView, SynthView } from 'client-v2/audio/runner';
+import type {
+  ControlView,
+  StepGridView,
+  SynthView,
+} from 'client-v2/audio/runner';
 import { hzToNote, noteName, noteToHz } from 'client-v2/controls/modes';
 import selectOptions from 'client-v2/modifiers/select-options';
 import type AudioService from 'client-v2/services/audio';
@@ -202,6 +211,48 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
       ? text
       : `${text} · ${hz < 100 ? hz.toFixed(2) : hz.toFixed(1)} Hz`;
   }
+
+  /** The control whose lane the lane switch shows: the one last touched, else the pitch. */
+  get laneControl(): ControlView | undefined {
+    const pitch = this.args.synth.pitch;
+    return aimedControl(
+      this.audio,
+      this.view,
+      this.args.scopeId,
+      this.args.synth.nodeId,
+      pitch ? [pitch.key] : [],
+    );
+  }
+
+  get laneOpen(): boolean {
+    return this.view.sourceLane(this.args.scopeId) !== null;
+  }
+
+  /** Some control of the synth has steps of their own: the steps button is blue. */
+  get lanesSet(): boolean {
+    return sourceLanes(
+      this.audio,
+      this.args.scopeId,
+      this.args.synth.nodeId,
+    ).some((lane) => lane.active);
+  }
+
+  showPicture = (): void => {
+    this.view.setSourceLane(this.args.scopeId, null);
+  };
+
+  showLanes = (): void => {
+    const control = this.laneControl;
+    if (!this.laneOpen && control) {
+      this.view.setSourceLane(this.args.scopeId, control.key);
+    }
+  };
+
+  /** With no keyboard, one lane button: the lane under the controls, or none. */
+  toggleLanes = (): void => {
+    if (this.laneOpen) this.showPicture();
+    else this.showLanes();
+  };
 
   get hasKeyboard(): boolean {
     if (this.args.synth.noise) return false;
@@ -652,6 +703,18 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
             {{#if this.hasKeyboard}}
               <div class="synth__keys" data-test-synth-keyboard>
                 <div class="synth__keybar">
+                  {{#if this.laneControl}}
+                    <LaneSwitch
+                      class="synth__lane-switch"
+                      @picture="Keyboard"
+                      @icon="keys"
+                      @control={{this.laneControl}}
+                      @open={{this.laneOpen}}
+                      @active={{this.lanesSet}}
+                      @onPicture={{this.showPicture}}
+                      @onLanes={{this.showLanes}}
+                    />
+                  {{/if}}
                   <button
                     type="button"
                     class="btn btn--s btn--on-yellow"
@@ -678,62 +741,70 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
                     data-test-pitch-readout
                   >{{this.readout}}</output>
                 </div>
-                {{! template-lint-disable no-pointer-down-event-binding no-invalid-interactive }}
-                {{! a note starts when the pointer goes down, and follows it across the keys until it comes up }}
-                <div
-                  class="piano"
-                  role="slider"
-                  tabindex="0"
-                  aria-label="{{@synth.label}} pitch"
-                  aria-orientation="horizontal"
-                  aria-valuemin="{{LOWEST}}"
-                  aria-valuemax="{{HIGHEST}}"
-                  aria-valuenow={{this.nearest}}
-                  aria-valuetext={{this.readout}}
-                  data-test-piano
-                  {{measure this.setOctaves}}
-                  {{on "pointerdown" this.onPointerDown}}
-                  {{on "pointermove" this.onPointerMove}}
-                  {{on "pointerup" this.onPointerUp}}
-                  {{on "pointercancel" this.onPointerUp}}
-                  {{on "keydown" this.onKeyDown}}
-                  {{on "keyup" this.onKeyUp}}
-                  {{on "blur" this.onBlur}}
-                >
-                  {{#each this.octavesShown key="base" as |octave|}}
-                    <div class="piano__octave">
-                      {{#each octave.white key="midi" as |white|}}
-                        <span
-                          class="piano__key piano__key--white"
-                          data-midi={{white.midi}}
-                          data-note={{white.name}}
-                          data-current={{if (this.isCurrent white.midi) "true"}}
-                          data-down={{if (this.isDown white.midi) "true"}}
-                          data-test-key={{white.name}}
-                        >{{#if white.label}}<span
-                              class="piano__label"
-                            >{{white.label}}</span>{{/if}}</span>
-                      {{/each}}
-                      {{#each octave.black key="midi" as |black|}}
-                        <span
-                          class="piano__key piano__key--black piano__key--after-{{black.at}}"
-                          data-midi={{black.midi}}
-                          data-note={{black.name}}
-                          data-current={{if (this.isCurrent black.midi) "true"}}
-                          data-down={{if (this.isDown black.midi) "true"}}
-                          data-test-key={{black.name}}
-                        ></span>
-                      {{/each}}
-                    </div>
-                  {{/each}}
+                <div class="synth__keyboard">
+                  {{! template-lint-disable no-pointer-down-event-binding no-invalid-interactive }}
+                  {{! a note starts when the pointer goes down, and follows it across the keys until it comes up }}
+                  <div
+                    class="piano"
+                    role="slider"
+                    tabindex="0"
+                    aria-label="{{@synth.label}} pitch"
+                    aria-orientation="horizontal"
+                    aria-valuemin="{{LOWEST}}"
+                    aria-valuemax="{{HIGHEST}}"
+                    aria-valuenow={{this.nearest}}
+                    aria-valuetext={{this.readout}}
+                    data-test-piano
+                    {{measure this.setOctaves}}
+                    {{on "pointerdown" this.onPointerDown}}
+                    {{on "pointermove" this.onPointerMove}}
+                    {{on "pointerup" this.onPointerUp}}
+                    {{on "pointercancel" this.onPointerUp}}
+                    {{on "keydown" this.onKeyDown}}
+                    {{on "keyup" this.onKeyUp}}
+                    {{on "blur" this.onBlur}}
+                  >
+                    {{#each this.octavesShown key="base" as |octave|}}
+                      <div class="piano__octave">
+                        {{#each octave.white key="midi" as |white|}}
+                          <span
+                            class="piano__key piano__key--white"
+                            data-midi={{white.midi}}
+                            data-note={{white.name}}
+                            data-current={{if
+                              (this.isCurrent white.midi)
+                              "true"
+                            }}
+                            data-down={{if (this.isDown white.midi) "true"}}
+                            data-test-key={{white.name}}
+                          >{{#if white.label}}<span
+                                class="piano__label"
+                              >{{white.label}}</span>{{/if}}</span>
+                        {{/each}}
+                        {{#each octave.black key="midi" as |black|}}
+                          <span
+                            class="piano__key piano__key--black piano__key--after-{{black.at}}"
+                            data-midi={{black.midi}}
+                            data-note={{black.name}}
+                            data-current={{if
+                              (this.isCurrent black.midi)
+                              "true"
+                            }}
+                            data-down={{if (this.isDown black.midi) "true"}}
+                            data-test-key={{black.name}}
+                          ></span>
+                        {{/each}}
+                      </div>
+                    {{/each}}
+                  </div>
+                  {{! the one multislider open over the source: in the keyboard's place }}
+                  <SourceLane @scopeId={{@scopeId}} @nodeId={{@synth.nodeId}} />
                 </div>
                 <p
                   class="synth__status"
                   role="status"
                   data-test-pitch-status
                 >{{this.perStepText}}</p>
-                {{! the one multislider open over the source: laid over the keyboard }}
-                <SourceLane @scopeId={{@scopeId}} @nodeId={{@synth.nodeId}} />
               </div>
             {{else}}
               <p class="synth__status" role="status" data-test-no-pitch>This
@@ -770,7 +841,16 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
           {{/if}}
           <SourceControls @scopeId={{@scopeId}} @nodeId={{@synth.nodeId}} />
           {{#unless this.hasKeyboard}}
-            {{! (no keyboard to lay it over: under the controls) }}
+            {{! (no keyboard to lay it over: under the controls, shown by a lane button of its own) }}
+            {{#if this.laneControl}}
+              <LaneButton
+                class="synth__lane-button"
+                @control={{this.laneControl}}
+                @pressed={{this.laneOpen}}
+                @active={{this.lanesSet}}
+                @onToggle={{this.toggleLanes}}
+              />
+            {{/if}}
             <SourceLane
               class="source-lane--inline"
               @scopeId={{@scopeId}}

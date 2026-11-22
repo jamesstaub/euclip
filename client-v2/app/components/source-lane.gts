@@ -16,6 +16,49 @@ import type ViewService from 'client-v2/services/view';
 
 const Grid = stepGridWidget().component;
 
+/**
+ * A source's lanes, among the lanes of the script's grids (a waveform's own controls are hidden ones, so
+ * they are found here and not among the source's control rows).
+ */
+export function sourceLanes(
+  audio: AudioService,
+  scopeId: string,
+  nodeId: string,
+): LaneView[] {
+  const seen = new Set<string>();
+  const lanes: LaneView[] = [];
+  for (const grid of audio.stepGrids(scopeId)) {
+    for (const lane of audio.lanes(scopeId, grid.name)) {
+      if (lane.control.source !== nodeId || seen.has(lane.key)) continue;
+      seen.add(lane.key);
+      lanes.push(lane);
+    }
+  }
+  return lanes;
+}
+
+/**
+ * The control whose lane a source's lane switch shows: the one shown, else the one last touched, else the
+ * first of `first` that has a lane (the editor's own first value), else the source's first lane.
+ */
+export function aimedControl(
+  audio: AudioService,
+  view: ViewService,
+  scopeId: string,
+  nodeId: string,
+  first: readonly string[] = [],
+): ControlView | undefined {
+  const lanes = sourceLanes(audio, scopeId, nodeId);
+  const aim = view.sourceLaneAim(scopeId);
+  const byKey = (key: string | undefined) =>
+    lanes.find((lane) => lane.key === key)?.control;
+  return (
+    byKey(aim) ??
+    first.map((key) => byKey(key)).find((control) => control) ??
+    lanes[0]?.control
+  );
+}
+
 export interface SourceLaneSignature {
   Element: HTMLDivElement;
   Args: {
@@ -36,23 +79,8 @@ export default class SourceLane extends Component<SourceLaneSignature> {
   @service declare audio: AudioService;
   @service declare view: ViewService;
 
-  /**
-   * This source's lanes, among the lanes of the script's grids (a waveform's own controls are hidden
-   * ones, so they are found here and not among the source's control rows).
-   */
   get lanes(): LaneView[] {
-    const seen = new Set<string>();
-    const lanes: LaneView[] = [];
-    for (const grid of this.audio.stepGrids(this.args.scopeId)) {
-      for (const lane of this.audio.lanes(this.args.scopeId, grid.name)) {
-        if (lane.control.source !== this.args.nodeId || seen.has(lane.key)) {
-          continue;
-        }
-        seen.add(lane.key);
-        lanes.push(lane);
-      }
-    }
-    return lanes;
+    return sourceLanes(this.audio, this.args.scopeId, this.args.nodeId);
   }
 
   /** The lane open over this source. */

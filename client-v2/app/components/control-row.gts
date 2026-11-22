@@ -28,8 +28,9 @@ export interface ControlRowSignature {
     scopeId: string;
     control: ControlView;
     /**
-     * It is one of the source's controls: its lane is shown over the source's editor, one at a time
-     * (`ViewService.sourceLane`), not under the row.
+     * It is one of the source's controls: it has no lane button; its lane is shown over the source's
+     * editor, one at a time (`ViewService.sourceLane`), by the editor's lane switch, and touching the row
+     * makes its lane the one shown there.
      */
     sourceLane?: boolean;
   };
@@ -199,6 +200,11 @@ export default class ControlRow extends Component<ControlRowSignature> {
         );
   }
 
+  /** It has a lane button: a lane to show, under the row (a source's control has the editor's switch). */
+  get laneButton(): boolean {
+    return !this.args.sourceLane && this.laneGrid !== undefined;
+  }
+
   /** It is drawn under the row (a source's control has its lane over the editor instead). */
   get laneInline(): boolean {
     return !this.args.sourceLane && this.laneShown;
@@ -218,14 +224,14 @@ export default class ControlRow extends Component<ControlRowSignature> {
     return [this.args.control.key];
   }
 
-  toggleLane = (): void => {
-    if (this.args.sourceLane) {
-      this.view.setSourceLane(
-        this.args.scopeId,
-        this.laneShown ? null : this.args.control.key,
-      );
-      return;
+  /** A source's control was touched: its lane is the one the editor's lane switch shows. */
+  aim = (): void => {
+    if (this.args.sourceLane && this.laneGrid) {
+      this.view.aimSourceLane(this.args.scopeId, this.args.control.key);
     }
+  };
+
+  toggleLane = (): void => {
     this.view.setLane(
       this.args.scopeId,
       this.args.control.key,
@@ -260,9 +266,12 @@ export default class ControlRow extends Component<ControlRowSignature> {
       title={{@control.waiting}}
       data-test-control={{@control.key}}
       ...attributes
+      {{! template-lint-disable no-pointer-down-event-binding }}
+      {{on "pointerdown" this.aim}}
+      {{on "focusin" this.aim}}
       {{intoView this.linked}}
     >
-      {{#if this.laneGrid}}
+      {{#if this.laneButton}}
         <LaneButton
           @control={{@control}}
           @pressed={{this.laneShown}}

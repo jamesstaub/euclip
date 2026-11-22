@@ -32,8 +32,11 @@ import {
 } from 'client-v2/controls/modes';
 import { REGION_GAP } from 'client-v2/controls/live-range';
 import { glideBlockedItems, unitMenuItems } from 'client-v2/controls/unit-menu';
-import LaneButton from 'client-v2/components/lane-button';
-import SourceLane from 'client-v2/components/source-lane';
+import LaneSwitch from 'client-v2/components/lane-switch';
+import SourceLane, {
+  aimedControl,
+  sourceLanes,
+} from 'client-v2/components/source-lane';
 import { mappingOf, numberOf } from 'client-v2/controls/view';
 import cssVars from 'client-v2/modifiers/css-vars';
 import selectOptions, {
@@ -204,6 +207,8 @@ interface HandleView {
   /** px from the left of the stage; and whether it is in view at all */
   x: number;
   shown: boolean;
+  /** a loop point while the loop is off: drawn faint, still moved */
+  faint: boolean;
   tabLeft: number;
   tabTop: number;
   lane: 'top' | 'bottom';
@@ -441,8 +446,6 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
       const control = this.control(id);
       const map = control ? mappingOf(control) : null;
       if (!control || !map || typeof control.value !== 'number') continue;
-      // the loop's handles are there to be moved only while the loop is on
-      if ((id === 'loopStart' || id === 'loopEnd') && !this.looping) continue;
       const x = timeToX(view, stage.width, control.value);
       const box = tabBox(id, x, stage, tab);
       handles.push({
@@ -457,6 +460,8 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
         max: map.toValue(1),
         x,
         shown: this.ready && x >= -1 && x <= stage.width + 1,
+        // (the loop's, while the loop is off: there to be moved, not in play)
+        faint: (id === 'loopStart' || id === 'loopEnd') && !this.looping,
         tabLeft: box.left,
         tabTop: box.top,
         ...HANDLE_PLACE[id],
@@ -562,12 +567,15 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
    * the first with a lane (the speed).
    */
   get laneControl(): ControlView | undefined {
-    const withLanes = this.groups
-      .flatMap((group) => group.cells)
-      .map((cell) => cell.control)
-      .filter((control) => this.#hasLane(control));
-    const aim = this.view.sourceLaneAim(this.args.scopeId);
-    return withLanes.find((control) => control.key === aim) ?? withLanes[0];
+    return aimedControl(
+      this.audio,
+      this.view,
+      this.args.scopeId,
+      this.args.waveform.nodeId,
+      this.groups
+        .flatMap((group) => group.cells)
+        .map((cell) => cell.control.key),
+    );
   }
 
   get laneOpen(): boolean {
@@ -576,16 +584,24 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
 
   /** Some value of the editor has steps of their own: the lane button is blue. */
   get lanesSet(): boolean {
-    return this.groups.some((group) =>
-      group.cells.some((cell) => (cell.control.lane?.locked ?? 0) > 0),
-    );
+    return sourceLanes(
+      this.audio,
+      this.args.scopeId,
+      this.args.waveform.nodeId,
+    ).some((lane) => lane.active);
   }
 
-  /** The one lane button: the lane over the picture, or the picture again. */
-  toggleLanes = (): void => {
+  /** The lane switch's picture button: the waveform again. */
+  showPicture = (): void => {
+    this.view.setSourceLane(this.args.scopeId, null);
+  };
+
+  /** The lane switch's steps button: the lane of the value last touched, over the picture. */
+  showLanes = (): void => {
     const control = this.laneControl;
-    if (this.laneOpen) this.view.setSourceLane(this.args.scopeId, null);
-    else if (control) this.view.setSourceLane(this.args.scopeId, control.key);
+    if (!this.laneOpen && control) {
+      this.view.setSourceLane(this.args.scopeId, control.key);
+    }
   };
 
   /** A value was touched: its lane is the one shown (at once, where a lane is open). */
@@ -2223,7 +2239,8 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
                 'waveform__handle--after'
                 'waveform__handle--before'
               }}
-              {{if (eq handle.id this.active) 'is-active'}}"
+              {{if (eq handle.id this.active) 'is-active'}}
+              {{if handle.faint 'waveform__handle--faint'}}"
             role="slider"
             tabindex="0"
             hidden={{if handle.shown false true}}
@@ -2274,14 +2291,16 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
 
       <div class="waveform__foot">
         {{#if this.laneControl}}
-          {{! the one lane button: the lane of the value last touched, over the picture; again, the picture }}
-          <LaneButton
-            class="waveform__lanes-button"
+          {{! the picture, or the lane of the value last touched in its place }}
+          <LaneSwitch
+            class="waveform__lane-switch"
+            @picture="Waveform"
+            @icon="sound"
             @control={{this.laneControl}}
-            @pressed={{this.laneOpen}}
+            @open={{this.laneOpen}}
             @active={{this.lanesSet}}
-            @onToggle={{this.toggleLanes}}
-            data-test-waveform-lanes
+            @onPicture={{this.showPicture}}
+            @onLanes={{this.showLanes}}
           />
         {{/if}}
         <div class="waveform__values">
@@ -2341,7 +2360,6 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
                       title={{cell.full}}
                       @text={{cell.text}}
                       @label={{cell.name}}
-                      @disabled={{cell.faint}}
                       @value={{cell.value}}
                       @mapping={{cell.map}}
                       @onChange={{fn this.change cell.id}}

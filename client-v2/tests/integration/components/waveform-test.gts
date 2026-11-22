@@ -143,7 +143,13 @@ module('Integration | Component | waveform', function (hooks) {
     assert.dom(handle('end')).hasAria('valuetext', '4 s');
     assert
       .dom(handle('loopStart'))
-      .doesNotExist('the loop’s handles are there while the loop is on');
+      .hasClass(
+        'waveform__handle--faint',
+        'the loop’s handles are there while the loop is off, faint, to be moved',
+      );
+    assert
+      .dom('[data-test-waveform-value="loopStart"] [data-test-number-entry]')
+      .isNotDisabled('and its values can be typed');
   });
 
   test('a handle is dragged by its tab, follows the pointer off the editor, and is one step to undo', async function (assert) {
@@ -262,7 +268,7 @@ module('Integration | Component | waveform', function (hooks) {
     await open();
     await click('[data-test-waveform-loop]');
     assert.true(param('loop'));
-    assert.dom(handle('loopStart')).exists();
+    assert.dom(handle('loopStart')).doesNotHaveClass('waveform__handle--faint');
     assert.dom(handle('loopEnd')).hasAria('valuenow', '4');
 
     // the loop start's tab stands on the bottom, right of its line; start's hangs from the top at the same place
@@ -337,10 +343,10 @@ module('Integration | Component | waveform', function (hooks) {
     );
 
     // a double click on the sound adds one there
-    await triggerEvent(STAGE, 'pointerdown', at(0.03, 80));
-    await triggerEvent(document.body, 'pointerup', at(0.03, 80));
-    await triggerEvent(STAGE, 'pointerdown', at(0.03, 80));
-    await triggerEvent(document.body, 'pointerup', at(0.03, 80));
+    await triggerEvent(STAGE, 'pointerdown', at(0.03, 55));
+    await triggerEvent(document.body, 'pointerup', at(0.03, 55));
+    await triggerEvent(STAGE, 'pointerdown', at(0.03, 55));
+    await triggerEvent(document.body, 'pointerup', at(0.03, 55));
     assert.strictEqual(ref.slices.length, 16);
     assert.true(
       Math.abs(ref.slices[1]! - 0.12) < 0.01,
@@ -506,7 +512,7 @@ module('Integration | Component | waveform', function (hooks) {
     assert
       .dom('[data-test-waveform-value="loopStart"]')
       .hasClass('waveform__value--faint');
-    assert.dom(value('loopStart')).isDisabled();
+    assert.dom(value('loopStart')).isNotDisabled('faint, still to be changed');
     await click('[data-test-waveform-loop]');
     assert
       .dom('[data-test-waveform-value="loopStart"]')
@@ -569,11 +575,13 @@ module('Integration | Component | waveform', function (hooks) {
     const SPEED = '#sampler › speed';
     const START = '#sampler › start';
     const REVERSE = '#sampler › reverse';
-    const lanes = '[data-test-waveform-lanes]';
+    const lanes = '[data-test-lane-switch-lanes]';
+    const picture = '[data-test-lane-switch-picture]';
     assert
       .dom('[data-test-waveform-value] [data-test-lane-button]')
       .doesNotExist('no button in the cells');
     assert.dom(lanes).exists({ count: 1 });
+    assert.dom(picture).hasAria('pressed', 'true', 'the waveform, to begin');
     const cell = find('[data-test-waveform-value="speed"]') as HTMLElement;
     const before = cell.getBoundingClientRect();
 
@@ -583,6 +591,7 @@ module('Integration | Component | waveform', function (hooks) {
       .dom(`.waveform__stage [data-test-source-lane="${SPEED}"]`)
       .exists('laid over the picture');
     assert.dom(lanes).hasAria('pressed', 'true');
+    assert.dom(picture).hasAria('pressed', 'false');
     assert
       .dom('.waveform__values .number-entry-box')
       .exists({ count: 5 }, 'the values stay in reach under it');
@@ -628,9 +637,15 @@ module('Integration | Component | waveform', function (hooks) {
     await click(lanes);
     assert
       .dom(`[data-test-source-lane="${REVERSE}"]`)
-      .exists('the button opens the one last shown');
+      .exists('the steps button opens the one last shown');
     await click(lanes);
-    assert.dom('[data-test-source-lane]').doesNotExist('and closes it');
+    assert
+      .dom('[data-test-source-lane]')
+      .exists('pressed again, it stays: it is one of two');
+    await click(picture);
+    assert
+      .dom('[data-test-source-lane]')
+      .doesNotExist('the waveform button brings the picture back');
 
     await click('[data-test-speed-menu] [data-test-menu-button]');
     // the open menu and everything above it are opaque
@@ -1322,7 +1337,7 @@ module('Integration | Component | waveform', function (hooks) {
       .exists('the loop’s points have their cells while the loop is off');
     assert
       .dom('[data-test-waveform-value="loopStart"] [data-test-number-entry]')
-      .isDisabled('not to be changed then');
+      .isNotDisabled('still to be changed then');
     assert
       .dom('[data-test-waveform-value="loopStart"]')
       .hasClass('waveform__value--faint');

@@ -681,3 +681,50 @@ button.number-entry:disabled {
 .control-row__steps .lane__head > b {
   display: none;
 }
+
+/*
+ * A source editor's lane switch (components/lane-switch.gts): two squares, its picture (the waveform, the
+ * keyboard) and the lane of the value last touched in its place. The one pressed is dark.
+ */
+.lane-switch {
+  --size: var(--lane-switch-size, 2rem);
+
+  display: flex;
+  flex: none;
+  gap: 2px;
+}
+
+.lane-switch__button,
+.lane-switch__button.lane-button {
+  display: inline-grid;
+  place-items: center;
+  inline-size: var(--size);
+  min-inline-size: var(--size);
+  block-size: var(--size);
+  padding: 0;
+  border: var(--border-dark);
+  background: var(--dark-yellow);
+  color: var(--near-black);
+  cursor: pointer;
+
+  & .icon {
+    inline-size: 0.875rem;
+    block-size: 0.875rem;
+  }
+
+  &[data-active] {
+    background: var(--dark-blue);
+    color: var(--light-blue);
+  }
+
+  &[aria-pressed="true"] {
+    background: var(--near-black);
+    color: var(--light-blue);
+  }
+}
+
+@media (pointer: coarse) {
+  .lane-switch {
+    --size: var(--lane-switch-size, var(--target-min));
+  }
+}

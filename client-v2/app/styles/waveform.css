@@ -890,6 +890,16 @@
   }
 }
 
+/* a loop point's handle while the loop is off: there to be moved, not in play */
+.waveform__handle--faint {
+  opacity: 0.45;
+}
+
+/* the switches' names are one width, so the switches stand one under the other */
+.waveform__value--switch .waveform__label {
+  flex: 1 1 0;
+}
+
 /* the loop's points while the loop is off: in their places, not in play
    (faint is for the cell's own content and fill, never its menu: an opacity on the cell would reach the popup in it) */
 .waveform__value--faint {
@@ -1054,32 +1064,10 @@
   }
 }
 
-.waveform__lanes-button.lane-button {
-  align-self: stretch;
-  block-size: auto;
-  min-inline-size: 1.5rem;
-  padding-inline: 0;
-  border: var(--border-dark);
-  background: var(--dark-yellow);
-
-  & .icon {
-    inline-size: 0.875rem;
-    block-size: 0.875rem;
-  }
-
-  &[data-active] {
-    background: var(--dark-blue);
-  }
-
-  &[aria-pressed="true"] {
-    background: var(--near-black);
-  }
-}
-
-@media (pointer: coarse) {
-  .waveform__lanes-button.lane-button {
-    min-inline-size: var(--target-min);
-  }
+/* the picture or a lane: two squares, one over the other, at the values' start */
+.waveform__lane-switch {
+  flex-direction: column;
+  justify-content: start;
 }
 
 .waveform:has(.source-lane) .waveform__value.is-aimed {
@@ -1090,11 +1078,15 @@
 /*
  * The one multislider open over the source (components/source-lane.gts). Over a waveform it takes the
  * picture's place, the whole of it, so the values under it stay in reach (scrolled within, where its bars
- * want more room than the picture has). Over a synth's keyboard it is the whole width and at least the
- * whole height of the keys; where its bars need more room it grows upward, never past the editor's foot.
+ * want more room than the picture has). Over a synth it takes the keyboard's place the same way.
  */
-.synth__keys {
+.synth__keyboard {
   position: relative;
+}
+
+/* (a short keyboard makes room for the lane's bars while it is over it) */
+.synth__keyboard:has(> .source-lane) {
+  min-block-size: 7.25rem;
 }
 
 .source-lane {
@@ -1116,6 +1108,13 @@
 .source-lane--inline {
   position: static;
   margin-block-start: var(--space-2);
+}
+
+.synth__keyboard > .source-lane {
+  inset-block: 0;
+  min-block-size: 0;
+  overflow-y: auto;
+  border: 0;
 }
 
 .waveform__stage > .source-lane {
