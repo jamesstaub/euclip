@@ -1117,19 +1117,6 @@
   border: 0;
 }
 
-.waveform__stage > .source-lane {
-  inset-block: 0;
-  min-block-size: 0;
-  overflow-y: auto;
-  border: 0;
-  cursor: auto;
-}
-
-/* (with the lane over it, a finger on the picture's place scrolls the lane, as the pane does) */
-.waveform__stage:has(> .source-lane) {
-  touch-action: pan-y;
-}
-
 /* its menu of the source's lanes (its name) and its ×, along the lane head: the bars have the whole width */
 .source-lane__bar {
   position: absolute;
@@ -1194,23 +1181,19 @@
   display: none;
 }
 
-/*
- * With a lane in the picture's place, the place grows into the tools' room (and past the picture's own
- * most), and the lane's bars stretch to fill it: as tall as the editor has room for, never under 4rem.
- */
-.waveform__stage:has(> .source-lane) {
-  flex-grow: 1;
-  max-block-size: none;
-}
-
+/* (its bars stretch to the place's height, never under 4rem, and share its whole width: no steps above
+   them to line up with) */
 .waveform__stage > .source-lane {
+  inset-block: 0;
   display: flex;
   flex-direction: column;
+  min-block-size: 0;
+  overflow-y: auto;
+  border: 0;
+  cursor: auto;
 
   & > .source-lane__grid {
     flex: 1 1 auto;
-
-    /* (no steps above it to line up with: its bars share the whole width) */
     grid-template-columns: repeat(16, minmax(0, 1fr)) max-content;
     grid-template-rows: auto;
     grid-auto-rows: minmax(4rem, 1fr);
@@ -1219,4 +1202,12 @@
   & .lane__bar {
     block-size: auto;
   }
+}
+
+/* With the lane in its place the picture's place grows into the tools' room (they are hidden), past the
+   picture's own most; a finger on it scrolls the lane, as the pane does. */
+.waveform__stage:has(> .source-lane) {
+  flex-grow: 1;
+  max-block-size: none;
+  touch-action: pan-y;
 }
