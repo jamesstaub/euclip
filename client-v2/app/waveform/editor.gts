@@ -103,6 +103,9 @@ type ValueCell =
       name: string;
       short: string;
       mid: string;
+      control: ControlView;
+      laneShown: boolean;
+      hasLane: boolean;
     };
 
 interface ValueGroup {
@@ -504,8 +507,24 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
       id: 'loop' | 'reverse',
       name: string,
       short = name,
-    ): ValueCell[] =>
-      this.control(id) ? [{ id, number: false, name, short, mid: short }] : [];
+    ): ValueCell[] => {
+      const control = this.control(id);
+      return control
+        ? [
+            {
+              id,
+              number: false,
+              name,
+              short,
+              mid: short,
+              control,
+              laneShown:
+                this.view.sourceLane(this.args.scopeId) === control.key,
+              hasLane: this.#hasLane(control),
+            },
+          ]
+        : [];
+    };
     // Left to right: the speed; the four places in the sound, which share a unit; the two switches.
     const groups: ValueGroup[] = [
       {
@@ -547,7 +566,7 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
     );
   }
 
-  /** A value's lane button: its lane over the editor's values, in place of another's; again, none. */
+  /** A value's lane button: its lane over the editor's picture, in place of another's; again, none. */
   toggleLane = (key: string): void => {
     const scopeId = this.args.scopeId;
     this.view.setSourceLane(
@@ -570,7 +589,7 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
     const units = unitMenuItems(control, (choice) =>
       this.audio.chooseControlMode(scopeId, control.key, choice),
     );
-    // its lane over the editor's values: the same as the cell's lane button
+    // its lane over the editor's picture: the same as the cell's lane button
     const lane = this.#hasLane(control) ? control.lane : undefined;
     const shown = this.view.sourceLane(scopeId) === control.key;
     const steps: MenuItem[] = lane
@@ -2192,6 +2211,10 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
             {{this.registerCursor}}
           ></span>
         {{/each}}
+
+        {{! the one multislider open over the source: in place of the picture, so the values under it
+          stay in reach and a value typed there moves the bars that follow it }}
+        <SourceLane @scopeId={{@scopeId}} @nodeId={{@waveform.nodeId}} />
       </div>
 
       {{#if this.zoomed}}
@@ -2293,6 +2316,14 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
                   class="waveform__value waveform__value--switch"
                   data-test-waveform-value={{cell.id}}
                 >
+                  {{#if cell.hasLane}}
+                    <LaneButton
+                      class="waveform__lane-button"
+                      @control={{cell.control}}
+                      @pressed={{cell.laneShown}}
+                      @onToggle={{fn this.toggleLane cell.control.key}}
+                    />
+                  {{/if}}
                   <span class="waveform__label" title={{cell.name}}>
                     <span class="waveform__label-full">{{cell.name}}</span>
                     <span
@@ -2324,8 +2355,6 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
             {{/each}}
           </div>
         {{/each}}
-        {{! the one multislider open over the source: laid over these values }}
-        <SourceLane @scopeId={{@scopeId}} @nodeId={{@waveform.nodeId}} />
       </div>
     </section>
   </template>

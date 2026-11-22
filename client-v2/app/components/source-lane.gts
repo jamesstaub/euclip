@@ -1,4 +1,5 @@
 import Component from '@glimmer/component';
+import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import LaneButton from 'client-v2/components/lane-button';
 import { stepGridWidget } from 'client-v2/controls/registry';
@@ -24,10 +25,10 @@ export interface SourceLaneSignature {
 
 /**
  * The one lane shown over a source's editor (`ViewService.sourceLane`): the multislider of a sampler's
- * speed, start, end or loop point, or of any other control of the source, opened from the control's
- * lane button. It is laid over the editor's values (a synth's keyboard), as wide as they are and at
- * least as tall, so its bars have room; the editor's picture stays in view above it. Its own lane
- * button (pressed), Hide lane in its menu, or Escape close it; another control's button replaces it.
+ * speed, start, end, loop points, loop or reverse, or of any other control of the source, opened from the
+ * control's lane button. It is laid over the waveform's picture (a synth's keyboard), in its place, so the
+ * values under it stay in reach: a value typed there moves the bars of the steps that follow it. Its own
+ * lane button (pressed), Hide lane in its menu, or Escape close it; another control's button replaces it.
  */
 export default class SourceLane extends Component<SourceLaneSignature> {
   @service declare audio: AudioService;
@@ -63,6 +64,11 @@ export default class SourceLane extends Component<SourceLaneSignature> {
     return this.control ? [this.control.key] : [];
   }
 
+  /** A press, a drag or a wheel in it is its own, not the picture's under it (no handle moved, no zoom). */
+  keep = (event: Event): void => {
+    event.stopPropagation();
+  };
+
   close = (): void => {
     this.view.setSourceLane(this.args.scopeId, null);
   };
@@ -76,6 +82,10 @@ export default class SourceLane extends Component<SourceLaneSignature> {
           aria-label="{{this.control.label}} steps"
           data-test-source-lane={{this.control.key}}
           {{onEscape this.close}}
+          {{! template-lint-disable no-pointer-down-event-binding no-invalid-interactive }}
+          {{on "pointerdown" this.keep}}
+          {{on "mousedown" this.keep}}
+          {{on "wheel" this.keep}}
           ...attributes
         >
           <LaneButton
@@ -88,7 +98,6 @@ export default class SourceLane extends Component<SourceLaneSignature> {
             class="source-lane__grid"
             @scopeId={{@scopeId}}
             @control={{this.grid}}
-            @lanes={{true}}
             @laneKeys={{this.keys}}
             @hideSteps={{true}}
             @onHideLane={{this.close}}

@@ -1052,13 +1052,26 @@
 }
 
 /*
- * The one multislider open over the source (components/source-lane.gts): laid over the waveform's values,
- * or a synth's keyboard, the whole width and at least the whole height of them; where its bars need more
- * room it grows upward, over the picture, never past the foot of the editor.
+ * The one multislider open over the source (components/source-lane.gts). Over a waveform it takes the
+ * picture's place, the whole of it, so the values under it stay in reach (scrolled within, where its bars
+ * want more room than the picture has). Over a synth's keyboard it is the whole width and at least the
+ * whole height of the keys; where its bars need more room it grows upward, never past the editor's foot.
  */
-.waveform__values,
 .synth__keys {
   position: relative;
+}
+
+.waveform__stage > .source-lane {
+  inset-block: 0;
+  min-block-size: 0;
+  overflow-y: auto;
+  border: 0;
+  cursor: auto;
+}
+
+/* (with the lane over it, a finger on the picture's place scrolls the lane, as the pane does) */
+.waveform__stage:has(> .source-lane) {
+  touch-action: pan-y;
 }
 
 .source-lane {

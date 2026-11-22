@@ -94,12 +94,9 @@ export interface StepGridWidgetSignature {
      */
     generators?: boolean;
     /**
-     * With the lanes of the sequence's per-step controls under it, in the same step columns: a bar
-     * for every step, drawn and dragged like a slider.
-     */
-    lanes?: boolean;
-    /**
-     * Only these lanes (controls' keys) are shown. Absent: all of them (the sequence pane).
+     * The lanes of these per-step controls (their keys) under it, in the same step columns: a bar for
+     * every step, drawn and dragged like a slider. A lane is drawn with its control (a processor's row,
+     * the source's overlay), never in the steps tab.
      */
     laneKeys?: readonly string[];
     /** Only its lanes: the steps are not drawn (a lane drawn with its control). */
@@ -411,18 +408,15 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
   // --- lanes: a per-step control's value on every step, in the grid's own columns ---------------------
 
   /**
-   * The lanes drawn under the grid: the ones named, else the ones the track shows (a lane in play, or
-   * one the person has opened). Their bars are items of the grid itself, so they stand under their steps.
+   * The lanes drawn under the grid: the ones named. Their bars are items of the grid itself, so they
+   * stand under their steps.
    */
   get lanes(): LaneView[] {
-    if (!this.args.lanes) return [];
-    const all = this.audio.lanes(this.args.scopeId, this.args.control.name);
     const only = this.args.laneKeys;
-    return only === undefined
-      ? all.filter((lane) =>
-          this.view.isLaneShown(this.args.scopeId, lane.key, lane.active),
-        )
-      : all.filter((lane) => only.includes(lane.key));
+    if (!only || only.length === 0) return [];
+    return this.audio
+      .lanes(this.args.scopeId, this.args.control.name)
+      .filter((lane) => only.includes(lane.key));
   }
 
   /** Every step of a lane follows its control again: one step to undo. */

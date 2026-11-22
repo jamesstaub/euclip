@@ -351,7 +351,6 @@ export default class ControlRow extends Component<ControlRowSignature> {
             class="control-row__steps"
             @scopeId={{@scopeId}}
             @control={{this.laneGrid}}
-            @lanes={{true}}
             @laneKeys={{this.laneKeys}}
             @hideSteps={{true}}
             data-test-control-steps

@@ -853,29 +853,20 @@ stepGrid('ones');
       );
       view.footerPane = 'sequence';
       await settled();
+      assert
+        .dom('[data-test-pane="sequence"] [data-lane-step]')
+        .doesNotExist('the steps tab draws no lanes');
+      view.footerPane = 'sound';
+      await settled();
 
-      const pane = '[data-test-pane="sequence"] [data-test-step-grid="steps"]';
+      // the lane, under the control's own row
+      const pane = row(FREQUENCY);
       assert
         .dom(`${pane} [data-test-lane="${FREQUENCY}"]`)
         .includesText('frequency');
       const bars = findAll(`${pane} [data-lane-step]`);
       assert.strictEqual(bars.length, 16, 'a bar for every step');
       assert.dom(`${pane} [data-locked]`).doesNotExist('every step follows');
-      // each bar stands under its step: the same horizontal centre
-      const centre = (el: Element): number => {
-        const rect = el.getBoundingClientRect();
-        return rect.left + rect.width / 2;
-      };
-      const stepsIn = findAll(`${pane} [data-test-step]`);
-      const off = Math.max(
-        ...bars.map((bar, index) =>
-          Math.abs(centre(bar) - centre(stepsIn[index]!)),
-        ),
-      );
-      assert.true(
-        off < 1,
-        `bars are in their steps’ columns (worst ${off.toFixed(2)} px)`,
-      );
 
       // a drag across the bars paints them: down on the first, along to the third, low in the bar
       const at = (index: number, share: number) => {
@@ -945,8 +936,6 @@ stepGrid('ones');
 
       // the track’s row draws steps only
       assert.dom('[data-test-track="1"] [data-lane-step]').doesNotExist();
-      view.footerPane = 'sound';
-      await settled();
       assert
         .dom(`${row(FREQUENCY)} [data-test-lane-button]`)
         .hasAttribute(

@@ -573,13 +573,19 @@ module('Integration | Component | waveform', function (hooks) {
     assert.dom('.waveform__value--number [data-test-lane-button]').exists({
       count: 5,
     });
+    assert
+      .dom('.waveform__value--switch [data-test-lane-button]')
+      .exists({ count: 2 }, 'Loop and Reverse have lanes too');
     const cell = find('[data-test-waveform-value="speed"]') as HTMLElement;
     const before = cell.getBoundingClientRect();
 
     await click(button('start'));
     assert
-      .dom(`.waveform__values [data-test-source-lane="${START}"]`)
-      .exists('laid over the values');
+      .dom(`.waveform__stage [data-test-source-lane="${START}"]`)
+      .exists('laid over the picture');
+    assert
+      .dom('.waveform__values .number-entry-box')
+      .exists({ count: 5 }, 'the values stay in reach under it');
     assert.dom(button('start')).hasAria('pressed', 'true');
     assert
       .dom(`[data-test-source-lane] [data-lane-step]`)
@@ -601,6 +607,12 @@ module('Integration | Component | waveform', function (hooks) {
     const after = cell.getBoundingClientRect();
     assert.strictEqual(after.width, before.width, 'the cell does not change');
     assert.strictEqual(after.height, before.height);
+
+    await click(button('reverse'));
+    assert
+      .dom('[data-test-source-lane] [data-lane-step]')
+      .exists({ count: 16 }, 'a switch’s lane: a cell per step');
+    assert.dom(button('reverse')).hasAria('pressed', 'true');
 
     await click('[data-test-source-lane] .source-lane__close');
     assert
