@@ -19,7 +19,7 @@
   flex-direction: column;
   justify-content: center;
   gap: var(--space-1);
-  inline-size: 6.5rem;
+  inline-size: 7rem;
   padding: var(--space-1) var(--space-2);
   background: var(--dark-gray);
   color: var(--light-gray);
@@ -30,6 +30,27 @@
     font-weight: var(--font-weight-heavy);
     line-height: var(--line-height-title);
   }
+}
+
+/* M and S: square, the same size pressed or not (only colours change), side by side under the heading. */
+.channel-strip__switches {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.channel-strip__switch {
+  flex: none;
+  justify-content: center;
+  inline-size: var(--target-min);
+  block-size: var(--target-min);
+  padding: 0;
+  border-radius: 0;
+}
+
+.channel-strip__switch--mute[aria-pressed="true"] {
+  border-color: var(--light-red);
+  background: var(--light-red);
+  color: var(--white);
 }
 
 .channel-strip__controls {
@@ -131,7 +152,7 @@
 @container track-footer (min-width: 36rem) {
   .channel-strip:not([data-phone="true"] *) {
     flex-direction: column;
-    inline-size: 6.5rem;
+    inline-size: 7rem;
     text-align: center;
 
     & .channel-strip__title {

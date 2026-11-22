@@ -748,11 +748,19 @@ export class ProjectRunner {
         if (track) this.#applyStrip(track, true);
         break;
       }
+      case 'setTrackMute':
+      case 'setTrackSolo':
+        // (one track's solo changes what every other track is)
+        for (const track of doc.tracks) this.#applyStrip(track, true);
+        break;
       case 'addTrack':
         void this.run(op.track.id);
+        // (a track that is not soloed, added while one is, is silent; the others are unchanged)
         break;
       case 'removeTrack':
         this.#remove(op.id);
+        // (the last soloed track going lets the rest be heard)
+        for (const track of doc.tracks) this.#applyStrip(track, true);
         break;
       case 'renameSample':
       case 'duplicateSample':
@@ -2678,6 +2686,15 @@ export class ProjectRunner {
    * outward through parent scopes) but its selectors, which look inward, never find the pan; and its
    * rebuilds, which only reconcile their own scope, never touch either.
    */
+  /**
+   * 1 when the track is heard, 0 when it is muted or another track is soloed and this one is not. It
+   * multiplies the strip's level at the channel's gain: the stored level is never changed by it.
+   */
+  #audible(track: TrackDocument): number {
+    const anySolo = this.#host.getDoc().tracks.some((other) => other.solo);
+    return track.mute || (anySolo && !track.solo) ? 0 : 1;
+  }
+
   #applyStrip(track: TrackDocument, moved = false): void {
     const runtime = this.#scopes.get(track.id);
     if (!runtime) return;
@@ -2685,7 +2702,7 @@ export class ProjectRunner {
     // has got to, so the sound has no steps in it. As a track is made there is nothing to glide from.
     const how = moved ? FOLLOW : undefined;
     const out = runtime.host.bus(OUT_BUS);
-    out.gain.set(track.level, how);
+    out.gain.set(track.level * this.#audible(track), how);
     [...out.inserts]
       .find((node) => node.id === HOST_PAN_ID)
       ?.param('pan')
@@ -2787,7 +2804,7 @@ export class ProjectRunner {
           pan: track.pan,
           tags: { [HOST_TAG]: 'host' },
         });
-      host.bus(OUT_BUS).gain.set(track.level);
+      host.bus(OUT_BUS).gain.set(track.level * this.#audible(track));
     }
     created.off.push(
       scope.on('param:changed', (change) =>

@@ -28,6 +28,21 @@ module('Unit | Service | project', function (hooks) {
     );
   });
 
+  test('mute and solo are undo steps of their own, one per press', function (assert) {
+    const project = this.owner.lookup('service:project');
+    project.apply({ type: 'setTrackMute', id: 't-kick', mute: true });
+    project.apply({ type: 'setTrackMute', id: 't-kick', mute: false });
+    project.apply({ type: 'setTrackSolo', id: 't-kick', solo: true });
+    project.undo();
+    assert.notOk(project.doc.tracks[0]?.solo);
+    project.undo();
+    assert.true(project.doc.tracks[0]?.mute, 'the unmute is undone');
+    project.undo();
+    assert.notOk(project.doc.tracks[0]?.mute);
+    project.redo();
+    assert.true(project.doc.tracks[0]?.mute);
+  });
+
   test('undo and redo', function (assert) {
     const project = this.owner.lookup('service:project');
     const heard: string[] = [];

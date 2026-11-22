@@ -1463,6 +1463,39 @@ stepGrid('ones');
       );
     });
 
+    test('the channel strip’s M and S buttons are toggles that store mute and solo, and silence the channel', async function (assert) {
+      await render(<template><AppShell /></template>);
+      const mute = '[data-test-strip-mute]';
+      const solo = '[data-test-strip-solo]';
+      assert
+        .dom(mute)
+        .hasAria('pressed', 'false')
+        .hasAria('label', 'Mute track');
+      assert
+        .dom(solo)
+        .hasAria('pressed', 'false')
+        .hasAria('label', 'Solo track');
+      const before = (find(mute) as HTMLElement).getBoundingClientRect();
+
+      await click(mute);
+      assert.dom(mute).hasAria('pressed', 'true');
+      assert.true(project.doc.tracks[0]?.mute);
+      assert.strictEqual(
+        audio.engine!.scope('t-kick').bus('channel').gain.value,
+        0,
+      );
+      const after = (find(mute) as HTMLElement).getBoundingClientRect();
+      assert.strictEqual(after.width, before.width, 'nothing resizes');
+      assert.strictEqual(after.height, before.height);
+
+      await click(solo);
+      assert.dom(solo).hasAria('pressed', 'true');
+      project.undo();
+      await settled();
+      assert.dom(solo).hasAria('pressed', 'false');
+      assert.dom(mute).hasAria('pressed', 'true');
+    });
+
     test('chains are separate blocks, a bus is a block with its level first, and a node with no id says so', async function (assert) {
       await render(<template><AppShell /></template>);
       await click('[data-test-script-toggle]');

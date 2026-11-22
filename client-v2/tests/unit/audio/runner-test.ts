@@ -311,6 +311,56 @@ module('Unit | Audio | runner', function () {
       assert.strictEqual(h.runner.error(KICK), null);
     });
 
+    test('mute and solo multiply the channel’s level: solo wins over silence, mute over solo, nothing is lost on a rebuild or a new track', async function (assert) {
+      const h = await startProject();
+      const ids = h.doc.tracks.map((track) => track.id);
+      const gainOf = (id: string): number =>
+        h.engine.scope(id).bus(OUT_BUS).gain.value;
+      const levels = (): number[] => ids.map(gainOf);
+      h.apply({ type: 'setTrackLevel', id: KICK, level: 0.5 });
+
+      h.apply({ type: 'setTrackMute', id: KICK, mute: true });
+      assert.strictEqual(gainOf(KICK), 0, 'muted');
+      assert.true(gainOf(ids[1]!) > 0, 'the others are heard');
+      assert.strictEqual(h.doc.tracks[0]?.level, 0.5, 'the level is kept');
+
+      await h.setScript(KICK, scriptOf(h, KICK) + '\n// again');
+      assert.strictEqual(gainOf(KICK), 0, 'a rebuild does not unmute');
+
+      h.apply({ type: 'setTrackMute', id: KICK, mute: false });
+      assert.strictEqual(gainOf(KICK), 0.5, 'back at its level');
+
+      h.apply({ type: 'setTrackSolo', id: ids[1]!, solo: true });
+      assert.deepEqual(
+        levels().map((gain, i) => gain > 0 || i === 1),
+        [false, true, false],
+        'only the soloed track is heard',
+      );
+      h.apply({ type: 'setTrackSolo', id: KICK, solo: true });
+      assert.strictEqual(gainOf(KICK), 0.5, 'two soloed');
+      h.apply({ type: 'setTrackMute', id: KICK, mute: true });
+      assert.strictEqual(gainOf(KICK), 0, 'muted and soloed is silent');
+      h.apply({ type: 'setTrackMute', id: KICK, mute: false });
+
+      const track = newTrack('extra', 'clap');
+      h.apply({ type: 'addTrack', track });
+      await h.runner.run(track.id);
+      assert.strictEqual(gainOf(track.id), 0, 'added during a solo: silent');
+
+      h.apply({ type: 'setTrackSolo', id: KICK, solo: false });
+      h.apply({ type: 'setTrackSolo', id: ids[1]!, solo: false });
+      assert.true(
+        [...ids, track.id].every((id) => gainOf(id) > 0),
+        'no solo, everyone is heard',
+      );
+
+      // undo goes through the document and sync()
+      h.apply({ type: 'setTrackSolo', id: KICK, solo: true });
+      assert.strictEqual(gainOf(ids[1]!), 0);
+      h.apply({ type: 'setTrackSolo', id: KICK, solo: false });
+      assert.true(gainOf(ids[1]!) > 0);
+    });
+
     test('tracks can be added and removed while running', async function (assert) {
       const h = await startProject();
       const track = newTrack('extra', 'clap');

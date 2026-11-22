@@ -26,6 +26,8 @@ export type Operation =
   | { type: 'renameTrack'; id: string; name: string }
   | { type: 'setTrackLevel'; id: string; level: number }
   | { type: 'setTrackPan'; id: string; pan: number }
+  | { type: 'setTrackMute'; id: string; mute: boolean }
+  | { type: 'setTrackSolo'; id: string; solo: boolean }
   /**
    * A declared control was moved: a slider's value, a step grid's steps. `key` is its key in the
    * scope's `controls`.
@@ -190,6 +192,16 @@ export function applyOperation(
         ...track,
         pan: clamp(op.pan, -1, 1),
       }));
+
+    case 'setTrackMute':
+      return withTrack(doc, op.id, (track) =>
+        Boolean(track.mute) === op.mute ? track : { ...track, mute: op.mute },
+      );
+
+    case 'setTrackSolo':
+      return withTrack(doc, op.id, (track) =>
+        Boolean(track.solo) === op.solo ? track : { ...track, solo: op.solo },
+      );
 
     case 'setControlValue':
       return withControl(doc, op.scope, op.key, (state) =>

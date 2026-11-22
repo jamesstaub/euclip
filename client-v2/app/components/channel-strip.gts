@@ -1,5 +1,6 @@
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
+import { on } from '@ember/modifier';
 import { modifier } from 'ember-modifier';
 import { service } from '@ember/service';
 import Slider from 'client-v2/components/ui/slider';
@@ -12,7 +13,7 @@ import type ProjectService from 'client-v2/services/project';
 /** The level fader: decibels, from silence to a little above unity. */
 const LEVEL = mapping('decibels', { min: 0, max: 1.5 });
 const PAN = mapping('linear', { min: -1, max: 1 });
-/** The strip as a column is 6.5rem wide; as a row it is the width of the footer. */
+/** The strip as a column is 7rem wide; as a row it is the width of the footer. */
 const UPRIGHT_BELOW_PX = 200;
 
 function panText(pan: number): string {
@@ -90,6 +91,20 @@ export default class ChannelStrip extends Component<ChannelStripSignature> {
   setPan = (pan: number): void =>
     this.project.apply({ type: 'setTrackPan', id: this.args.track.id, pan });
 
+  toggleMute = (): void =>
+    this.project.apply({
+      type: 'setTrackMute',
+      id: this.args.track.id,
+      mute: !this.args.track.mute,
+    });
+
+  toggleSolo = (): void =>
+    this.project.apply({
+      type: 'setTrackSolo',
+      id: this.args.track.id,
+      solo: !this.args.track.solo,
+    });
+
   resetLevel = (): void => this.setLevel(1);
   resetPan = (): void => this.setPan(0);
 
@@ -104,6 +119,25 @@ export default class ChannelStrip extends Component<ChannelStripSignature> {
     >
       <div class="channel-strip__title">
         <h3>channel</h3>
+        {{! mute and solo are the track's values, like its level and pan; the audio follows them }}
+        <div class="channel-strip__switches">
+          <button
+            type="button"
+            class="btn channel-strip__switch channel-strip__switch--mute"
+            aria-pressed={{if @track.mute "true" "false"}}
+            aria-label="Mute track"
+            data-test-strip-mute
+            {{on "click" this.toggleMute}}
+          >M</button>
+          <button
+            type="button"
+            class="btn channel-strip__switch channel-strip__switch--solo"
+            aria-pressed={{if @track.solo "true" "false"}}
+            aria-label="Solo track"
+            data-test-strip-solo
+            {{on "click" this.toggleSolo}}
+          >S</button>
+        </div>
       </div>
       {{#if this.idle}}
         <p

@@ -161,6 +161,37 @@ module('Unit | Project | operations', function () {
     );
   });
 
+  test('mute and solo are stored on the track, survive JSON, and a repeat changes nothing', function (assert) {
+    const doc = arrayDefaultProject();
+    assert.true(isProjectDocument(doc), 'a track with neither is a document');
+    const muted = applyOperation(doc, {
+      type: 'setTrackMute',
+      id: 't-kick',
+      mute: true,
+    });
+    const both = applyOperation(muted, {
+      type: 'setTrackSolo',
+      id: 't-kick',
+      solo: true,
+    });
+    assert.true(both.tracks[0]?.mute);
+    assert.true(both.tracks[0]?.solo);
+    assert.notOk(both.tracks[1]?.mute, 'only that track');
+    assert.strictEqual(
+      applyOperation(both, { type: 'setTrackMute', id: 't-kick', mute: true }),
+      both,
+      'no change, no new document',
+    );
+    const stored = JSON.parse(JSON.stringify(both)) as unknown;
+    assert.true(isProjectDocument(stored));
+    assert.true((stored as typeof both).tracks[0]?.mute);
+    assert.true(
+      applyOperation(both, { type: 'setTrackLevel', id: 't-kick', level: 0.3 })
+        .tracks[0]?.mute,
+      'the level does not touch them',
+    );
+  });
+
   test('a control’s value is stored by key, and reset forgets it', function (assert) {
     const doc = arrayDefaultProject();
     let next = applyOperation(doc, {

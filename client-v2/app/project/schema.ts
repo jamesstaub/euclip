@@ -94,6 +94,10 @@ export interface TrackDocument {
   level: number;
   /** Channel strip: -1 (left) to 1 (right). */
   pan: number;
+  /** Channel strip: the track is silent. A value like level and pan; absent is off. */
+  mute?: boolean;
+  /** Channel strip: while any track is soloed, only the soloed tracks are heard (a muted one stays silent). */
+  solo?: boolean;
   values: ScopeValues;
 }
 
@@ -185,6 +189,8 @@ export function isProjectDocument(value: unknown): value is ProjectDocument {
       typeof track['script'] === 'string' &&
       typeof track['level'] === 'number' &&
       typeof track['pan'] === 'number' &&
+      (track['mute'] === undefined || typeof track['mute'] === 'boolean') &&
+      (track['solo'] === undefined || typeof track['solo'] === 'boolean') &&
       isValues(track['values']),
   );
 }
