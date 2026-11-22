@@ -564,36 +564,50 @@ module('Integration | Component | waveform', function (hooks) {
     );
   });
 
-  test('every value has a lane button; its multislider is laid over the values, one at a time', async function (assert) {
+  test('one lane button shows the lane of the value last touched over the picture; its name is a menu, × closes it', async function (assert) {
     await open();
     const SPEED = '#sampler › speed';
     const START = '#sampler › start';
-    const button = (id: string): string =>
-      `[data-test-waveform-value="${id}"] [data-test-lane-button]`;
-    assert.dom('.waveform__value--number [data-test-lane-button]').exists({
-      count: 5,
-    });
+    const REVERSE = '#sampler › reverse';
+    const lanes = '[data-test-waveform-lanes]';
     assert
-      .dom('.waveform__value--switch [data-test-lane-button]')
-      .exists({ count: 2 }, 'Loop and Reverse have lanes too');
+      .dom('[data-test-waveform-value] [data-test-lane-button]')
+      .doesNotExist('no button in the cells');
+    assert.dom(lanes).exists({ count: 1 });
     const cell = find('[data-test-waveform-value="speed"]') as HTMLElement;
     const before = cell.getBoundingClientRect();
 
-    await click(button('start'));
+    // untouched, it shows the first value's (the speed's)
+    await click(lanes);
     assert
-      .dom(`.waveform__stage [data-test-source-lane="${START}"]`)
+      .dom(`.waveform__stage [data-test-source-lane="${SPEED}"]`)
       .exists('laid over the picture');
+    assert.dom(lanes).hasAria('pressed', 'true');
     assert
       .dom('.waveform__values .number-entry-box')
       .exists({ count: 5 }, 'the values stay in reach under it');
-    assert.dom(button('start')).hasAria('pressed', 'true');
     assert
-      .dom(`[data-test-source-lane] [data-lane-step]`)
+      .dom('[data-test-source-lane] [data-lane-step]')
       .exists({ count: 16 });
 
-    await click(button('speed'));
+    // touching another value shows its lane in its place
+    await triggerEvent('[data-test-waveform-value="start"]', 'pointerdown');
     assert.dom('[data-test-source-lane]').exists({ count: 1 });
-    assert.dom(`[data-test-source-lane="${SPEED}"]`).exists('speed’s, now');
+    assert.dom(`[data-test-source-lane="${START}"]`).exists('start’s, now');
+    assert
+      .dom('[data-test-waveform-value="start"]')
+      .hasClass('is-aimed', 'the value whose lane it is is marked');
+
+    // its name is a menu of the editor's lanes, Loop and Reverse among them
+    const choices = [
+      ...find('[data-test-source-lane-choose]')!.querySelectorAll('option'),
+    ].map((option) => option.value);
+    assert.true(choices.includes(SPEED), 'the speed');
+    assert.true(choices.includes(REVERSE), 'Reverse');
+    await select('[data-test-source-lane-choose]', REVERSE);
+    assert
+      .dom(`[data-test-source-lane="${REVERSE}"] [data-lane-step]`)
+      .exists({ count: 16 }, 'a switch’s lane: a cell per step');
     assert
       .dom('[data-track-id] [data-lane-step]')
       .doesNotExist('nothing in the track’s row');
@@ -602,22 +616,21 @@ module('Integration | Component | waveform', function (hooks) {
     audio.setLaneValue(scope, SPEED, 1, 2);
     await settled();
     assert
-      .dom(button('speed'))
+      .dom(lanes)
       .hasAttribute('data-active', 'true', 'blue: a step is set');
     const after = cell.getBoundingClientRect();
     assert.strictEqual(after.width, before.width, 'the cell does not change');
     assert.strictEqual(after.height, before.height);
 
-    await click(button('reverse'));
+    await click('[data-test-source-lane-close]');
+    assert.dom('[data-test-source-lane]').doesNotExist('× closes it');
+    assert.dom(lanes).hasAria('pressed', 'false');
+    await click(lanes);
     assert
-      .dom('[data-test-source-lane] [data-lane-step]')
-      .exists({ count: 16 }, 'a switch’s lane: a cell per step');
-    assert.dom(button('reverse')).hasAria('pressed', 'true');
-
-    await click('[data-test-source-lane] .source-lane__close');
-    assert
-      .dom('[data-test-source-lane]')
-      .doesNotExist('its own button closes it');
+      .dom(`[data-test-source-lane="${REVERSE}"]`)
+      .exists('the button opens the one last shown');
+    await click(lanes);
+    assert.dom('[data-test-source-lane]').doesNotExist('and closes it');
 
     await click('[data-test-speed-menu] [data-test-menu-button]');
     // the open menu and everything above it are opaque
@@ -751,6 +764,29 @@ module('Integration | Component | waveform', function (hooks) {
     const after = find(entry)!.textContent.trim();
     assert.notStrictEqual(after, before, 'a drag steps through the slices');
     assert.true(/^\D*\d+\D*$/.test(after), `a whole slice (${after})`);
+  });
+
+  test('a value is shown to three decimals, whole on hover; leaving its field as it opened keeps it whole', async function (assert) {
+    await open();
+    const type = async (id: string, text: string): Promise<void> => {
+      await click(value(id));
+      const input = `[data-test-waveform-value="${id}"] [data-test-number-input]`;
+      await fillIn(input, text);
+      await triggerKeyEvent(input, 'keydown', 'Enter');
+    };
+    await type('end', '0.087123');
+    assert.strictEqual(param('end'), 0.087123);
+    assert.dom(value('end')).hasText('0.087 s');
+    assert
+      .dom('[data-test-waveform-value="end"] .number-entry-box')
+      .hasAttribute('title', /0\.0871/, 'the whole value on hover');
+    await click(value('end'));
+    await triggerKeyEvent(
+      '[data-test-waveform-value="end"] [data-test-number-input]',
+      'keydown',
+      'Enter',
+    );
+    assert.strictEqual(param('end'), 0.087123, 'not rounded by a look');
   });
 
   test('a point taken past its partner changes roles with it: start is always the lower, end the higher', async function (assert) {

@@ -621,9 +621,6 @@
  * into, and along its foot where the number is in its range, in the blue a slider's fill has.
  */
 .waveform__value {
-  /* (how big its lane button is, so its label can keep clear of it) */
-  --lane-button-size: 1.75rem;
-
   position: relative;
   display: flex;
   align-items: center;
@@ -835,6 +832,7 @@
 
   .waveform__value--speed .number-entry-box {
     inline-size: 100%;
+    min-inline-size: 0;
     padding-inline-end: 0.125rem;
   }
 
@@ -1035,20 +1033,58 @@
   flex: none;
 }
 
-/* a value's lane button: at the cell's start, as tall as the cell, narrow where the pointer is fine */
-.waveform__value .waveform__lane-button {
-  align-self: center;
-  margin-inline-start: calc(-0.5 * var(--space-2));
-}
-
 @media (pointer: coarse) {
   .waveform__speed-menu .popup-menu__button {
     min-inline-size: var(--target-min);
   }
+}
 
-  .waveform__value {
-    --lane-button-size: 2.25rem;
+/*
+ * The editor's foot: its one lane button, as tall as the values beside it, then the values. The button
+ * shows the lane of the value last touched over the picture (and the picture again); the value whose lane
+ * it is has a line round it while the lane is open.
+ */
+.waveform__foot {
+  display: flex;
+  gap: var(--space-1);
+  min-inline-size: 0;
+
+  & > .waveform__values {
+    flex: 1 1 0;
   }
+}
+
+.waveform__lanes-button.lane-button {
+  align-self: stretch;
+  block-size: auto;
+  min-inline-size: 1.5rem;
+  padding-inline: 0;
+  border: var(--border-dark);
+  background: var(--dark-yellow);
+
+  & .icon {
+    inline-size: 0.875rem;
+    block-size: 0.875rem;
+  }
+
+  &[data-active] {
+    background: var(--dark-blue);
+  }
+
+  &[aria-pressed="true"] {
+    background: var(--near-black);
+  }
+}
+
+@media (pointer: coarse) {
+  .waveform__lanes-button.lane-button {
+    min-inline-size: var(--target-min);
+  }
+}
+
+.waveform:has(.source-lane) .waveform__value.is-aimed {
+  outline: var(--border-width-2) solid var(--near-black);
+  outline-offset: 1px;
 }
 
 /*
@@ -1061,22 +1097,10 @@
   position: relative;
 }
 
-.waveform__stage > .source-lane {
-  inset-block: 0;
-  min-block-size: 0;
-  overflow-y: auto;
-  border: 0;
-  cursor: auto;
-}
-
-/* (with the lane over it, a finger on the picture's place scrolls the lane, as the pane does) */
-.waveform__stage:has(> .source-lane) {
-  touch-action: pan-y;
-}
-
 .source-lane {
-  /* (its own button is the lane head's height, and the head keeps clear of it) */
-  --lane-button-size: 1.375rem;
+  /* (its bar of a menu and a ×: the lane head's height, which keeps clear of them) */
+  --source-lane-bar: 1.75rem;
+  --source-lane-menu: 9rem;
 
   position: absolute;
   inset-inline: 0;
@@ -1094,16 +1118,65 @@
   margin-block-start: var(--space-2);
 }
 
-/* its own lane button, pressed, at the start of the lane's head: the bars have the whole width */
-.source-lane > .source-lane__close {
+.waveform__stage > .source-lane {
+  inset-block: 0;
+  min-block-size: 0;
+  overflow-y: auto;
+  border: 0;
+  cursor: auto;
+}
+
+/* (with the lane over it, a finger on the picture's place scrolls the lane, as the pane does) */
+.waveform__stage:has(> .source-lane) {
+  touch-action: pan-y;
+}
+
+/* its menu of the source's lanes (its name) and its ×, along the lane head: the bars have the whole width */
+.source-lane__bar {
   position: absolute;
   inset-block-start: var(--space-1);
-  inset-inline-start: var(--space-1);
+  inset-inline: var(--space-1);
   z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  block-size: var(--source-lane-bar);
+  pointer-events: none;
+
+  & > * {
+    pointer-events: auto;
+  }
+}
+
+.source-lane__select.select {
+  inline-size: var(--source-lane-menu);
+  max-inline-size: 100%;
+  block-size: var(--source-lane-bar);
+  min-block-size: 0;
+  padding-block: 0;
+  color: var(--near-black);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+}
+
+.source-lane__close.btn {
+  inline-size: var(--source-lane-bar);
+  block-size: var(--source-lane-bar);
+  min-block-size: 0;
+  padding: 0;
+  color: var(--light-gray);
+  font-size: var(--font-size-5);
+  line-height: 1;
 }
 
 .source-lane__grid .lane__head {
-  padding-inline-start: calc(var(--lane-button-size) + var(--space-2));
+  min-block-size: var(--source-lane-bar);
+  padding-inline: calc(var(--source-lane-menu) + var(--space-2))
+    calc(var(--source-lane-bar) + var(--space-2));
+
+  & > b {
+    display: none;
+  }
 }
 
 .source-lane__grid {
@@ -1113,20 +1186,6 @@
 
 @media (pointer: coarse) {
   .source-lane {
-    --lane-button-size: var(--target-min);
+    --source-lane-bar: var(--target-min);
   }
-}
-
-/* the speed's tall cell is a grid of named areas: its lane button shares the label's, at its start */
-.waveform__value--speed .waveform__lane-button {
-  /* (over the label, which shares its area and would take its clicks) */
-  position: relative;
-  z-index: 1;
-  grid-area: label;
-  justify-self: start;
-  margin-inline-start: 0;
-}
-
-.waveform__value--speed:has(> .waveform__lane-button) .waveform__label {
-  padding-inline-start: calc(var(--lane-button-size) + var(--space-1));
 }

@@ -246,11 +246,33 @@ export default class ViewService extends Service {
     return this.sourceLanes[scopeId] ?? null;
   }
 
-  /** Shows a control's lane over the source's editor (null: none). */
+  /** Shows a control's lane over the source's editor (null: none; the one it was stays its aim). */
   setSourceLane(scopeId: string, key: string | null): void {
-    const { [scopeId]: _gone, ...rest } = this.sourceLanes;
-    void _gone;
+    const { [scopeId]: was, ...rest } = this.sourceLanes;
+    if (key === null && was !== undefined) {
+      this.sourceAims = { ...this.sourceAims, [scopeId]: was };
+    }
     this.sourceLanes = key === null ? rest : { ...rest, [scopeId]: key };
+  }
+
+  /**
+   * The source control last touched (or whose lane was last shown), by track: the lane the editor's one
+   * lane button opens. Not remembered.
+   */
+  @tracked private sourceAims: Readonly<Record<string, string>> = {};
+
+  /** The lane shown over the source, else the one its lane button would show (undefined: the editor's first). */
+  sourceLaneAim(scopeId: string): string | undefined {
+    return this.sourceLanes[scopeId] ?? this.sourceAims[scopeId];
+  }
+
+  /** A source control was touched: its lane is the aim, and is shown at once where a lane is open. */
+  aimSourceLane(scopeId: string, key: string): void {
+    if (this.sourceAims[scopeId] !== key) {
+      this.sourceAims = { ...this.sourceAims, [scopeId]: key };
+    }
+    const open = this.sourceLanes[scopeId];
+    if (open !== undefined && open !== key) this.setSourceLane(scopeId, key);
   }
 
   /** Which sequence the synth editor's step strip shows, by track, where the person has chosen. Not remembered. */

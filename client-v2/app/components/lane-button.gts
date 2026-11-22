@@ -9,6 +9,8 @@ export interface LaneButtonSignature {
     control: ControlView;
     /** the lane is showing */
     pressed: boolean;
+    /** blue: in place of "this control's steps hold values" (the waveform's one button: any of its values') */
+    active?: boolean;
     onToggle: () => void;
   };
 }
@@ -19,8 +21,8 @@ export interface LaneButtonSignature {
  * override it says so wherever it is drawn (a control row, a value cell of the waveform editor).
  */
 export default class LaneButton extends Component<LaneButtonSignature> {
-  get locked(): number {
-    return this.args.control.lane?.locked ?? 0;
+  get active(): boolean {
+    return this.args.active ?? (this.args.control.lane?.locked ?? 0) > 0;
   }
 
   get label(): string {
@@ -37,7 +39,7 @@ export default class LaneButton extends Component<LaneButtonSignature> {
       aria-pressed={{if @pressed "true" "false"}}
       aria-label={{this.label}}
       title={{this.label}}
-      data-active={{if this.locked "true"}}
+      data-active={{if this.active "true"}}
       data-test-lane-button
       ...attributes
       {{on "click" @onToggle}}
