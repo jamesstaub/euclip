@@ -21,6 +21,9 @@ import chevron from 'client-v2/assets/icons/chevron.svg?raw';
 import code from 'client-v2/assets/icons/fi-code.svg?raw';
 import dots from 'client-v2/assets/icons/fi-dots.svg?raw';
 import keys from 'client-v2/assets/icons/keys.svg?raw';
+import menu from 'client-v2/assets/icons/menu.svg?raw';
+import undo from 'client-v2/assets/icons/undo.svg?raw';
+import redo from 'client-v2/assets/icons/redo.svg?raw';
 import multislider from 'client-v2/assets/icons/multislider.svg?raw';
 import play from 'client-v2/assets/icons/fi-play.svg?raw';
 import search from 'client-v2/assets/icons/search.svg?raw';
@@ -72,7 +75,10 @@ const ICONS = {
   code: inline(code),
   dots: inline(dots),
   keys: inline(keys),
+  menu: inline(menu),
   multislider: inline(multislider),
+  redo: inline(redo),
+  undo: inline(undo),
   play: inline(play),
   search: inline(search),
   snapshots: inline(snapshots),

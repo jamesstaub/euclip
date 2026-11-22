@@ -231,3 +231,11 @@ Added 2026-11-19. Below 48rem wide (`ViewService.phone`, from the same media que
 Open, to settle before UI work starts:
 - The control and track layout on the grid.
 - The document schema that holds everything in R2 (initiative 3 in the main plan).
+
+### Many projects, the project file, undo and redo (2026-11-22)
+
+- **Storage.** IndexedDB schema 3: a record per project (`id`, `name`, `createdAt`, `updatedAt`, `doc`) and a `meta` store holding the open project's id. The single project of schema 2 becomes the first record on upgrade, document untouched. The document schema stays 6. Own sounds stay on the one shelf (`files`), which belongs to no project, so deleting a project never deletes a sound another project may use.
+- **Project menu** (hamburger, left end of the project bar, `components/project-menu.gts`): editable name, New project, Projects… (open, copy, delete with an in-row confirm), Export to file, Import from file, and a fixed-width Saved / Saving… / Not saved label from the store's real write result. Switching stops the audio, clears undo history and rebuilds.
+- **`.euclip` file** (`project/file.ts`): `{ format: 'euclip-project', version: 1, project, sounds }`. `sounds` embeds the user's own files the project uses as base64; library sounds and built-ins stay references. Import validates, refuses unknown versions, always makes a new project, and does not duplicate a sound the shelf already has (same name and size, then equal bytes: no content hash is stored yet). Imported scripts are only stored and opened; `ProjectService.importFile` carries the TODO where "opened from someone else" would use the sandbox.
+- **Undo and redo** are square buttons in the project bar before New Track. On the phone they are the first items of the project menu (the bar has no room at the touch-target size).
+- Not built, and not blocked: versions, snapshots, arrangement (relaunch plan section 6a). A version would be another store keyed by project id.

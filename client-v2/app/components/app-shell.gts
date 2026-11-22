@@ -224,6 +224,8 @@ export default class AppShell extends Component<AppShellSignature> {
         @onNewTrack={{this.addTrack}}
         @onNewSlicedLoop={{this.addSlicedLoop}}
         @onNewSynth={{this.addSynth}}
+        @onUndo={{this.undo}}
+        @onRedo={{this.redo}}
       />
 
       {{#if this.sidebarOpen}}

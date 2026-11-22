@@ -241,3 +241,126 @@
     border-inline-start: var(--border-width-2) solid var(--dark-gray);
   }
 }
+
+/* ---- project menu (the hamburger) and undo / redo ---- */
+
+.project-menu {
+  position: relative;
+  flex: none;
+}
+
+/* the file chooser is opened by the Import item; the field itself is never seen */
+.project-menu__file {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.project-menu__panel {
+  inset-inline: 0 auto;
+  inline-size: 20rem;
+  max-inline-size: calc(100vw - 2 * var(--space-2));
+  color: var(--text-on-dark);
+
+  & .menu__item:disabled {
+    color: var(--silver);
+    cursor: default;
+  }
+}
+
+.project-menu__name {
+  display: block;
+  padding: var(--space-2) var(--space-3);
+
+  & input {
+    inline-size: 100%;
+    min-block-size: var(--target-min);
+    padding: 0 var(--space-2);
+    border: var(--border-width-2) solid var(--mid-gray);
+    background: transparent;
+    color: var(--text-on-dark);
+    font-size: var(--font-size-5);
+  }
+}
+
+.project-menu__message {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  color: var(--yellow);
+  font-size: var(--font-size-6);
+  white-space: normal;
+}
+
+/* a fixed-width cell: "Saved", "Saving…" and "Not saved" never move what is beside them */
+.project-menu__saved {
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--font-size-7);
+}
+
+.project-menu__saved-text {
+  display: inline-block;
+  inline-size: 6rem;
+}
+
+.project-menu__list {
+  max-block-size: 60vh;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.project-menu__row {
+  display: flex;
+  align-items: center;
+  min-block-size: var(--target-min);
+  border-inline-start: var(--border-width-3) solid transparent;
+
+  &[aria-current="true"] {
+    border-inline-start-color: var(--yellow);
+  }
+}
+
+.project-menu__open {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-inline-size: 0;
+  min-block-size: var(--target-min);
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--text-on-dark);
+  font-size: var(--font-size-6);
+  text-align: start;
+
+  & .truncate {
+    max-inline-size: 100%;
+  }
+}
+
+.project-menu__when {
+  color: var(--text-muted);
+  font-size: var(--font-size-7);
+}
+
+.project-menu__cell {
+  flex: none;
+  inline-size: 4.25rem;
+  padding-inline: var(--space-1);
+}
+
+/* undo and redo: on the phone they are the project menu's first items instead */
+[data-phone="true"] .project-bar__history {
+  display: none;
+}
+
+.project-bar__history:disabled {
+  opacity: 0.4;
+}

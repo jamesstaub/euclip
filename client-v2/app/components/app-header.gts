@@ -4,7 +4,9 @@ import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import onOutside from 'client-v2/modifiers/on-outside';
 import Icon from 'client-v2/components/icon';
+import ProjectMenu from 'client-v2/components/project-menu';
 import Transport from 'client-v2/components/transport';
+import type ProjectService from 'client-v2/services/project';
 import type ViewService from 'client-v2/services/view';
 
 function is(a: string, b: string): boolean {
@@ -23,6 +25,8 @@ export interface AppHeaderSignature {
     /** the other kind of track in the New Track menu: a loop played slice by slice */
     onNewSlicedLoop?: () => void;
     onNewSynth?: () => void;
+    onUndo: () => void;
+    onRedo: () => void;
   };
 }
 
@@ -32,6 +36,7 @@ export interface AppHeaderSignature {
  */
 export default class AppHeader extends Component<AppHeaderSignature> {
   @service declare view: ViewService;
+  @service declare project: ProjectService;
 
   @tracked kindsOpen = false;
 
@@ -90,6 +95,8 @@ export default class AppHeader extends Component<AppHeaderSignature> {
 
       <div class="project-bar">
         <div class="project-bar__left">
+          <ProjectMenu @onUndo={{@onUndo}} @onRedo={{@onRedo}} />
+
           <button
             type="button"
             class="btn project-bar__toggle"
@@ -143,6 +150,27 @@ export default class AppHeader extends Component<AppHeaderSignature> {
             aria-pressed="false"
           >
             <Icon @name="snapshots" />
+          </button>
+          {{! on the phone these two are the first items of the project menu: the bar has no room }}
+          <button
+            type="button"
+            class="btn btn--s project-bar__history"
+            aria-label="Undo"
+            disabled={{if this.project.canUndo false true}}
+            data-test-undo-button
+            {{on "click" @onUndo}}
+          >
+            <Icon @name="undo" />
+          </button>
+          <button
+            type="button"
+            class="btn btn--s project-bar__history"
+            aria-label="Redo"
+            disabled={{if this.project.canRedo false true}}
+            data-test-redo-button
+            {{on "click" @onRedo}}
+          >
+            <Icon @name="redo" />
           </button>
           {{! template-lint-disable no-invalid-interactive }}
           <div
