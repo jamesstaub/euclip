@@ -178,3 +178,8 @@ that path; see the project notes before relying on it.
 This repo was consolidated from two repos (`euclip` and `euclip-api`); history for both is preserved
 (`git log --follow` works across the move). The pre-consolidation, pre-Discord-removal states are tagged
 `pre-cleanup-discord` in the original repos.
+
+## Licence
+
+Euclip is free software under the GNU Affero General Public License, version 3 (see [LICENSE](LICENSE)).
+The cracked-up audio library it is built on is a separate project under the MIT licence.
