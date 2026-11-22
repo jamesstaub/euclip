@@ -687,7 +687,8 @@ button.number-entry:disabled {
  * keyboard) and the lane of the value last touched in its place. The one pressed is dark.
  */
 .lane-switch {
-  --size: var(--lane-switch-size, 2rem);
+  /* (not `--size`: the steps button is also a .lane-button, which sets its own) */
+  --switch-size: var(--lane-switch-size, 2rem);
 
   display: flex;
   flex: none;
@@ -698,9 +699,9 @@ button.number-entry:disabled {
 .lane-switch__button.lane-button {
   display: inline-grid;
   place-items: center;
-  inline-size: var(--size);
-  min-inline-size: var(--size);
-  block-size: var(--size);
+  inline-size: var(--switch-size);
+  min-inline-size: var(--switch-size);
+  block-size: var(--switch-size);
   padding: 0;
   border: var(--border-dark);
   background: var(--dark-yellow);
@@ -725,6 +726,6 @@ button.number-entry:disabled {
 
 @media (pointer: coarse) {
   .lane-switch {
-    --size: var(--lane-switch-size, var(--target-min));
+    --switch-size: var(--lane-switch-size, var(--target-min));
   }
 }
