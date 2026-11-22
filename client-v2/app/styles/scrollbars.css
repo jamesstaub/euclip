@@ -31,3 +31,36 @@
   --scrollbar-thumb: var(--dark-gray);
   --scrollbar-track: var(--yellow);
 }
+
+/*
+ * A bar that is always drawn while there is more to see, not an overlay that shows only while scrolling
+ * (macOS's default): the ::-webkit-scrollbar parts make Chrome and Safari draw a classic bar, in its own
+ * gutter. (Chrome ignores those parts when the standard scrollbar-width or -color is set, so here they are
+ * not, except where the parts are not supported: Firefox.)
+ */
+.scroll--always {
+  scrollbar-width: auto;
+  scrollbar-color: auto;
+
+  &::-webkit-scrollbar {
+    inline-size: 8px;
+    block-size: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border: 2px solid var(--scrollbar-track);
+    border-radius: 4px;
+    background: var(--scrollbar-thumb);
+  }
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  .scroll--always {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
+}

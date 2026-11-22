@@ -290,6 +290,9 @@
   display: flex;
   flex-direction: column;
   min-block-size: 100%;
+
+  /* (stacked, the footer's pane scrolls: this one does not) */
+  overflow: visible;
 }
 
 .sound-pane__source > .source-pane {
@@ -312,16 +315,25 @@
       );
     column-gap: var(--space-3);
 
-    & .sound-pane__source {
-      grid-area: source;
+    /*
+     * Each column scrolls by itself, with a styled bar that is always drawn while there is more (a
+     * classic bar, not an overlay shown only while scrolling), in a gutter kept for it: the bar never
+     * lies over the editor or the rows, and nothing shifts when it comes or goes.
+     */
+    & .sound-pane__source,
+    & .sound-pane__processors {
       min-block-size: 0;
       overflow: hidden auto;
+      scrollbar-gutter: stable;
+      padding-inline-end: var(--space-1);
+    }
+
+    & .sound-pane__source {
+      grid-area: source;
     }
 
     & .sound-pane__processors {
       grid-area: processors;
-      min-block-size: 0;
-      overflow: hidden auto;
     }
 
     /* the processors alone (no source editor): the whole width */

@@ -39,12 +39,15 @@ export default class SoundPane extends Component<SoundPaneSignature> {
       <div class="sound-pane__layout">
         <div class="sound-pane__columns">
           {{#if this.hasSource}}
-            <div class="sound-pane__source" data-test-sound-source>
+            <div
+              class="sound-pane__source scroll-y scroll--on-yellow scroll--always"
+              data-test-sound-source
+            >
               <SourcePane @scopeId={{@scopeId}} @label={{@label}} />
             </div>
           {{/if}}
           <div
-            class="sound-pane__processors scroll-y scroll--on-yellow"
+            class="sound-pane__processors scroll-y scroll--on-yellow scroll--always"
             data-test-sound-processors
           >
             {{#unless this.hasSource}}
