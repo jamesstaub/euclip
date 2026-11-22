@@ -8,11 +8,16 @@
  * (`cracked-up/remote`); that is the one place to change: `compile` would hand the text to the sandbox
  * and the runner would `dispatch` the commands it sends back.
  *
- * TODO(endless-loop guard): a script that never returns (`while (true) {}`) freezes the page when run
- * this way. Nothing here protects against it yet.
+ * Loops are guarded first (`guardLoops`): one that runs for more than a second throws instead of
+ * freezing the page. See loop-guard.ts for what that does not cover.
  */
 import type { ScopeApi } from 'cracked-up';
 import { helpers, wrapUserCode } from 'cracked-up/util';
+import {
+  GUARD_NAMES,
+  GUARD_VALUES,
+  guardLoops,
+} from 'client-v2/audio/loop-guard';
 import { CONTROL_NAMES, type ControlApi } from 'client-v2/controls/script-api';
 
 /** A compiled script: call it with the `__` of the scope it is to build in, and its control functions. */
@@ -28,7 +33,8 @@ function build(code: string): (...args: unknown[]) => void {
     '__',
     ...HELPER_NAMES,
     ...CONTROL_NAMES,
-    wrapUserCode(code),
+    ...GUARD_NAMES,
+    wrapUserCode(guardLoops(code)),
   ) as (...args: unknown[]) => void;
 }
 
@@ -40,6 +46,7 @@ export function compile(code: string): Program {
       api,
       ...HELPER_VALUES,
       ...CONTROL_NAMES.map((name) => controls[name]),
+      ...GUARD_VALUES,
     );
 }
 

@@ -99,7 +99,7 @@ There is no Run button and no draft. A change to a script is submitted automatic
 - A project opened with a script that has an error therefore has nothing to run for that track: the track is silent and marked until the script is fixed.
 - An error thrown later, inside a sequence callback, disables that callback and is shown the same way; the rest of the track and project carry on.
 - Text that is valid part-way through typing does run (a number half typed, for example). The pause before submitting is the guard against that.
-- A script that never returns (an endless loop) would freeze the page when run directly. The run needs a guard for this; in the sandbox the runner can simply be stopped and restarted.
+- A script that never returns (an endless loop) is stopped. Before a script is compiled its loops (`while`, `do...while`, `for`, `for...in`, `for...of`) are instrumented (`audio/loop-guard.ts`, by inserting text at the loops' offsets, so no line moves): each run of a loop has its own one-second budget, checked every 1,000 iterations, and when it is spent the loop throws "This loop ran for more than a second and was stopped (line N)", which is an ordinary script error shown where script errors show (a throw in a build, or in a callback, as above). Audio and the rest of the app carry on. Not caught: recursion and long synchronous work that is one call (a huge `Array.from`). In the sandbox the runner can simply be stopped and restarted.
 
 The editors are `cracked-up/editor` instances sharing one catalog. Direct execution is used for a user's own project and the sandbox (`cracked-up/remote`) in collaboration mode; the script text is the same in both.
 

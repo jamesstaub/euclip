@@ -3929,5 +3929,19 @@ slider('#s', 'speed', { mode: 'sequence-sync', perStep: 'beat' });`;
         /no sequence named 'gone'/.test(control(h, ONE, SPEED).waiting ?? ''),
       );
     });
+
+    test('an endless loop in a track script is stopped and reported, and the app carries on', async function (assert) {
+      const h = await startProject();
+      const before = performance.now();
+      await h.setScript(KICK, 'while (true) {}');
+      const took = performance.now() - before;
+      assert.true(took < 5000, `returned after ${Math.round(took)} ms`);
+      assert.true(
+        /was stopped \(line 1\)/.test(h.runner.error(KICK)?.message ?? ''),
+        h.runner.error(KICK)?.message,
+      );
+      await h.setScript(KICK, CHAIN);
+      assert.strictEqual(h.runner.error(KICK), null, 'a fixed script runs');
+    });
   });
 });
