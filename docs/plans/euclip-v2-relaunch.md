@@ -79,12 +79,14 @@ What the leaders have that Euclip lacks: share by link, a gallery of examples, a
 7. Remove the v1 client code from the code base.
 8. First-run experience: three or four starter projects, a short guided tour, an in-app reference for the script functions.
 9. Read limits and robots measures for the library and audio paths (section 6), before the library is public.
+10. Add the LICENSE file (AGPL-3.0) and a licence note to the README.
 
 ### Phase 1. Public launch of the client-only app at euclip.app
 
-- Deploy stays on Heroku for euclip.app. The root address opens the app on a starter project. v1 is retired; there is no v1 path to keep.
+- Stay on Heroku for euclip.app through this phase. The client-only launch is static files and puts no new load on it. The move is decided in Phase 2 (section 6). The root address opens the app on a starter project. v1 is retired; there is no v1 path to keep.
 - New top bar with a menu and the project toolbar (section 5).
 - Audio export of the loop as a WAV, done for real with the library's offline render.
+- Mute and solo on each track's channel strip (section 5).
 - Record button and a recordings list (section 5).
 - More New Track presets, built as the same template format that sharing will use later.
 - False-door prompts for the features that need accounts (section 7), with a mailing list behind them.
@@ -95,6 +97,8 @@ What the leaders have that Euclip lacks: share by link, a gallery of examples, a
 
 - Sign-in, cloud save, My projects, private and unlisted projects.
 - Uploads move from the browser to the account.
+- Arrangement: snapshots placed in time (section 6a). Snapshots themselves are built earlier and stay where they are.
+- Decide where to host, when the `/v2` API is built (section 6).
 - Project versions and read-only share links that play in the sandbox, with "Remix" making a copy (section 6a).
 
 ### Phase 3. Community
@@ -103,7 +107,7 @@ What the leaders have that Euclip lacks: share by link, a gallery of examples, a
 - Shared track templates, macros and sound packs, each with an author and a licence.
 - Profiles, likes, follows, remix lineage, reporting and moderation.
 - An embeddable player.
-- A first-party forum at forum.euclip.app with single sign-on from Euclip accounts (section 6).
+- A Discourse forum on its own host at a subdomain, signed in through Euclip accounts with DiscourseConnect (section 6).
 - Internationalisation: move text out of templates and code into translation files with ember-intl.
 
 ### Phase 4. Collaboration and premium
@@ -116,6 +120,8 @@ What the leaders have that Euclip lacks: share by link, a gallery of examples, a
 **Top bar and menu.** Left: logo and the project name, editable in place (it lost its home when the title left the project bar). Right: a menu button. The menu holds project matters (new, open, duplicate, export file, export audio, share) and personal ones (sign in, My projects, My sounds, MIDI, settings, help). On a phone the menu is the only item beside the logo.
 
 **Project toolbar.** A new project-level toolbar, separate from the signal-chain toolbar. It holds undo and redo, project versions (save a version, browse and restore versions) and the share link (which points at one version). Undo and redo are built first, in Phase 0; versions and the share link follow with accounts. On a phone the toolbar stays reachable and undo and redo are always visible. The data model behind it is in section 6a.
+
+**Mute and solo.** Each track's channel strip gets a mute and a solo button (Phase 1). They are stored values, so they belong to the snapshot (section 6a), not to the arrangement.
 
 **Record.** A record button beside Stop. It records the main output from the next bar until stopped, using the library's recorder on the main bus. A recording lands in My sounds under "Recordings", can be named, auditioned, downloaded, and used on a sampler like any sound. Later: record a single track or bus (stems).
 
@@ -131,7 +137,7 @@ What the leaders have that Euclip lacks: share by link, a gallery of examples, a
 
 **Save to backend.** The project document is already one JSON value with a schema version. The server stores it as a versioned blob with assets (uploads, recordings) in object storage, referenced by content hash. Save is explicit plus autosave; every save keeps a revision so history and "restore" are cheap. Conflicts between two devices are resolved by revision number, with the losing copy kept as a duplicate. A project version (section 6a) is a revision that has been kept on purpose.
 
-**Auth.** Passwordless email link plus one or two OAuth providers (the choice is still open, section 10). Session in an HTTP-only cookie. The app itself must hold no token that a script could read.
+**Auth.** Three sign-in methods, settled: a passwordless email link, Google and GitHub. Session in an HTTP-only cookie. The app itself must hold no token that a script could read.
 
 ## 6. Architecture for the signed-in experience
 
@@ -139,7 +145,7 @@ What the leaders have that Euclip lacks: share by link, a gallery of examples, a
 
 This rule must be in place before the first share link ships. It also bounds the cost of an XSS: the session cookie is not readable, and the sandbox origin has nothing to steal.
 
-**Server and hosting.** Keep Rails, deployed on Heroku for euclip.app. Add a `/v2` API beside the existing endpoints with: accounts, projects (document blob, versions, visibility, parent for remixes), assets (hash, size, type, owner, licence), templates and macros (same shape as projects, smaller), and later follows, likes and reports. Audio is served from object storage with correct cross-origin headers for the app and the sandbox origins.
+**Server and hosting.** Keep Rails. The owner pays about $17 a month on Heroku with no active users and is open to moving if there is a good alternative. Stay on Heroku through Phase 1; decide the move when the `/v2` API is built in Phase 2. The candidate to evaluate then is one or two small virtual servers (for example Hetzner or DigitalOcean), with the Rails app and Postgres deployed by Kamal and Discourse on its own server (its official install is Docker on a host with at least 2 GB of memory). That would likely cost about the same as Heroku today and would also cover the forum. Prices are to be checked at the time. Moving means taking on backups, updates and monitoring that Heroku does now. Add a `/v2` API beside the existing endpoints with: accounts, projects (document blob, versions, visibility, parent for remixes), assets (hash, size, type, owner, licence), templates and macros (same shape as projects, smaller), and later follows, likes and reports. Audio is served from object storage with correct cross-origin headers for the app and the sandbox origins.
 
 **Audio delivery and read limits.** The sample packs are all cleared (original synthesised sound-alikes), so rights are not the issue; cost is. The free tier needs read limits so that bucket egress does not run up costs. Design:
 
@@ -162,15 +168,17 @@ This deters well-behaved and casual crawlers. It does not stop a determined scra
 
 **Collaboration.** The document splits cleanly into script text and values. Use a CRDT for both (script text as shared text, values as a shared map), with presence showing who is on which track. Every participant runs every script in the sandbox, since none of the code is solely theirs. This is why the earlier decision stands: the sandbox is for collaboration and sharing, direct execution is for solo work.
 
-**Licensing (recommended, owner to confirm).** The app will be open source. Money is charged only for services that need operations: cloud storage and hosting. The recommendation:
+**Licensing (decided).** The app will be open source. Money is charged only for services that need operations: cloud storage and hosting.
 
 - **Euclip app: AGPL-3.0.** Anyone hosting a modified version must publish their changes, which protects a project funded by services.
 - **cracked-up: stays MIT.**
-- **User projects and shared templates** need their own content licence choice. Suggest CC BY or CC0, chosen per shared item at the point of sharing.
+- **Shared projects and templates** carry a content licence, CC BY or CC0, chosen per shared item at the point of sharing.
+
+The LICENSE file and a README note are a Phase 0 task.
 
 **Contributors.** cracked-up is on GitHub and should be the public face for code contributors: published package, contribution guide, issue templates, the docs site, and a documented way to add a node type or a macro.
 
-**Forum.** A first-party forum hosted on our own server, with single sign-on from Euclip accounts (Phase 3). Discourse with DiscourseConnect is the usual choice, but it is not supported on Heroku, because it needs its own Docker host. So the forum would be a separate small server at forum.euclip.app, with Euclip's Rails app as the sign-on provider. The cost and upkeep of that server are to be weighed against a lighter Rails-native forum engine. The choice is open (section 10).
+**Forum.** Discourse (decided), signed in through Euclip accounts with DiscourseConnect, with Euclip's Rails app as the sign-on provider (Phase 3). It is not supported on Heroku, because it needs its own Docker host, so it runs on its own host at a subdomain. Where that host lives is part of the hosting decision above.
 
 **Internationalisation.** In Phase 3, text moves out of templates and code into translation files using ember-intl. From now on, new strings should be written so that they are easy to extract: no sentence building by concatenation.
 
@@ -197,13 +205,15 @@ Four different things, kept separate:
       "patterns": { "kick": [1, 0, 0, 1, 0, 0, 1, 0] },
       "lanes": { "pitch": [0, 0, 7, 0, 5, 0, 3, 0] },
       "grid": { "length": 8, "step": "1/8", "swing": 0.2 },
-      "sound": "pack1/kick_03"
+      "sound": "pack1/kick_03",
+      "mute": false,
+      "solo": false
     }
   }
 }
 ```
 
-`scope` is `'project'` or a track id. `values` has the same shape as the project's stored values, keyed by track id and then control key: control values, step patterns, lane (per-step) values, grid options (length, step, swing) and sound choice. Tempo is not in a snapshot by default; it belongs to the project.
+`scope` is `'project'` or a track id. `values` has the same shape as the project's stored values, keyed by track id and then control key: control values, step patterns, lane (per-step) values, grid options (length, step, swing), sound choice, and each track's mute and solo. Tempo is not in a snapshot by default; it belongs to the project.
 
 Recall rules:
 
@@ -217,14 +227,14 @@ A track-scope snapshot is also the basis of a shareable track preset's values.
 
 ### Arrangement
 
-One per project to start.
+One per project to start. Built in Phase 2. A section is `{ id, snapshotId, bars }`; what is muted or soloed in a section comes from its snapshot.
 
 ```json
 {
   "loop": true,
   "sections": [
     { "id": "sec_1", "snapshotId": "snap_1", "bars": 8 },
-    { "id": "sec_2", "snapshotId": "snap_3", "bars": 4, "mutes": ["trk_2"] },
+    { "id": "sec_2", "snapshotId": "snap_3", "bars": 4 },
     { "id": "sec_3", "snapshotId": "snap_1", "bars": 8 }
   ]
 }
@@ -241,10 +251,6 @@ One per project to start.
 - Per-section tempo.
 - Several arrangements per project.
 - Scripts per section. Scripts are never per-section: structure is one thing per project version.
-
-### Open question
-
-Whether mutes belong in the snapshot values or on the section. The sketch above puts them on the section.
 
 ## 7. False doors
 
@@ -269,7 +275,7 @@ Do not design it in detail yet. Principles: the instrument is free and complete;
 
 Not in the list given, and needed:
 
-- **Arrangement**: see section 6a. Without it projects stay eight-bar loops and the listen page will be thin.
+- **Arrangement** (Phase 2): see section 6a. Without it projects stay eight-bar loops and the listen page will be thin.
 - **A mixer view**: all channel strips and meters side by side.
 - **Time signature**, later. Swing is covered in section 5.
 - **Sync**: MIDI clock both ways first; Ableton Link is not available to browsers.
@@ -282,8 +288,4 @@ Not in the list given, and needed:
 
 ## 10. Decisions still needed from the owner
 
-1. Whether arrangement is in Phase 1 or Phase 2.
-2. Sign-in methods.
-3. Confirmation of the licence recommendation (AGPL-3.0 for the app, MIT for cracked-up, a content licence per shared item).
-4. Forum software and hosting: Discourse on its own server at forum.euclip.app, or a lighter Rails-native engine.
-5. Whether mutes belong in the snapshot values or on the arrangement section (section 6a).
+1. Where to host from Phase 2: stay on Heroku, or move to small virtual servers with Kamal and a separate Discourse host (section 6).
