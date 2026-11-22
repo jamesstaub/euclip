@@ -5,6 +5,13 @@ import { isTesting, macroCondition } from '@embroider/macros';
 import { waitForPromise } from '@ember/test-waiters';
 import { defaultProject } from 'client-v2/project/default-project';
 import {
+  buildExport,
+  parseEuclipFile,
+  shelveEmbedded,
+  withShelfKeys,
+  type EuclipFile,
+} from 'client-v2/project/file';
+import {
   applyOperation,
   sameTarget,
   type Operation,
@@ -14,7 +21,10 @@ import {
   IndexedDbStorage,
   MemoryFiles,
   MemoryStorage,
+  newProjectId,
   type FileStorage,
+  type ProjectInfo,
+  type ProjectRecord,
   type ProjectStorage,
 } from 'client-v2/project/storage';
 
@@ -27,7 +37,10 @@ const UNDO_LIMIT = 200;
 /** What a listener is told: one operation was applied, or the whole document was replaced. */
 export type ProjectChange =
   | { kind: 'operation'; op: Operation; derived: boolean }
-  | { kind: 'replace'; reason: 'load' | 'undo' | 'redo' };
+  | { kind: 'replace'; reason: 'load' | 'undo' | 'redo' | 'switch' };
+
+/** What the project bar says about keeping the project: written, being written, or not writable. */
+export type SaveState = 'saved' | 'saving' | 'failed';
 
 interface HistoryEntry {
   doc: ProjectDocument;
@@ -62,11 +75,20 @@ export default class ProjectService extends Service {
     : new IndexedDbStorage();
 
   @tracked doc: ProjectDocument = defaultProject();
+  /** The id of the open project. (A project nothing has been written for yet has one already.) */
+  @tracked currentId: string = newProjectId();
+  @tracked saveState: SaveState = 'saved';
   @tracked private past: HistoryEntry[] = [];
   @tracked private future: ProjectDocument[] = [];
 
   #listeners = new Set<(change: ProjectChange) => void>();
   #loading: Promise<void> | undefined;
+  /** when the open project was first written; undefined until it has been */
+  #createdAt: number | undefined;
+  /** the open project has changes that are not written (or has never been) */
+  #dirty = true;
+  #writing: Promise<unknown> = Promise.resolve();
+  #rememberedOpen = false;
   #saveTimer: ReturnType<typeof setTimeout> | undefined;
   #onHide = (): void => {
     if (document.visibilityState === 'hidden') void this.flush();
@@ -98,20 +120,49 @@ export default class ProjectService extends Service {
   }
 
   /**
-   * Loads the saved project, once. Until it resolves (and if nothing is saved) the document is the
-   * default project.
+   * Loads the saved project, once: the one that was open last, else the latest. Until it resolves (and
+   * if nothing is saved) the document is the default project.
    */
   load(): Promise<void> {
     this.#loading ??= waitForPromise(
-      this.storage.load().then((saved) => {
+      this.#latest().then((saved) => {
         if (!saved || isDestroying(this)) return;
-        this.doc = saved;
-        this.past = [];
-        this.future = [];
+        this.#become(saved);
+        this.#rememberedOpen = true;
         this.#tell({ kind: 'replace', reason: 'load' });
       }),
     );
     return this.#loading;
+  }
+
+  async #latest(): Promise<ProjectRecord | null> {
+    const remembered = await this.storage.openId();
+    if (remembered !== null) {
+      const record = await this.storage.readProject(remembered);
+      if (record) return record;
+    }
+    for (const info of await this.storage.listProjects()) {
+      const record = await this.storage.readProject(info.id);
+      if (record) return record;
+    }
+    return null;
+  }
+
+  /** Makes a stored project the open one: its history, and what was waiting to be written, are left behind. */
+  #become(record: {
+    id: string;
+    createdAt: number;
+    doc: ProjectDocument;
+  }): void {
+    clearTimeout(this.#saveTimer);
+    this.#saveTimer = undefined;
+    this.currentId = record.id;
+    this.#createdAt = record.createdAt;
+    this.#dirty = false;
+    this.doc = record.doc;
+    this.past = [];
+    this.future = [];
+    this.saveState = 'saved';
   }
 
   /**
@@ -159,6 +210,7 @@ export default class ProjectService extends Service {
       this.future = [];
     }
     this.doc = after;
+    this.#dirty = true;
     this.#tell({ kind: 'operation', op, derived });
     this.#saveSoon();
   }
@@ -197,14 +249,145 @@ export default class ProjectService extends Service {
   flush(): Promise<boolean> {
     clearTimeout(this.#saveTimer);
     this.#saveTimer = undefined;
-    return this.storage.save(this.doc);
+    const doc = this.doc;
+    const id = this.currentId;
+    this.saveState = 'saving';
+    // one write after another: a slow earlier write never lands over a later one
+    const writing = this.#writing.then(async () => {
+      const info = await this.storage.writeProject(id, doc, this.#createdAt);
+      if (info && id === this.currentId) {
+        this.#createdAt = info.createdAt;
+        if (!this.#rememberedOpen) {
+          this.#rememberedOpen = true;
+          await this.storage.setOpenId(id);
+        }
+        if (doc === this.doc) this.#dirty = false;
+      }
+      if (!isDestroying(this) && id === this.currentId && doc === this.doc) {
+        this.saveState = info ? 'saved' : 'failed';
+      }
+      return info !== null;
+    });
+    this.#writing = writing;
+    return writing;
   }
 
   #saveSoon(): void {
+    this.saveState = 'saving';
     clearTimeout(this.#saveTimer);
     this.#saveTimer = setTimeout(() => {
       if (!isDestroying(this)) void this.flush();
     }, AUTOSAVE_DELAY_MS);
+  }
+
+  /** Writes what is not written, until nothing is (a change can arrive while a write is under way). */
+  async #settle(): Promise<void> {
+    while (this.#dirty) {
+      const doc = this.doc;
+      if (!(await this.flush())) return;
+      if (doc === this.doc) return;
+    }
+  }
+
+  // --- Many projects ---------------------------------------------------------------------------------
+
+  /** Every stored project, latest first, the open one up to date. */
+  async projects(): Promise<ProjectInfo[]> {
+    await this.#settle();
+    return this.storage.listProjects();
+  }
+
+  /** Opens another stored project. Resolves false when it cannot be read. History does not carry over. */
+  async openProject(id: string): Promise<boolean> {
+    if (id === this.currentId) return true;
+    await this.#settle();
+    const record = await this.storage.readProject(id);
+    if (!record || isDestroying(this)) return false;
+    return this.#enter(record);
+  }
+
+  /** A new project, from the starter, stored and opened. Resolves its id. */
+  async newProject(): Promise<string> {
+    await this.#settle();
+    return this.#addAndOpen(defaultProject());
+  }
+
+  /** A copy of a stored project, named "… copy". It is not opened. Resolves its id, or null if it is gone. */
+  async duplicateProject(id: string): Promise<string | null> {
+    await this.#settle();
+    const record = await this.storage.readProject(id);
+    if (!record) return null;
+    const copy = newProjectId();
+    const info = await this.storage.writeProject(copy, {
+      ...record.doc,
+      name: `${record.doc.name} copy`,
+    });
+    return info ? copy : null;
+  }
+
+  /**
+   * Removes a project. The sounds it used stay on the shelf, which belongs to no project: another
+   * project (or the shelf itself) may still use them. Deleting the open one opens the latest of the
+   * others, or a new starter project when there is none.
+   */
+  async deleteProject(id: string): Promise<void> {
+    if (id === this.currentId) {
+      await this.#settle();
+      await this.storage.removeProject(id);
+      for (const info of await this.storage.listProjects()) {
+        const record = await this.storage.readProject(info.id);
+        if (record && (await this.#enter(record))) return;
+      }
+      await this.#addAndOpen(defaultProject());
+      return;
+    }
+    await this.storage.removeProject(id);
+  }
+
+  /**
+   * The project as a `.euclip` file's content: the document and the person's own sounds it uses.
+   * (What is not yet written is in it: it is the open document.)
+   */
+  exportFile(): Promise<EuclipFile> {
+    return buildExport(this.doc, this.files);
+  }
+
+  /**
+   * Reads a `.euclip` file's text into a NEW project (never over one) and opens it; its embedded sounds
+   * join the shelf unless the shelf has them. Throws an ImportError for a file that cannot be used.
+   *
+   * It is somebody's script, stored and opened like any project: this adds nothing that runs it any
+   * differently.
+   * TODO(sandbox): an imported project is "opened from someone else". When the sandbox for shared
+   * projects exists (docs/plans/euclip-sandbox-only-in-collaboration), this is where its scripts would
+   * be opened in the sandbox instead of directly: mark the new record as foreign here.
+   */
+  async importFile(text: string): Promise<string> {
+    const { doc, sounds } = parseEuclipFile(text);
+    const keys = await shelveEmbedded(sounds, this.files);
+    await this.#settle();
+    return this.#addAndOpen(withShelfKeys(doc, keys));
+  }
+
+  async #addAndOpen(doc: ProjectDocument): Promise<string> {
+    const id = newProjectId();
+    const info = await this.storage.writeProject(id, doc);
+    // (if it could not be written it is still opened, from memory, and says so as "not saved")
+    await this.#enter({ id, createdAt: info?.createdAt ?? Date.now(), doc });
+    if (!info) this.saveState = 'failed';
+    return id;
+  }
+
+  async #enter(record: {
+    id: string;
+    createdAt: number;
+    doc: ProjectDocument;
+  }): Promise<boolean> {
+    this.#become(record);
+    this.#rememberedOpen = true;
+    this.#tell({ kind: 'replace', reason: 'switch' });
+    await this.storage.setOpenId(record.id);
+    return true;
   }
 
   #tell(change: ProjectChange): void {

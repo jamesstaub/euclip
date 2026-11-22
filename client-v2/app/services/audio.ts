@@ -951,6 +951,15 @@ export default class AudioService extends Service {
     const runner = this.runner;
     if (!runner) return;
     if (change.kind === 'replace') {
+      if (change.reason === 'switch') {
+        // another project: nothing of the old one keeps sounding, and no run of its scripts is waiting
+        for (const { timer, token } of this.#pending.values()) {
+          clearTimeout(timer);
+          runWaiter.endAsync(token);
+        }
+        this.#pending.clear();
+        this.stop();
+      }
       void waitForPromise(runner.sync());
       return;
     }

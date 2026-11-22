@@ -191,10 +191,9 @@ module('Unit | Service | project', function (hooks) {
 
   test('a storage that fails does not break the app', async function (assert) {
     const project = this.owner.lookup('service:project');
-    project.storage = {
-      load: () => Promise.resolve(null),
-      save: () => Promise.resolve(false),
-    };
+    const failing = new MemoryStorage();
+    failing.writeProject = () => Promise.resolve(null);
+    project.storage = failing;
     await project.load();
     project.apply({ type: 'setBpm', bpm: 101 });
     assert.false(await project.flush());
