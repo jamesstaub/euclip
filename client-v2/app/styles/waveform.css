@@ -1188,3 +1188,35 @@
     --source-lane-bar: var(--target-min);
   }
 }
+
+/* while a lane is in the picture's place, the picture's tools (zoom, region, snap, slices) are not shown */
+.waveform:has(.waveform__stage > .source-lane) .waveform__tools {
+  display: none;
+}
+
+/*
+ * With a lane in the picture's place, the place grows into the tools' room (and past the picture's own
+ * most), and the lane's bars stretch to fill it: as tall as the editor has room for, never under 4rem.
+ */
+.waveform__stage:has(> .source-lane) {
+  flex-grow: 1;
+  max-block-size: none;
+}
+
+.waveform__stage > .source-lane {
+  display: flex;
+  flex-direction: column;
+
+  & > .source-lane__grid {
+    flex: 1 1 auto;
+
+    /* (no steps above it to line up with: its bars share the whole width) */
+    grid-template-columns: repeat(16, minmax(0, 1fr)) max-content;
+    grid-template-rows: auto;
+    grid-auto-rows: minmax(4rem, 1fr);
+  }
+
+  & .lane__bar {
+    block-size: auto;
+  }
+}
