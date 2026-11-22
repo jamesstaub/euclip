@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-# Build the Ember client and copy it into server/public so Rails serves the full app
-# (what the production Docker image does). Useful for testing the prod bundle locally.
-set -euo pipefail
-cd "$(dirname "$0")/.."
-(cd client && npm ci && npx ember build --environment=production)
-mkdir -p server/public
-rsync -a --delete --exclude robots.txt client/dist/ server/public/
-echo "client built into server/public"

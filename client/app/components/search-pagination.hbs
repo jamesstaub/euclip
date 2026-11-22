@@ -1,6 +1,0 @@
-{{yield}}
-<div class="flex flex-wrap ph3" ...attributes>
-  {{#each this.pageNumbers as |pageNum|}}
-    <PaginationButton {{on "click" (fn this.selectPage pageNum)}} @label={{pageNum}}/>
-  {{/each}}
-</div>
