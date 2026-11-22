@@ -83,7 +83,7 @@ What the leaders have that Euclip lacks: share by link, a gallery of examples, a
 
 ### Phase 1. Public launch of the client-only app at euclip.app
 
-- Stay on Heroku for euclip.app through this phase. The client-only launch is static files and puts no new load on it. The move is decided in Phase 2 (section 6). The root address opens the app on a starter project. v1 is retired; there is no v1 path to keep.
+- Stay on Heroku for euclip.app through this phase. The client-only launch is static files and puts no new load on it. Hosting is looked at again in Phase 2 (section 6). The root address opens the app on a starter project. v1 is retired; there is no v1 path to keep.
 - New top bar with a menu and the project toolbar (section 5).
 - Audio export of the loop as a WAV, done for real with the library's offline render.
 - Mute and solo on each track's channel strip (section 5).
@@ -145,7 +145,7 @@ What the leaders have that Euclip lacks: share by link, a gallery of examples, a
 
 This rule must be in place before the first share link ships. It also bounds the cost of an XSS: the session cookie is not readable, and the sandbox origin has nothing to steal.
 
-**Server and hosting.** Keep Rails. The owner pays about $17 a month on Heroku with no active users and is open to moving if there is a good alternative. Stay on Heroku through Phase 1; decide the move when the `/v2` API is built in Phase 2. The candidate to evaluate then is one or two small virtual servers (for example Hetzner or DigitalOcean), with the Rails app and Postgres deployed by Kamal and Discourse on its own server (its official install is Docker on a host with at least 2 GB of memory). That would likely cost about the same as Heroku today and would also cover the forum. Prices are to be checked at the time. Moving means taking on backups, updates and monitoring that Heroku does now. Add a `/v2` API beside the existing endpoints with: accounts, projects (document blob, versions, visibility, parent for remixes), assets (hash, size, type, owner, licence), templates and macros (same shape as projects, smaller), and later follows, likes and reports. Audio is served from object storage with correct cross-origin headers for the app and the sandbox origins.
+**Server and hosting.** Keep Rails. The owner pays about $17 a month on Heroku with no active users and is open to moving if there is a good alternative. Decided: stay on Heroku. In Phase 2, when the `/v2` API is built, look into Kamal as the alternative: one or two small virtual servers (for example Hetzner or DigitalOcean), with the Rails app and Postgres deployed by Kamal and Discourse on its own server (its official install is Docker on a host with at least 2 GB of memory). That would likely cost about the same as Heroku today and would also cover the forum. Prices are to be checked at the time. Moving means taking on backups, updates and monitoring that Heroku does now. Add a `/v2` API beside the existing endpoints with: accounts, projects (document blob, versions, visibility, parent for remixes), assets (hash, size, type, owner, licence), templates and macros (same shape as projects, smaller), and later follows, likes and reports. Audio is served from object storage with correct cross-origin headers for the app and the sandbox origins.
 
 **Audio delivery and read limits.** The sample packs are all cleared (original synthesised sound-alikes), so rights are not the issue; cost is. The free tier needs read limits so that bucket egress does not run up costs. Design:
 
@@ -288,4 +288,4 @@ Not in the list given, and needed:
 
 ## 10. Decisions still needed from the owner
 
-1. Where to host from Phase 2: stay on Heroku, or move to small virtual servers with Kamal and a separate Discourse host (section 6).
+None at present. Hosting stays on Heroku, with Kamal to be looked into in Phase 2 (section 6).
