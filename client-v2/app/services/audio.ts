@@ -934,18 +934,6 @@ export default class AudioService extends Service {
     if (op) this.project.apply(op, group === undefined ? {} : { group });
   }
 
-  /** Gives one step of a declared grid a value: 0 is off, anything above is on with that value. */
-  setStep(
-    scopeId: string,
-    sequence: string,
-    index: number,
-    value: number,
-    group?: string,
-  ): void {
-    const op = this.runner?.setStepOperation(scopeId, sequence, index, value);
-    if (op) this.project.apply(op, group === undefined ? {} : { group });
-  }
-
   /** Runs a script now instead of after the pause. For tests, and for anything that cannot wait. */
   async runNow(scopeId: string): Promise<void> {
     const pending = this.#pending.get(scopeId);

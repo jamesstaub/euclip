@@ -624,6 +624,7 @@ __.transport.sequence('steps', { steps: 4 }, () => {});`),
           '#s › loopStart:slider',
           '#s › loopEnd:slider',
           '#s › reverse:toggle',
+          '#s › slice:slider',
           '#s › gain:slider',
         ],
         'the kind that suits each parameter, keyed by the node',
@@ -644,7 +645,7 @@ __.transport.sequence('steps', { steps: 4 }, () => {});`),
         h.runner
           .warnings(ONE)[0]!
           .message.includes(
-            'has no parameter "tempo". It has: speed, start, end, loop, loopStart, loopEnd, reverse, gain',
+            'has no parameter "tempo". It has: speed, start, end, loop, loopStart, loopEnd, reverse, slice, gain',
           ),
         h.runner.warnings(ONE)[0]!.message,
       );
@@ -678,6 +679,7 @@ __.transport.sequence('steps', { steps: 4 }, () => {});`),
               'loopStart',
               'loopEnd',
               'reverse',
+              'slice',
               'gain',
             ],
           ],
@@ -707,7 +709,7 @@ __.transport.sequence('steps', { steps: 4 }, () => {});`),
       // the same nodes however they are found: the stored value follows the node, not the selector
       await h.setScript(ONE, `${CHAIN}controls('*');`);
       assert.strictEqual(paramOf(h, ONE, 'f', 'frequency').value, 500);
-      assert.strictEqual(h.runner.allControls(ONE).length, 11);
+      assert.strictEqual(h.runner.allControls(ONE).length, 12);
       await h.setScript(ONE, `${CHAIN}slider('#f', 'frequency');`);
       assert.strictEqual(control(h, ONE, '#f › frequency').value, 500);
 
@@ -1709,7 +1711,7 @@ controls('#s');`),
       );
       assert.deepEqual(h.runner.stepGrids(ONE), []);
       assert.deepEqual(h.runner.waveforms(ONE), []);
-      assert.strictEqual(h.runner.allControls(ONE).length, 8);
+      assert.strictEqual(h.runner.allControls(ONE).length, 9);
     });
 
     test('a script of only sequences: controls() still gives them grids', async function (assert) {
@@ -1728,37 +1730,19 @@ controls('#s');`),
       );
     });
 
-    test('a step can be given a value: 0 is off, above 0 is on with that value, and it is what comes back', async function (assert) {
+    test('a step is on or off: toggled on it is 1, whatever it held', async function (assert) {
       const h = await startProject();
-      h.apply(h.runner.setStepOperation(KICK, 'steps', 2, 3));
-      assert.strictEqual(grid(h, KICK).steps[2], 3);
+      h.apply(h.runner.toggleStepOperation(KICK, 'steps', 2));
+      assert.strictEqual(grid(h, KICK).steps[2], 1);
       assert.strictEqual(
         h.engine.scope(KICK).scope('script').transport.get('steps')!.steps[2],
-        3,
+        1,
         'the sequence has it',
       );
       h.apply(h.runner.toggleStepOperation(KICK, 'steps', 2));
       assert.strictEqual(grid(h, KICK).steps[2], 0);
-      h.apply(h.runner.toggleStepOperation(KICK, 'steps', 2));
-      assert.strictEqual(
-        grid(h, KICK).steps[2],
-        3,
-        'switched on again, it is 3 again',
-      );
-      h.apply(h.runner.setStepOperation(KICK, 'steps', 2, 0));
-      assert.strictEqual(grid(h, KICK).steps[2], 0);
-      h.apply(h.runner.setStepOperation(KICK, 'steps', 3, 0.25));
-      assert.strictEqual(
-        grid(h, KICK).steps[3],
-        0.25,
-        'a fraction is a value too',
-      );
-      assert.strictEqual(h.runner.setStepOperation(KICK, 'steps', 99, 1), null);
-      assert.strictEqual(h.runner.setStepOperation(KICK, 'nope', 0, 1), null);
-      assert.strictEqual(
-        h.runner.setStepOperation(KICK, 'steps', 0, NaN),
-        null,
-      );
+      assert.strictEqual(h.runner.toggleStepOperation(KICK, 'steps', 99), null);
+      assert.strictEqual(h.runner.toggleStepOperation(KICK, 'nope', 0), null);
     });
   });
 
@@ -2819,7 +2803,18 @@ stepGrid('a');`),
           assert.strictEqual(shown(fresh.id), '1000000000000000');
           assert.deepEqual(
             grid(h, loop.id, 'slices').steps,
-            [1, 0, 3, 3, 5, 0, 7, 8, 9, 0, 3, 12, 13, 14, 0, 16],
+            [1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1],
+            'steps are on or off',
+          );
+          const slices = h.runner
+            .lanes(loop.id, 'slices')
+            .find((lane) => lane.key === '#sampler › slice');
+          assert.deepEqual(
+            slices?.values.map((value, index) =>
+              slices.locked[index] ? value : null,
+            ),
+            [1, null, 3, 3, 5, null, 7, 8, 9, null, 3, 12, 13, 14, null, 16],
+            'which slice each step that plays plays is its slice lane',
           );
           assert.true(grid(h, KICK).stored);
           assert.deepEqual(h.derived, [], 'nothing rewritten on the way');
@@ -2869,24 +2864,6 @@ stepGrid('a');`),
         storedIn(h, ONE)[stepGridKey('s')],
         [0, 1, 1, 0, 0, 0, 0, 1],
         'the stored pattern itself is not rewritten',
-      );
-    });
-
-    test('a step that holds a value comes back to it; a new step takes the last value used', async function (assert) {
-      const h = await startProject(
-        oneTrack(
-          `${CHAIN}__.transport.sequence('notes', { steps: [3, 0, 0.5, 0, 1, 0] }, () => {});\nstepGrid('notes');`,
-        ),
-      );
-      h.apply(h.runner.toggleStepOperation(ONE, 'notes', 0));
-      assert.strictEqual(grid(h, ONE, 'notes').steps[0], 0);
-      h.apply(h.runner.toggleStepOperation(ONE, 'notes', 0));
-      assert.strictEqual(grid(h, ONE, 'notes').steps[0], 3);
-      h.apply(h.runner.toggleStepOperation(ONE, 'notes', 1));
-      assert.strictEqual(
-        grid(h, ONE, 'notes').steps[1],
-        3,
-        'a new step takes the value last used on the grid (a note on a note track), not 1',
       );
     });
 

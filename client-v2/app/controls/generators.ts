@@ -256,23 +256,6 @@ export function applyGenerator(
   return { steps, generator: { ...state, made: written(steps), base } };
 }
 
-/** What a new hit is on an empty grid of a track that plays its steps as notes: middle C. */
-export const NOTE_FILL = 60;
-
-/**
- * What a new hit is on an empty grid: `NOTE_FILL` where the steps are notes (the synth editor's strip,
- * or a script with a synth played by note), else 1.
- */
-export function hitFill(
-  notes: boolean,
-  sources: readonly { kind: string; synth?: { playsNote: boolean } }[],
-): number {
-  return notes ||
-    sources.some((source) => source.kind === 'synth' && source.synth?.playsNote)
-    ? NOTE_FILL
-    : 1;
-}
-
 export type Tool = 'left' | 'right' | 'reverse' | 'invert';
 
 /**

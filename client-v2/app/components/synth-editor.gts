@@ -13,13 +13,8 @@ import SourceLane, {
   aimedControl,
   sourceLanes,
 } from 'client-v2/components/source-lane';
-import StepGridWidget from 'client-v2/components/widgets/step-grid-widget';
 import Hint from 'client-v2/components/ui/hint';
-import type {
-  ControlView,
-  StepGridView,
-  SynthView,
-} from 'client-v2/audio/runner';
+import type { ControlView, SynthView } from 'client-v2/audio/runner';
 import { hzToNote, noteName, noteToHz } from 'client-v2/controls/modes';
 import selectOptions from 'client-v2/modifiers/select-options';
 import type AudioService from 'client-v2/services/audio';
@@ -132,16 +127,12 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
    * change it. Setting a pitch never moves the view.
    */
   @tracked private shifted = 0;
-  /** the step chosen to be given notes: view state, not the project's */
-  @tracked private chosen: number | null = null;
   @tracked octaves = 2;
   /** the key a finger or key is holding down */
   @tracked down: number | null = null;
   /** a synth macro keeps no pitch: the note it was last played at */
   @tracked private lastPlayed: number | null = null;
 
-  /** the step a press on a key is giving its note to (fixed when the press began) */
-  #target: number | null = null;
   #held = false;
   #group = 0;
   #gesture: string | undefined;
@@ -149,8 +140,7 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
 
   constructor(owner: unknown, args: SynthEditorSignature['Args']) {
     super(owner as never, args);
-    const first = this.grid?.steps.find((value) => value > 0);
-    const around = this.pitchNote ?? first ?? 60;
+    const around = this.pitchNote ?? 48;
     this.shifted = clampBase(Math.floor(around / 12) * 12, this.octaves);
   }
 
@@ -176,13 +166,8 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
     return hz === null ? null : hzToNote(hz);
   }
 
-  /** What the keyboard marks: the chosen step's note, else the pitch. */
+  /** What the keyboard marks: the pitch. */
   get exact(): number | null {
-    const at = this.selected;
-    if (at !== null) {
-      const value = this.grid?.steps[at] ?? 0;
-      return value > 0 ? value : null;
-    }
     return this.pitchNote;
   }
 
@@ -199,15 +184,11 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
   /** `A4`, `A4 +13 ct`; for a pitch out of the audible range of notes, its Hz only. */
   get readout(): string {
     const nearest = this.nearest;
-    const at = this.selected;
-    if (at !== null) {
-      return `Step ${at + 1}: ${nearest === null ? 'rest' : noteName(nearest)}`;
-    }
     if (nearest === null) return this.args.synth.playsNote ? 'No note yet' : '';
     const cents = this.cents;
     const text = `${noteName(nearest)}${cents === 0 ? '' : ` ${cents > 0 ? '+' : '−'}${Math.abs(cents)} ct`}`;
     const hz = this.hz;
-    return hz === null || this.args.synth.playsNote || at !== null
+    return hz === null || this.args.synth.playsNote
       ? text
       : `${text} · ${hz < 100 ? hz.toFixed(2) : hz.toFixed(1)} Hz`;
   }
@@ -334,17 +315,7 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
     this.down = midi;
     this.lastPlayed = midi;
     const hz = this.#hzOf(midi);
-    const grid = this.grid;
-    if (this.#target !== null && grid) {
-      // a step is chosen: the note goes to the step (the pattern the grids show), not to the pitch
-      this.audio.setStep(
-        this.args.scopeId,
-        grid.name,
-        this.#target,
-        midi,
-        this.#gesture,
-      );
-    } else if (synth.pitch && !synth.playsNote && this.selected === null) {
+    if (synth.pitch && !synth.playsNote) {
       this.audio.setControl(
         this.args.scopeId,
         synth.pitch.key,
@@ -370,17 +341,7 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
     this.#held = false;
     this.down = null;
     this.#gesture = undefined;
-    this.#next();
     this.audio.releaseNote(this.args.scopeId, this.args.synth.nodeId);
-  }
-
-  /** After a note was given to a step: on to the next, wrapping. */
-  #next(): void {
-    const grid = this.grid;
-    if (this.#target !== null && grid && grid.steps.length > 0) {
-      this.chosen = (this.#target + 1) % grid.steps.length;
-    }
-    this.#target = null;
   }
 
   #midiAt(event: PointerEvent): number | null {
@@ -404,7 +365,6 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
     }
     (event.currentTarget as HTMLElement).focus({ preventScroll: true });
     this.#gesture = `note-${++this.#group}`;
-    this.#target = this.selected;
     this.#play(midi);
   };
 
@@ -426,13 +386,6 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
       event.preventDefault();
       this.shift(event.key === 'PageUp' ? 1 : -1);
       return;
-    }
-    if (this.selected !== null) {
-      if (this.stepKey(event)) return;
-      if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-        event.preventDefault();
-        return;
-      }
     }
     const step =
       event.key === 'ArrowRight' || event.key === 'ArrowUp'
@@ -457,101 +410,8 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
     }
     if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) {
       event.preventDefault();
-      if (this.selected !== null && this.nearest === null) return; // a rest
       this.#gesture = `note-${++this.#group}`;
       this.#play(this.nearest ?? 60);
-    }
-  };
-
-  // --- the steps ------------------------------------------------------------------------------------------------
-
-  /** The sequence whose steps are shown: the one chosen for this track, else the first with a grid. */
-  get grids(): StepGridView[] {
-    return this.audio.stepGrids(this.args.scopeId);
-  }
-
-  get grid(): StepGridView | undefined {
-    const chosen = this.view.chosenStepSequence(this.args.scopeId);
-    return this.grids.find((grid) => grid.name === chosen) ?? this.grids[0];
-  }
-
-  get severalGrids(): boolean {
-    return this.grids.length > 1;
-  }
-
-  get gridChoices(): { value: string; label: string }[] {
-    return this.grids.map((grid) => ({ value: grid.name, label: grid.label }));
-  }
-
-  chooseGrid = (event: Event): void => {
-    this.chosen = null;
-    this.view.chooseStepSequence(
-      this.args.scopeId,
-      (event.target as HTMLSelectElement).value,
-    );
-  };
-
-  /** The chosen step, if it is still in the sequence. */
-  get selected(): number | null {
-    const at = this.chosen;
-    const length = this.grid?.steps.length ?? 0;
-    return at !== null && at < length ? at : null;
-  }
-
-  get hasSelected(): boolean {
-    return this.selected !== null;
-  }
-
-  /** Tapping a step chooses it; tapping it again lets go. `on`: the double click that opens its value box chooses it. */
-  pick = (index: number, on?: boolean): void => {
-    this.chosen = on === true || this.chosen !== index ? index : null;
-  };
-
-  /** Clears the chosen step to a rest and moves on. One undo step. */
-  rest = (): void => {
-    const at = this.selected;
-    const grid = this.grid;
-    if (at === null || !grid) return;
-    this.audio.setStep(
-      this.args.scopeId,
-      grid.name,
-      at,
-      0,
-      `note-${++this.#group}`,
-    );
-    this.chosen = (at + 1) % grid.steps.length;
-  };
-
-  /** Keys that work on the chosen step, from the keyboard or the strip. True if the key was one. */
-  stepKey = (event: KeyboardEvent): boolean => {
-    const at = this.selected;
-    const length = this.grid?.steps.length ?? 0;
-    if (at === null || length === 0) return false;
-    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-      event.preventDefault();
-      this.chosen =
-        (at + (event.key === 'ArrowRight' ? 1 : -1) + length) % length;
-      return true;
-    }
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      this.chosen = null;
-      return true;
-    }
-    if (event.key === 'Backspace' || event.key === 'Delete') {
-      event.preventDefault();
-      this.rest();
-      return true;
-    }
-    return false;
-  };
-
-  onStripKey = (event: KeyboardEvent): void => {
-    if (this.stepKey(event)) {
-      const cell = (
-        event.currentTarget as HTMLElement
-      ).querySelectorAll<HTMLElement>('[data-test-step]')[this.chosen ?? -1];
-      cell?.focus({ preventScroll: true });
     }
   };
 
@@ -631,16 +491,10 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
                 drag across keys to glide, or use the arrow keys, and Enter or
                 Space to play. The octave changes only with the − and + buttons,
                 or PageDown and PageUp on the keyboard.</p>
-              {{#if this.grid}}
-                <p data-test-steps-hint>Steps: a step’s value is passed to the
-                  script as
-                  <code>ev.value</code>; in the Synth template it is played as a
-                  MIDI note, and 0 is a rest. Tap a step, then a key: the key’s
-                  note goes to the step, it plays, and the next step is chosen,
-                  so a line is entered by tapping keys in a row. Tap the step
-                  again, or press Escape, to choose none. Arrow left and right
-                  move the choice; Backspace or Delete (or Rest) clears it.</p>
-              {{/if}}
+              <p data-test-steps-hint>The steps button (beside the octave
+                buttons) shows the pitch on every step in the keyboard’s place:
+                drag the bars to make a melody. A step with a pitch of its own
+                plays it; the others play the keyboard’s.</p>
               <p>The controls are the ones the script declares for this source:
                 <code>slider('#osc', 'detune')</code>, or
                 <code>controls()</code>
@@ -661,45 +515,6 @@ export default class SynthEditor extends Component<SynthEditorSignature> {
 
         {{#unless @synth.noise}}
           <div class="synth__main">
-            {{#if this.grid}}
-              <div class="synth__steps" data-test-synth-steps>
-                <div class="synth__stepbar">
-                  <span class="synth__steplabel">Steps</span>
-                  {{#if this.severalGrids}}
-                    <label class="waveform__field synth__stepchoice">
-                      <span class="sr-only">Sequence</span>
-                      <select
-                        class="select waveform__select"
-                        data-test-step-sequence
-                        {{on "change" this.chooseGrid}}
-                        {{selectOptions this.gridChoices this.grid.name}}
-                      ></select>
-                    </label>
-                  {{else}}
-                    <span
-                      class="synth__stepname truncate"
-                    >{{this.grid.label}}</span>
-                  {{/if}}
-                  <button
-                    type="button"
-                    class="btn btn--s btn--on-yellow"
-                    disabled={{if this.hasSelected false true}}
-                    data-test-step-rest
-                    {{on "click" this.rest}}
-                  >Rest</button>
-                </div>
-                <StepGridWidget
-                  class="synth__stepgrid"
-                  @scopeId={{@scopeId}}
-                  @control={{this.grid}}
-                  @notes={{true}}
-                  @selected={{this.selected}}
-                  @onSelect={{this.pick}}
-                  {{on "keydown" this.onStripKey}}
-                />
-              </div>
-            {{/if}}
-
             {{#if this.hasKeyboard}}
               <div class="synth__keys" data-test-synth-keyboard>
                 <div class="synth__keybar">

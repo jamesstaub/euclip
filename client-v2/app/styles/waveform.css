@@ -1084,11 +1084,6 @@
   position: relative;
 }
 
-/* (a short keyboard makes room for the lane's bars while it is over it) */
-.synth__keyboard:has(> .source-lane) {
-  min-block-size: 7.25rem;
-}
-
 .source-lane {
   /* (its bar of a menu and a ×: the lane head's height, which keeps clear of them) */
   --source-lane-bar: 1.75rem;
@@ -1108,13 +1103,6 @@
 .source-lane--inline {
   position: static;
   margin-block-start: var(--space-2);
-}
-
-.synth__keyboard > .source-lane {
-  inset-block: 0;
-  min-block-size: 0;
-  overflow-y: auto;
-  border: 0;
 }
 
 /* its menu of the source's lanes (its name) and its ×, along the lane head: the bars have the whole width */
@@ -1181,9 +1169,10 @@
   display: none;
 }
 
-/* (its bars stretch to the place's height, never under 4rem, and share its whole width: no steps above
-   them to line up with) */
-.waveform__stage > .source-lane {
+/* (its bars stretch to the place's height, never under 3rem, and share its whole width: no steps above
+   them to line up with; the keyboard's place is as tall as the keyboard, and stays so) */
+.waveform__stage > .source-lane,
+.synth__keyboard > .source-lane {
   inset-block: 0;
   display: flex;
   flex-direction: column;
@@ -1196,7 +1185,7 @@
     flex: 1 1 auto;
     grid-template-columns: repeat(16, minmax(0, 1fr)) max-content;
     grid-template-rows: auto;
-    grid-auto-rows: minmax(4rem, 1fr);
+    grid-auto-rows: minmax(3rem, 1fr);
   }
 
   & .lane__bar {

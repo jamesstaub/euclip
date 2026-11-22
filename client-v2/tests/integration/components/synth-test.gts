@@ -1,7 +1,6 @@
 import { module, test } from 'qunit';
 import {
   click,
-  fillIn,
   find,
   findAll,
   focus,
@@ -15,6 +14,7 @@ import { EditorView } from '@codemirror/view';
 import { setupRenderingTest } from 'client-v2/tests/helpers';
 import AppShell from 'client-v2/components/app-shell';
 import { noteToHz } from 'client-v2/controls/modes';
+import { SYNTH_PITCH } from 'client-v2/project/default-project';
 import { controlKey, stepGridKey } from 'client-v2/project/schema';
 import type AudioService from 'client-v2/services/audio';
 import type ProjectService from 'client-v2/services/project';
@@ -83,6 +83,8 @@ synth('#osc');
 `;
   const stored = (): unknown =>
     project.doc.tracks.at(-1)!.values.controls[PITCH]?.value;
+  const pitchOf = (): unknown =>
+    project.doc.tracks.at(-1)!.values.controls[SYNTH_PITCH]?.value;
   const steps = (): number[] =>
     project.doc.tracks.at(-1)!.values.controls[stepGridKey('steps')]
       ?.value as number[];
@@ -111,27 +113,26 @@ synth('#osc');
     await triggerEvent(piano, 'pointerdown', onKey(name));
     await triggerEvent(piano, 'pointerup', onKey(name));
   };
-  const cell = (n: number): string =>
-    `[data-test-synth-steps] [data-test-step="${n - 1}"]`;
 
-  test('New Track has a Synth: its source tab has a step strip, a scope, a keyboard and the source’s controls; nothing is left for processors', async function (assert) {
+  test('New Track has a Synth: its source tab has a scope, a keyboard and the source’s controls, and no step strip; nothing is left for processors', async function (assert) {
     await open();
     assert.dom('[data-test-synth="synth"]').exists();
     assert.dom('[data-test-synth-scope] canvas').exists();
     assert.dom(`${piano} [data-test-key]`).exists({ count: 24 });
     assert
-      .dom('[data-test-synth-steps] [data-test-step]')
-      .exists({ count: 16 });
-    assert.dom(cell(1)).hasText('C2', 'a step shows its note');
-    assert.dom(cell(2)).hasText('', 'a rest is empty');
+      .dom('[data-test-synth] [data-test-step]')
+      .doesNotExist('no strip of steps: the melody is the pitch’s lane');
     assert
       .dom('[data-test-source-controls="synth"] [data-test-control]')
       .exists({ count: 5 });
     assert.dom('[data-test-synth-hint]').exists('its hints are behind a ?');
     await click('[data-test-synth-hint] [data-test-hint-button]');
-    assert.dom('[data-test-steps-hint]').includesText('ev.value');
+    assert.dom('[data-test-steps-hint]').includesText('steps button');
     await click('[data-test-synth-hint] [data-test-hint-button]');
-    assert.strictEqual(range(), 'C2 to B3', 'starts where the notes are');
+    assert.strictEqual(range(), 'C2 to B3', 'starts where the pitch is');
+    assert
+      .dom(`${piano} [data-current="true"]`)
+      .hasAttribute('data-note', 'C2', 'the keyboard’s pitch');
 
     assert
       .dom('[data-test-pane="controls"] [data-test-control]')
@@ -169,112 +170,7 @@ synth('#osc');
     assert.strictEqual(range(), before, 'PageDown is the same as the − button');
   });
 
-  test('a step is chosen, then keys give it notes: each is one undo step, the next step is chosen, the grid in the row agrees', async function (assert) {
-    await open();
-    await click(cell(1));
-    assert.dom(cell(1)).hasAttribute('data-selected', 'true');
-    assert
-      .dom(`${piano} [data-current="true"]`)
-      .hasAttribute('data-note', 'C2');
-    const start = steps();
-    await press('E2');
-    await press('G2');
-    await press('A2');
-    await press('C3');
-    assert.deepEqual(steps().slice(0, 4), [40, 43, 45, 48]);
-    assert.strictEqual(steps()[4], start[4], 'the next one is untouched');
-    assert.dom(cell(1)).hasText('E2');
-    assert.dom(cell(4)).hasText('C3');
-    assert.dom(cell(5)).hasAttribute('data-selected', 'true', 'it moved on');
-    assert.dom('[data-test-track="4"] [data-test-step]').exists({ count: 16 });
-    assert.deepEqual(
-      findAll('[data-test-track="4"] [data-test-step]')
-        .slice(0, 4)
-        .map((el) => el.getAttribute('aria-pressed')),
-      ['true', 'true', 'true', 'true'],
-      'the row’s grid holds the same pattern',
-    );
-    assert.strictEqual(stored(), undefined, 'no pitch was stored');
-
-    project.undo();
-    await settled();
-    assert.strictEqual(steps()[3], start[3], 'one undo takes back one note');
-    assert.strictEqual(steps()[2], 45);
-    project.undo();
-    project.undo();
-    project.undo();
-    await settled();
-    assert.deepEqual(steps(), start, 'and four undo the line');
-  });
-
-  test('a double click on a strip cell opens the grid’s own value box: type 48, Enter; the cell, the grid and the undo agree', async function (assert) {
-    await open();
-    const row = (n: number): string =>
-      `[data-test-track="4"] [data-test-step="${n}"]`;
-    await click(cell(3));
-    await click(cell(3));
-    await triggerEvent(cell(3), 'dblclick');
-    assert.dom('[data-test-synth-steps] .step-entry').exists('the box opens');
-    assert
-      .dom(cell(3))
-      .hasAttribute('data-selected', 'true', 'and the cell is chosen');
-    await fillIn('[data-test-synth-steps] .step-entry input', '48');
-    await triggerKeyEvent(
-      '[data-test-synth-steps] .step-entry input',
-      'keydown',
-      'Enter',
-    );
-    assert.strictEqual(steps()[2], 48);
-    assert.dom(cell(3)).hasText('C3');
-    assert
-      .dom(cell(3))
-      .hasAttribute('data-selected', 'true', 'it stays chosen');
-    assert.dom(row(2)).hasAttribute('aria-pressed', 'true');
-    assert.dom(row(2)).hasText('48', 'the row’s grid shows the raw number');
-    project.undo();
-    await settled();
-    assert.strictEqual(steps()[2], 0, 'one undo restores it');
-    assert.dom(cell(3)).hasText('');
-  });
-
-  test('the strip’s cells are the sequence pane grid’s steps: the same width', async function (assert) {
-    await open();
-    const width = (selector: string): number =>
-      (find(selector) as HTMLElement).getBoundingClientRect().width;
-    const strip = width('[data-test-synth-steps] [data-test-step="0"]');
-    view.footerPane = 'sequence';
-    await settled();
-    const grid = width('[data-test-pane="sequence"] [data-test-step="0"]');
-    assert.true(Math.abs(strip - grid) <= 1, `${strip} and ${grid}`);
-  });
-
-  test('rest, arrows, Escape, tapping again: choosing and clearing steps', async function (assert) {
-    await open();
-    await click(cell(1));
-    await click('[data-test-step-rest]');
-    assert.strictEqual(steps()[0], 0, 'Rest clears the step');
-    assert.dom(cell(2)).hasAttribute('data-selected', 'true', 'and moves on');
-    await triggerKeyEvent(cell(2), 'keydown', 'ArrowRight');
-    assert.dom(cell(3)).hasAttribute('data-selected', 'true');
-    await triggerKeyEvent(cell(3), 'keydown', 'ArrowLeft');
-    assert.dom(cell(2)).hasAttribute('data-selected', 'true');
-    await triggerKeyEvent(cell(2), 'keydown', 'ArrowLeft');
-    await triggerKeyEvent(cell(1), 'keydown', 'ArrowLeft');
-    assert.dom(cell(16)).hasAttribute('data-selected', 'true', 'wraps');
-    await focus(piano);
-    await triggerKeyEvent(piano, 'keydown', 'Backspace');
-    assert
-      .dom(cell(1))
-      .hasAttribute('data-selected', 'true', 'Backspace on the keyboard too');
-    await triggerKeyEvent(piano, 'keydown', 'Escape');
-    assert.dom('[data-selected="true"]').doesNotExist('Escape lets go');
-    await click(cell(4));
-    await click(cell(4));
-    assert.dom('[data-selected="true"]').doesNotExist('tapping again lets go');
-    assert.dom('[data-test-step-rest]').isDisabled();
-  });
-
-  test('with no step chosen a macro synth plays and marks the last note, and keeps no pitch', async function (assert) {
+  test('a synth macro’s keyboard keeps the pitch it plays (its frequency); the melody is the pitch’s lane', async function (assert) {
     await open();
     const before = steps();
     await press('D2');
@@ -282,79 +178,19 @@ synth('#osc');
       .dom(`${piano} [data-current="true"]`)
       .hasAttribute('data-note', 'D2');
     assert.deepEqual(steps(), before, 'the pattern is untouched');
-    assert.strictEqual(stored(), undefined);
-  });
-
-  test('a tapped new step takes the last note used, not 1; an off step comes back to its note', async function (assert) {
-    await open();
-    await click('[data-test-track="4"] [data-test-step]');
-    assert.strictEqual(steps()[0], 0, 'step 1 went off');
-    await click('[data-test-track="4"] [data-test-step]');
-    assert.strictEqual(steps()[0], 36, 'and comes back to its note');
-    const second = findAll('[data-test-track="4"] [data-test-step]')[1]!;
-    await click(second);
-    assert.strictEqual(steps()[1], 36, 'a new step takes the last note used');
-  });
-
-  const TWO = `__().monosynth({ id: 'synth' }).to('channel');
-__.transport.sequence('leadmelody', { steps: 16 }, (ev) => {
-  if (ev.value) __('#synth').trigger({ pitch: ev.value });
-});
-__.transport.sequence('countermelody', { steps: 16 }, () => {});
-stepGrid('leadmelody');
-stepGrid('countermelody');
-synth('#synth');
-slider('#synth', 'resonance');
-`;
-
-  test('on an empty grid of a synth played by note, a tapped step is middle C, not note 1', async function (assert) {
-    await open();
-    await click('[data-test-script-toggle]');
-    await typeScript(() => TWO);
-    await click('[data-test-script-toggle]');
-    await waitUntil(() => find('[data-test-step-sequence]'), { timeout: 3000 });
-    await settled();
-    await click('[data-test-track="4"] [data-test-step]');
-    const lead = project.doc.tracks.at(-1)!.values.controls[
-      stepGridKey('leadmelody')
-    ]?.value as number[];
-    assert.strictEqual(lead[0], 60);
-  });
-
-  test('several sequences: the strip’s picker has a row of its own beside a narrow scope, not squeezed by the octaves', async function (assert) {
-    await open();
-    await click('[data-test-script-toggle]');
-    await typeScript(() => TWO);
-    await click('[data-test-script-toggle]');
-    await waitUntil(() => find('[data-test-step-sequence]'), { timeout: 3000 });
-    // the middle arrangement (37rem to 57rem): as with the sidebar open beside a narrow footer
-    const box = find('.synth-box') as HTMLElement;
-    box.style.flex = 'none';
-    box.style.width = '44rem';
-    await settled();
-    // (offsetWidth: the test container is drawn at half size, which a bounding box would include)
-    const select = find('[data-test-step-sequence]') as HTMLElement;
-    const picker = select.getBoundingClientRect();
-    const keys = find('.synth__keybar')!.getBoundingClientRect();
     assert.true(
-      select.offsetWidth >= 128,
-      `the picker is ${select.offsetWidth}px wide`,
+      Math.abs((pitchOf() as number) - noteToHz(38)) < 0.01,
+      'the pitch is kept, in Hz',
     );
-    assert.true(
-      picker.top >= keys.bottom - 1,
-      'it is under the octave bar, not on top of it',
-    );
-    const labels = findAll(
-      '[data-test-source-controls="synth"] .control-row__label',
-    ) as HTMLElement[];
-    assert.true(
-      labels.some((label) => label.textContent.trim() === 'resonance'),
-      'resonance is one of them',
-    );
-    const cut = labels
-      .filter((label) => label.scrollWidth > label.clientWidth)
-      .map((label) => label.textContent.trim());
-    assert.deepEqual(cut, [], 'no control’s name is cut off');
+    await click('[data-test-lane-switch-lanes]');
+    assert
+      .dom(`.synth__keyboard [data-test-source-lane="${SYNTH_PITCH}"]`)
+      .exists(
+        'the steps button shows the pitch’s lane, in the keyboard’s place',
+      );
+    assert
+      .dom('[data-test-source-lane] [data-locked]')
+      .exists({ count: 3 }, 'the template’s three other notes');
   });
 
   test('an oscillator’s keyboard sets the stored pitch: a press and a drag are one undo step each', async function (assert) {

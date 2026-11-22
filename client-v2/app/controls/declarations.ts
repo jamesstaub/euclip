@@ -117,6 +117,8 @@ export const WAVEFORM_PARAMS = [
   'loop',
   'reverse',
   'speed',
+  // (which slice a trigger plays: no value of its own in the editor, a lane in its menu)
+  'slice',
 ] as const;
 
 /** The key part that names a waveform editor, and the sound its sampler plays, among a node's controls. */

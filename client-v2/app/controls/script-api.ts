@@ -37,6 +37,9 @@ import {
   type StoredValue,
 } from 'client-v2/project/schema';
 
+/** A MIDI note's frequency in Hz (69 is A 440). */
+const noteToHz = (note: number): number => 440 * 2 ** ((note - 69) / 12);
+
 /** What the script side needs from whoever runs the script. Plain data both ways. */
 export interface ControlHost {
   /** the value the project holds for a control, if any. Read live, every time. */
@@ -989,6 +992,17 @@ export function createControlApi(
       bindings.push({ type: 'param', selector, param: pitch });
       const meta = node.param(pitch).meta;
       if (meta.kind === 'number' && meta.rate !== 'init') {
+        // The control it makes is "pitch", in notes, from C1 to C7 (within the parameter's own range):
+        // the keyboard's notes, and a lane whose bars are a melody's, not a sliver of 16 Hz to 8 kHz.
+        const pitchOptions: ControlOptions =
+          meta.unit === 'hz'
+            ? {
+                label: 'pitch',
+                mode: 'note',
+                min: Math.max(meta.min, noteToHz(24)),
+                max: Math.min(meta.max, noteToHz(96)),
+              }
+            : { label: 'pitch' };
         bound(
           call,
           'synth',
@@ -997,7 +1011,7 @@ export function createControlApi(
           [node],
           null,
           pitch,
-          {},
+          pitchOptions,
           true,
           line,
           true,

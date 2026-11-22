@@ -1,6 +1,7 @@
 import { module, test } from 'qunit';
 import {
   click,
+  doubleClick,
   fillIn,
   find,
   waitUntil,
@@ -117,218 +118,33 @@ module('Integration | Component | app-shell', function (hooks) {
       assert.dom('[data-test-footer-body]').exists();
       await click('[data-test-footer-toggle]');
       assert.dom('[data-test-footer-body]').doesNotExist();
+
+      // a track's name selects it and opens the collapsed footer on it
+      await click('[data-test-track="2"] [data-test-track-name]');
+      assert.dom('[data-test-footer-body]').exists('opened by a track’s name');
+      assert.dom('[data-test-footer-name]').hasValue('snare');
+      await click('[data-test-track="3"] [data-test-track-name]');
+      assert
+        .dom('[data-test-footer-body]')
+        .exists('another’s name keeps it open, on that track');
+      assert.dom('[data-test-footer-name]').hasValue('hat');
     });
   });
 
   module('step grids', function () {
-    module('a step’s value', function () {
-      const step = (index: number): string =>
-        `[data-test-track="1"] [data-test-step="${index}"]`;
-      const steps = (): number[] =>
-        project.doc.tracks[0]!.values.controls[STEPS]?.value as number[];
-      const live = (): readonly number[] => audio.stepGrids('t-kick')[0]!.steps;
-      const type = async (text: string, key = 'Enter'): Promise<void> => {
-        await fillIn('[data-test-step-entry] [data-test-number-input]', text);
-        await triggerKeyEvent(
-          '[data-test-step-entry] [data-test-number-input]',
-          'keydown',
-          key,
-        );
-      };
-
-      test('a double click opens a number box on the step; Enter commits, and the whole thing is one step to undo', async function (assert) {
-        await render(<template><AppShell /></template>);
-        assert.strictEqual(
-          live()[1],
-          0,
-          'the second step is off to begin with',
-        );
-
-        // a double click is two clicks and then the double click
-        await click(step(1));
-        assert.strictEqual(
-          live()[1],
-          1,
-          'the first click toggles at once: nothing waits',
-        );
-        await click(step(1));
-        await triggerEvent(step(1), 'dblclick');
-        assert
-          .dom('[data-test-step-entry]')
-          .exists('the box is open on the step');
-        assert.strictEqual(live()[1], 1, 'and the step is on, with 1');
-        assert
-          .dom('[data-test-step-entry] [data-test-number-input]')
-          .isFocused();
-        assert
-          .dom('[data-test-step-entry] [data-test-number-input]')
-          .hasValue('1');
-        assert
-          .dom('[data-test-step-entry] [data-test-number-input]')
-          .hasAria('label', 'Step 2 value');
-
-        await type('3');
-        assert
-          .dom('[data-test-step-entry]')
-          .doesNotExist('Enter commits and closes');
-        assert.strictEqual(steps()[1], 3);
-        assert.dom(step(1)).hasText('3', 'the step shows its value');
-        assert.dom(step(1)).hasAria('pressed', 'true');
-        assert.dom(step(1)).isFocused('focus is back on the step');
-
-        project.undo();
-        await settled();
-        assert.strictEqual(
-          live()[1],
-          0,
-          'one undo takes back the clicks and the value together',
-        );
-        assert.false(project.canUndo);
-      });
-
-      test('two quick taps on neighbouring steps are two taps, not a double click on the second', async function (assert) {
-        await render(<template><AppShell /></template>);
-        const step = (index: number): string =>
-          `[data-test-track="2"] [data-test-step="${index}"]`;
-        await click(step(1));
-        await click(step(2));
-        // (what a browser sends when two taps land close together, as they do on narrow steps)
-        await triggerEvent(step(2), 'dblclick');
-        assert.dom('[data-test-step-entry]').doesNotExist('no value box');
-        assert.deepEqual(
-          pressedSteps(2).filter((index) => index === 1 || index === 2),
-          [1, 2],
-          'each tap toggled its own step',
-        );
-      });
-
-      test('a double click that changes nothing leaves nothing to undo; Escape gives up; 0 turns the step off', async function (assert) {
-        await render(<template><AppShell /></template>);
-        assert.strictEqual(live()[0], 1);
-        await click(step(0));
-        await click(step(0));
-        await triggerEvent(step(0), 'dblclick');
-        assert.strictEqual(live()[0], 1, 'on, as it was');
-        await type('7', 'Escape');
-        assert.dom('[data-test-step-entry]').doesNotExist();
-        assert.strictEqual(live()[0], 1, 'Escape gives up what was typed');
-        assert.false(
-          project.canUndo,
-          'two toggles that cancel out are not a step to undo',
-        );
-
-        await triggerKeyEvent(step(0), 'keydown', 'Enter');
-        assert
-          .dom('[data-test-step-entry]')
-          .exists('Enter on a focused step opens the box');
-        await type('0');
-        assert.strictEqual(steps()[0], 0);
-        assert.dom(step(0)).hasAria('pressed', 'false', '0 is off');
-
-        await triggerKeyEvent(step(4), 'keydown', '5');
-        const field = '[data-test-step-entry] [data-test-number-input]';
-        assert
-          .dom(field)
-          .hasValue('5', 'a digit opens the box with that digit in it');
-        assert
-          .dom(field)
-          .hasAttribute('inputmode', 'numeric', 'a phone shows its digit pad');
-        assert.dom(field).hasAttribute('maxlength', '3');
-        // only digits get in: a point, a minus, an exponent and letters are dropped as they are typed
-        const input = find(field) as HTMLInputElement;
-        for (const [typed, kept] of [
-          ['1.5', '15'],
-          ['-7', '7'],
-          ['1e3', '13'],
-          ['loud', ''],
-          ['12345', '123'],
-        ] as const) {
-          input.value = typed;
-          await triggerEvent(field, 'input');
-          assert.strictEqual(input.value, kept, `"${typed}" is "${kept}"`);
-        }
-        await type('12');
-        assert.strictEqual(steps()[4], 12, 'a whole number');
-        assert.dom(step(4)).hasText('12');
-
-        await triggerKeyEvent(step(4), 'keydown', '.');
-        assert
-          .dom('[data-test-step-entry]')
-          .doesNotExist(
-            'a point does not open the box: values are whole numbers',
-          );
-        await triggerKeyEvent(step(4), 'keydown', 'Enter');
-        await type('999');
-        assert.strictEqual(steps()[4], 999, 'up to 999');
-        await triggerKeyEvent(step(4), 'keydown', 'Enter');
-        await type('');
-        assert
-          .dom('[data-test-step-entry]')
-          .doesNotExist('nothing typed: nothing changed');
-        assert.strictEqual(steps()[4], 999);
-        await triggerKeyEvent(step(4), 'keydown', ' ');
-        assert
-          .dom('[data-test-step-entry]')
-          .doesNotExist('Space is still the key that toggles');
-      });
-
-      test('a long press with a finger opens the box, and lifting the finger does not toggle', async function (assert) {
-        await render(<template><AppShell /></template>);
-        const touch = {
-          pointerType: 'touch',
-          pointerId: 5,
-          isPrimary: true,
-          clientX: 10,
-          clientY: 10,
-        };
-        await triggerEvent(step(2), 'pointerdown', touch);
-        await triggerEvent(step(2), 'pointerup', touch);
-        await click(step(2));
-        assert.strictEqual(
-          live()[2],
-          1,
-          'a tap toggles at once, as a click does',
-        );
-        assert.dom('[data-test-step-entry]').doesNotExist();
-
-        await triggerEvent(step(2), 'pointerdown', touch);
-        await new Promise((resolve) => setTimeout(resolve, 650));
-        await settled();
-        assert.dom('[data-test-step-entry="2"]').exists('held: the box opens');
-        await triggerEvent(step(2), 'pointerup', touch);
-        await triggerEvent(step(2), 'click');
-        assert.strictEqual(
-          live()[2],
-          1,
-          'the click that ends the press is not a toggle',
-        );
-        assert
-          .dom('[data-test-step-entry]')
-          .exists('and the box is still open');
-        await type('4');
-        assert.strictEqual(steps()[2], 4);
-
-        // a finger that moves off (a scroll) is not a long press
-        await triggerEvent(step(3), 'pointerdown', touch);
-        await triggerEvent(step(3), 'pointermove', { ...touch, clientY: 60 });
-        await new Promise((resolve) => setTimeout(resolve, 650));
-        assert.dom('[data-test-step-entry]').doesNotExist();
-
-        // the same grid in the sequence pane opens the same box
-        view.footerPane = 'sequence';
-        await settled();
-        await triggerKeyEvent(
-          '[data-test-pane="sequence"] [data-test-step="6"]',
-          'keydown',
-          'Enter',
-        );
-        assert
-          .dom('[data-test-pane="sequence"] [data-test-step-entry="6"]')
-          .exists();
-        await type('2');
-        assert.strictEqual(steps()[6], 2);
-        assert.dom(step(6)).hasText('2', 'and the track row’s grid shows it');
-      });
+    test('a step is on or off: no box for a value, and a step switched on is 1', async function (assert) {
+      await render(<template><AppShell /></template>);
+      const step = '[data-test-track="1"] [data-test-step="1"]';
+      await doubleClick(step);
+      assert.dom('[data-test-step-entry]').doesNotExist('no value box');
+      assert.dom(step).hasAria('pressed', 'false', 'two presses: back off');
+      await click(step);
+      assert.strictEqual(audio.stepGrids('t-kick')[0]!.steps[1], 1);
+      assert.dom(step).hasText('', 'a step shows nothing but on or off');
+      await triggerKeyEvent(step, 'keydown', '5');
+      assert
+        .dom('[data-test-step-entry]')
+        .doesNotExist('a digit opens nothing');
     });
 
     test('a track row shows the step grids its script declares', async function (assert) {
@@ -610,7 +426,7 @@ stepGrid('ones');
         .hasText('2');
     });
 
-    test('the tools turn the pattern; Or, And and Xor meet what is there; a step’s value is kept', async function (assert) {
+    test('the tools turn the pattern; Or, And and Xor meet what is there', async function (assert) {
       view.footerPane = 'sequence';
       await render(<template><AppShell /></template>);
       const gen = '[data-test-pane="sequence"] [data-test-generators="steps"]';
@@ -620,12 +436,8 @@ stepGrid('ones');
         steps()
           .map((step) => (step ? 'x' : '.'))
           .join('');
-      audio.setStep('t-kick', 'steps', 4, 7);
-      await settled();
-
       await click(`${seq} [data-test-gen-tool="right"]`);
       assert.strictEqual(pattern(), '.x...x...x...x..');
-      assert.strictEqual(steps()[5], 7, 'the value went round with its step');
       await click(`${seq} [data-test-gen-tool="left"]`);
       assert.strictEqual(pattern(), 'x...x...x...x...');
       await click(`${seq} [data-test-gen-tool="reverse"]`);
@@ -641,9 +453,8 @@ stepGrid('ones');
       );
       project.undo();
       await settled();
-      assert.strictEqual(steps()[4], 7);
 
-      // Or: the generated rhythm is laid over what is there; the 7 stays on its step
+      // Or: the generated rhythm is laid over what is there
       await select(`${seq} [data-test-gen-combine]`, 'or');
       assert.strictEqual(
         pattern(),
@@ -664,7 +475,6 @@ stepGrid('ones');
         'x.x.x.x.x.x.x.x.',
         '2 is x. over and over, added to what was there',
       );
-      assert.strictEqual(steps()[4], 7, 'a step that stays on keeps its value');
       assert.strictEqual(steps()[2], 1, 'a new hit is 1');
       await select(`${seq} [data-test-gen-combine]`, 'and');
       assert.strictEqual(

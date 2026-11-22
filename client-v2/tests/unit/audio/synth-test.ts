@@ -1,6 +1,6 @@
 import { module, test } from 'qunit';
-import { noteToHz } from 'client-v2/controls/modes';
-import { newSynthTrack } from 'client-v2/project/default-project';
+import { hzToNote, noteToHz } from 'client-v2/controls/modes';
+import { newSynthTrack, SYNTH_PITCH } from 'client-v2/project/default-project';
 import { applyOperation } from 'client-v2/project/operations';
 import {
   controlKey,
@@ -157,7 +157,7 @@ module('Unit | Audio | synth sources', function () {
       assert.deepEqual(sourceKeys(h, 'osc'), [PITCH]);
     });
 
-    test('a synth macro is played by note: no pitch parameter, no stored pitch', async function (assert) {
+    test('a synth macro’s keyboard sets its frequency, the note of a trigger with no pitch', async function (assert) {
       const h = await startProject(
         oneTrack(
           `__().monosynth({ id: 'mono' }).to('channel');\nsynth('#mono');`,
@@ -165,9 +165,9 @@ module('Unit | Audio | synth sources', function () {
         1,
       );
       const [view] = h.runner.synths(ONE);
-      assert.true(view!.playsNote);
-      assert.strictEqual(view!.pitchParam, null);
-      assert.strictEqual(view!.pitch, null);
+      assert.false(view!.playsNote, 'it keeps the note');
+      assert.strictEqual(view!.pitchParam, 'frequency');
+      assert.strictEqual(view!.pitch?.key, '#mono › frequency');
     });
 
     test('a sampler or a node that is not a source is a warning on its line, and the rest runs', async function (assert) {
@@ -340,18 +340,24 @@ module('Unit | Audio | synth sources', function () {
   });
 
   module('the Synth template', function () {
-    /** One step on at the start of a 3 s render: what is left is one note, then silence. */
+    /** One step on at the start of a 3 s render, with a pitch of its own: one note, then silence. */
     async function oneNote(note: number) {
       const base = newSynthTrack('s');
-      const doc = applyOperation(
+      let doc = applyOperation(
         { ...arrayDefaultProject(), script: '', tracks: [base] },
         {
           type: 'setControlValue',
           scope: base.id,
           key: stepGridKey('steps'),
-          value: [note, ...new Array<number>(15).fill(0)],
+          value: [1, ...new Array<number>(15).fill(0)],
         },
       );
+      doc = applyOperation(doc, {
+        type: 'setControlOptions',
+        scope: base.id,
+        key: SYNTH_PITCH,
+        options: { stepValues: [noteToHz(note)] },
+      });
       const h = await startProject(doc, 3);
       return h.render();
     }
@@ -400,8 +406,37 @@ module('Unit | Audio | synth sources', function () {
       );
       assert.deepEqual(
         h.runner.stepGrids(id).map((grid) => grid.steps.join(',')),
-        ['36,0,0,36,0,0,43,0,36,0,0,39,0,41,0,0'],
-        'a step holds a MIDI note',
+        ['1,0,0,1,0,0,1,0,1,0,0,1,0,1,0,0'],
+        'steps are on or off',
+      );
+      const pitch = h.runner
+        .lanes(id, 'steps')
+        .find((lane) => lane.key === SYNTH_PITCH);
+      assert.deepEqual(
+        pitch?.values.map((hz, index) =>
+          index % 16 === 0 || [3, 6, 8, 11, 13].includes(index)
+            ? Math.round(hzToNote(hz))
+            : null,
+        ),
+        [
+          36,
+          null,
+          null,
+          36,
+          null,
+          null,
+          43,
+          null,
+          36,
+          null,
+          null,
+          39,
+          null,
+          41,
+          null,
+          null,
+        ],
+        'the melody is the pitch’s lane: C2 from the keyboard, the other notes on their steps',
       );
       const rendered = await h.render();
       assert.true(rms(rendered, 0, 2) > 0.005, 'it sounds');
@@ -410,7 +445,7 @@ module('Unit | Audio | synth sources', function () {
       assert.true(top > 0.05, 'and is not faint');
     });
 
-    test('a step’s value is the pitch: a higher note has a higher frequency; between notes it is silent', async function (assert) {
+    test('a step’s pitch in the lane is the note: a higher note has a higher frequency; between notes it is silent', async function (assert) {
       const low = await oneNote(36);
       const high = await oneNote(48);
       const lowCount = crossings(low, 0.02, 0.12);

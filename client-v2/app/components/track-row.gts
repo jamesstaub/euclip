@@ -76,6 +76,12 @@ export default class TrackRow extends Component<TrackRowSignature> {
     return this.audio.error(this.args.track.id)?.message;
   }
 
+  /** The track's name: it is selected, and a closed footer opens (to half, on a phone) to show it. */
+  openTrack = (): void => {
+    this.args.onSelect(this.args.track.id);
+    if (!this.view.footerOpen) this.view.cycleSheet();
+  };
+
   openGenerators = (): void => {
     this.args.onSelect(this.args.track.id);
     this.view.scriptOpen = false;
@@ -159,7 +165,7 @@ export default class TrackRow extends Component<TrackRowSignature> {
             class="btn btn--quiet track__source-btn"
             aria-label="Select {{this.name}}"
             data-test-track-name
-            {{on "click" (fn @onSelect @track.id)}}
+            {{on "click" this.openTrack}}
           >
             <span class="truncate">{{this.name}}</span>
           </button>

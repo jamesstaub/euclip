@@ -110,6 +110,7 @@ module('Unit | Audio | waveform', function () {
           'loop: #s › loop (toggle)',
           'reverse: #s › reverse (toggle)',
           'speed: #s › speed (slider)',
+          'slice: #s › slice (slider)',
         ],
       );
       assert.deepEqual(
@@ -136,6 +137,7 @@ module('Unit | Audio | waveform', function () {
           'loop',
           'reverse',
           'speed',
+          'slice',
           'option buffer',
         ],
         'the declaration lists everything the widget is a view over, as plain data',

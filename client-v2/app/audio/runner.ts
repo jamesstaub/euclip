@@ -16,7 +16,6 @@
  * This is a plain class with no Ember in it: the audio service owns one for the live engine, and tests
  * make their own on an OfflineAudioContext.
  */
-import { hitFill } from 'client-v2/controls/generators';
 import type {
   BufferRef,
   Bus,
@@ -347,7 +346,7 @@ export interface SynthView {
   pitch: ControlView | null;
   /** a noise source: it has no editor, only a graphic (and whatever controls the script declared for it) */
   noise: boolean;
-  /** notes are given to it as the pitch of its trigger (a synth macro): the keyboard plays, and stores nothing */
+  /** notes are given to it as the pitch of its trigger (a synth macro with no pitch parameter): the keyboard plays, and stores nothing */
   playsNote: boolean;
 }
 
@@ -411,10 +410,6 @@ interface ScopeRuntime {
   differing: Map<string, number>;
   /** sequences muted because their callback threw */
   errored: Set<string>;
-  /** what a step held before it was switched off, so switching it on again brings that back */
-  stepMemory: Map<string, number[]>;
-  /** the value last given to a step of each grid: what a new step takes */
-  stepLast: Map<string, number>;
   playheads: Map<string, number>;
   off: (() => void)[];
 }
@@ -1461,7 +1456,8 @@ export class ProjectRunner {
         pitchParam: param,
         pitch: key === undefined ? null : (controls.get(key) ?? null),
         noise: node.type === 'noise',
-        playsNote: info?.pitchTrigger ?? false,
+        // (a macro with a pitch parameter of its own, a monosynth's frequency, keeps the keyboard's note)
+        playsNote: (info?.pitchTrigger ?? false) && param === null,
       });
     }
     return views;
@@ -1695,7 +1691,6 @@ export class ProjectRunner {
       steps,
       ...(wantStep === null ? {} : { step: wantStep as Duration }),
     });
-    runtime.stepMemory.delete(binding.name);
   }
 
   /** What the editors' catalog is to offer from the live project. */
@@ -1783,58 +1778,9 @@ export class ProjectRunner {
     ) {
       return null;
     }
+    // a step is on or off: what it plays is set in the lanes of what it drives (a pitch, a slice)
     const steps = [...sequence.steps];
-    const memory = runtime.stepMemory.get(name) ?? [];
-    const current = steps[index] ?? 0;
-    if (current !== 0) {
-      memory[index] = current;
-      runtime.stepLast.set(name, current);
-      steps[index] = 0;
-    } else {
-      // what it held before; else the note (or slice) last used on this grid, so a tapped step on a
-      // track that plays its steps' values as notes is not note 1; else 1 (middle C on such a track)
-      steps[index] =
-        memory[index] ||
-        runtime.stepLast.get(name) ||
-        [...sequence.steps].reverse().find((value) => value > 0) ||
-        hitFill(false, this.sources(scopeId));
-      runtime.stepLast.set(name, steps[index]);
-    }
-    runtime.stepMemory.set(name, memory);
-    return { type: 'setControlValue', scope: scopeId, key, value: steps };
-  }
-
-  /**
-   * The operation for giving a step of a declared grid a value. 0 is a rest; a value above 0 is what
-   * the sequence's callback is handed (`ev.value`), and what the step comes back to after being off.
-   */
-  setStepOperation(
-    scopeId: string,
-    name: string,
-    index: number,
-    value: number,
-  ): Operation | null {
-    const runtime = this.#scopes.get(scopeId);
-    const key = stepGridKey(name);
-    const sequence = runtime?.scope.transport.get(name);
-    if (
-      !runtime ||
-      !sequence ||
-      !Number.isFinite(value) ||
-      !runtime.declarations.some((declaration) => declaration.key === key) ||
-      index < 0 ||
-      index >= sequence.steps.length
-    ) {
-      return null;
-    }
-    const steps = [...sequence.steps];
-    steps[index] = value;
-    if (value !== 0) {
-      const memory = runtime.stepMemory.get(name) ?? [];
-      memory[index] = value;
-      runtime.stepMemory.set(name, memory);
-      runtime.stepLast.set(name, value);
-    }
+    steps[index] = (steps[index] ?? 0) !== 0 ? 0 : 1;
     return { type: 'setControlValue', scope: scopeId, key, value: steps };
   }
 
@@ -2824,8 +2770,6 @@ export class ProjectRunner {
       claims: new Map(),
       differing: new Map(),
       errored: new Set(),
-      stepMemory: new Map(),
-      stepLast: new Map(),
       playheads: new Map(),
       off: [],
     };
