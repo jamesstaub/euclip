@@ -1,12 +1,9 @@
 .git
 **/.DS_Store
 .env*
-client/node_modules
-client/dist
-client/tmp
-client/public/wasm
-client/wasm/target
-client/wasm/pkg
+client-v2/node_modules
+client-v2/dist
+client-v2/tmp
 server/log
 server/tmp
 server/storage

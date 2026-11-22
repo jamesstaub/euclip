@@ -4,7 +4,7 @@ A browser-based drum machine / sequencer built on Euclidean rhythms and Web Audi
 
 | Directory | What | Stack |
 |-----------|------|-------|
-| [`client/`](client) | The web app | Ember 5.5 (Octane + TypeScript), Embroider, the custom `cracked` Web Audio library (`client/vendor/cracked.min.js`) |
+| [`client-v2/`](client-v2) | The web app | Ember (Vite + Embroider, TypeScript), the `cracked-up` Web Audio library |
 | [`server/`](server) | JSON:API backend | Rails 7.0, Postgres, devise + devise-jwt |
 
 In production one Heroku app serves both: the Docker image builds the client and
@@ -15,7 +15,8 @@ copies it into `server/public`, and Rails serves the SPA plus the `/v1` API.
 Docker route: just Docker and `server/config/master.key`. The rest is for running natively (Option B).
 
 
-- Node 18 (`nvm use` reads `.nvmrc`)
+- Node 22.15.0 (`nvm use` reads `.nvmrc`)
+- The [`cracked-up`](https://github.com/jamesstaub/cracked-up) repo cloned next to this one (`../cracked-up`): `client-v2` depends on it as `file:../../cracked-up` until it is published to npm
 - Ruby 3.2.8 (`server/.ruby-version`), e.g. with rvm:
   ```bash
   brew install libyaml libpq openssl@3
@@ -27,69 +28,43 @@ Docker route: just Docker and `server/config/master.key`. The rest is for runnin
 - Option B only: Postgres 15 (or `docker compose up -d db`)
 - `server/config/master.key`: needed to decrypt `server/config/credentials.yml.enc`
   (devise/JWT secrets). Ask a teammate or your password manager; it is not in git.
-- Optional, only for the Rust/WASM bitcrusher work: Rust + `wasm-pack`
 
 ## Local development
 
-### Option A: everything in Docker (no Ruby/Node install needed)
+### Option A: Rails and Postgres in Docker
 
 ```bash
-docker compose up        # first run takes a couple of minutes (gems + npm + webpack)
+docker compose up        # Postgres + Rails on :3000
 ```
 
-Open http://localhost:4200. The compose file runs Postgres, Rails (`:3000`) and `ember serve` (`:4200`,
-proxying API calls to Rails), with `client/` and `server/` bind-mounted so edits reload.
-Gems and `node_modules` live in named volumes. The database is created and seeded on first start.
-Needs `server/config/master.key`. Reset everything with `docker compose down -v`.
-
-Useful: `docker compose exec -e RAILS_ENV=test server bundle exec rspec`, `docker compose exec server bundle exec rails console`,
-`docker compose logs -f client`.
+Needs `server/config/master.key`. Reset with `docker compose down -v`. Run the client natively (below).
 
 ### Option B: native (faster rebuilds)
 
 ```bash
-bin/setup     # npm ci, bundle install, creates server/.env, starts Postgres via docker, db:prepare
-bin/dev       # Rails on :3000 + Ember on :4200 (open http://localhost:4200)
+bin/setup     # builds ../cracked-up, npm ci in client-v2, bundle install, creates server/.env, starts Postgres, db:prepare
+bin/dev       # Rails on :3000 + the client (Vite) on :5173
 ```
 
-`ember serve` proxies API requests to Rails (`client/.ember-cli`), so there is no CORS or
-SSL setup for local work. Shortcuts: `make setup`, `make dev`, `make test`.
+`make setup`, `make dev`, `make test`, `make test-client` are shortcuts. The client dev server proxies the
+sound library (`/v1/files`) to the deployed API (override with `EUCLIP_LIBRARY_HOST`); see `client-v2/vite.config.mjs`.
 
 First run on an empty DB: `cd server && bundle exec rails db:seed` loads preset collections and
 the sound-file index.
 
 ### Tests
 
-End-to-end (real browser against the running stack; start it with `docker compose up` or `bin/dev` first):
-
 ```bash
-cd e2e && npm install && npx playwright install chromium   # once
-npm test                                                   # or: npm run test:headed
+cd server && bundle exec rspec     # Rails specs (needs Postgres + master.key); runs against the *_test database
+cd client-v2 && npm run lint && npm test
 ```
-
-The suite signs in as the seeded dev user (override with `E2E_USER`/`E2E_PASSWORD`, target another
-server with `E2E_BASE_URL`). Server and client checks:
-
-```bash
-cd server && bundle exec rspec   # Rails specs (needs Postgres + master.key); always runs against the *_test database
-cd client && npm run lint
-```
-
-Status: the Rails suite and the Playwright suite pass. The legacy Ember QUnit suite was pruned to tests that assert real
-behaviour (helpers, utilities, serializer); run it in a browser with `E2E_QUNIT=1 npx playwright test qunit` from `e2e/`
-(it loads `/tests` from the dev server), and list runtime deprecations with `E2E_DEPRECATIONS=1 npx playwright test deprecations`.
-
-### WASM bitcrusher (optional)
-
-`npm run wasm:build` inside `client/` compiles `client/wasm` to `client/public/wasm` (needs
-Rust + wasm-pack). It is no longer part of `npm install`, and the production image does not build it.
 
 ## Production build and deploy
 
 The root [`Dockerfile`](Dockerfile) is a two-stage build:
 
-1. `node:18`: `npm ci` and `ember build --environment=production` in `client/`
-2. `ruby:3.2.8`: `bundle install` for `server/`, then copies the built client into `public/`
+1. `node:22`: clones `cracked-up` at a pinned ref (`CRACKED_UP_REF`; interim until it is on npm), builds it, then `npm ci` and `npm run build` in `client-v2/`
+2. `ruby:3.2.8`: `bundle install` for `server/`, then copies `client-v2/dist` into `public/`
 
 Test it locally:
 
@@ -166,12 +141,10 @@ its sampler files and its controls.
 - **Controls** (`track_controls`) belong to a node by (type, attribute, creation order) and hold the user's
   saved values. Rebuilding a track's audio re-links them and never overwrites them; only missing controls are created.
 
-## The `cracked` audio library
+## The `cracked-up` audio library
 
-The client depends on a custom fork of Bill Orcutt's `cracked`, built from
-[`jamesstaub/i_dropped_my_phone_the_screen_cracked`](https://github.com/jamesstaub/i_dropped_my_phone_the_screen_cracked)
-into `client/vendor/cracked.min.js`. Its `npm run build` currently moves the **unminified** bundle into
-that path; see the project notes before relying on it.
+The client depends on [`cracked-up`](https://github.com/jamesstaub/cracked-up) (a maintained fork's successor
+to Bill Orcutt's `cracked`), linked from a sibling checkout (`file:../../cracked-up`) until it is published to npm.
 
 ## Repo layout notes
 

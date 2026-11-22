@@ -10,7 +10,10 @@ if [[ ! -f server/config/master.key ]]; then
   echo "      without it Rails cannot read credentials.yml.enc (devise secrets)."
 fi
 
-(cd client && npm ci)
+# client-v2 links the sibling cracked-up repo (file:../../cracked-up); build it first
+[[ -d ../cracked-up ]] || { echo "clone https://github.com/jamesstaub/cracked-up next to this repo first" >&2; exit 1; }
+(cd ../cracked-up && npm ci && npm run build)
+(cd client-v2 && npm ci)
 (cd server && bundle install)
 
 if command -v docker >/dev/null && ! pg_isready -q -h localhost -p 5432 2>/dev/null; then

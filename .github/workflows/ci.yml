@@ -30,13 +30,26 @@ jobs:
         with: { working-directory: server, bundler-cache: true }
       - run: bundle exec rails db:create db:schema:load
       - run: bundle exec rspec
-  client-build:
+  client-v2:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    defaults: { run: { working-directory: client } }
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with: { path: euclip }
+      # INTERIM, until cracked-up is published to npm: client-v2 depends on "file:../../cracked-up",
+      # a sibling of the repo checkout. Pinned to the same ref as the Dockerfile.
+      - uses: actions/checkout@v4
+        with:
+          repository: jamesstaub/cracked-up
+          ref: ee42085de211328ceb9bf205d4fc2d3210d09a00
+          path: cracked-up
       - uses: actions/setup-node@v4
-        with: { node-version-file: .nvmrc, cache: npm, cache-dependency-path: client/package-lock.json }
+        with: { node-version: 22.15.0 }
+      - run: npm ci && npm run build
+        working-directory: cracked-up
       - run: npm ci
-      - run: npx ember build --environment=production
+        working-directory: euclip/client-v2
+      - run: npm run lint
+        working-directory: euclip/client-v2
+      - run: npm test
+        working-directory: euclip/client-v2

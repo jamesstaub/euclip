@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Run Rails (http://localhost:3000) and Ember (http://localhost:4200, proxies /v1 etc. to Rails).
+# Run Rails (http://localhost:3000) and the client (Vite, http://localhost:5173).
 set -uo pipefail
 cd "$(dirname "$0")/.."
 source bin/_check-toolchain
 trap 'kill 0' EXIT INT TERM
 (cd server && bundle exec rails server -p 3000 2>&1 | sed -u 's/^/[rails] /') &
-(cd client && npx ember serve --proxy http://localhost:3000 2>&1 | sed -u 's/^/[ember] /') &
+(cd client-v2 && npm start 2>&1 | sed -u 's/^/[client] /') &
 wait

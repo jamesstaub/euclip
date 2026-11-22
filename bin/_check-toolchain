@@ -17,7 +17,7 @@ MSG
   exit 1
 fi
 want_node="$(cat .nvmrc)"
-if [[ "$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || true)" != "$want_node" ]]; then
+if [[ "$(node -p 'process.versions.node' 2>/dev/null || true)" != "$want_node" ]]; then
   echo "Node $want_node is required (found: $(node -v 2>/dev/null || echo none)); run 'nvm install $want_node && nvm use'." >&2
   exit 1
 fi
