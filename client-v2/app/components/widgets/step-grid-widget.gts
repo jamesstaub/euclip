@@ -17,7 +17,7 @@ import {
   applyTool,
   BEAT_OFF,
   beatsOfNumber,
-  binaryDigits,
+  beatsDigits,
   numberOfBeats,
   type Beats,
   binaryMax,
@@ -641,11 +641,11 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
   }
 
   get binaryText(): string {
-    return String(Math.max(BINARY_MIN, this.generator.number));
+    return String(this.generator.number);
   }
 
   get binaryDigitsText(): string {
-    return binaryDigits(this.generator.number);
+    return beatsDigits(this.generator.beats);
   }
 
   /** Binary's whole number typed: exact. */
@@ -860,13 +860,12 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
               sliders: Euclidean (hits spread evenly), Binary (a number’s
               digits), On / off (a group repeated) and Sieve (every N-th step,
               twice over).</p>
-            <p>Binary sets the grid’s length too: the pattern is the number’s
-              digits, so 5 (101) is three steps and 34952 is sixteen. Its four
-              sliders are four beats of four digits each (0 to 15), the first
-              beat the highest; a beat slid below 0 is off, no part of the
-              number, so one beat alone makes a pattern of up to four steps.
-              Type the whole number in its box. The others fill the length the
-              grid has.</p>
+            <p>Binary sets the grid’s length too: its four sliders are four
+              beats of four digits each (0 to 15), the first beat the highest,
+              and each beat that is on is four steps (5 is .x.x). A beat slid
+              below 0 is off, so one beat alone is a pattern of four steps. Type
+              the whole number in its box: the beats in front of its first digit
+              are turned off. The others fill the length the grid has.</p>
             <p>Onto says how it meets what is there:
               <b>Replace</b>
               writes over it,

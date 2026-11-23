@@ -495,11 +495,11 @@ stepGrid('ones');
         'keydown',
         'Enter',
       );
-      assert.strictEqual(pattern(), 'x.x', '5 is three steps');
-      assert.dom(`${seq} [data-test-step]`).exists({ count: 3 });
+      assert.strictEqual(pattern(), '.x.x', '5 is one beat: four steps');
+      assert.dom(`${seq} [data-test-step]`).exists({ count: 4 });
       assert
         .dom(`${gen} [data-test-gen-number] [data-test-gen-says]`)
-        .hasText('101');
+        .hasText('0101');
       assert
         .dom(`${gen} [data-test-gen-dial]`)
         .exists({ count: 4 }, 'a slider a beat');

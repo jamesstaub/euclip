@@ -69,8 +69,9 @@ export interface GeneratorState {
 }
 
 /**
- * The binary dial's range: 1 to 65535, so up to sixteen digits (a bar of sixteenths). The number's
- * digits are the pattern, and how many there are is the grid's length: 5 is `x.x`, three steps.
+ * The binary number's range: 1 to 65535, sixteen digits, four beats of four. Each beat that is on is
+ * four steps of the pattern, its digits with their leading zeros (5 is `.x.x`), so the grid's length
+ * is four times the beats that are on.
  */
 export const BINARY_MIN = 1;
 export const BINARY_MAX = 65535;
@@ -81,8 +82,7 @@ export type Beats = [number, number, number, number];
 export const BEAT_OFF = -1;
 
 /**
- * The number the beats make: the digits of the beats that are on, one after another. All off is 0
- * (which the generator holds at 1).
+ * The number the beats make: the digits of the beats that are on, one after another. All off is 0.
  */
 export function numberOfBeats(beats: readonly number[]): number {
   return beats.reduce(
@@ -106,9 +106,15 @@ export function binaryMax(): number {
   return BINARY_MAX;
 }
 
-/** A number's binary digits, as the binary generator writes them (biggest first): 5 is `101`. */
-export function binaryDigits(value: number): string {
-  return binaryPattern(Math.max(BINARY_MIN, value)).join('');
+/**
+ * The digits the beats write, four to each beat that is on, leading zeros kept: off, 4, 13, 2 is
+ * `010011010010`. With every beat off, one beat of rests.
+ */
+export function beatsDigits(beats: readonly number[]): string {
+  const on = beats.filter((beat) => beat !== BEAT_OFF);
+  return (on.length > 0 ? on : [0])
+    .map((beat) => binaryPattern(beat, 4).join(''))
+    .join('');
 }
 
 const whole = (
@@ -212,9 +218,8 @@ export function generate(state: GeneratorState, length: number): number[] {
     case 'euclid':
       return fit(euclid(state.hits, length, state.rotate), length);
     case 'binary':
-      // The beats' number's own digits, no rests in front: 5 is x.x, and the grid becomes three steps
-      // long.
-      return binaryPattern(Math.max(BINARY_MIN, numberOfBeats(state.beats)));
+      // Four steps for each beat that is on (5 is .x.x): the grid becomes as long as they are.
+      return beatsDigits(state.beats).split('').map(Number);
     case 'onoff': {
       const group = state.on + state.off;
       // (the group, as many times as it takes to fill the grid; what runs over the end is cut off)
