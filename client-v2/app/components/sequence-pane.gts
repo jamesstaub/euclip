@@ -123,7 +123,8 @@ export default class SequencePane extends Component<SequencePaneSignature> {
     this.audio.setGridShape(scopeId, grid.key, { length }, group);
     const fitted = Array.from({ length }, (_, index) => grid.steps[index] ?? 0);
     const dials = readGenerator(grid.generator, grid.steps);
-    if (dials && !isEdited(dials, grid.steps)) {
+    // (Binary's length is its number's: a length set by hand only cuts or pads what it made)
+    if (dials && dials.kind !== 'binary' && !isEdited(dials, grid.steps)) {
       // (the same dials, held to the new length: 5 of 16 is 5 of 12)
       const refit = readGenerator({ ...dials, made: undefined }, fitted);
       if (refit) {

@@ -19,7 +19,6 @@ import {
   onOffPattern,
   or,
   patternToString,
-  repeat,
   reverse,
   rotate,
   sieve,
@@ -49,8 +48,13 @@ export interface GeneratorState {
   /** Euclidean: how many hits, spread as evenly as the steps allow; and how far it is turned */
   hits: number;
   rotate: number;
-  /** Binary: the number whose bits are the steps */
+  /** Binary: the number whose bits are the steps (the beats that are on, one after another) */
   number: number;
+  /**
+   * Binary's four beats, four digits each (0 to 15), the first the highest; -1 is a beat that is off,
+   * no part of the number. The beats are what is set; `number` is made from them.
+   */
+  beats: Beats;
   /** On/off: so many on, so many off, repeated to fill */
   on: number;
   off: number;
@@ -65,13 +69,46 @@ export interface GeneratorState {
 }
 
 /**
- * The largest number the binary dial offers: 127, seven bits, as the original Euclip had. (Few enough
- * values that a slider can be slid through them one at a time.)
+ * The binary dial's range: 1 to 65535, so up to sixteen digits (a bar of sixteenths). The number's
+ * digits are the pattern, and how many there are is the grid's length: 5 is `x.x`, three steps.
  */
-export const BINARY_MAX = 127;
+export const BINARY_MIN = 1;
+export const BINARY_MAX = 65535;
+
+/** Binary's four beats: 0 to 15 each, or -1 for a beat that is off. */
+export type Beats = [number, number, number, number];
+
+export const BEAT_OFF = -1;
+
+/**
+ * The number the beats make: the digits of the beats that are on, one after another. All off is 0
+ * (which the generator holds at 1).
+ */
+export function numberOfBeats(beats: readonly number[]): number {
+  return beats.reduce(
+    (value, beat) => (beat === BEAT_OFF ? value : value * 16 + beat),
+    0,
+  );
+}
+
+/**
+ * A number as four beats: its sixteen digits four to a beat, the beats in front of its first digit off
+ * (5 is off, off, off, 5; 1234 is off, 4, 13, 2).
+ */
+export function beatsOfNumber(value: number): Beats {
+  const number = Math.min(BINARY_MAX, Math.max(BINARY_MIN, Math.round(value)));
+  const beats = [0, 1, 2, 3].map((beat) => (number >> (4 * (3 - beat))) & 15);
+  const first = beats.findIndex((beat) => beat > 0);
+  return beats.map((beat, index) => (index < first ? BEAT_OFF : beat)) as Beats;
+}
 
 export function binaryMax(): number {
   return BINARY_MAX;
+}
+
+/** A number's binary digits, as the binary generator writes them (biggest first): 5 is `101`. */
+export function binaryDigits(value: number): string {
+  return binaryPattern(Math.max(BINARY_MIN, value)).join('');
 }
 
 const whole = (
@@ -86,11 +123,16 @@ const whole = (
 
 /** Dials to start from for a pattern that has none: ones that would make something like it. */
 export function defaultGenerator(steps: readonly number[]): GeneratorState {
+  const number = Math.min(
+    BINARY_MAX,
+    Math.max(BINARY_MIN, binaryToNumber([...steps].slice(-16))),
+  );
   return {
     kind: 'euclid',
     hits: countHits([...steps]),
     rotate: 0,
-    number: Math.min(BINARY_MAX, binaryToNumber([...steps].slice(0, 7))),
+    number,
+    beats: beatsOfNumber(number),
     on: 1,
     off: 3,
     sieve: [
@@ -122,7 +164,7 @@ export function readGenerator(
       : base.kind,
     hits: whole(stored['hits'], 0, length, base.hits),
     rotate: whole(stored['rotate'], 0, Math.max(0, length - 1), 0),
-    number: whole(stored['number'], 0, BINARY_MAX, base.number),
+    ...binaryOf(stored, base.number),
     on: whole(stored['on'], 0, length, base.on),
     off: whole(stored['off'], 0, length, base.off),
     sieve: [row(0), row(1)],
@@ -140,23 +182,39 @@ export function readGenerator(
   };
 }
 
+/** Binary's beats as stored (else made from a stored number, as older projects have), and their number. */
+function binaryOf(
+  stored: Record<string, unknown>,
+  otherwise: number,
+): { number: number; beats: Beats } {
+  const raw = stored['beats'];
+  const beats =
+    Array.isArray(raw) && raw.length === 4
+      ? (raw.map((beat) => whole(beat, BEAT_OFF, 15, BEAT_OFF)) as Beats)
+      : beatsOfNumber(
+          whole(stored['number'], BINARY_MIN, BINARY_MAX, otherwise),
+        );
+  return { number: numberOfBeats(beats), beats };
+}
+
 /** Exactly `length` steps of a pattern: cut short, or filled out with rests. */
 function fit(pattern: readonly number[], length: number): number[] {
   return Array.from({ length }, (_, index) => pattern[index] ?? 0);
 }
 
-/** What the dials make, as hits (1) and rests (0), for a grid of `length` steps. The grid's length is the script's. */
+/**
+ * What the dials make, as hits (1) and rests (0), for a grid of `length` steps. Binary alone makes its
+ * own length (its number's digits); the others fill the grid's.
+ */
 export function generate(state: GeneratorState, length: number): number[] {
   if (length <= 0) return [];
   switch (state.kind) {
     case 'euclid':
       return fit(euclid(state.hits, length, state.rotate), length);
-    case 'binary': {
-      // The number's own digits (no rests in front: 5 is x.x), over and over to the end of the grid.
-      // So a slow slide through the numbers is a slow change of a repeating figure. 0 is all rests.
-      const bits = binaryPattern(state.number);
-      return fit(repeat(bits, Math.ceil(length / bits.length)), length);
-    }
+    case 'binary':
+      // The beats' number's own digits, no rests in front: 5 is x.x, and the grid becomes three steps
+      // long.
+      return binaryPattern(Math.max(BINARY_MIN, numberOfBeats(state.beats)));
     case 'onoff': {
       const group = state.on + state.off;
       // (the group, as many times as it takes to fill the grid; what runs over the end is cut off)
@@ -238,7 +296,8 @@ export function isEdited(
 }
 
 /**
- * A dial was moved: the pattern the grid should now hold, and the dials as they are to be stored.
+ * A dial was moved: the pattern the grid should now hold (Binary's is as long as its number's
+ * digits, so the grid's length changes with it), and the dials as they are to be stored.
  * Hand edits are what is there when the dials begin again: they are the base that Or, And and Xor
  * combine with, and under Replace they are written over (the dial was moved; that is the request).
  */
@@ -247,11 +306,12 @@ export function applyGenerator(
   current: readonly number[],
   fill = 1,
 ): { steps: number[]; generator: GeneratorState } {
-  const length = current.length;
+  const generated = generate(state, current.length);
   const continuing =
     state.made !== undefined && state.made === written(current);
-  const base = continuing ? fit(state.base ?? [], length) : [...current];
-  const hits = combine(state.combine, base, generate(state, length));
+  // (kept whole, not cut to this length: Binary's next number may be longer again)
+  const base = continuing ? [...(state.base ?? [])] : [...current];
+  const hits = combine(state.combine, base, generated);
   const steps = keepValues(hits, current, base, fill);
   return { steps, generator: { ...state, made: written(steps), base } };
 }

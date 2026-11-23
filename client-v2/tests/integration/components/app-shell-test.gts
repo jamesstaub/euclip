@@ -301,8 +301,8 @@ stepGrid('ones');
         findAll(
           '[data-test-pane="sequence"] [data-test-generators], [data-test-pane="sequence"] [data-test-step-grid]',
         )[0]?.getAttribute('data-test-generators'),
-        'steps',
-        'the generators come before the grid in the card',
+        null,
+        'the grid comes first in the card, the generators under it',
       );
       assert
         .dom('[data-test-pane="sequence"] [data-test-sequence="steps"] ')
@@ -462,9 +462,9 @@ stepGrid('ones');
         'four evenly, Or-ed with the same four',
       );
       await select(`${seq} [data-test-gen-kind]`, 'binary');
-      const number = `${gen} [data-test-gen-dial="number"]`;
+      const number = `${gen} [data-test-gen-number]`;
       await click(`${number} [data-test-number-entry]`);
-      await fillIn(`${number} [data-test-number-input]`, '2');
+      await fillIn(`${number} [data-test-number-input]`, '43690');
       await triggerKeyEvent(
         `${number} [data-test-number-input]`,
         'keydown',
@@ -473,7 +473,7 @@ stepGrid('ones');
       assert.strictEqual(
         pattern(),
         'x.x.x.x.x.x.x.x.',
-        '2 is x. over and over, added to what was there',
+        '43690 is x. eight times (sixteen digits), added to what was there',
       );
       assert.strictEqual(steps()[2], 1, 'a new hit is 1');
       await select(`${seq} [data-test-gen-combine]`, 'and');
@@ -486,6 +486,50 @@ stepGrid('ones');
       assert.strictEqual(pattern(), '..x...x...x...x.');
       await select(`${seq} [data-test-gen-combine]`, 'replace');
       assert.strictEqual(pattern(), 'x.x.x.x.x.x.x.x.');
+
+      // Binary sets the grid's length: the number's digits, one step to undo with the pattern
+      await click(`${number} [data-test-number-entry]`);
+      await fillIn(`${number} [data-test-number-input]`, '5');
+      await triggerKeyEvent(
+        `${number} [data-test-number-input]`,
+        'keydown',
+        'Enter',
+      );
+      assert.strictEqual(pattern(), 'x.x', '5 is three steps');
+      assert.dom(`${seq} [data-test-step]`).exists({ count: 3 });
+      assert
+        .dom(`${gen} [data-test-gen-number] [data-test-gen-says]`)
+        .hasText('101');
+      assert
+        .dom(`${gen} [data-test-gen-dial]`)
+        .exists({ count: 4 }, 'a slider a beat');
+      assert
+        .dom(`${gen} [data-test-gen-dial] [data-test-number-entry]`)
+        .doesNotExist(
+          'the beats have no number boxes: the whole number is typed once',
+        );
+
+      // a beat's slider sets its four digits; beats that are off are no part of the number
+      await triggerKeyEvent(
+        `${gen} [data-test-gen-dial="beat0"] [data-test-slider]`,
+        'keydown',
+        'End',
+      );
+      assert.strictEqual(
+        pattern(),
+        'xxxx.x.x',
+        'beat 1 at 15 and beat 4 at 5, the two between them off: 1111 0101',
+      );
+      project.undo();
+      await settled();
+      assert.dom(`${seq} [data-test-grid-script]`).hasText('script: 16 steps');
+      project.undo();
+      await settled();
+      assert.strictEqual(
+        pattern(),
+        'x.x.x.x.x.x.x.x.',
+        'one undo: the pattern and its length',
+      );
     });
 
     test('each grid of a track has its own generators; a track’s menu leads to them', async function (assert) {
@@ -755,7 +799,7 @@ stepGrid('ones');
         );
     });
 
-    test('the sequence card header does not move when the length changes, and the generators stand above the grid', async function (assert) {
+    test('the sequence card header does not move when the length changes, and the generators stand under the grid', async function (assert) {
       view.footerPane = 'sequence';
       await render(<template><AppShell /></template>);
       const card = '[data-test-pane="sequence"] [data-test-sequence="steps"]';
@@ -786,8 +830,8 @@ stepGrid('ones');
       const gen = find(`${card} [data-test-generators]`)!;
       const grid = find(`${card} [data-test-step-grid]`)!;
       assert.true(
-        gen.getBoundingClientRect().bottom <= grid.getBoundingClientRect().top,
-        'the generators are above the grid',
+        gen.getBoundingClientRect().top >= grid.getBoundingClientRect().bottom,
+        'the generators are under the grid',
       );
     });
 

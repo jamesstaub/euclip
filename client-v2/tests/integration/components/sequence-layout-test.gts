@@ -50,18 +50,27 @@ module('Integration | Sequence pane layout', function (hooks) {
 
   const card = '[data-test-pane="sequence"] [data-test-sequence="steps"]';
 
-  test('the generator is a select in the header; turning to another changes no place', async function (assert) {
+  test('the generator is a band under the grid; turning to another changes no place', async function (assert) {
     await render(<template><AppShell /></template>);
 
     assert.dom(`${card} [role="tablist"]`).doesNotExist('no tab strip');
-    assert.dom(`${card} .sequence-card__head [data-test-gen-kind]`).exists();
-    assert.dom(`${card} .sequence-card__head [data-test-gen-combine]`).exists();
+    assert
+      .dom(`${card} .sequence-card__head [data-test-gen-kind]`)
+      .doesNotExist('the header is the sequence’s own');
+    assert.dom(`${card} .step-gen [data-test-gen-kind]`).exists();
+    assert.dom(`${card} .step-gen [data-test-gen-combine]`).exists();
+    assert.true(
+      find(`${card} .step-gen`)!.getBoundingClientRect().top >=
+        find(`${card} [data-test-gen-tools]`)!.getBoundingClientRect().bottom -
+          1,
+      'under the grid and its tools',
+    );
 
     const grid = `${card} [data-test-step-grid]`;
     const dials = `${card} [data-test-gen-panel]`;
     const before = [rect(grid), rect(dials)];
     const counts: Record<string, number> = {};
-    for (const kind of ['binary', 'onoff', 'sieve', 'euclid']) {
+    for (const kind of ['onoff', 'sieve', 'euclid']) {
       await select(`${card} [data-test-gen-kind]`, kind);
       counts[kind] = findAll(`${card} [data-test-gen-dial]`).length;
       assert.deepEqual(
@@ -71,7 +80,12 @@ module('Integration | Sequence pane layout', function (hooks) {
       );
       assert.deepEqual(rect(dials), before[1], `${kind}: the row is as tall`);
     }
-    assert.deepEqual(counts, { binary: 1, onoff: 2, sieve: 4, euclid: 2 });
+    // (Binary's whole number is one more cell in the band's head: on a narrow pane its sliders are a
+    // line lower. The grid, above, never moves.)
+    await select(`${card} [data-test-gen-kind]`, 'binary');
+    counts['binary'] = findAll(`${card} [data-test-gen-dial]`).length;
+    assert.deepEqual(rect(grid), before[0], 'binary: the grid has not moved');
+    assert.deepEqual(counts, { onoff: 2, sieve: 4, euclid: 2, binary: 4 });
   });
 
   test('the tools bar is under the grid, after it in the card', async function (assert) {
@@ -99,8 +113,7 @@ module('Integration | Sequence pane layout', function (hooks) {
 
     const cells = [
       `${card} [data-test-grid-step]`,
-      `${card} [data-test-gen-kind]`,
-      `${card} [data-test-gen-combine]`,
+      `${card} [data-test-show-in-script]`,
     ];
     const before = cells.map(rect);
     await click(`${card} [data-test-grid-length] [data-test-number-entry]`);

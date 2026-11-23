@@ -15,7 +15,13 @@ import cssVars from 'client-v2/modifiers/css-vars';
 import {
   applyGenerator,
   applyTool,
+  BEAT_OFF,
+  beatsOfNumber,
+  binaryDigits,
+  numberOfBeats,
+  type Beats,
   binaryMax,
+  BINARY_MIN,
   COMBINES,
   defaultGenerator,
   GENERATORS,
@@ -43,6 +49,24 @@ function is(a: number, b: number | null | undefined): boolean {
 /** The column a step (or a lane's bar) stands in: sixteen to a row, whatever else the grid holds. */
 function colOf(index: number): number {
   return (index % 16) + 1;
+}
+
+/**
+ * How many steps make a beat (a quarter note) at this step length: 4 for 1/16, 6 for 1/16t, 2 for 1/8.
+ * Where a beat is not a whole number of steps (1/16d), or one step is a beat or more: 4.
+ */
+function beatOf(step: string | null): number {
+  const match = /^1\/(\d+)([td]?)$/.exec(step ?? '1/16');
+  if (!match) return 4;
+  const per =
+    (Number(match[1]) / 4) *
+    (match[2] === 't' ? 1.5 : match[2] === 'd' ? 2 / 3 : 1);
+  return Number.isInteger(per) && per >= 2 ? per : 4;
+}
+
+/** Every other beat's steps are shaded a little, so the steps can be counted at a glance. */
+function isAltBeat(index: number, step: string | null): boolean {
+  return Math.floor(index / beatOf(step)) % 2 === 1;
 }
 
 function isToggle(lane: LaneView): boolean {
@@ -481,7 +505,15 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
       max: number,
     ): Dial => {
       const map = mapping('stepped', { min, max: Math.max(min, max), step: 1 });
-      return { id, label, value, text: String(value), map };
+      return {
+        id,
+        label,
+        value,
+        text: String(value),
+        map,
+        bare: false,
+        off: false,
+      };
     };
     switch (this.kind) {
       case 'euclid':
@@ -490,7 +522,13 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
           whole('rotate', 'Rotate', state.rotate, 0, length - 1),
         ];
       case 'binary':
-        return [whole('number', 'Number', state.number, 0, binaryMax())];
+        // (four digits a slider, a beat of sixteenths each: 16 values to slide through, not 65535)
+        return state.beats.map((value, beat) => ({
+          ...whole(`beat${beat}`, `Beat ${beat + 1}`, value, BEAT_OFF, 15),
+          // (the whole number and its digits are shown once, in the band's head)
+          bare: true,
+          off: value === BEAT_OFF,
+        }));
       case 'onoff':
         return [
           whole('on', 'On', state.on, 0, length),
@@ -530,7 +568,15 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
       case 'rotate':
         return { ...state, rotate: value };
       case 'number':
-        return { ...state, number: value };
+        return { ...state, number: value, beats: beatsOfNumber(value) };
+      case 'beat0':
+      case 'beat1':
+      case 'beat2':
+      case 'beat3': {
+        const beats = [...state.beats] as Beats;
+        beats[Number(id.slice(4))] = value;
+        return { ...state, beats, number: numberOfBeats(beats) };
+      }
       case 'on':
         return { ...state, on: value };
       case 'off':
@@ -554,13 +600,24 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
 
   /** Writes what the dials now make into the grid: live, and one step to undo for the gesture. */
   #write(state: GeneratorState, gesture?: string): void {
-    const made = applyGenerator(state, this.args.control.steps, 1);
+    const group = gesture ?? `generate-${++generatorGestures}`;
+    const steps = this.args.control.steps;
+    const made = applyGenerator(state, steps, 1);
+    if (made.steps.length !== steps.length) {
+      // (Binary: the grid is as long as the number's digits; the same step to undo)
+      this.audio.setGridShape(
+        this.args.scopeId,
+        this.args.control.key,
+        { length: made.steps.length },
+        group,
+      );
+    }
     this.audio.setPattern(
       this.args.scopeId,
       this.args.control.key,
       made.steps,
       made.generator,
-      gesture ?? `generate-${++generatorGestures}`,
+      group,
     );
   }
 
@@ -577,6 +634,31 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
   turnDial = (id: string, value: number): void => {
     if (this.#dialGesture === '') this.newDialGesture();
     this.#write(this.#withDial(id, Math.round(value)), this.#dialGesture);
+  };
+
+  get isBinary(): boolean {
+    return this.kind === 'binary';
+  }
+
+  get binaryText(): string {
+    return String(Math.max(BINARY_MIN, this.generator.number));
+  }
+
+  get binaryDigitsText(): string {
+    return binaryDigits(this.generator.number);
+  }
+
+  /** Binary's whole number typed: exact. */
+  typeNumber = (typed: string): boolean => {
+    const value = Number(typed.trim());
+    if (typed.trim() === '' || !Number.isFinite(value)) return false;
+    this.#write(
+      this.#withDial(
+        'number',
+        Math.min(binaryMax(), Math.max(BINARY_MIN, Math.round(value))),
+      ),
+    );
+    return true;
   };
 
   /** A dial's value typed. */
@@ -612,65 +694,10 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
 
   <template>
     {{#if @generators}}
-      {{! the card's header: the pane's cells, with the generator's two between them }}
+      {{! the card's header: the sequence itself (its name, length and step length, Reset, the script) }}
       <div class="sequence-card__head" data-test-seq-head>
         {{yield to="lead"}}
-        <span class="sequence-card__shape sequence-card__gen">
-          <span class="sequence-card__label" aria-hidden="true">Generate</span>
-          <select
-            class="select"
-            aria-label="Generator"
-            data-test-gen-kind
-            {{on "change" this.setGenerator}}
-            {{selectOptions this.generateOptions this.kind}}
-          ></select>
-        </span>
-        {{! template-lint-disable no-invalid-interactive }}
-        <span class="sequence-card__shape sequence-card__onto">
-          <span class="sequence-card__label" aria-hidden="true">Onto</span>
-          <select
-            class="select"
-            aria-label="Combine with existing pattern"
-            data-test-gen-combine
-            {{on "change" this.setCombine}}
-            {{selectOptions this.combines this.generator.combine}}
-          ></select>
-        </span>
         {{yield to="trail"}}
-      </div>
-      <div class="step-gen" data-test-generators={{@control.name}}>
-        <div
-          class="step-gen__dials"
-          role="group"
-          aria-label="{{this.kind}} generator"
-          data-test-gen-panel
-        >
-          {{#each this.dials key="id" as |dial|}}
-            {{! template-lint-disable no-pointer-down-event-binding no-invalid-interactive }}
-            {{! (a press or a key on a dial begins a gesture: all it then writes is one step to undo) }}
-            <span
-              class="step-gen__dial"
-              data-test-gen-dial={{dial.id}}
-              {{on "pointerdown" this.newDialGesture capture=true}}
-              {{on "keydown" this.newDialGesture capture=true}}
-            >
-              <span class="step-gen__label">{{dial.label}}</span>
-              <Slider
-                @value={{dial.value}}
-                @mapping={{dial.map}}
-                @label={{dial.label}}
-                @onChange={{fn this.turnDial dial.id}}
-              />
-              {{! its value, as a control's row shows one: press it to type an exact number }}
-              <NumberEntry
-                @text={{dial.text}}
-                @label={{dial.label}}
-                @inputmode="numeric"
-                @onCommit={{fn this.typeDial dial}}
-              />
-            </span>
-          {{/each}}
-        </div>
       </div>
     {{/if}}
     {{! template-lint-disable no-pointer-down-event-binding }}
@@ -691,7 +718,9 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
         {{#each @control.steps key="@index" as |value index|}}
           <button
             type="button"
-            class="step {{if (is index @control.playhead) 'step--current'}}"
+            class="step
+              {{if (isAltBeat index @control.step) 'step--alt'}}
+              {{if (is index @control.playhead) 'step--current'}}"
             aria-pressed={{pressed value}}
             aria-label={{this.cellLabel index value}}
             data-test-step={{index}}
@@ -799,27 +828,112 @@ export default class StepGridWidget extends Component<StepGridWidgetSignature> {
             >{{tool.label}}</button>
           {{/each}}
         </span>
-        <Hint @label="About pattern generators" data-test-gen-hint>
-          <p>The generator writes a rhythm into this grid as you move its
-            sliders: Euclidean (hits spread evenly), Binary (a number’s bits),
-            On / off (a group repeated) and Sieve (every N-th step, twice over).</p>
-          <p>Onto says how it meets what is there:
-            <b>Replace</b>
-            writes over it,
-            <b>Or</b>
-            adds to it,
-            <b>And</b>
-            keeps only where both have a hit,
-            <b>Xor</b>
-            flips where they differ.</p>
-          <p>The grid’s pattern is what plays and what is kept. The generator is
-            a tool: change steps by hand afterwards and they stay as you set
-            them, until a slider is moved again.</p>
-          <p>A step that is on keeps the value it had (a slice number, say); a
-            new hit is 1. The grid’s length is the script’s.</p>
-          <p>◀ ▶ turn the pattern one step, Reverse plays it backwards, Invert
-            swaps hits and rests.</p>
-        </Hint>
+      </div>
+      {{! the generator: a band of its own under the grid, its menus then its sliders }}
+      <div class="step-gen" data-test-generators={{@control.name}}>
+        <div class="step-gen__head">
+          <span class="sequence-card__shape sequence-card__gen">
+            <span
+              class="sequence-card__label"
+              aria-hidden="true"
+            >Generate</span>
+            <select
+              class="select"
+              aria-label="Generator"
+              data-test-gen-kind
+              {{on "change" this.setGenerator}}
+              {{selectOptions this.generateOptions this.kind}}
+            ></select>
+          </span>
+          <span class="sequence-card__shape sequence-card__onto">
+            <span class="sequence-card__label" aria-hidden="true">Onto</span>
+            <select
+              class="select"
+              aria-label="Combine with existing pattern"
+              data-test-gen-combine
+              {{on "change" this.setCombine}}
+              {{selectOptions this.combines this.generator.combine}}
+            ></select>
+          </span>
+          <Hint @label="About pattern generators" data-test-gen-hint>
+            <p>The generator writes a rhythm into this grid as you move its
+              sliders: Euclidean (hits spread evenly), Binary (a number’s
+              digits), On / off (a group repeated) and Sieve (every N-th step,
+              twice over).</p>
+            <p>Binary sets the grid’s length too: the pattern is the number’s
+              digits, so 5 (101) is three steps and 34952 is sixteen. Its four
+              sliders are four beats of four digits each (0 to 15), the first
+              beat the highest; a beat slid below 0 is off, no part of the
+              number, so one beat alone makes a pattern of up to four steps.
+              Type the whole number in its box. The others fill the length the
+              grid has.</p>
+            <p>Onto says how it meets what is there:
+              <b>Replace</b>
+              writes over it,
+              <b>Or</b>
+              adds to it,
+              <b>And</b>
+              keeps only where both have a hit,
+              <b>Xor</b>
+              flips where they differ.</p>
+            <p>The grid’s pattern is what plays and what is kept. The generator
+              is a tool: change steps by hand afterwards and they stay as you
+              set them, until a slider is moved again.</p>
+            <p>◀ ▶ turn the pattern one step, Reverse plays it backwards, Invert
+              swaps hits and rests.</p>
+          </Hint>
+          {{#if this.isBinary}}
+            {{! the whole number: typed exactly, and its digits (the pattern, and how long it is) }}
+            <span class="step-gen__number" data-test-gen-number>
+              <span class="step-gen__label">Number</span>
+              <NumberEntry
+                @text={{this.binaryText}}
+                @label="Binary number"
+                @inputmode="numeric"
+                @maxlength={{5}}
+                @onCommit={{this.typeNumber}}
+              />
+              <code
+                class="step-gen__says"
+                data-test-gen-says
+              >{{this.binaryDigitsText}}</code>
+            </span>
+          {{/if}}
+        </div>
+        <div
+          class="step-gen__dials"
+          role="group"
+          aria-label="{{this.kind}} generator"
+          data-test-gen-panel
+        >
+          {{#each this.dials key="id" as |dial|}}
+            {{! template-lint-disable no-pointer-down-event-binding no-invalid-interactive }}
+            {{! (a press or a key on a dial begins a gesture: all it then writes is one step to undo) }}
+            <span
+              class="step-gen__dial {{if dial.off 'step-gen__dial--off'}}"
+              data-test-gen-dial={{dial.id}}
+              {{on "pointerdown" this.newDialGesture capture=true}}
+              {{on "keydown" this.newDialGesture capture=true}}
+            >
+              <span class="step-gen__label">{{dial.label}}</span>
+              <Slider
+                @value={{dial.value}}
+                @mapping={{dial.map}}
+                @label={{dial.label}}
+                @onChange={{fn this.turnDial dial.id}}
+              />
+              {{#unless dial.bare}}
+                {{! its value, as a control's row shows one: press it to type an exact number }}
+                <NumberEntry
+                  @text={{dial.text}}
+                  @label={{dial.label}}
+                  @inputmode="numeric"
+                  @onCommit={{fn this.typeDial dial}}
+                />
+              {{/unless}}
+            </span>
+          {{/each}}
+        </div>
       </div>
     {{/if}}
   </template>
@@ -832,6 +946,10 @@ interface Dial {
   value: number;
   text: string;
   map: Mapping;
+  /** a beat of Binary that is off: no part of the number */
+  off: boolean;
+  /** no number box beside it (a beat of Binary: the whole number is typed in the band's head) */
+  bare: boolean;
 }
 
 const TOOLS: readonly { id: Tool; label: string; says: string }[] = [

@@ -53,9 +53,9 @@
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
     "head"
-    "gen"
     "grid"
-    "tools";
+    "tools"
+    "gen";
   align-items: start;
   max-inline-size: 72rem;
   margin-block-end: var(--space-2);
@@ -64,20 +64,17 @@
 }
 
 /*
- * The card's header is one grid of fixed cells, so nothing shifts as a value changes or Reset comes and
- * goes. By the pane's width (a container query, so the sidebar counts):
- *   wide     one row:  name, Length, Step, Generate, Onto, what the script says, Reset, script
- *   medium   two rows: name, Length, Step, what the script says, Reset, script; then Generate and Onto
- *   narrow   (the phone's sheet) Length and Step; Generate, Onto and Reset; then name, what the
- *            script says and the script link in a quiet line
+ * The card's header is the sequence itself, one grid of fixed cells, so nothing shifts as a value
+ * changes or Reset comes and goes: its name, Length, Step, what the script says, Reset and the script
+ * link. Narrow (the phone's sheet) the name and what the script says go to a quiet second line. The
+ * generator is not here: it is a band of its own under the grid (.step-gen).
  */
 .sequence-card__head {
   grid-area: head;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
   grid-template-areas:
-    "length step step code"
-    "gen onto reset reset"
+    "length step reset code"
     "name says says says";
   align-items: center;
   gap: var(--space-1) var(--space-2);
@@ -96,12 +93,6 @@
   text-transform: uppercase;
 }
 
-/* narrow: the Generate and Onto menus say what they are in their own words (they are named for assistive tech) */
-.sequence-card__gen .sequence-card__label,
-.sequence-card__onto .sequence-card__label {
-  display: none;
-}
-
 .sequence-card__name {
   grid-area: name;
   display: none;
@@ -115,14 +106,6 @@
 
 .sequence-card__step {
   grid-area: step;
-}
-
-.sequence-card__gen {
-  grid-area: gen;
-}
-
-.sequence-card__onto {
-  grid-area: onto;
 }
 
 .sequence-card__reset {
@@ -142,22 +125,8 @@
 
   .sequence-card__head {
     grid-template-columns: auto auto auto minmax(0, 1fr) auto auto;
-    grid-template-areas:
-      "name length step says reset code"
-      "gen onto . . . .";
+    grid-template-areas: "name length step says reset code";
     gap: var(--space-1) var(--space-3);
-  }
-
-  .sequence-card__gen .sequence-card__label,
-  .sequence-card__onto .sequence-card__label {
-    display: inline;
-  }
-}
-
-@container sequence-pane (min-width: 58rem) {
-  .sequence-card__head {
-    grid-template-columns: auto auto auto auto auto minmax(0, 1fr) auto auto;
-    grid-template-areas: "name length step gen onto says reset code";
   }
 }
 
@@ -187,10 +156,23 @@
 
 .sequence-card__gen .select {
   inline-size: 8rem;
+  max-inline-size: 100%;
 }
 
 .sequence-card__onto .select {
   inline-size: 5.5rem;
+}
+
+/* narrow (the phone's sheet): Generate, Onto and the "?" keep to one line */
+@container sequence-pane (max-width: 34rem) {
+  .sequence-card__gen .select {
+    inline-size: 6.25rem;
+  }
+
+  .sequence-card__gen,
+  .sequence-card__onto {
+    gap: var(--space-1);
+  }
 }
 
 /* narrow: the Step menu takes what is left of its row */

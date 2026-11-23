@@ -2,6 +2,9 @@ import { module, test } from 'qunit';
 import {
   applyGenerator,
   applyTool,
+  beatsOfNumber,
+  binaryDigits,
+  numberOfBeats,
   binaryMax,
   combine,
   defaultGenerator,
@@ -20,7 +23,7 @@ const dials = (more: Partial<GeneratorState>): GeneratorState => ({
 });
 
 module('Unit | Controls | generators', function () {
-  test('each generator fills the grid’s own length, whatever its dials', function (assert) {
+  test('each generator but Binary fills the grid’s own length', function (assert) {
     assert.strictEqual(
       generate(dials({ kind: 'euclid', hits: 5 }), 16).filter(Boolean).length,
       5,
@@ -36,25 +39,30 @@ module('Unit | Controls | generators', function () {
       'rotate turns it',
     );
     assert.strictEqual(
-      written(generate(dials({ kind: 'binary', number: 5 }), 8)),
-      'x.xx.xx.',
-      'the number’s digits (x.x), repeated to fill',
+      written(generate(dials({ kind: 'binary', beats: beatsOfNumber(5) }), 8)),
+      'x.x',
+      'Binary: the number’s digits, as long as they are, whatever the grid’s length',
     );
     assert.strictEqual(
-      written(generate(dials({ kind: 'binary', number: 1 }), 4)),
-      'xxxx',
+      written(generate(dials({ kind: 'binary', beats: beatsOfNumber(1) }), 4)),
+      'x',
     );
     assert.strictEqual(
-      written(generate(dials({ kind: 'binary', number: 0 }), 4)),
-      '....',
+      written(generate(dials({ kind: 'binary', beats: beatsOfNumber(0) }), 4)),
+      'x',
+      '0 is held at 1',
     );
     assert.strictEqual(
-      written(generate(dials({ kind: 'binary', number: 127 }), 16)),
-      'xxxxxxxxxxxxxxxx',
-    );
-    assert.strictEqual(
-      written(generate(dials({ kind: 'binary', number: 8 }), 16)),
+      written(
+        generate(dials({ kind: 'binary', beats: beatsOfNumber(34952) }), 4),
+      ),
       'x...x...x...x...',
+    );
+    assert.strictEqual(
+      written(
+        generate(dials({ kind: 'binary', beats: beatsOfNumber(65535) }), 16),
+      ),
+      'xxxxxxxxxxxxxxxx',
     );
     assert.strictEqual(
       written(generate(dials({ kind: 'onoff', on: 1, off: 3 }), 16)),
@@ -114,7 +122,7 @@ module('Unit | Controls | generators', function () {
       ),
       '....',
     );
-    assert.strictEqual(binaryMax(), 127, 'seven bits, whatever the length');
+    assert.strictEqual(binaryMax(), 65535, 'up to sixteen digits');
   });
 
   test('a generated hit keeps the value its step had; a rest is 0', function (assert) {
@@ -239,7 +247,8 @@ module('Unit | Controls | generators', function () {
       kind: 'sieve',
       hits: 8,
       rotate: 0,
-      number: 127,
+      number: 65535,
+      beats: [15, 15, 15, 15],
       on: 2,
       off: 3,
       sieve: [
@@ -251,5 +260,66 @@ module('Unit | Controls | generators', function () {
       base: [1, 0],
     });
     assert.strictEqual(readGenerator(undefined, [0, 0]), null);
+  });
+});
+
+module('Unit | Controls | generators | binary', function () {
+  test('Binary makes the grid as long as its number’s digits', function (assert) {
+    const made = applyGenerator(
+      dials({ kind: 'binary', beats: beatsOfNumber(5) }),
+      EMPTY16,
+    );
+    assert.deepEqual(made.steps, [1, 0, 1], 'three steps');
+    assert.strictEqual(made.generator.made, 'x.x');
+    const longer = applyGenerator(
+      { ...made.generator, beats: beatsOfNumber(1234) },
+      made.steps,
+    );
+    assert.strictEqual(written(longer.steps), 'x..xx.x..x.', 'eleven');
+    assert.strictEqual(binaryDigits(1234), '10011010010');
+  });
+
+  test('Or keeps meeting the whole pattern that was there, as the length changes', function (assert) {
+    const there = [0, 1, 0, 0, 0, 0, 0, 0];
+    const first = applyGenerator(
+      dials({ kind: 'binary', beats: beatsOfNumber(1), combine: 'or' }),
+      there,
+    );
+    assert.deepEqual(
+      first.steps,
+      [1],
+      'one step: only the first of what was there',
+    );
+    const again = applyGenerator(
+      { ...first.generator, beats: beatsOfNumber(4) },
+      first.steps,
+    );
+    assert.strictEqual(
+      written(again.steps),
+      'xx.',
+      'three steps: the second step of what was there comes back',
+    );
+  });
+
+  test('the beats make the number; a beat that is off is no part of it', function (assert) {
+    assert.deepEqual(beatsOfNumber(5), [-1, -1, -1, 5]);
+    assert.deepEqual(beatsOfNumber(1234), [-1, 4, 13, 2]);
+    assert.deepEqual(beatsOfNumber(43690), [10, 10, 10, 10]);
+    assert.strictEqual(numberOfBeats([-1, 4, 13, 2]), 1234);
+    assert.strictEqual(
+      written(generate(dials({ kind: 'binary', beats: [9, -1, -1, -1] }), 16)),
+      'x..x',
+      'one beat alone: four steps',
+    );
+    assert.strictEqual(
+      written(generate(dials({ kind: 'binary', beats: [9, -1, 0, -1] }), 16)),
+      'x..x....',
+      'a beat at 0 is four rests; one that is off is nothing',
+    );
+    assert.strictEqual(
+      written(generate(dials({ kind: 'binary', beats: [-1, -1, -1, -1] }), 16)),
+      'x',
+      'all off is held at 1',
+    );
   });
 });

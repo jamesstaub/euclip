@@ -70,6 +70,9 @@
    * yellow of the selected row, where light grey alone would merge with it.
    */
   --step-off: var(--light-gray);
+
+  /* every other beat's off steps, a shade darker, so steps can be counted at a glance */
+  --step-off-alt: #d4d4d4;
   --step-on: var(--light-blue);
   --step-current: #d9534f;
   --step-current-ring: var(--near-black);

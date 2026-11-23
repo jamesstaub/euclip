@@ -47,6 +47,10 @@
   /* (a narrow step is pressed, not double-tapped to zoom) */
   touch-action: manipulation;
 
+  &.step--alt {
+    background: var(--step-off-alt);
+  }
+
   &[aria-pressed="true"] {
     background: var(--step-on);
   }
@@ -96,16 +100,46 @@
   }
 }
 
+/* the tools, under the grid: small and quiet, at the left */
+.step-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-2) var(--space-2);
+}
+
+.step-tools__buttons {
+  display: inline-flex;
+  gap: var(--space-1);
+}
+
 /*
- * A grid's generator (the sequence pane's grids have one): ONE row of the chosen generator's sliders,
- * on the card's own surface, under the card's header (where the Generate and Onto menus are). The row is
- * the same height whichever generator shows, so turning to another moves nothing: one line where
- * four sliders fit beside each other, two lines (reserved) where they do not. Its slider widths are
- * capped, so on a wide screen it stays at its natural size, at the left.
+ * A grid's generator (the sequence pane's grids have one): a band of its own at the card's foot, under
+ * a rule. Its menus (Generate, Onto), the "?" (and Binary's whole number), then ONE row of the chosen
+ * generator's sliders: two rows whichever generator shows. The sliders' row is the same height whichever generator
+ * shows, so turning to another moves nothing: one line where four sliders fit beside each other, two
+ * lines (reserved) where they do not. Its slider widths are capped, so on a wide screen it stays at its
+ * natural size, at the left.
  */
 .step-gen {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
   min-inline-size: 0;
-  padding: 0 var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-block-start: var(--border-width-1) solid
+    color-mix(in srgb, var(--dark-gray) 45%, transparent);
+  background: color-mix(in srgb, var(--dark-gray) 6%, transparent);
+}
+
+.step-gen__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  min-block-size: calc(var(--target-min) + var(--space-1));
+  font-size: var(--font-size-7);
 }
 
 .step-gen__dials {
@@ -116,6 +150,7 @@
   align-items: center;
   align-content: flex-start;
   gap: 0 var(--space-3);
+  min-inline-size: 0;
   max-inline-size: 52rem;
   min-block-size: calc(2 * var(--dial-row));
 }
@@ -142,9 +177,28 @@
   }
 
   & .number-entry-box {
-    inline-size: 2.5rem;
+    inline-size: 3.25rem;
     font-variant-numeric: tabular-nums;
   }
+}
+
+/* Binary's whole number, in the band's head: typed exactly, with its digits */
+.step-gen__number {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+
+  & .number-entry-box {
+    inline-size: 3.5rem;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.step-gen__says {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-7);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
 }
 
 .step-gen__label {
@@ -154,17 +208,10 @@
   white-space: nowrap;
 }
 
-/* the tools, below the grid: small and quiet, at the left */
-.step-tools {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-1) var(--space-2);
-}
-
-.step-tools__buttons {
-  display: inline-flex;
-  gap: var(--space-1);
+/* a beat of Binary that is off: its name faint (its slider at the far left says so too) */
+.step-gen__dial--off .step-gen__label {
+  opacity: 0.45;
+  text-decoration: line-through;
 }
 
 /*
