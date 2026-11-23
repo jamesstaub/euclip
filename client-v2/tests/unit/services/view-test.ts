@@ -68,7 +68,19 @@ module('Unit | Service | view', function (hooks) {
         laneView: {},
         sheetSize: 'half',
         welcomeSeen: false,
+        referenceOpen: false,
       },
+    );
+  });
+
+  test('whether the script reference is open is remembered', function (assert) {
+    this.owner.lookup('service:view').setReferenceOpen(true);
+    assert.true(
+      (
+        JSON.parse(window.localStorage.getItem(VIEW_STORAGE_KEY) ?? '{}') as {
+          referenceOpen?: boolean;
+        }
+      ).referenceOpen,
     );
   });
 

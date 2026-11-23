@@ -195,7 +195,7 @@ export default class ProjectMenu extends Component<ProjectMenuSignature> {
   showReference = (): void => {
     const opener = this.opener;
     this.close();
-    this.help.openReference(opener);
+    this.help.toggleReference(opener);
   };
 
   showWelcome = (): void => {

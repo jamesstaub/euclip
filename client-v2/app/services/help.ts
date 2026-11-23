@@ -23,7 +23,13 @@ export default class HelpService extends Service {
   welcomeEnabled: boolean = macroCondition(isTesting()) ? false : true;
 
   @tracked welcomeOpen = false;
-  @tracked referenceOpen = false;
+  /** Whether the reference sidebar is open: remembered by the view, so a reload keeps it as it was. */
+  get referenceOpen(): boolean {
+    return this.view.referenceOpen;
+  }
+
+  /** Set when the person opened the reference (not when it came back open after a reload): focus goes to its heading. */
+  #focusReference = false;
   /** the tour's current step (an index into the steps), or null when it is not running */
   @tracked tourIndex: number | null = null;
   opener: HTMLElement | null = null;
@@ -54,11 +60,33 @@ export default class HelpService extends Service {
 
   openReference(opener: HTMLElement | null): void {
     this.opener = opener;
-    this.referenceOpen = true;
+    this.#focusReference = true;
+    this.view.setReferenceOpen(true);
   }
 
+  /** Help's item: opens the sidebar, or closes it when it is open. */
+  toggleReference(opener: HTMLElement | null): void {
+    if (this.referenceOpen) this.closeReference();
+    else this.openReference(opener);
+  }
+
+  /** Closes it; focus goes back to where it was opened from, if the person is in it (or nowhere else). */
   closeReference(): void {
-    this.referenceOpen = false;
+    const inside = document.querySelector('[data-test-reference]');
+    const active = document.activeElement;
+    const keepsFocus =
+      !active ||
+      active === document.body ||
+      (inside !== null && inside.contains(active));
+    this.view.setReferenceOpen(false);
+    if (keepsFocus) this.opener?.focus();
+  }
+
+  /** True once after openReference: the sidebar takes focus as it appears. */
+  takeReferenceFocus(): boolean {
+    const wanted = this.#focusReference;
+    this.#focusReference = false;
+    return wanted;
   }
 
   // --- the tour -------------------------------------------------------------------------------------

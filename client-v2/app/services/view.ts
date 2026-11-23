@@ -33,6 +33,7 @@ interface Stored {
   sheetSize?: unknown;
   selectedTrack?: unknown;
   welcomeSeen?: unknown;
+  referenceOpen?: unknown;
 }
 
 /** How tall the phone's track sheet is when it is open: half the screen, or up to the project bar. */
@@ -97,6 +98,15 @@ export default class ViewService extends Service {
   markWelcomeSeen(): void {
     if (this.welcomeSeen) return;
     this.welcomeSeen = true;
+    this.#save();
+  }
+
+  /** Whether the script reference sidebar is open, beside the app. Remembered with the rest of the view. */
+  @tracked referenceOpen = this.#stored.referenceOpen === true;
+
+  setReferenceOpen(open: boolean): void {
+    if (this.referenceOpen === open) return;
+    this.referenceOpen = open;
     this.#save();
   }
 
@@ -492,6 +502,7 @@ export default class ViewService extends Service {
           sheetSize: this.sheetSize,
           selectedTrack: this.selectedTrack,
           welcomeSeen: this.welcomeSeen,
+          referenceOpen: this.referenceOpen,
           // (only a phone remembers whether the footer was open: elsewhere it starts open)
           sheetOpen: this.phone ? this.opened : this.#stored.sheetOpen,
         }),

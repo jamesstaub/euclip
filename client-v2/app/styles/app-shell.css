@@ -12,10 +12,10 @@
 .app-shell {
   display: grid;
   grid-template:
-    "header header" auto
-    "sidebar tracks" minmax(0, 1fr)
-    "sidebar footer" auto
-    / 0 minmax(0, 1fr);
+    "header header header" auto
+    "sidebar tracks reference" minmax(0, 1fr)
+    "sidebar footer reference" auto
+    / 0 minmax(0, 1fr) 0;
   block-size: 100vh;
   block-size: 100dvh;
   min-inline-size: 0;
@@ -29,8 +29,32 @@
         var(--sidebar-width),
         calc(100% - var(--tracks-min))
       )
-      minmax(0, 1fr);
+      minmax(0, 1fr) 0;
   }
+
+  /* the reference docks at the right edge; the tracks give up the width (never below --tracks-min) */
+  &[data-reference="open"] {
+    grid-template-columns:
+      0 minmax(0, 1fr)
+      min(var(--reference-width), calc(100% - var(--tracks-min)));
+  }
+
+  &[data-sidebar="open"][data-reference="open"] {
+    grid-template-columns:
+      clamp(
+        var(--sidebar-min),
+        var(--sidebar-width),
+        calc((100% - var(--tracks-min)) / 2)
+      )
+      minmax(0, 1fr)
+      min(var(--reference-width), calc((100% - var(--tracks-min)) / 2));
+  }
+}
+
+.app-shell > .reference {
+  grid-area: reference;
+  min-inline-size: 0;
+  min-block-size: 0;
 }
 
 .app-shell__header {
@@ -79,10 +103,18 @@
   .app-shell,
   .app-shell[data-sidebar="open"] {
     grid-template-areas:
-      "header"
-      "tracks"
-      "footer";
-    grid-template-columns: minmax(0, 1fr);
+      "header header"
+      "tracks reference"
+      "footer reference";
+    grid-template-columns: minmax(0, 1fr) 0;
+  }
+
+  /* the sound drawer is over the tracks only; the reference stays docked, so it is never covered */
+  .app-shell[data-reference="open"],
+  .app-shell[data-sidebar="open"][data-reference="open"] {
+    grid-template-columns:
+      minmax(0, 1fr)
+      min(var(--reference-width), calc(100% - var(--tracks-min) / 2));
   }
 
   /* the drawer and its scrim cover the tracks and the footer, never the header */
@@ -162,6 +194,16 @@
   & .app-shell__sidebar,
   & .app-shell__scrim {
     grid-area: 2 / 1 / 3 / 3;
+  }
+
+  /* the reference is a sheet over the whole app below the bar, its close button in view */
+  &[data-reference="open"] {
+    grid-template-columns: var(--target-min) minmax(0, 1fr);
+  }
+
+  & > .reference {
+    grid-area: 2 / 1 / 3 / 3;
+    z-index: calc(var(--layer-drawer) + 1);
   }
 
   & .app-shell__notice {

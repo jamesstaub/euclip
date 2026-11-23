@@ -1,0 +1,171 @@
+/*
+ * The script reference: a sidebar docked at the right edge (see app-shell.css for where it sits and how
+ * the tracks give way; on the phone it is a sheet over the app). Not modal: no scrim, no focus trap.
+ * A fixed head and a fixed row of section links; only the body scrolls, so following a link moves
+ * nothing but the body. Square corners, like the rest of the app.
+ */
+
+.reference {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  min-block-size: 0;
+  max-inline-size: 100%;
+  overflow: hidden;
+  border-inline-start: var(--border-accent);
+  background: var(--surface-app) var(--dark-gray);
+  color: var(--text-on-dark);
+  z-index: var(--layer-menu);
+}
+
+.reference__head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  padding-inline: var(--space-3) var(--space-2);
+}
+
+.reference__title {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  padding-block: var(--space-2);
+  color: var(--text-on-dark);
+  font-size: var(--font-size-5);
+  font-weight: var(--font-weight-bold);
+}
+
+.reference__close {
+  flex: none;
+  color: var(--text-on-dark);
+}
+
+/* one fixed-height row; if the links do not fit it scrolls sideways inside itself */
+.reference__nav {
+  display: flex;
+  flex: none;
+  overflow-x: auto;
+  border-block: var(--border-width-1) solid var(--mid-gray);
+  padding-inline: var(--space-2);
+  background: var(--near-black);
+}
+
+.reference__link {
+  flex: none;
+  min-block-size: var(--target-min);
+  padding-inline: var(--space-3);
+  border: 0;
+  border-block-end: var(--border-width-3) solid transparent;
+  background: transparent;
+  color: var(--text-on-dark);
+  font-size: var(--font-size-6);
+
+  &[aria-current="true"] {
+    border-block-end-color: var(--yellow);
+    color: var(--yellow);
+    font-weight: var(--font-weight-bold);
+  }
+
+  &:hover {
+    background: var(--surface-hover-on-dark);
+  }
+}
+
+.reference__body {
+  position: relative; /* the links measure their sections from here */
+  flex: 1 1 auto;
+  min-block-size: 0;
+  padding: var(--space-3);
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+
+  & p {
+    overflow-wrap: anywhere;
+  }
+}
+
+.reference__section {
+  min-inline-size: 0;
+}
+
+.reference__shared {
+  color: var(--text-muted);
+}
+
+.reference__table {
+  overflow-x: auto;
+}
+
+.reference__heading {
+  margin-block: var(--space-2);
+  color: var(--yellow);
+  font-size: var(--font-size-5);
+  font-weight: var(--font-weight-bold);
+}
+
+.reference__entry {
+  padding-block: var(--space-2);
+  border-block-start: var(--border-width-1) solid var(--mid-gray);
+
+  & > * + * {
+    margin-block-start: var(--space-2);
+  }
+
+  & code {
+    color: var(--light-blue);
+    font-family: var(--font-mono);
+    font-size: 0.92em;
+  }
+
+  & a {
+    color: var(--yellow);
+  }
+}
+
+.reference__name {
+  margin: 0;
+  font-size: var(--font-size-5);
+}
+
+.reference__signature {
+  overflow-wrap: anywhere;
+}
+
+.reference__options {
+  inline-size: 100%;
+  min-inline-size: 18rem;
+  border-collapse: collapse;
+  font-size: var(--font-size-7);
+
+  & th,
+  & td {
+    padding: var(--space-1) var(--space-2);
+    border: var(--border-width-1) solid var(--mid-gray);
+    text-align: start;
+    vertical-align: top;
+  }
+
+  & th {
+    color: var(--text-muted);
+    font-weight: var(--font-weight-bold);
+  }
+}
+
+.reference__example {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+
+  & pre {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    margin: 0;
+    padding: var(--space-2);
+    overflow-x: auto;
+    background: var(--surface-inset-strong);
+  }
+
+  & .btn {
+    flex: none;
+    inline-size: 5rem;
+  }
+}

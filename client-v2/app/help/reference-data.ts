@@ -11,8 +11,20 @@ export interface ReferenceOption {
   description: string;
 }
 
+/** The reference's sections, in order: each entry is in exactly one (labels are in reference-text.ts). */
+export const REFERENCE_SECTION_IDS = [
+  'controls',
+  'editors',
+  'options',
+  'basics',
+] as const;
+export type ReferenceSectionId = (typeof REFERENCE_SECTION_IDS)[number];
+
 export interface ReferenceEntry {
   name: string;
+  section: ReferenceSectionId;
+  /** takes the shared options (the Options section), besides any listed in `options` */
+  sharedOptions?: boolean;
   signature: string;
   summary: string;
   options: readonly ReferenceOption[];
@@ -27,7 +39,8 @@ const LABEL: ReferenceOption = {
     'What the control is called on screen. Default: the parameter’s name.',
 };
 
-const NUMBER_OPTIONS: readonly ReferenceOption[] = [
+/** The options slider and knob share (and the Options section lists). */
+export const REFERENCE_OPTIONS: readonly ReferenceOption[] = [
   LABEL,
   { name: 'min', type: 'number', description: 'The low end of the range.' },
   { name: 'max', type: 'number', description: 'The high end of the range.' },
@@ -72,24 +85,29 @@ const OWN_OPTIONS: readonly ReferenceOption[] = [
 export const REFERENCE_FUNCTIONS: readonly ReferenceEntry[] = [
   {
     name: 'slider',
+    section: 'controls',
     signature:
       'slider(target, param, options?)  |  slider(name, { min, max, default })',
     summary:
       'A slider for a node’s parameter, or, with a name, a control of its own. Returns the control: .value reads it and .set(v) moves it.',
-    options: [...NUMBER_OPTIONS, ...OWN_OPTIONS],
+    sharedOptions: true,
+    options: OWN_OPTIONS,
     example: `slider('#filter', 'frequency', { mode: 'note' });
 const density = slider('density', { min: 0, max: 1, default: 0.5 });`,
   },
   {
     name: 'knob',
+    section: 'controls',
     signature:
       'knob(target, param, options?)  |  knob(name, { min, max, default })',
     summary: 'The same as slider, drawn as a dial.',
-    options: [...NUMBER_OPTIONS, ...OWN_OPTIONS],
+    sharedOptions: true,
+    options: OWN_OPTIONS,
     example: `knob('#level', 'gain', { label: 'level' });`,
   },
   {
     name: 'toggle',
+    section: 'controls',
     signature: 'toggle(target, param, options?)  |  toggle(name, { default })',
     summary:
       'An on or off switch for a true-or-false parameter, or, with a name, a switch of its own.',
@@ -106,6 +124,7 @@ const fills = toggle('fills', { default: false });`,
   },
   {
     name: 'select',
+    section: 'controls',
     signature: 'select(target, param, options?)',
     summary: 'A menu for a parameter that takes one of a list of values.',
     options: [LABEL],
@@ -113,6 +132,7 @@ const fills = toggle('fills', { default: false });`,
   },
   {
     name: 'controls',
+    section: 'controls',
     signature: 'controls()  |  controls(target, names?)',
     summary:
       'Declares controls in one line: with nothing, for everything the script has made; with a target, for its parameters (or only the names given). Each parameter gets the kind that suits it.',
@@ -122,6 +142,7 @@ controls('#kick', ['speed', 'start']);`,
   },
   {
     name: 'stepGrid',
+    section: 'editors',
     signature: 'stepGrid(name, options?)',
     summary:
       'A step grid for a named sequence of this script. Put it after the __.transport.sequence call. The grid owns the pattern: it starts empty and keeps what is set in it.',
@@ -138,6 +159,7 @@ stepGrid('steps');`,
   },
   {
     name: 'waveform',
+    section: 'editors',
     signature: 'waveform(target, options?)',
     summary:
       'A waveform editor for a sampler, in the track’s source pane: start, end, loop points, slices and which sound it plays.',
@@ -146,6 +168,7 @@ stepGrid('steps');`,
   },
   {
     name: 'synth',
+    section: 'editors',
     signature: 'synth(target, options?)',
     summary:
       'A synth editor for an oscillator or a synth macro: a scope, a keyboard that sets its pitch and plays it, and its other controls.',
@@ -165,6 +188,7 @@ slider('#synth', 'cutoff');`,
 /** The little of cracked-up the templates use, in the shape of a template. */
 export const REFERENCE_BASICS: ReferenceEntry = {
   name: 'chain',
+  section: 'basics',
   signature:
     "__()  .to('channel')  __.transport.sequence(name, { steps, step }, callback)",
   summary:

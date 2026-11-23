@@ -215,6 +215,7 @@ export default class AppShell extends Component<AppShellSignature> {
     <div
       class="app-shell"
       data-sidebar={{if this.sidebarOpen "open" "closed"}}
+      data-reference={{if this.help.referenceOpen "open" "closed"}}
       data-ready={{if this.audio.ready "true" "false"}}
       data-phone={{if this.view.phone "true" "false"}}
       data-sheet={{this.sheet}}
@@ -303,11 +304,12 @@ export default class AppShell extends Component<AppShellSignature> {
         @onScriptChange={{this.setScript}}
       />
 
-      {{#if this.help.welcomeOpen}}
-        <WelcomeDialog />
-      {{/if}}
       {{#if this.help.referenceOpen}}
         <ScriptReference />
+      {{/if}}
+
+      {{#if this.help.welcomeOpen}}
+        <WelcomeDialog />
       {{/if}}
       <Tour />
     </div>

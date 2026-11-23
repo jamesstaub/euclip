@@ -167,9 +167,20 @@ module('Integration | Script reference', function (hooks) {
     project.storage = new MemoryStorage();
     project.files = new MemoryFiles();
     this.owner.lookup('service:view').phone = false;
+    window.localStorage.removeItem(VIEW_STORAGE_KEY);
   });
 
-  test('Help opens the reference: an entry for every function, the basics and the docs link, and Copy copies', async function (assert) {
+  hooks.afterEach(function () {
+    window.localStorage.removeItem(VIEW_STORAGE_KEY);
+  });
+
+  async function openReference(): Promise<void> {
+    await click('[data-test-project-menu-button]');
+    await click('[data-test-help]');
+    await click('[data-test-help-reference]');
+  }
+
+  test('Help opens the reference beside the app, not as a dialog: sections, entries, basics, docs link, and Copy copies', async function (assert) {
     const copied: string[] = [];
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
@@ -181,15 +192,32 @@ module('Integration | Script reference', function (hooks) {
       },
     });
     await render(<template><AppShell /></template>);
-    await click('[data-test-project-menu-button]');
-    await click('[data-test-help]');
-    await click('[data-test-help-reference]');
+    await openReference();
 
     assert.dom('[data-test-reference]').exists();
+    assert.dom('[data-test-app-shell]').hasAttribute('data-reference', 'open');
+    assert.dom('[role="dialog"]').doesNotExist('it is not a modal');
+    assert.dom('.dialog').doesNotExist();
+    assert.dom('[data-test-reference-title]').isFocused();
     assert
       .dom('[data-test-reference-entry]')
       .exists({ count: REFERENCE_FUNCTIONS.length });
-    assert.dom('[data-test-reference-basics]').exists();
+    assert.dom('[data-test-reference-section]').exists({ count: 4 });
+    assert
+      .dom(
+        '[data-test-reference-section="controls"] [data-test-reference-entry]',
+      )
+      .exists({ count: 5 });
+    assert
+      .dom(
+        '[data-test-reference-section="editors"] [data-test-reference-entry]',
+      )
+      .exists({ count: 3 });
+    assert
+      .dom(
+        '[data-test-reference-section="basics"] [data-test-reference-basics]',
+      )
+      .exists();
     assert
       .dom('[data-test-reference-docs]')
       .hasAttribute('href', 'https://jamesstaub.github.io/cracked-up/docs.html')
@@ -201,9 +229,135 @@ module('Integration | Script reference', function (hooks) {
       REFERENCE_FUNCTIONS.find((entry) => entry.name === 'knob')!.example,
     ]);
     assert.dom('[data-test-reference-copy="knob"]').hasText('Copied');
+  });
 
-    await triggerKeyEvent(document.body, 'keydown', 'Escape');
+  test('Escape with focus inside closes it and focus goes back; Help toggles it; the state is remembered', async function (assert) {
+    await render(<template><AppShell /></template>);
+    await openReference();
+    assert.dom('[data-test-reference]').exists();
+    const stored = JSON.parse(
+      window.localStorage.getItem(VIEW_STORAGE_KEY) ?? '{}',
+    ) as { referenceOpen?: boolean };
+    assert.true(stored.referenceOpen, 'remembered');
+
+    await triggerKeyEvent('[data-test-reference-title]', 'keydown', 'Escape');
     assert.dom('[data-test-reference]').doesNotExist();
+    assert
+      .dom('[data-test-app-shell]')
+      .hasAttribute('data-reference', 'closed');
     assert.dom('[data-test-project-menu-button]').isFocused();
+
+    await openReference();
+    assert.dom('[data-test-reference]').exists();
+    await openReference();
+    assert.dom('[data-test-reference]').doesNotExist('Help toggles');
+  });
+
+  test('it does not take focus when it comes back open after a reload', async function (assert) {
+    this.owner.lookup('service:view').setReferenceOpen(true);
+    await render(<template><AppShell /></template>);
+    assert.dom('[data-test-reference]').exists();
+    assert.dom('[data-test-reference-title]').isNotFocused();
+  });
+
+  test('the links jump to their sections and mark the current one', async function (assert) {
+    await render(<template><AppShell /></template>);
+    await openReference();
+    assert
+      .dom('[data-test-reference-link="controls"]')
+      .hasAttribute('aria-current', 'true');
+
+    const body = document.querySelector<HTMLElement>(
+      '[data-test-reference-body]',
+    )!;
+    const title = document.querySelector<HTMLElement>(
+      '[data-test-reference-title]',
+    )!;
+    const nav = document.querySelector<HTMLElement>('.reference__nav')!;
+    const titleTop = title.getBoundingClientRect().top;
+    const navHeight = nav.getBoundingClientRect().height;
+
+    for (const id of ['editors', 'options', 'controls']) {
+      await click(`[data-test-reference-link="${id}"]`);
+      const section = document.querySelector<HTMLElement>(
+        `[data-test-reference-section="${id}"]`,
+      )!;
+      assert
+        .dom(`[data-test-reference-link="${id}"]`)
+        .hasAttribute('aria-current', 'true');
+      assert.true(
+        Math.abs(
+          section.getBoundingClientRect().top -
+            body.getBoundingClientRect().top,
+        ) < 2,
+        `${id} is at the top of the body`,
+      );
+      assert.strictEqual(
+        title.getBoundingClientRect().top,
+        titleTop,
+        'the head does not move',
+      );
+      assert.strictEqual(
+        nav.getBoundingClientRect().height,
+        navHeight,
+        'the links do not change height',
+      );
+    }
+    // (the last section may be too short to reach the top: it is current at the end of the body)
+    await click('[data-test-reference-link="basics"]');
+    assert
+      .dom('[data-test-reference-link="basics"]')
+      .hasAttribute('aria-current', 'true');
+  });
+
+  test('its width never exceeds the viewport and nothing overflows it sideways, at 320, 768 and 1280', async function (assert) {
+    const view = this.owner.lookup('service:view');
+    const widths = [320, 768, 1280];
+    const host = document.querySelector<HTMLElement>('#ember-testing')!;
+    const container = document.querySelector<HTMLElement>(
+      '#ember-testing-container',
+    );
+    const saved = host.style.cssText;
+    const savedContainer = container?.style.cssText ?? '';
+    try {
+      for (const width of widths) {
+        view.phone = width < 768;
+        host.style.cssText = `width:${width}px;height:700px;transform:none;zoom:1`;
+        if (container)
+          container.style.cssText = `width:${width}px;height:700px`;
+        await render(<template><AppShell /></template>);
+        await openReference();
+        const panel = document.querySelector<HTMLElement>(
+          '[data-test-reference]',
+        )!;
+        const rect = panel.getBoundingClientRect();
+        const rootWidth = document
+          .querySelector<HTMLElement>('[data-test-app-shell]')!
+          .getBoundingClientRect().width;
+        assert.true(
+          rect.width <= rootWidth + 0.5,
+          `${width}: ${rect.width} within ${rootWidth}`,
+        );
+        assert.true(
+          rect.width <= window.innerWidth,
+          `${width}: within the window`,
+        );
+        const body = document.querySelector<HTMLElement>(
+          '[data-test-reference-body]',
+        )!;
+        assert.true(
+          body.scrollWidth <= body.clientWidth + 1,
+          `${width}: the body does not scroll sideways`,
+        );
+        const limit = width >= 768 ? 28 * 16 + 1 : rootWidth + 1;
+        assert.true(rect.width <= limit, `${width}: at most ${limit}`);
+        await click('[data-test-reference-close]');
+        assert.dom('[data-test-reference]').doesNotExist();
+      }
+    } finally {
+      host.style.cssText = saved;
+      if (container) container.style.cssText = savedContainer;
+      view.phone = false;
+    }
   });
 });

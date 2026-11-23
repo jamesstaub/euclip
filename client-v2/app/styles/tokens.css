@@ -126,6 +126,7 @@
   --nav-height: 4.2rem;
   --sidebar-width: 28rem;
   --sidebar-min: 18rem;
+  --reference-width: 26rem; /* the script reference, docked at the right edge */
   --tracks-min: 24rem; /* the track list never gets narrower than this beside the sidebar */
   --track-row-min: 3.5rem;
   --footer-min: 22rem;
