@@ -33,6 +33,8 @@ import {
 import { REGION_GAP } from 'client-v2/controls/live-range';
 import { glideBlockedItems, unitMenuItems } from 'client-v2/controls/unit-menu';
 import LaneSwitch from 'client-v2/components/lane-switch';
+import TrackRail from 'client-v2/components/track-rail';
+import { newTrack } from 'client-v2/project/default-project';
 import SourceLane, {
   aimedControl,
   sourceLanes,
@@ -262,7 +264,14 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
   @tracked width = 0;
   @tracked height = 0;
   @tracked coarse = window.matchMedia('(pointer: coarse)').matches;
-  @tracked expanded = false;
+  /** Filling the screen: kept by the view, so choosing another track in the rail keeps it. */
+  get expanded(): boolean {
+    return this.view.sourceExpanded;
+  }
+
+  set expanded(value: boolean) {
+    this.view.sourceExpanded = value;
+  }
   /**
    * What handles and new boundaries snap to. Until the person says, it follows the sound: its slices
    * when it has some, else the zero crossings of its audio. A choice is kept for this waveform (with
@@ -1555,6 +1564,45 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
     this.expanded = !this.expanded;
   };
 
+  /**
+   * The rail beside the expanded editor: another track, still expanded, with the same lane open (a
+   * multislider edited across the tracks). A track with no waveform to edit (a synth's, the main output)
+   * is shown as usual: the editor gives the screen back.
+   */
+  railSelect = (id: string): void => {
+    const open = this.view.sourceLane(this.args.scopeId);
+    const was =
+      open === null
+        ? undefined
+        : sourceLanes(
+            this.audio,
+            this.args.scopeId,
+            this.args.waveform.nodeId,
+          ).find((lane) => lane.key === open)?.control;
+    this.view.selectTrack(id);
+    const waveform = this.audio
+      .sources(id)
+      .find((source) => source.kind === 'waveform');
+    if (!waveform) {
+      this.expanded = false;
+      return;
+    }
+    // (the lane that was open stays open: the same control, else one of the same name, if it has one)
+    if (was) {
+      const lanes = sourceLanes(this.audio, id, waveform.nodeId);
+      const same =
+        lanes.find((lane) => lane.key === was.key) ??
+        lanes.find((lane) => lane.control.label === was.label);
+      if (same) this.view.setSourceLane(id, same.key);
+    }
+  };
+
+  railNewTrack = (): void => {
+    const track = newTrack('');
+    this.project.apply({ type: 'addTrack', track });
+    this.view.selectTrack(track.id);
+  };
+
   togglePanel = (): void => {
     this.panel = !this.panel;
     if (this.panel) this.#refreshPreview();
@@ -1891,6 +1939,16 @@ export default class WaveformEditor extends Component<WaveformEditorSignature> {
       {{this.redraw this.pictureKey}}
       {{this.followPlaying this.audio.playing}}
     >
+      {{#if this.expanded}}
+        {{! the tracks, down the left edge: to go on editing another track's sound, still expanded }}
+        <TrackRail
+          class="waveform__rail"
+          @tracks={{this.project.tracks}}
+          @selectedId={{@scopeId}}
+          @onSelect={{this.railSelect}}
+          @onNewTrack={{this.railNewTrack}}
+        />
+      {{/if}}
       <header class="waveform__head">
         <h4
           class="waveform__title {{if this.several 'waveform__title--several'}}"

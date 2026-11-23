@@ -92,6 +92,12 @@ export default class ViewService extends Service {
     this.#save();
   }
 
+  /**
+   * Whether the source's waveform editor fills the screen (Expand). Here, not in the editor, so it stays
+   * expanded as the track rail beside it chooses another track. Not remembered.
+   */
+  @tracked sourceExpanded = false;
+
   /** Whether the welcome has been shown on this browser: once, never again. Remembered with the rest of the view. */
   @tracked welcomeSeen = this.#stored.welcomeSeen === true;
 

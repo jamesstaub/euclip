@@ -2058,6 +2058,36 @@ slider(__.bus('drums'), 'gain');
       assert.dom('[data-test-track="1"]').hasAttribute('aria-current', 'true');
     });
 
+    test('the expanded waveform editor has the track rail: another track stays expanded with the same lane open; the main output gives the screen back', async function (assert) {
+      view.footerPane = 'sound';
+      await render(<template><AppShell /></template>);
+      assert.dom('.waveform__rail').doesNotExist('not until it is expanded');
+      await click('[data-test-waveform-expand]');
+      assert.dom('[data-test-waveform]').hasClass('waveform--expanded');
+      assert
+        .dom('.waveform__rail [data-test-rail-track="1"]')
+        .hasAttribute('aria-current', 'true');
+      await click('[data-test-lane-switch-lanes]');
+      const lane = view.sourceLane('t-kick');
+      assert.notStrictEqual(lane, null, 'a lane is open');
+
+      await click('.waveform__rail [data-test-rail-track="2"]');
+      assert.dom('[data-test-track="2"]').hasAttribute('aria-current', 'true');
+      assert
+        .dom('[data-test-waveform]')
+        .hasClass('waveform--expanded', 'still expanded');
+      assert
+        .dom('.waveform__rail [data-test-rail-track="2"]')
+        .hasAttribute('aria-current', 'true');
+      const id = project.tracks[1]!.id;
+      assert.strictEqual(view.sourceLane(id), lane, 'the same lane, open');
+      assert.dom('.waveform__stage > .source-lane').exists();
+
+      await click('.waveform__rail [data-test-rail-output]');
+      assert.false(view.sourceExpanded, 'no waveform there: not expanded');
+      assert.dom('.waveform--expanded').doesNotExist();
+    });
+
     test('the tempo field is the person’s while they type in it: nothing writes into it until they are done', async function (assert) {
       await render(<template><AppShell /></template>);
       const tempo = '[data-test-transport-tempo]';

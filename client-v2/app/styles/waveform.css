@@ -67,9 +67,23 @@
   padding: max(var(--space-2), var(--safe-top, 0px))
     max(var(--space-2), var(--safe-right, 0px))
     max(var(--space-2), var(--safe-bottom, 0px))
-    max(var(--space-2), var(--safe-left, 0px));
+    calc(var(--target-min) + max(var(--space-2), var(--safe-left, 0px)));
   overflow: hidden auto;
   background: var(--yellow);
+}
+
+/*
+ * Expanded, the track rail (the phone's, on every screen) runs down the left edge, so another track's
+ * sound can be edited without leaving: one touch target wide, the editor beside it.
+ */
+.waveform__rail {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-start: 0;
+  z-index: 1;
+  inline-size: calc(var(--target-min) + var(--safe-left, 0px));
+  padding-block-start: var(--safe-top, 0);
+  padding-inline-start: var(--safe-left, 0);
 }
 
 /* ---- the bar: what it is, which sound, show in script, expand ---- */
