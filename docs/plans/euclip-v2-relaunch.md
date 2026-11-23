@@ -117,7 +117,7 @@ What the leaders have that Euclip lacks: share by link, a gallery of examples, a
 
 ## 5. Features to design
 
-**Top bar and menu.** Left: logo and the project name, editable in place (it lost its home when the title left the project bar). Right: a menu button. The menu holds project matters (new, open, duplicate, export file, export audio, share) and personal ones (sign in, My projects, My sounds, MIDI, settings, help). On a phone the menu is the only item beside the logo.
+**Top bar and menu.** Left: logo and the project name, editable in place (it lost its home when the title left the project bar). Right: a menu button. In the built app this is the project menu, in the app-level bar at the top; that bar holds project-level concerns, which is accepted because it is a better use of space. The menu holds project matters (new, open, duplicate, export file, export audio, share) and personal ones (sign in, My projects, My sounds, MIDI, settings, help). On a phone the menu is the only item beside the logo.
 
 **Project toolbar.** A new project-level toolbar, separate from the signal-chain toolbar. It holds undo and redo, project versions (save a version, browse and restore versions) and the share link (which points at one version). Undo and redo are built first, in Phase 0; versions and the share link follow with accounts. On a phone the toolbar stays reachable and undo and redo are always visible. The data model behind it is in section 6a.
 

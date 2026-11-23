@@ -31,8 +31,8 @@ export interface AppHeaderSignature {
 }
 
 /**
- * Header region: the site nav bar over the project bar. It holds the transport, as in v1. The site links
- * and snapshots are inert. New Track adds a sampler track; the arrow beside it offers the other kinds.
+ * Header region: the app bar (logo and the project menu) over the project bar. The project bar holds the
+ * transport, as in v1. Snapshots are inert. New Track adds a sampler track; the arrow beside it offers the other kinds.
  */
 export default class AppHeader extends Component<AppHeaderSignature> {
   @service declare view: ViewService;
@@ -79,24 +79,11 @@ export default class AppHeader extends Component<AppHeaderSignature> {
         <span class="app-nav__logo">
           <img src="/icons/logo.svg" alt="Euclip" width="180" height="37" />
         </span>
-        <div class="app-nav__links">
-          <button type="button" class="app-nav__link">about</button>
-          <button type="button" class="app-nav__link app-nav__link--accent">new
-            project</button>
-          <button
-            type="button"
-            class="app-nav__account"
-            aria-label="Account menu"
-          >
-            <span class="app-nav__avatar" aria-hidden="true">j</span>
-          </button>
-        </div>
+        <ProjectMenu @onUndo={{@onUndo}} @onRedo={{@onRedo}} />
       </nav>
 
       <div class="project-bar">
         <div class="project-bar__left">
-          <ProjectMenu @onUndo={{@onUndo}} @onRedo={{@onRedo}} />
-
           <button
             type="button"
             class="btn project-bar__toggle"

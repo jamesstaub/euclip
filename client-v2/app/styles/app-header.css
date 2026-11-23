@@ -1,5 +1,5 @@
 /*
- * Header: the site nav bar (logo, links, account) over the project bar (sounds toggle, title, transport,
+ * Header: the site nav bar (logo, project menu) over the project bar (sounds toggle, title, transport,
  * actions). On phones the project bar is two rows: toggle, title and transport, then the actions.
  */
 
@@ -33,48 +33,6 @@
     max-inline-size: 100%;
     block-size: auto;
   }
-}
-
-.app-nav__links {
-  display: flex;
-  align-items: center;
-  flex: none;
-  gap: var(--space-2);
-}
-
-.app-nav__link {
-  min-block-size: var(--target-min);
-  padding: var(--space-1) var(--space-2);
-  border: 0;
-  background: transparent;
-  color: var(--white);
-  text-transform: capitalize;
-  white-space: nowrap;
-}
-
-.app-nav__link--accent {
-  color: var(--yellow);
-}
-
-.app-nav__account {
-  display: grid;
-  place-items: center;
-  inline-size: var(--target-min);
-  block-size: var(--target-min);
-  padding: 0;
-  border: 0;
-  background: transparent;
-}
-
-.app-nav__avatar {
-  display: grid;
-  place-items: center;
-  inline-size: 2rem;
-  block-size: 2rem;
-  background: var(--yellow);
-  color: var(--dark-gray);
-  font-size: var(--font-size-3);
-  line-height: var(--line-height-solid);
 }
 
 /* ---- project bar ---- */
@@ -259,7 +217,8 @@
 }
 
 .project-menu__panel {
-  inset-inline: 0 auto;
+  /* the button is at the right end of the app bar: the panel grows leftwards from its edge */
+  inset-inline: auto 0;
   inline-size: 20rem;
   max-inline-size: calc(100vw - 2 * var(--space-2));
   color: var(--text-on-dark);
