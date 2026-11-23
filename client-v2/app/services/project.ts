@@ -306,10 +306,10 @@ export default class ProjectService extends Service {
     return this.#enter(record);
   }
 
-  /** A new project, from the starter, stored and opened. Resolves its id. */
-  async newProject(): Promise<string> {
+  /** A new project, stored and opened (an empty one, or a starter's document). Resolves its id. */
+  async newProject(doc: ProjectDocument = defaultProject()): Promise<string> {
     await this.#settle();
-    return this.#addAndOpen(defaultProject());
+    return this.#addAndOpen(doc);
   }
 
   /** A copy of a stored project, named "… copy". It is not opened. Resolves its id, or null if it is gone. */

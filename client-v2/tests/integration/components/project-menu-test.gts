@@ -62,6 +62,7 @@ module('Integration | Project menu, undo and redo', function (hooks) {
     assert.dom('[data-test-save-state]').hasText(/Sav/);
 
     await click('[data-test-new-project]');
+    await click('[data-test-starter="empty"]');
     assert.dom('[data-test-project-panel]').doesNotExist();
     assert.strictEqual(project.doc.name, 'Untitled project');
     assert.dom('[data-test-undo-button]').isDisabled('history was cleared');

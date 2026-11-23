@@ -425,13 +425,18 @@ export function defaultProject(): ProjectDocument {
   .gain({ id: 'level', gain: 0.4 })`,
       ),
     ],
-    samples: Object.fromEntries(
-      BUILT_IN_SAMPLES.map((name) => [
-        name,
-        name === LOOP_SAMPLE
-          ? { url: `/samples/${name}.wav`, slices: [...LOOP_SLICES] }
-          : { url: `/samples/${name}.wav` },
-      ]),
-    ),
+    samples: builtInSamples(),
   };
+}
+
+/** The pool every new project starts with: the built-in sounds (the loop with its slices). */
+export function builtInSamples(): ProjectDocument['samples'] {
+  return Object.fromEntries(
+    BUILT_IN_SAMPLES.map((name) => [
+      name,
+      name === LOOP_SAMPLE
+        ? { url: `/samples/${name}.wav`, slices: [...LOOP_SLICES] }
+        : { url: `/samples/${name}.wav` },
+    ]),
+  );
 }

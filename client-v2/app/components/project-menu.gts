@@ -12,6 +12,8 @@ import {
   exportFileName,
 } from 'client-v2/project/file';
 import { PROJECT_SCOPE } from 'client-v2/project/schema';
+import { STARTERS, emptyProject } from 'client-v2/project/starters';
+import { STARTERS_TEXT, STARTER_TEXTS } from 'client-v2/help/starters-text';
 import type { ProjectInfo } from 'client-v2/project/storage';
 import type AudioService from 'client-v2/services/audio';
 import type ProjectService from 'client-v2/services/project';
@@ -57,7 +59,11 @@ export default class ProjectMenu extends Component<ProjectMenuSignature> {
   @service declare view: ViewService;
 
   @tracked open = false;
-  @tracked panel: 'menu' | 'projects' = 'menu';
+  @tracked panel: 'menu' | 'projects' | 'new' = 'menu';
+  starters = STARTERS;
+  text = STARTERS_TEXT;
+  starterName = (id: keyof typeof STARTER_TEXTS): string =>
+    STARTER_TEXTS[id].name;
   @tracked list: ProjectInfo[] = [];
   /** the project whose delete is waiting for its second press */
   @tracked confirming: string | undefined;
@@ -136,9 +142,21 @@ export default class ProjectMenu extends Component<ProjectMenuSignature> {
     this.close();
   };
 
-  newProject = (): Promise<void> =>
+  showNew = (): void => {
+    this.panel = 'new';
+  };
+
+  newEmpty = (): Promise<void> =>
     this.#run(async () => {
-      await this.project.newProject();
+      await this.project.newProject(emptyProject());
+      this.#opened();
+    });
+
+  newFromStarter = (id: string): Promise<void> =>
+    this.#run(async () => {
+      const starter = STARTERS.find((candidate) => candidate.id === id);
+      if (!starter) return;
+      await this.project.newProject(starter.build());
       this.#opened();
     });
 
@@ -292,8 +310,8 @@ export default class ProjectMenu extends Component<ProjectMenuSignature> {
               type="button"
               class="menu__item menu__separated"
               data-test-new-project
-              {{on "click" this.newProject}}
-            >New project</button>
+              {{on "click" this.showNew}}
+            >{{this.text.newProjectTitle}}…</button>
             <button
               type="button"
               class="menu__item"
@@ -325,6 +343,36 @@ export default class ProjectMenu extends Component<ProjectMenuSignature> {
                 role="status"
               >{{this.saveText}}</span>
             </p>
+          {{else if (is this.panel "new")}}
+            <button
+              type="button"
+              class="menu__item"
+              data-test-new-back
+              {{on "click" this.showMenu}}
+            >{{this.text.newProjectBack}}</button>
+            <ul
+              class="project-menu__list menu__separated"
+              aria-label={{this.text.startersGroupLabel}}
+            >
+              <li>
+                <button
+                  type="button"
+                  class="menu__item"
+                  data-test-starter="empty"
+                  {{on "click" this.newEmpty}}
+                >{{this.text.emptyName}}</button>
+              </li>
+              {{#each this.starters key="id" as |starter|}}
+                <li>
+                  <button
+                    type="button"
+                    class="menu__item"
+                    data-test-starter={{starter.id}}
+                    {{on "click" (fn this.newFromStarter starter.id)}}
+                  >{{this.starterName starter.id}}</button>
+                </li>
+              {{/each}}
+            </ul>
           {{else}}
             <button
               type="button"
