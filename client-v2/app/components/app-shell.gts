@@ -3,6 +3,7 @@ import { tracked } from '@glimmer/tracking';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import AppHeader from 'client-v2/components/app-header';
+import ScriptReference from 'client-v2/components/script-reference';
 import Tour from 'client-v2/components/tour';
 import WelcomeDialog from 'client-v2/components/welcome-dialog';
 import SoundBrowser from 'client-v2/components/sound-browser';
@@ -304,6 +305,9 @@ export default class AppShell extends Component<AppShellSignature> {
 
       {{#if this.help.welcomeOpen}}
         <WelcomeDialog />
+      {{/if}}
+      {{#if this.help.referenceOpen}}
+        <ScriptReference />
       {{/if}}
       <Tour />
     </div>

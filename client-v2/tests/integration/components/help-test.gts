@@ -5,6 +5,7 @@ import AppShell from 'client-v2/components/app-shell';
 import { MemoryFiles, MemoryStorage } from 'client-v2/project/storage';
 import { VIEW_STORAGE_KEY } from 'client-v2/services/view';
 import { TOUR_STEPS } from 'client-v2/help/tour';
+import { REFERENCE_FUNCTIONS } from 'client-v2/help/reference-data';
 
 module('Integration | Welcome and tour', function (hooks) {
   setupRenderingTest(hooks);
@@ -155,5 +156,54 @@ module('Integration | Welcome and tour', function (hooks) {
       );
       await click('[data-test-tour-next]');
     }
+  });
+});
+
+module('Integration | Script reference', function (hooks) {
+  setupRenderingTest(hooks);
+
+  hooks.beforeEach(function () {
+    const project = this.owner.lookup('service:project');
+    project.storage = new MemoryStorage();
+    project.files = new MemoryFiles();
+    this.owner.lookup('service:view').phone = false;
+  });
+
+  test('Help opens the reference: an entry for every function, the basics and the docs link, and Copy copies', async function (assert) {
+    const copied: string[] = [];
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: (text: string) => {
+          copied.push(text);
+          return Promise.resolve();
+        },
+      },
+    });
+    await render(<template><AppShell /></template>);
+    await click('[data-test-project-menu-button]');
+    await click('[data-test-help]');
+    await click('[data-test-help-reference]');
+
+    assert.dom('[data-test-reference]').exists();
+    assert
+      .dom('[data-test-reference-entry]')
+      .exists({ count: REFERENCE_FUNCTIONS.length });
+    assert.dom('[data-test-reference-basics]').exists();
+    assert
+      .dom('[data-test-reference-docs]')
+      .hasAttribute('href', 'https://jamesstaub.github.io/cracked-up/docs.html')
+      .hasAttribute('target', '_blank')
+      .hasAttribute('rel', 'noopener noreferrer');
+
+    await click('[data-test-reference-copy="knob"]');
+    assert.deepEqual(copied, [
+      REFERENCE_FUNCTIONS.find((entry) => entry.name === 'knob')!.example,
+    ]);
+    assert.dom('[data-test-reference-copy="knob"]').hasText('Copied');
+
+    await triggerKeyEvent(document.body, 'keydown', 'Escape');
+    assert.dom('[data-test-reference]').doesNotExist();
+    assert.dom('[data-test-project-menu-button]').isFocused();
   });
 });

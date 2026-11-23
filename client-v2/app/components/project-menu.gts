@@ -13,6 +13,7 @@ import {
 } from 'client-v2/project/file';
 import { PROJECT_SCOPE } from 'client-v2/project/schema';
 import { WELCOME_TEXT } from 'client-v2/help/welcome-text';
+import { REFERENCE_TEXT } from 'client-v2/help/reference-text';
 import { TOUR_TEXT } from 'client-v2/help/tour-text';
 import type HelpService from 'client-v2/services/help';
 import { STARTERS, emptyProject } from 'client-v2/project/starters';
@@ -64,7 +65,11 @@ export default class ProjectMenu extends Component<ProjectMenuSignature> {
 
   @tracked open = false;
   @tracked panel: 'menu' | 'projects' | 'new' | 'help' = 'menu';
-  helpText = { ...WELCOME_TEXT, tour: TOUR_TEXT.menuItem };
+  helpText = {
+    ...WELCOME_TEXT,
+    tour: TOUR_TEXT.menuItem,
+    reference: REFERENCE_TEXT.menuItem,
+  };
   starters = STARTERS;
   text = STARTERS_TEXT;
   starterName = (id: keyof typeof STARTER_TEXTS): string =>
@@ -185,6 +190,12 @@ export default class ProjectMenu extends Component<ProjectMenuSignature> {
     const opener = this.opener;
     this.close();
     this.help.startTour(opener);
+  };
+
+  showReference = (): void => {
+    const opener = this.opener;
+    this.close();
+    this.help.openReference(opener);
   };
 
   showWelcome = (): void => {
@@ -388,6 +399,12 @@ export default class ProjectMenu extends Component<ProjectMenuSignature> {
               data-test-help-tour
               {{on "click" this.startTour}}
             >{{this.helpText.tour}}</button>
+            <button
+              type="button"
+              class="menu__item"
+              data-test-help-reference
+              {{on "click" this.showReference}}
+            >{{this.helpText.reference}}</button>
             <button
               type="button"
               class="menu__item"
