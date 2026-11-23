@@ -92,6 +92,7 @@ What the leaders have that Euclip lacks: share by link, a gallery of examples, a
 - False-door prompts for the features that need accounts (section 7), with a mailing list behind them.
 - Privacy-respecting usage counts and error reports, so the false doors and the crash rate can be read.
 - cracked-up published to npm once stable, and installed properly in Euclip.
+- Before launch, check the welcome, the tour, the script reference and the starter projects against the interface as it then is. The interface is still changing, and the help text was written early.
 
 ### Phase 2. Accounts and saving
 
