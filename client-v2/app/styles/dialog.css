@@ -1,0 +1,183 @@
+/*
+ * The modal dialog (components/ui/dialog.gts), the welcome inside it, and the tour's card and outline.
+ * All of it is fixed to the screen: opening one moves nothing in the layout.
+ */
+
+.dialog {
+  position: fixed;
+  inset: 0;
+  z-index: var(--layer-dialog);
+  display: grid;
+  place-items: center;
+  padding: calc(var(--space-3) + var(--safe-top)) var(--space-3)
+    calc(var(--space-3) + var(--safe-bottom));
+  background: var(--black-50);
+}
+
+.dialog__panel {
+  display: flex;
+  flex-direction: column;
+  inline-size: min(36rem, 100%);
+  max-block-size: 100%;
+  border: var(--border-accent);
+  background: var(--near-black);
+  box-shadow: var(--shadow-drawer);
+  color: var(--text-on-dark);
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.dialog__panel--wide {
+  inline-size: min(52rem, 100%);
+}
+
+.dialog__head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+  border-block-end: var(--border-width-1) solid var(--mid-gray);
+}
+
+.dialog__title {
+  margin: 0;
+  color: var(--yellow);
+  font-size: var(--font-size-4);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-title);
+}
+
+.dialog__body {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  padding: var(--space-3);
+  overflow: hidden auto;
+  font-size: var(--font-size-6);
+}
+
+.dialog__actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-block-start: var(--border-width-1) solid var(--mid-gray);
+}
+
+.dialog__lead {
+  margin-block-end: var(--space-3);
+  font-size: var(--font-size-5);
+}
+
+.dialog__choices {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.dialog__choice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  inline-size: 100%;
+  min-block-size: var(--target-min);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width-2) solid var(--mid-gray);
+  background: transparent;
+  color: var(--text-on-dark);
+  text-align: start;
+}
+
+.dialog__choice-name {
+  color: var(--yellow);
+  font-weight: var(--font-weight-bold);
+}
+
+.dialog__choice-text {
+  color: var(--text-muted);
+  font-size: var(--font-size-7);
+}
+
+@media (hover: hover) {
+  .dialog__choice:hover {
+    border-color: var(--yellow);
+  }
+}
+
+.dialog :focus-visible,
+.tour :focus-visible {
+  outline: var(--border-width-2) solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ---- the tour ---- */
+
+.tour__mark {
+  position: fixed;
+  z-index: var(--layer-tour);
+  border: var(--border-width-3) solid var(--yellow);
+  outline: var(--border-width-1) solid var(--near-black);
+  pointer-events: none;
+}
+
+.tour__card {
+  position: fixed;
+  z-index: var(--layer-tour);
+  inline-size: min(22rem, 100vw - 2 * var(--space-2));
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-accent);
+  background: var(--near-black);
+  box-shadow: var(--shadow-drawer);
+  color: var(--text-on-dark);
+  font-size: var(--font-size-6);
+
+  &:focus {
+    outline: none;
+  }
+
+  /* before it has been placed it waits out of sight, so it never flashes in the wrong corner */
+  &:not([data-place]) {
+    visibility: hidden;
+  }
+
+  /* the phone: a strip across the screen, at the bottom unless what it points at is down there */
+  &[data-place="bottom"],
+  &[data-place="top"] {
+    inset-inline: 0;
+    inline-size: auto;
+    border-inline-width: 0;
+  }
+
+  &[data-place="bottom"] {
+    inset-block: auto 0;
+    padding-block-end: calc(var(--space-2) + var(--safe-bottom));
+  }
+
+  &[data-place="top"] {
+    inset-block: 0 auto;
+    padding-block-start: calc(var(--space-2) + var(--safe-top));
+  }
+}
+
+.tour__count {
+  color: var(--text-muted);
+  font-size: var(--font-size-7);
+}
+
+.tour__title {
+  margin: 0;
+  color: var(--yellow);
+  font-size: var(--font-size-5);
+  font-weight: var(--font-weight-bold);
+}
+
+.tour__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-block-start: var(--space-2);
+}

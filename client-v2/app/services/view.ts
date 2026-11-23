@@ -32,6 +32,7 @@ interface Stored {
   sheetOpen?: unknown;
   sheetSize?: unknown;
   selectedTrack?: unknown;
+  welcomeSeen?: unknown;
 }
 
 /** How tall the phone's track sheet is when it is open: half the screen, or up to the project bar. */
@@ -87,6 +88,15 @@ export default class ViewService extends Service {
 
   selectTrack(id: string): void {
     this.selectedTrack = id;
+    this.#save();
+  }
+
+  /** Whether the welcome has been shown on this browser: once, never again. Remembered with the rest of the view. */
+  @tracked welcomeSeen = this.#stored.welcomeSeen === true;
+
+  markWelcomeSeen(): void {
+    if (this.welcomeSeen) return;
+    this.welcomeSeen = true;
     this.#save();
   }
 
@@ -481,6 +491,7 @@ export default class ViewService extends Service {
           laneView: this.laneView,
           sheetSize: this.sheetSize,
           selectedTrack: this.selectedTrack,
+          welcomeSeen: this.welcomeSeen,
           // (only a phone remembers whether the footer was open: elsewhere it starts open)
           sheetOpen: this.phone ? this.opened : this.#stored.sheetOpen,
         }),

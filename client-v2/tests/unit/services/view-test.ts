@@ -67,6 +67,7 @@ module('Unit | Service | view', function (hooks) {
         snaps: {},
         laneView: {},
         sheetSize: 'half',
+        welcomeSeen: false,
       },
     );
   });

@@ -3,6 +3,8 @@ import { tracked } from '@glimmer/tracking';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import AppHeader from 'client-v2/components/app-header';
+import Tour from 'client-v2/components/tour';
+import WelcomeDialog from 'client-v2/components/welcome-dialog';
 import SoundBrowser from 'client-v2/components/sound-browser';
 import TrackFooter from 'client-v2/components/track-footer';
 import TrackRail from 'client-v2/components/track-rail';
@@ -16,6 +18,7 @@ import {
   newTrackId,
 } from 'client-v2/project/default-project';
 import { PROJECT_SCOPE, type TrackDocument } from 'client-v2/project/schema';
+import type HelpService from 'client-v2/services/help';
 import type AudioService from 'client-v2/services/audio';
 import type ViewService from 'client-v2/services/view';
 import type ProjectService from 'client-v2/services/project';
@@ -47,6 +50,7 @@ export default class AppShell extends Component<AppShellSignature> {
   @service declare audio: AudioService;
   @service declare project: ProjectService;
   @service declare view: ViewService;
+  @service declare help: HelpService;
 
   /** The rows show signal chains, not steps (the project bar's Seq / Signal). */
   get showChains(): boolean {
@@ -65,6 +69,8 @@ export default class AppShell extends Component<AppShellSignature> {
   constructor(owner: unknown, args: AppShellSignature['Args']) {
     super(owner as never, args);
     void this.audio.boot();
+    // (a browser's first visit: once the project has loaded and found nothing saved)
+    void this.project.load().then(() => this.help.considerWelcome());
     this.view.openSounds = () => {
       this.sidebarOpen = true;
     };
@@ -295,6 +301,11 @@ export default class AppShell extends Component<AppShellSignature> {
         @script={{this.selectedScript}}
         @onScriptChange={{this.setScript}}
       />
+
+      {{#if this.help.welcomeOpen}}
+        <WelcomeDialog />
+      {{/if}}
+      <Tour />
     </div>
   </template>
 }

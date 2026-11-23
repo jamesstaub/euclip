@@ -137,6 +137,8 @@
   --layer-menu: 5;
   --layer-scrim: 10;
   --layer-drawer: 20;
+  --layer-tour: 25;
+  --layer-dialog: 30;
 
   /* ---- motion ---- */
   --duration-fast: 0.15s;

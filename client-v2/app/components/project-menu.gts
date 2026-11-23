@@ -12,6 +12,9 @@ import {
   exportFileName,
 } from 'client-v2/project/file';
 import { PROJECT_SCOPE } from 'client-v2/project/schema';
+import { WELCOME_TEXT } from 'client-v2/help/welcome-text';
+import { TOUR_TEXT } from 'client-v2/help/tour-text';
+import type HelpService from 'client-v2/services/help';
 import { STARTERS, emptyProject } from 'client-v2/project/starters';
 import { STARTERS_TEXT, STARTER_TEXTS } from 'client-v2/help/starters-text';
 import type { ProjectInfo } from 'client-v2/project/storage';
@@ -57,9 +60,11 @@ export default class ProjectMenu extends Component<ProjectMenuSignature> {
   @service declare project: ProjectService;
   @service declare audio: AudioService;
   @service declare view: ViewService;
+  @service declare help: HelpService;
 
   @tracked open = false;
-  @tracked panel: 'menu' | 'projects' | 'new' = 'menu';
+  @tracked panel: 'menu' | 'projects' | 'new' | 'help' = 'menu';
+  helpText = { ...WELCOME_TEXT, tour: TOUR_TEXT.menuItem };
   starters = STARTERS;
   text = STARTERS_TEXT;
   starterName = (id: keyof typeof STARTER_TEXTS): string =>
@@ -166,6 +171,27 @@ export default class ProjectMenu extends Component<ProjectMenuSignature> {
       this.confirming = undefined;
       this.panel = 'projects';
     });
+
+  showHelp = (): void => {
+    this.panel = 'help';
+  };
+
+  /** the menu's own button: where focus goes back to when a help panel closes (the menu itself has gone) */
+  get opener(): HTMLElement | null {
+    return document.querySelector<HTMLElement>('.project-menu__button');
+  }
+
+  startTour = (): void => {
+    const opener = this.opener;
+    this.close();
+    this.help.startTour(opener);
+  };
+
+  showWelcome = (): void => {
+    const opener = this.opener;
+    this.close();
+    this.help.openWelcome(opener);
+  };
 
   showMenu = (): void => {
     this.panel = 'menu';
@@ -337,12 +363,37 @@ export default class ProjectMenu extends Component<ProjectMenuSignature> {
                 data-test-import-error
               >{{this.message}}</p>
             {{/if}}
+            <button
+              type="button"
+              class="menu__item menu__separated"
+              data-test-help
+              {{on "click" this.showHelp}}
+            >{{this.helpText.helpMenu}}…</button>
             <p class="project-menu__saved menu__separated" data-test-save-state>
               <span
                 class="project-menu__saved-text"
                 role="status"
               >{{this.saveText}}</span>
             </p>
+          {{else if (is this.panel "help")}}
+            <button
+              type="button"
+              class="menu__item"
+              data-test-help-back
+              {{on "click" this.showMenu}}
+            >{{this.helpText.helpBack}}</button>
+            <button
+              type="button"
+              class="menu__item menu__separated"
+              data-test-help-tour
+              {{on "click" this.startTour}}
+            >{{this.helpText.tour}}</button>
+            <button
+              type="button"
+              class="menu__item"
+              data-test-help-welcome
+              {{on "click" this.showWelcome}}
+            >{{this.helpText.welcomeItem}}</button>
           {{else if (is this.panel "new")}}
             <button
               type="button"

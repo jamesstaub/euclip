@@ -77,6 +77,8 @@ export default class ProjectService extends Service {
   @tracked doc: ProjectDocument = defaultProject();
   /** The id of the open project. (A project nothing has been written for yet has one already.) */
   @tracked currentId: string = newProjectId();
+  /** Whether `load` found a saved project: false on a browser's first visit. */
+  restored = false;
   @tracked saveState: SaveState = 'saved';
   @tracked private past: HistoryEntry[] = [];
   @tracked private future: ProjectDocument[] = [];
@@ -127,6 +129,7 @@ export default class ProjectService extends Service {
     this.#loading ??= waitForPromise(
       this.#latest().then((saved) => {
         if (!saved || isDestroying(this)) return;
+        this.restored = true;
         this.#become(saved);
         this.#rememberedOpen = true;
         this.#tell({ kind: 'replace', reason: 'load' });
