@@ -10,7 +10,7 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends git ca-cert
 # INTERIM, until cracked-up is published to npm: client-v2 depends on "file:../../cracked-up", a sibling
 # of the repo, which the build context cannot see. Clone it at a pinned ref beside the app and build it.
 ARG CRACKED_UP_REPO=https://github.com/jamesstaub/cracked-up.git
-ARG CRACKED_UP_REF=ee42085de211328ceb9bf205d4fc2d3210d09a00
+ARG CRACKED_UP_REF=2f70ab2194055cc31e8d06015e41c4e85e8e3096
 WORKDIR /src
 RUN git init cracked-up && cd cracked-up \
  && git remote add origin "$CRACKED_UP_REPO" \

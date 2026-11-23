@@ -41,7 +41,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: jamesstaub/cracked-up
-          ref: ee42085de211328ceb9bf205d4fc2d3210d09a00
+          ref: 2f70ab2194055cc31e8d06015e41c4e85e8e3096
           path: cracked-up
       - uses: actions/setup-node@v4
         with: { node-version: 22.15.0 }
